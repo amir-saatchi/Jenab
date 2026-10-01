@@ -56,7 +56,7 @@ func run(args []string) error {
         return script.Serve(os.Stdin, os.Stdout) // child process (Q4)
     }
     paths, err := config.DefaultPaths(appDir)            // <user data dir>/<app>/
-    settings, err := config.LoadSettings(paths.Settings) // config.toml
+    settings, err := config.LoadSettings(paths.Settings) // config.yaml
     log, closeLog, err := logfile.Open(paths.Logs, settings.Debug)
     defer closeLog()
     ctx, cancel := context.WithCancel(context.Background()) // the app context (Q20)

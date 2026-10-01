@@ -1,6 +1,6 @@
 # Spec v0.6 — Project Storage, Context, Views and Pipelines
 
-> **v0.6:** API connections: saved APIs with the user's key, `connect_api`, `call_api` and `api.get`; secrets are used only through connections (6.5, 6.7, 6.9, 8.1); read-only workspace with `list_files`, `read_file` and `search_code`, and the plan for code tools later (8.5); connections and workspace in the project card (3.2) and `registry.db` (2.4); Mother chat, chat titles and roles, `list_chats`, `create_chat` and `send_to_chat` (2.3, 3.1, 8.1, 8.3, 8.6); MCP servers, draft (8.7); layout per chat, the open-page notice and `open_page` (5.9); page header and the `card`, `filter`, `button` and `image` blocks (5.9, 5.10); `set` and `bulk` row actions and the `badge` format (5.3); theme and tones (5.11); approval card, question form and `ask_user`, approval levels (8.8); skills (3.1, 8.1, 8.9), decided in SPIKE-025; *Refresh memory* replaces *Recheck memory*: it applies edits, writes a summary to the session notes and ends with a cut (3.1, 3.3–3.6); model catalog and first run without a wizard (3.9); pipeline page with Flow and Steps views, and *Pause schedule* (6.10); model picker per chat (3.9); app shell, project settings and window sizes (5.12); the waiting bar above the composer (8.8); starter prompts (3.9); Markdown styling with shadcn Typeset (5.8); right-to-left text (5.8); SPIKE-023 decisions: the prompt rule, status polling, `turn_max_requests`, messages during a turn and batched notices (7.6, 8.3), and Mother's delegation guidance (8.6); Gate-2 high-fidelity decisions: Mother's gradient colour (8.6), the folded sidebar rail, a resizable dock and Settings as a full view (5.12), `remark-gfm`, explicit list and table directions and the Vazirmatn font (5.8), *Settings → Usage*, *Other models*, *Open the example* and Ollama first when it runs (3.9), and *Inspect* in the turn footer (8.4); Phase 1 providers: Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama (3.9); web search with Tavily or SearXNG, Brave later (6.5); `thinking` message parts, stored with their signature so they can be sent back unchanged (2.3, 3.8); running background tasks in Mother's chat list (8.6); the Runtime panel in the developer tools (8.4); what *Stop* cancels, open tool calls closed as cancelled, and kept partial text (8.3); cancelled writes never commit (7.3); LLM stall timeouts (3.8); one source format for who did something, in the change log, chats, objects, links and approvals, with `app` for the Mother chat (2.3, 2.5, 4.2, 4.6, 8.8); subagents: one level, transcripts in the bucket, changes undone with the parent turn (8.1, 8.6); the app is named Jenab, so internal tables start with `_jenab_` and the lock file is `jenab.lock` (was the working name Burrow); Linux as a beta, shipped as an AppImage (2.8).
+> **v0.6:** API connections: saved APIs with the user's key, `connect_api`, `call_api` and `api.get`; secrets are used only through connections (6.5, 6.7, 6.9, 8.1); read-only workspace with `list_files`, `read_file` and `search_code`, and the plan for code tools later (8.5); connections and workspace in the project card (3.2) and `registry.db` (2.4); Mother chat, chat titles and roles, `list_chats`, `create_chat` and `send_to_chat` (2.3, 3.1, 8.1, 8.3, 8.6); MCP servers, draft (8.7); layout per chat, the open-page notice and `open_page` (5.9); page header and the `card`, `filter`, `button` and `image` blocks (5.9, 5.10); `set` and `bulk` row actions and the `badge` format (5.3); theme and tones (5.11); approval card, question form and `ask_user`, approval levels (8.8); skills (3.1, 8.1, 8.9), decided in SPIKE-025; *Refresh memory* replaces *Recheck memory*: it applies edits, writes a summary to the session notes and ends with a cut (3.1, 3.3–3.6); model catalog and first run without a wizard (3.9); pipeline page with Flow and Steps views, and *Pause schedule* (6.10); model picker per chat (3.9); app shell, project settings and window sizes (5.12); the waiting bar above the composer (8.8); starter prompts (3.9); Markdown styling with shadcn Typeset (5.8); right-to-left text (5.8); SPIKE-023 decisions: the prompt rule, status polling, `turn_max_requests`, messages during a turn and batched notices (7.6, 8.3), and Mother's delegation guidance (8.6); Gate-2 high-fidelity decisions: Mother's gradient colour (8.6), the folded sidebar rail, a resizable dock and Settings as a full view (5.12), `remark-gfm`, explicit list and table directions and the Vazirmatn font (5.8), *Settings → Usage*, *Other models*, *Open the example* and Ollama first when it runs (3.9), and *Inspect* in the turn footer (8.4); Phase 1 providers: Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama (3.9); web search with Tavily or SearXNG, Brave later (6.5); `thinking` message parts, stored with their signature so they can be sent back unchanged (2.3, 3.8); running background tasks in Mother's chat list (8.6); the Runtime panel in the developer tools (8.4); what *Stop* cancels, open tool calls closed as cancelled, and kept partial text (8.3); cancelled writes never commit (7.3); LLM stall timeouts (3.8); one source format for who did something, in the change log, chats, objects, links and approvals, with `app` for the Mother chat (2.3, 2.5, 4.2, 4.6, 8.8); subagents: one level, transcripts in the bucket, changes undone with the parent turn (8.1, 8.6); the app is named Jenab, so internal tables start with `_jenab_` and the lock file is `jenab.lock` (was the working name Burrow); Linux as a beta, shipped as an AppImage (2.8); user settings in `config.yaml` instead of `config.toml`, so one YAML library reads every config and comments survive saves (2.1).
 >
 > **v0.5:** model-neutral rule (1, 3.8); dependents in the project card (3.2); query options for view filters (5.2); page format and virtual rows for tables (5.3); chart size rules (5.4); frontend rules (5.8); exact `for_each` rules (6.3) and `flatten` (6.4); `feed.read`, search sources and search providers, no keyless web search (6.5, 8.1); `read_feed` and `read_config` tools (8.1); `op` field for migration steps and full dependent configs for the schema agent (8.2); turns and background work, draft (8.3); scenario runner and turn inspector (8.4); pages built from blocks, a block registry and where pages open (5.9, 5.10), pie charts (5.4) and `stat` views (5.10); corrected Bitcoin example with news from feeds, a news view and a new news key (9); repair loop (10).
 >
@@ -60,7 +60,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 
 ```
 <user data dir>/Jenab/
-  config.toml                 user settings; secrets stay in the OS keychain
+  config.yaml                 user settings; secrets stay in the OS keychain
   registry.db                 project list and user memory
   projects/
     <project_id>/             stable ULID; the display name is stored separately
@@ -71,6 +71,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
       tmp/                    dry-run copies and partial downloads
 ```
 
+- `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote.
 - A project folder is self-contained. Backup, export and delete work on the folder.
 - A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. Every `VACUUM INTO` follows the safe-copy rule in 7.5.
 - If `registry.db` is lost, it is rebuilt by scanning `projects/`. The project's name is also stored in `_jenab_meta`.
@@ -342,15 +343,15 @@ For long chats, the estimated token cost is shown before starting.
 
 ### 3.6 History window
 
-There is no automatic LLM compaction; *Refresh memory* (3.5) is the one the user starts. The history window is configured in `config.toml`:
+There is no automatic LLM compaction; *Refresh memory* (3.5) is the one the user starts. The history window is configured in `config.yaml`:
 
-```toml
-[context]
-history_min_turns = 3        # turns kept after a cut
-history_max_turns = 8        # a cut happens when the window grows past this
-history_max_tokens = 24000   # ...or when the history block grows past this
-tool_preview_tokens = 1500   # maximum size of a tool result preview
-turn_trim_ratio = 0.5        # in-turn trimming starts at this share of the model's window
+```yaml
+context:
+  history_min_turns: 3        # turns kept after a cut
+  history_max_turns: 8        # a cut happens when the window grows past this
+  history_max_tokens: 24000   # ...or when the history block grows past this
+  tool_preview_tokens: 1500   # maximum size of a tool result preview
+  turn_trim_ratio: 0.5        # in-turn trimming starts at this share of the model's window
 ```
 
 - The current turn is always complete.
@@ -449,7 +450,7 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
 - Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai, Groq or Ollama Cloud) and Ollama (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic uses the Anthropic SDK; the others use the OpenAI SDK (3.8).
 - *Connect* stores the key in the OS keychain (6.7), reads the provider's model list and turns on every catalog model the key can use. They appear in the model picker at once.
 - For Anthropic, OpenAI and Gemini, catalog models are shown first. Models the provider lists but the catalog doesn't know yet appear under *Other models*, off by default; turning one on asks for its context window. For OpenAI-compatible providers and Ollama, the models come from the provider's list; the context window is read from the provider when it reports one (Ollama `/api/show`), otherwise the user enters it.
-- `[llm.models]` in `config.toml` maps the aliases `default` and `fast` (used by `llm.*` steps, 6.5) to models. With the first provider they are set from the catalog's suggestions; the user can change them in *Settings → Models*.
+- `llm.models` in `config.yaml` maps the aliases `default` and `fast` (used by `llm.*` steps, 6.5) to models. With the first provider they are set from the catalog's suggestions; the user can change them in *Settings → Models*.
 - **Model picker:** a chip in the composer shows the chat's model by its catalog name, e.g. "Gemma 4 31B". Its menu lists the models that are on, grouped by provider, and marks which ones are `default` and `fast`. Providers without a key are listed with *Add key*.
   - The choice applies to that chat and is stored in `chats.model`. New chats use `default`.
   - Changing the model changes nothing else: same prompts, tools and limits (1).
@@ -817,7 +818,7 @@ rows:
 
 ### 5.11 Theme
 
-- **Setting:** Light, Dark or System (the default, following the OS). Set in *Settings → Appearance* and stored in `config.toml` (`[ui] theme`).
+- **Setting:** Light, Dark or System (the default, following the OS). Set in *Settings → Appearance* and stored in `config.yaml` (`ui.theme`).
 - **How it works:**
   - shadcn/ui colours are CSS variables, switched by a `dark` class on the root. A change applies at once, without a reload. With System, an OS change applies at once too.
   - Blocks, charts (Recharts reads the same variables), code highlighting and the chat all use these variables.
@@ -968,7 +969,7 @@ Per-item expressions (`transform.map` fields and `transform.filter` conditions) 
 | `feed.read` | `urls` (RSS or Atom feeds), `match` (optional keywords: keeps items whose title or summary contains one, ignoring case; an empty list keeps all), `since` (default `7d`), `limit` (default 50) | `items[]` — `{ title, url, summary, published, feed }`, newest first |
 | `html.extract` | `url` or `html`, `mode` (`readable` / `selector`), `selector` | `title`, `text` (Markdown in `readable` mode), `links[]`, `status`. `readable` follows 3.7; an invalid `selector` is a validation error (CSS parsed with cascadia) |
 
-`http.download` saves the response into the bucket under `key` (which may contain expressions, e.g. `images/btc/${{ today() }}.png`). Allowed MIME types are set in `config.toml`.
+`http.download` saves the response into the bucket under `key` (which may contain expressions, e.g. `images/btc/${{ today() }}.png`). Allowed MIME types are set in `config.yaml`.
 
 **Search sources** (SPIKE-020). Jenab never scrapes search result pages. There is no keyless general web search: none that is allowed worked.
 - **`web`:** the search provider set up by the user.
@@ -1018,7 +1019,7 @@ Per-item expressions (`transform.map` fields and `transform.filter` conditions) 
 | `llm.extract` | `input`, `instruction`, `output` (field schema), `model` | `data` |
 
 - `llm.select` asks the LLM only for the indexes of the chosen items and the `add` fields. The runtime returns the **original** items with the added fields, in ranked order, so the LLM cannot change URLs or titles. If there are fewer items than `count`, all are returned, ranked. Items beyond `max_input_tokens` are dropped, with a warning in the run log.
-- `model` is an alias from `config.toml` (`[llm.models]`, e.g. `default`, `fast`). Pipeline steps default to `fast`.
+- `model` is an alias from `config.yaml` (`llm.models`, e.g. `default`, `fast`). Pipeline steps default to `fast`.
 - LLM output is validated against its schema. Invalid output is retried once, then the step fails. Token usage is recorded per step.
 
 **Bucket**
@@ -1256,16 +1257,16 @@ Large writes are split into chunks (500 rows per transaction) so one big import 
 
 Set in the user config file, so parallel work cannot exhaust API rate limits or the machine:
 
-```toml
-[scheduler]
-max_parallel_runs = 4      # pipeline runs across all projects
+```yaml
+scheduler:
+  max_parallel_runs: 4                # pipeline runs across all projects
 
-[llm]
-max_parallel_calls = 4     # LLM calls across chats, subagents and pipelines
-max_background_tasks_per_chat = 3   # 8.3
-turn_max_requests = 25             # model requests per user turn (8.3)
-system_turn_max_requests = 8       # model requests per turn the app starts (8.3)
-system_turn_max_tokens = 20000      # token cap for turns started by a finish notice (8.3)
+llm:
+  max_parallel_calls: 4               # LLM calls across chats, subagents and pipelines
+  max_background_tasks_per_chat: 3    # 8.3
+  turn_max_requests: 25               # model requests per user turn (8.3)
+  system_turn_max_requests: 8         # model requests per turn the app starts (8.3)
+  system_turn_max_tokens: 20000       # token cap for turns started by a finish notice (8.3)
 ```
 
 LLM calls use the same two priorities as writes. Chat turns are interactive; pipeline steps and *Refresh memory* are background. After 10 interactive calls in a row, one background call goes first.
@@ -1625,7 +1626,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 - **Turns started by the app** (8.3) wait the same way. Scheduled runs never ask: everything they need is approved when the pipeline is saved (10).
 
 **Approval levels.** The user picks how much is asked: **Strict**, **Standard** (the default) or **Auto**.
-- **Where:** per project, stored in `_jenab_meta`. The default for new projects is in `config.toml` (`[approvals] default_level`).
+- **Where:** per project, stored in `_jenab_meta`. The default for new projects is in `config.yaml` (`approvals.default_level`).
 - **Shown:** a chip in the composer, "Approvals: Standard ▾", next to the model picker. A change applies from the next tool call and adds a notice to the chat.
 - **Scope:** every chat of the project uses it, including role chats working for Mother and turns started by the app.
 

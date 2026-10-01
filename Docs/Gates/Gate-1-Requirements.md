@@ -137,11 +137,11 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 
 | ID | Requirement | Priority | Phase | Source |
 |---|---|---|---|---|
-| R-90 | One OpenAI-compatible provider in Phase 1; Anthropic and local models (Ollama) by the release | Must | 1, 5 | SPEC 3.8 |
+| R-90 | Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama in Phase 1 (decided 2026-09-29) | Must | 1 | SPEC 3.8, 3.9 |
 | R-118 | No setup wizard: the app opens with *Create project*; a new Mother chat has starter prompts; a provider is asked for in the chat when a message is sent without one, and the message is kept | Must | 1 | SPEC 3.9 |
 | R-119 | A built-in model catalog (limits and prices, no prompts), updated with app releases; adding a provider key turns on its models in the model picker | Must | 1 | SPEC 3.9 |
 | R-121 | App shell: the left sidebar folds to icons while a page is open; project settings from the project switcher; a minimum window of 640 × 480; below 900 px, sidebars and the chat become overlays | Must | 1, 3 | SPEC 5.12 |
-| R-91 | Settings in `config.toml`; all keys in the OS keychain | Must | 1 | SPEC 2.1, 6.7 |
+| R-91 | Settings in `config.yaml`; all keys in the OS keychain | Must | 1 | SPEC 2.1, 6.7 |
 | R-92 | Self-update with signed releases, a user choice of automatic, notify only or off | Must | 5 | SPEC 2.8 |
 | R-93 | Scenario runner: the same agent scenarios on every test model, with a report | Must | 1 | SPEC 8.4, TASK-001 |
 | R-94 | Turn inspector behind *Settings → Developer* | Should | 1 | SPEC 8.4 |
@@ -214,7 +214,7 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 | ID | Requirement | Source |
 |---|---|---|
 | N-50 | Windows 11 and macOS; Linux x64 as a beta; per-user install without admin rights | SPEC 2.8 |
-| N-51 | No cgo in the build | Gate-2 |
+| N-51 | No cgo in our code or dependencies; Windows builds need no C compiler. Wails itself uses cgo on macOS and Linux | Gate-2, P1-01 |
 | N-52 | Idle memory under 300 MB (*proposed*; measured 245 MB) | SPIKE-022 |
 | N-53 | Text meets WCAG AA contrast (4.5:1) in both themes, including every tone | SPEC 5.11 |
 
@@ -249,4 +249,3 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 ## Open items
 - Confirm the *proposed* targets: N-02, N-07, N-10, N-41, N-52.
 - Confirm the Should items: R-04, R-52, R-66, R-81, R-82, R-94, R-112.
-- R-90 depends on the Phase 1 provider choice (PROPOSAL §13).

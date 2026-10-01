@@ -197,7 +197,7 @@ Questions to answer before writing the high-level code (packages, types, interfa
 
 ## 8. Wiring and lifecycle
 28. How does `main` build everything?
-   **Decided (2026-09-30):** plain constructors in one place, no DI library, no globals, nothing started in `init()`. `main` calls `run(args) error`, which checks the script-worker flag (Q4), loads `config.toml`, builds the packages in import-graph order and starts Wails. A constructor with more than about 3 dependencies takes a small `Deps` struct.
+   **Decided (2026-09-30):** plain constructors in one place, no DI library, no globals, nothing started in `init()`. `main` calls `run(args) error`, which checks the script-worker flag (Q4), loads `config.yaml`, builds the packages in import-graph order and starts Wails. A constructor with more than about 3 dependencies takes a small `Deps` struct.
 29. Opening, idling and closing a project (2.7): does a `Project` value own its writers, reader pools and schedules?
    **Decided:** a `Project` owns its storage: both writers, both reader pools, the bucket and `jenab.lock`. Chat runners and runs stay in `agent` and `pipeline` and hold a lease while they work: `p, err := projects.Open(ctx, id); defer p.Release()`. `project.Manager` keeps one instance per project and runs crash recovery on open. Idle means no leases for 10 minutes; the scheduler takes a lease for each run.
 30. Shutdown order: stop turns, drain the writers, checkpoint, close. Who runs it, and how long may it take?

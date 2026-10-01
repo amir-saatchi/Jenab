@@ -243,7 +243,7 @@ export function Screen07() {
         </FieldGroup>
         <p className="text-xs text-muted-foreground">
           <Badge variant="outline" className="me-1.5">
-            config.toml
+            config.yaml
           </Badge>
           Saved in the user config file.
         </p>

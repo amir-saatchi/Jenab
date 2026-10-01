@@ -81,11 +81,11 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 | Execution | Tool registry, pipeline runner, scheduler, sandboxed Starlark escape hatch |
 | Data | Async data layer: one writer goroutine and a read-only pool per database file, WAL mode; object store for the bucket |
 | Providers | LLM interface (OpenAI-compatible, Anthropic, local via Ollama/LM Studio), search and extract interfaces |
-| Storage | `config.toml`, `registry.db` (project list, user memory), one folder per project; API keys in the OS keychain |
+| Storage | `config.yaml`, `registry.db` (project list, user memory), one folder per project; API keys in the OS keychain |
 
 ```
 <user data dir>/Jenab/
-  config.toml
+  config.yaml
   registry.db
   projects/<project_id>/
     project.db     data tables, views, pipelines, memory, change log, runs, bucket index

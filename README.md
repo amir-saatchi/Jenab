@@ -2,7 +2,7 @@
 
 A desktop AI agent that keeps its work in per-project databases, not long chats, and turns it into reusable dashboards and scheduled pipelines. Dashboards are built from tables, charts, stats and forms. Any model, local or cloud. Go + Wails.
 
-> **Status:** in design. There is no app to run yet. The design, the spikes that tested it and the UI mockups are here; Phase 1 coding starts after Gate 3.
+> **Status:** in design. There is no app to use yet: the design, the spikes that tested it, the UI mockups and the first code skeleton are here. Phase 1 coding starts after Gate 3, with the [Phase 1 tickets](Docs/Tickets/README.md#phase-1).
 
 ## Why
 
@@ -21,6 +21,7 @@ It works with Anthropic, OpenAI, Gemini, OpenAI-compatible APIs and Ollama, with
 - [Spec](Docs/SPEC.md): storage, context, views, pipelines, concurrency and agent tools
 - [Gates](Docs/Gates): vision, requirements, technical design, readiness and tests
 - [Code design](Docs/Code-Design): how the Go code is structured
+- [Development](Docs/DEVELOPMENT.md): build, run and test
 - [Tickets](Docs/Tickets): the spikes and their results; their code is in [`spikes/`](spikes)
 - [Mockups](mockups): the high-fidelity UI, built with React and shadcn/ui
 

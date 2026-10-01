@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest. Jenab is still in design, so the most useful contributions right now are comments on the [SPEC](Docs/SPEC.md) and the open questions in the [Gates](Docs/Gates). Please open an issue before starting larger work.
+Thanks for your interest. Jenab is still in design, so the most useful contributions right now are comments on the [SPEC](Docs/SPEC.md) and the open questions in the [Gates](Docs/Gates). Please open an issue before starting larger work. [DEVELOPMENT.md](Docs/DEVELOPMENT.md) explains how to build and test.
 
 ## Sign your commits (DCO)
 
