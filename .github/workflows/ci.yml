@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Windows builds need no C compiler (N-51), so cgo stays off there.
+      # Wails uses cgo on macOS (Cocoa) and Linux (GTK), and -race needs it.
+      CGO_ENABLED: ${{ startsWith(matrix.os, 'windows') && '0' || '1' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+
+      # The Go build embeds frontend/dist, so the frontend is built first.
+      - name: Frontend
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Format
+        if: runner.os == 'Linux'
+        run: test -z "$(go fmt ./...)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            go test ./...
+          else
+            go test -race ./...
+          fi
+
+      - name: Build
+        run: go build -o jenab-build ./cmd/desktop
