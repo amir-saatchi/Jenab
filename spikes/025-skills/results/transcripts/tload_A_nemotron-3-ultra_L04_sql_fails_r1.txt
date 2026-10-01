@@ -1,0 +1,10 @@
+===== nemotron-3-ultra L04_sql_fails guide v2 run 1 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish stop, prompt 4659, output 250, 15.1s)
+[reasoning 630 chars]
+The query fails because `_burrow_runs` is an internal/system table that's explicitly blocked by the SQL rules. The rules state: "no `_burrow_*` or `sqlite_*` tables."
+
+The query tool only allows access to your project's user tables (like `btc_news`, `btc_prices`, `watch_keywords`), not Burrow's internal metadata tables.
+----- result: stop answer, loaded [], events 1

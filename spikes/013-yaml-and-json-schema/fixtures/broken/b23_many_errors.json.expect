@@ -1,0 +1,6 @@
+# expect: 4 /trigger anyOf
+# expect: 4 /trigger/manual type
+# expect: 6 /steps/0/with/timeout type
+# expect: 7 /steps/1/with required
+# expect: 7 /steps/1/with/query additionalProperties
+# expect: 9 /on_error enum

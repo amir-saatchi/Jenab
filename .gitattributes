@@ -1,0 +1,9 @@
+# normalize line endings in the repository
+* text=auto
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.exe binary

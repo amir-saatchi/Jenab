@@ -1,0 +1,4 @@
+prompt tokens used before this invocation: 1901974 of 2000000
+22:23:08 nemotron-3-ultra T2 run 1: stop=done valid=true first=false failedBatches=1 checks=10/10 req=4 prompt=21098 peak=5965 77s budget=1923072 
+
+prompt tokens used in total: 1923072 of 2000000 (output 158727)

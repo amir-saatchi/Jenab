@@ -1,0 +1,12 @@
+# Minimal SearXNG settings for SPIKE-020. Everything else is the image default.
+use_default_settings: true
+general:
+  instance_name: "burrow-spike"
+server:
+  # secret_key comes from the SEARXNG_SECRET env var at docker run
+  limiter: false        # single local user, no bot detection needed
+  image_proxy: false
+search:
+  formats:
+    - html
+    - json              # off by default; Burrow needs it

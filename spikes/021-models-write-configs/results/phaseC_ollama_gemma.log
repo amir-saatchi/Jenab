@@ -1,0 +1,6 @@
+prompt tokens used before this invocation: 1779367 of 2000000
+calib gemma4:31b v2: guide 3489 tokens (11519 chars), tools 588 tokens (2037 chars) 
+22:14:26 gemma4:31b       T2 run 1: stop=repair limit valid=false first=false failedBatches=5 checks=0/1 req=5 prompt=28570 peak=6939 11s budget=1812101 
+22:14:46 gemma4:31b       T4 run 1: stop=done valid=true first=false failedBatches=2 checks=9/13 req=5 prompt=34574 peak=9413 20s budget=1846675 
+
+prompt tokens used in total: 1846675 of 2000000 (output 149564)

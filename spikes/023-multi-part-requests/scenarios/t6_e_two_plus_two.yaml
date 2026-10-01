@@ -1,0 +1,10 @@
+id: t6_e_two_plus_two
+title: 'What''s 2+2? -> Mother answers itself'
+tests: ["6"]
+context: mother
+why: 'Answer 4 directly; no delegation.'
+messages:
+  - text: "What's 2+2?"
+asserts:
+  - {type: no_delegation_when_simple, test: "6"}
+  - {type: answer_contains, test: "6", turn: first, match: '\b4\b|four'}

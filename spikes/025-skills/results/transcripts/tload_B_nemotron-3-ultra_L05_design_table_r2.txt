@@ -1,0 +1,32 @@
+===== nemotron-3-ultra L05_design_table guide v2 run 2 chained false
+----- user
+Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don't create it yet.
+----- assistant (finish tool_calls, prompt 2144, output 89, 65.3s)
+[reasoning 305 chars]
+> load_skill {"name":"database-design"}
+< load_skill
+Skill loaded: database-design
+
+Rules: every table has an explicit primary key. Tables filled by pipelines also get `_run_id TEXT` and `_fetched_at TEXT` (the runtime fills them). Names are lower_snake_case. When a goal widens (a second coin, a second city), migrate to one general table with a key column (`prices(coin, date, …)`) instead of parallel tables.
+
+----- assistant (finish stop, prompt 2273, output 645, 33.3s)
+[reasoning 1349 chars]
+**Table design: `crypto_exchanges`**
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | `INTEGER` | `PRIMARY KEY` | Surrogate key; stable for foreign keys |
+| `name` | `TEXT` | `NOT NULL UNIQUE` | Exchange name (e.g., "Binance", "Coinbase") |
+| `country` | `TEXT` | | Jurisdiction / headquarters |
+| `website` | `TEXT` | | Homepage URL |
+| `trading_fee_percent` | `REAL` | | Maker/taker fee in **percent** (e.g., `0.1` = 0.1%) |
+| `_run_id` | `TEXT` | | Pipeline run identifier (if populated by a pipeline) |
+| `_fetched_at` | `TEXT` | | ISO-8601 timestamp of the pipeline run (if populated by a pipeline) |
+
+**Primary key:** `id` (integer, auto-assigned).  
+**Unique constraint:** `name` — exchanges are identified by name.  
+**Naming:** lower_snake_case per project convention.  
+**Pipeline columns:** `_run_id` and `_fetched_at` included so the table can be refreshed by a scheduled pipeline (e.g., weekly fee check). If you’ll only maintain it manually, those two columns can be omitted.
+
+No migration needed yet — this is just the design. Let me know if you want to create it or adjust anything.
+----- result: stop answer, loaded [database-design:load_skill], events 2

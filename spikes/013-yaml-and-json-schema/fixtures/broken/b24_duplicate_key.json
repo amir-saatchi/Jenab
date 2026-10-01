@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "daily_btc",
+  "trigger": { "manual": true },
+  "steps": [
+    { "id": "price", "use": "http.get", "with": { "url": "https://api.example.com/btc" } }
+  ],
+  "id": "other_id"
+}

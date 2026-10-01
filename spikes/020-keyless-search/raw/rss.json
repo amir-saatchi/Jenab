@@ -1,0 +1,881 @@
+[
+ {
+  "source": "rss-feed:coindesk",
+  "query_id": "feed",
+  "round": 0,
+  "time": "2026-09-28T16:31:37.8780061Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": [
+   {
+    "title": "The restaking gold rush is over, and top protocols are barely making a profit",
+    "url": "https://www.coindesk.com/business/2026/09/28/the-restaking-gold-rush-is-over-and-top-protocols-are-barely-making-a-profit",
+    "date": "2026-09-28T16:24:51Z"
+   },
+   {
+    "title": "Tether is a ‘lifeline’ for Iranian regime, Senate Dems say in new report",
+    "url": "https://www.coindesk.com/policy/2026/09/28/tether-is-a-lifeline-for-iranian-regime-senate-dems-say-in-new-report",
+    "date": "2026-09-28T16:16:40Z"
+   },
+   {
+    "title": "AI agents could drain cheap bank deposits, Apollo's Torsten Slok warns",
+    "url": "https://www.coindesk.com/markets/2026/09/28/ai-agents-could-drain-cheap-bank-deposits-apollo-s-torsten-slok-warns",
+    "date": "2026-09-28T13:06:11Z"
+   },
+   {
+    "title": "Chainlink launches new version of its crypto bridge tech 'CCIP' to give apps more control over their security",
+    "url": "https://www.coindesk.com/business/2026/09/28/chainlink-updates-its-crypto-bridge-tech-months-after-a-usd292-million-hack-shook-the-industry",
+    "date": "2026-09-28T12:30:00Z"
+   },
+   {
+    "title": "THORChain rejects Bitget request to block hacker as $6 million moves to bitcoin",
+    "url": "https://www.coindesk.com/tech/2026/09/28/thorchain-rejects-bitget-request-to-block-hacker-as-usd6-million-moves-to-bitcoin",
+    "date": "2026-09-28T12:13:09Z"
+   },
+   {
+    "title": "Traders aren't panicking yet despite cooling crypto sentiment",
+    "url": "https://www.coindesk.com/daybook-us/2026/09/28/bitcoin-traders-aren-t-panicking-yet-despite-cooling-sentiment",
+    "date": "2026-09-28T11:32:33Z"
+   },
+   {
+    "title": "Crypto-friendly institution Franklin Templeton brings its tokenized collateral service to Bybit",
+    "url": "https://www.coindesk.com/business/2026/09/28/crypto-friendly-institution-franklin-templeton-brings-its-tokenized-collateral-service-to-bybit",
+    "date": "2026-09-28T11:00:00Z"
+   },
+   {
+    "title": "Bitcoin falls to $83,000 while altcoins unwind Friday's rally",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-falls-to-usd83-000-while-altcoins-unwind-friday-s-rally",
+    "date": "2026-09-28T10:15:04Z"
+   },
+   {
+    "title": "Live updates: Bitcoin slips back to $83,000 as bond yields surge to new cycle highs",
+    "url": "https://www.coindesk.com/business/2026/09/28/live-updates-bitcoin-sinks-below-usd83-000-as-iran-talks-stall-and-oil-climbs",
+    "date": "2026-09-28T10:02:37Z"
+   },
+   {
+    "title": "Eyes on key U.S. employment data as crypto bulls take a breather: Crypto Week Ahead",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-rally-takes-a-breather-ahead-of-key-u-s-employment-data-crypto-week-ahead",
+    "date": "2026-09-28T09:45:55Z"
+   },
+   {
+    "title": "Caution builds in the bitcoin market even as prices stay well above summer lows",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-bears-pay-to-bet-on-further-declines-as-futures-positions-near-yearly-lows",
+    "date": "2026-09-28T09:29:34Z"
+   },
+   {
+    "title": "RedotPay completes financial audit as it presses ahead with U.S. IPO plans",
+    "url": "https://www.coindesk.com/business/2026/09/28/redotpay-completes-financial-audit-as-it-presses-ahead-with-u-s-ipo-plans",
+    "date": "2026-09-28T07:50:00Z"
+   },
+   {
+    "title": "California's Newsom signs memecoin ban and calls it 'The Opposite of Trump'",
+    "url": "https://www.coindesk.com/markets/2026/09/28/california-s-newsom-signs-memecoin-ban-and-calls-it-the-opposite-of-trump",
+    "date": "2026-09-28T06:21:52Z"
+   },
+   {
+    "title": "Solana ETFs draw record $188 million in a week as Bitwise takes two-thirds of inflows",
+    "url": "https://www.coindesk.com/markets/2026/09/28/solana-etfs-draw-record-usd188-million-in-a-week-as-bitwise-takes-two-thirds-of-inflows",
+    "date": "2026-09-28T06:21:06Z"
+   },
+   {
+    "title": "Bitcoin, Nasdaq futures decline as Trump won’t rule out more Iran strikes",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-and-nasdaq-futures-decline-as-trump-won-t-rule-out-more-iran-strikes",
+    "date": "2026-09-28T03:58:52Z"
+   },
+   {
+    "title": "Vitalik Buterin maps Ethereum’s shift beyond a blockchain in sweeping 2030 vision",
+    "url": "https://www.coindesk.com/tech/2026/09/27/vitalik-buterin-maps-ethereum-s-shift-beyond-a-blockchain-in-sweeping-2030-vision",
+    "date": "2026-09-27T14:29:13Z"
+   },
+   {
+    "title": "How months of work on the Clarity Act all fell apart",
+    "url": "https://www.coindesk.com/news-analysis/2026/09/27/how-months-of-work-on-the-clarity-act-all-fell-apart",
+    "date": "2026-09-27T12:00:00Z"
+   },
+   {
+    "title": "Kraken’s parent Payward is betting billions on becoming financial infrastructure, not just a crypto exchange",
+    "url": "https://www.coindesk.com/business/2026/09/26/kraken-s-parent-payward-is-betting-billions-on-becoming-financial-infrastructure-not-just-a-crypto-exchange",
+    "date": "2026-09-26T14:00:00Z"
+   },
+   {
+    "title": "Binance deal gives Circle a boost in stablecoin race with Tether, analysts say",
+    "url": "https://www.coindesk.com/business/2026/09/26/binance-deal-gives-circle-a-boost-in-stablecoin-race-with-tether-analysts-say",
+    "date": "2026-09-26T13:00:00Z"
+   },
+   {
+    "title": "Bitget hacker moves $83 million in stolen XRP beyond reach of freeze controls",
+    "url": "https://www.coindesk.com/markets/2026/09/26/bitget-hacker-moves-usd83-million-in-stolen-xrp-that-ripple-cannot-freeze",
+    "date": "2026-09-26T12:56:41Z"
+   },
+   {
+    "title": "Bitcoin could soon get Zcash-style 'shielded' privacy without changing its rules",
+    "url": "https://www.coindesk.com/tech/2026/09/25/bitcoin-could-soon-get-zcash-style-shielded-privacy-without-changing-its-rules",
+    "date": "2026-09-26T12:00:00Z"
+   },
+   {
+    "title": "Solana’s 150-millisecond settlement upgrade reaches second public test network",
+    "url": "https://www.coindesk.com/tech/2026/09/26/solana-s-150-millisecond-settlement-upgrade-reaches-second-public-test-network",
+    "date": "2026-09-26T05:00:00Z"
+   },
+   {
+    "title": "XRP Ledger’s Batch upgrade slips to Oct. 9 after validator support resets",
+    "url": "https://www.coindesk.com/tech/2026/09/26/xrp-ledger-s-batch-upgrade-slips-to-oct-9-after-validator-support-resets",
+    "date": "2026-09-26T04:30:00Z"
+   },
+   {
+    "title": "U.S. SEC's steadiest crypto advocate, Hester Peirce, to depart next week",
+    "url": "https://www.coindesk.com/policy/2026/09/25/u-s-sec-s-steadiest-crypto-advocate-hester-peirce-to-depart-next-week",
+    "date": "2026-09-25T22:17:38Z"
+   },
+   {
+    "title": "Another appeals court rules against prediction market provider Kalshi, says sports contracts are subject to state regulations",
+    "url": "https://www.coindesk.com/policy/2026/09/25/another-appeals-court-rules-against-prediction-market-provider-kalshi-says-sports-contracts-are-subject-to-state-regulations",
+    "date": "2026-09-25T21:17:30Z"
+   }
+  ]
+ },
+ {
+  "source": "rss-feed:cointelegraph",
+  "query_id": "feed",
+  "round": 0,
+  "time": "2026-09-28T16:31:38.4332415Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 550,
+  "results": [
+   {
+    "title": "Bitget CEO says $388M hack exploited third-party security vulnerability",
+    "url": "https://cointelegraph.com/news/bitget-388m-hack-third-party-security-vulnerability?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T14:46:21Z"
+   },
+   {
+    "title": "MiCA focus shifts from rulemaking to supervision, ESMA chair says",
+    "url": "https://cointelegraph.com/news/mica-shift-rulemaking-to-supervision-esma-chair?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T14:02:45Z"
+   },
+   {
+    "title": "Here’s what happened in crypto today",
+    "url": "https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T13:32:34Z"
+   },
+   {
+    "title": "Altseason is coming — and traders are more discerning this time",
+    "url": "https://cointelegraph.com/magazine/altseason-is-coming-and-traders-are-more-discerning-this-time?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T13:30:00Z"
+   },
+   {
+    "title": "Strategy buys 1,665 Bitcoin for $143M as BTC stack hits 847,666",
+    "url": "https://cointelegraph.com/news/strategy-1665-bitcoin-buy-holdings-847666-btc?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T12:38:01Z"
+   },
+   {
+    "title": "BTC price eyes best Q3 in nine years: Three things to know in Bitcoin this week",
+    "url": "https://cointelegraph.com/markets/btc-price-eyes-best-q3-in-nine-years-three-things-to-know-in-bitcoin-this-week?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T12:21:50Z"
+   },
+   {
+    "title": "Bitget resumes Bitcoin withdrawals as hacker swaps ETH via THORChain",
+    "url": "https://cointelegraph.com/news/bitget-btc-withdrawal-hacker-eth-swap-thorchain?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T11:05:24Z"
+   },
+   {
+    "title": "Hong Kong regulators expand financial reporting oversight to licensed crypto firms",
+    "url": "https://cointelegraph.com/news/hong-kong-sfc-afrc-crypto-financial-reporting-mou?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T09:58:31Z"
+   },
+   {
+    "title": "Scammers steal $2M in ETH as fake GIWA network fools DYORSWAP",
+    "url": "https://cointelegraph.com/news/fake-giwa-blockchain-scam-drains-2m-eth?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T09:19:50Z"
+   },
+   {
+    "title": "Bitcoin drops under $83K as liquidity hunting keeps bulls from targeting yearly open",
+    "url": "https://cointelegraph.com/markets/bitcoin-drops-under-83k-as-liquidity-hunting-keeps-bulls-from-targeting-yearly-open?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T09:03:20Z"
+   },
+   {
+    "title": "Bitcoin ETFs draw $2.4B in biggest inflow week since October 2025",
+    "url": "https://cointelegraph.com/markets/bitcoin-etf-billion-biggest-inflow-week-october-2025?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T08:24:40Z"
+   },
+   {
+    "title": "South Korea weighs crypto market makers after JPYC trades at 4 times peg",
+    "url": "https://cointelegraph.com/news/south-korea-weighs-crypto-market-makers-after-jpyc-trades-at-4-times-peg?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T05:42:45Z"
+   },
+   {
+    "title": "Vitalik Buterin says Hegotá could be Ethereum’s last ‘normal’ fork",
+    "url": "https://cointelegraph.com/news/vitalik-hegota-ethereum-last-normal-fork?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T04:44:15Z"
+   },
+   {
+    "title": "Newsom signs California ban on public officials issuing memecoins",
+    "url": "https://cointelegraph.com/news/newsom-signs-california-ban-on-public-officials-issuing-memecoins?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T02:23:42Z"
+   },
+   {
+    "title": "Zano rolls blockchain back a month after Gateway Address exploit",
+    "url": "https://cointelegraph.com/news/zano-rolls-blockchain-back-a-month-after-gateway-address-exploit?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T01:09:22Z"
+   },
+   {
+    "title": "THORChain under fire over Bitget, ETH evolves beyond blockchain: Hodler’s Digest",
+    "url": "https://cointelegraph.com/magazine/thorchain-under-fire-over-bitget-hack-eth-is-beyond-blockchain-now?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-27T23:43:18Z"
+   },
+   {
+    "title": "Australia asks OpenAI, Anthropic chiefs to Senate inquiry on rogue hack: Report",
+    "url": "https://cointelegraph.com/news/australia-summons-openai-anthropic-chiefs-to-senate-inquiry-on-health-data-hack-report?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-27T12:46:28Z"
+   },
+   {
+    "title": "Riot Platforms repays $200M credit facility, releases collateral",
+    "url": "https://cointelegraph.com/news/riot-platforms-repays-200m-credit-facility-releases-collateral?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-27T09:57:19Z"
+   },
+   {
+    "title": "Saylor outlines ‘bill of digital rights’ to help build prosperity in future economy",
+    "url": "https://cointelegraph.com/news/saylor-outlines-bill-of-digital-rights-to-help-build-prosperity-in-future-economy?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-27T07:18:42Z"
+   },
+   {
+    "title": "Kalshi loses appeal, setting up potential Supreme Court case",
+    "url": "https://cointelegraph.com/news/kalshi-loses-appeal-setting-up-potential-supreme-court-case?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-26T13:21:12Z"
+   },
+   {
+    "title": "SEC Commissioner Hester Peirce to leave post on Oct. 2",
+    "url": "https://cointelegraph.com/news/sec-commissioner-hester-peirce-to-leave-post-on-oct-2?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-26T09:02:22Z"
+   },
+   {
+    "title": "CFTC sues Cash FX, alleges $950M crypto-linked forex scheme",
+    "url": "https://cointelegraph.com/news/cftc-sues-cash-fx-alleges-950m-crypto-linked-forex-scheme?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-26T06:59:29Z"
+   },
+   {
+    "title": "OG.com seeks CFTC approval for single-stock perpetual futures",
+    "url": "https://cointelegraph.com/news/og-com-seeks-cftc-approval-single-stock-perpetual-futures?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T20:37:21Z"
+   },
+   {
+    "title": "Ex-CFTC leader to leave Blockchain Association after CLARITY vote fails",
+    "url": "https://cointelegraph.com/news/cftc-commissioner-leaving-blockchain-association-ceo?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T20:26:40Z"
+   },
+   {
+    "title": "Tether says it had ‘limited’ exposure to bank linked to $84M US seizure",
+    "url": "https://cointelegraph.com/news/us-authorities-seize-accounts-tether-bitfinex?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T18:56:53Z"
+   },
+   {
+    "title": "Former Hack VC partner Hsin-Ju Chuang’s death ruled a suicide",
+    "url": "https://cointelegraph.com/news/former-hack-vc-partner-hsin-ju-chuang-found-dead?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T18:33:49Z"
+   },
+   {
+    "title": "Bitget clarifies $388M in assets affected by security breach",
+    "url": "https://cointelegraph.com/news/bitget-clarifies-assets-affected-security-breach?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T17:17:45Z"
+   },
+   {
+    "title": "Strategy seeks shareholder approval for daily preferred stock dividends",
+    "url": "https://cointelegraph.com/news/strategy-seeks-shareholder-approval-daily-preferred-stock-dividends?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T16:34:16Z"
+   },
+   {
+    "title": "Crypto Biz: Wall Street and crypto fight for the same turf",
+    "url": "https://cointelegraph.com/news/crypto-biz-crypto-tradfi-stablecoins-tokenized-assets?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T15:49:34Z"
+   },
+   {
+    "title": "Exchanges reporting crypto gains to IRS becomes tax nightmare",
+    "url": "https://cointelegraph.com/magazine/exchanges-reporting-crypto-gains-to-irs-becomes-tax-nightmare?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-25T13:30:00Z"
+   }
+  ]
+ },
+ {
+  "source": "rss-feed:decrypt",
+  "query_id": "feed",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1173013Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 682,
+  "results": [
+   {
+    "title": "Vitalik Buterin Outlines 'Cryptographic World Computer' Plan for Ethereum",
+    "url": "https://decrypt.co/379461/vitalik-buterin-outlines-cryptographic-world-computer-plan-for-ethereum",
+    "date": "2026-09-28T16:29:42Z"
+   },
+   {
+    "title": "Bitcoin Falls Lower as Trump's Iran Snub Sends Oil, Yields Higher",
+    "url": "https://decrypt.co/379438/bitcoin-price-falls-trump-iran-oil-yields",
+    "date": "2026-09-28T15:26:28Z"
+   },
+   {
+    "title": "Tom Lee's Bitmine Buys Another $47M of ETH, Taking It to 4.9% of Ethereum Supply",
+    "url": "https://decrypt.co/379418/tom-lees-bitmine-buys-another-47m-of-eth-taking-it-to-4-9-of-ethereum-supply",
+    "date": "2026-09-28T13:27:40Z"
+   },
+   {
+    "title": "Strategy Sets New BTC Holdings Record After $143M Bitcoin Purchase",
+    "url": "https://decrypt.co/379415/strategy-sets-new-btc-holdings-record-after-143m-bitcoin-purchase",
+    "date": "2026-09-28T12:45:41Z"
+   },
+   {
+    "title": "Morning Minute: SEC Clears Token Buybacks for Crypto Networks",
+    "url": "https://decrypt.co/379412/morning-minute-sec-clears-token-buybacks-for-crypto-networks",
+    "date": "2026-09-28T12:03:21Z"
+   },
+   {
+    "title": "California Bans Public Officials From Issuing Meme Coins Under New Newsom Law",
+    "url": "https://decrypt.co/379404/california-bans-public-officials-from-issuing-meme-coins-under-new-newsom-law",
+    "date": "2026-09-28T10:16:25Z"
+   },
+   {
+    "title": "AI Agents Keep Escaping Their Creators' Control—Here's What We Know",
+    "url": "https://decrypt.co/379402/ai-agents-keep-escaping-creators-control",
+    "date": "2026-09-27T16:01:03Z"
+   },
+   {
+    "title": "Bitcoin's Quantum Problem: Three Ways Researchers Are Trying to Fix It",
+    "url": "https://decrypt.co/379400/bitcoins-quantum-problem-three-ways-researchers-are-trying-to-fix-it",
+    "date": "2026-09-27T15:01:03Z"
+   },
+   {
+    "title": "SEC Staff Says Token Buybacks Don't Make Crypto a Security—If the Network Works",
+    "url": "https://decrypt.co/379398/sec-staff-token-buybacks-dont-make-crypto-security",
+    "date": "2026-09-27T13:01:03Z"
+   },
+   {
+    "title": "Bitcoin ETFs Notch Seven-Day Winning Streak as 2026 Flows Turn Green",
+    "url": "https://decrypt.co/379391/bitcoin-etfs-notch-seven-day-winning-streak-as-2026-flows-turn-green",
+    "date": "2026-09-26T17:01:03Z"
+   },
+   {
+    "title": "How Crypto Stopped Waiting for Congress and Learned to Love the Regulators",
+    "url": "https://decrypt.co/379383/how-crypto-stopped-waiting-congress-learned-love-regulators",
+    "date": "2026-09-26T16:06:03Z"
+   },
+   {
+    "title": "AI Agents Are Racing to Make Quantum-Safe Bitcoin Cheap—And Winning",
+    "url": "https://decrypt.co/379378/ai-agents-racing-make-quantum-safe-bitcoin-cheap",
+    "date": "2026-09-26T15:01:05Z"
+   },
+   {
+    "title": "Google Just Made Free 1080p AI Video Generation Available to Anyone",
+    "url": "https://decrypt.co/379353/google-free-1080p-ai-video-generation",
+    "date": "2026-09-26T13:01:03Z"
+   },
+   {
+    "title": "US Prosecutors Want $84.2 Million From a Bank Tied to Tether",
+    "url": "https://decrypt.co/379380/us-prosecutors-84-million-bank-tether-and-bitfinex",
+    "date": "2026-09-25T21:25:35Z"
+   },
+   {
+    "title": "AI Agents Hacked Their Own Test Environment to Cheat, Cybersecurity Firm Finds",
+    "url": "https://decrypt.co/379369/ai-agents-hacked-test-environment-cheat-darktrace",
+    "date": "2026-09-25T19:45:39Z"
+   },
+   {
+    "title": "Google Built an AI That Hunts Its Own Security Bugs",
+    "url": "https://decrypt.co/379364/google-built-ai-hunts-security-bugs",
+    "date": "2026-09-25T19:16:04Z"
+   },
+   {
+    "title": "Circle and Tether Freeze Stablecoins Tied to Bitget Hack—But Most Funds Slip Away",
+    "url": "https://decrypt.co/379365/circle-tether-freeze-stablecoins-bitget-hack",
+    "date": "2026-09-25T18:42:51Z"
+   },
+   {
+    "title": "OpenAI Is Building a $500 per Month ChatGPT Pro Max Plan, Leaks Suggest",
+    "url": "https://decrypt.co/379359/openai-500-per-month-chatgpt-pro-max-plan",
+    "date": "2026-09-25T17:46:05Z"
+   },
+   {
+    "title": "Bitget Hack Losses Climb to $387M: Here’s What Happened, and Why North Korea Is a Suspect",
+    "url": "https://decrypt.co/379350/bitget-hack-387m-what-happened-why-north-korea-suspect",
+    "date": "2026-09-25T17:08:57Z"
+   },
+   {
+    "title": "Magic Eden Warns Old Ethereum NFT Listings Are Exposed to Payment Processor Exploit",
+    "url": "https://decrypt.co/379342/magic-eden-old-ethereum-nft-listings-exposed-exploit",
+    "date": "2026-09-25T16:17:19Z"
+   },
+   {
+    "title": "Bitcoin Rally Slows as $15.6 Billion Options Expiry Hits—XRP and Solana Keep Climbing",
+    "url": "https://decrypt.co/379319/bitcoin-slows-billion-options-expiry-xrp-solana",
+    "date": "2026-09-25T16:06:23Z"
+   },
+   {
+    "title": "Strategy Wants Its Preferred Stock Dividends to Accrue 365 Days a Year",
+    "url": "https://decrypt.co/379309/strategy-wants-its-preferred-stock-dividends-to-accrue-365-days-a-year",
+    "date": "2026-09-25T13:22:00Z"
+   },
+   {
+    "title": "Morgan Stanley Joins NEXTPredict as Prediction Markets Bet on 'More Institutional' Play",
+    "url": "https://decrypt.co/379218/morgan-stanley-joins-nextpredict-as-prediction-markets-bet-on-more-institutional-play",
+    "date": "2026-09-25T13:16:03Z"
+   },
+   {
+    "title": "Morning Minute: BlackRock Leans Deeper Into Tokenization with Ondo",
+    "url": "https://decrypt.co/379292/morning-minute-blackrock-leans-deeper-into-tokenization-with-ondo",
+    "date": "2026-09-25T13:04:06Z"
+   },
+   {
+    "title": "Defense Secretary Pete Hegseth Holds Bitcoin in a Coinbase Wallet, Filing Shows",
+    "url": "https://decrypt.co/379290/defense-secretary-pete-hegseth-holds-bitcoin-in-a-coinbase-wallet-filing-shows",
+    "date": "2026-09-25T12:01:15Z"
+   },
+   {
+    "title": "KelpDAO Developer Sues LayerZero Over $292M Bridge Exploit",
+    "url": "https://decrypt.co/379288/kelpdao-developer-sues-layerzero-over-292m-bridge-exploit",
+    "date": "2026-09-25T11:09:52Z"
+   },
+   {
+    "title": "Researchers Publish 'Zcash-Style' Design for Private Bitcoin Transfers",
+    "url": "https://decrypt.co/379280/researchers-publish-zcash-style-design-for-private-bitcoin-transfers",
+    "date": "2026-09-25T09:50:01Z"
+   },
+   {
+    "title": "Federal Reserve Unveils Stablecoin Rules on Reserves and Capital",
+    "url": "https://decrypt.co/379274/federal-reserve-unveils-stablecoin-rules-on-reserves-and-capital",
+    "date": "2026-09-24T21:56:03Z"
+   },
+   {
+    "title": "Bitget Hacked as $350 Million Vanishes From Crypto Exchange Wallets",
+    "url": "https://decrypt.co/379275/bitget-hack-183-million-crypto-exchange-wallets",
+    "date": "2026-09-24T21:15:38Z"
+   },
+   {
+    "title": "Humans Are Reading Your ChatGPT Chats, New Lawsuit Claims",
+    "url": "https://decrypt.co/379272/humans-reading-chatgpt-chats-lawsuit",
+    "date": "2026-09-24T20:01:03Z"
+   },
+   {
+    "title": "Meta's New AI Toy Is a Keychain That Watches, Listens, and Never Blinks",
+    "url": "https://decrypt.co/379253/meta-ai-toy-muse-charm-keychain-watches-listens",
+    "date": "2026-09-24T19:16:03Z"
+   },
+   {
+    "title": "AI Can Now Doxx Your Anonymous Accounts? Here's What’s Going On",
+    "url": "https://decrypt.co/379228/ai-can-now-doxx-your-anonymous-accounts-heres-whats-going-on",
+    "date": "2026-09-24T18:31:03Z"
+   },
+   {
+    "title": "New York Wants to Ban Polymarket, Lawsuit Calls It 'Illegal Gambling Operation'",
+    "url": "https://decrypt.co/379244/new-york-ban-polymarket-lawsuit",
+    "date": "2026-09-24T17:51:31Z"
+   },
+   {
+    "title": "In Her Final Weeks, SEC's Peirce Calls for Ending the KYC 'Panopticon'",
+    "url": "https://decrypt.co/379217/sec-peirce-end-kyc-panopticon-zero-knowledge-proofs",
+    "date": "2026-09-24T17:31:03Z"
+   },
+   {
+    "title": "US Aims to Turn Stablecoins Into a Weapon for Dollar Dominance",
+    "url": "https://decrypt.co/379219/us-stablecoins-weapon-dollar-dominance",
+    "date": "2026-09-24T16:55:43Z"
+   },
+   {
+    "title": "Bitcoin Breakout Cools as Fed Rate-Hike Bets Climb",
+    "url": "https://decrypt.co/379189/bitcoins-breakout-cools-fed-rate-hike-bets-climb",
+    "date": "2026-09-24T16:01:01Z"
+   },
+   {
+    "title": "Trump sues JPMorgan for $5B! Ledger prepares for $4B IPO! “Crypto Adoption is no longer reversible” says PWC!",
+    "url": "https://decrypt.co/videos/interviews/VpBdSuOE/trump-sues-jpmorgan-for-5b-ledger-prepares-for-4b-ipo-crypto-adoption-is-no-longer-reversible-says-pwc",
+    "date": "2026-01-23T16:40:55Z"
+   },
+   {
+    "title": "From Stellar to Canton: How Franklin Templeton Adopted Tokenization",
+    "url": "https://decrypt.co/videos/interviews/ZJJKjnAR/from-stellar-to-canton-how-franklin-templeton-adopted-tokenization",
+    "date": "2026-01-22T18:29:30Z"
+   },
+   {
+    "title": "Crypto rebounds after Trump TACO’s on Tariffs! BitGo $2.1B IPO! Solana’s SKR token soars 250% FDV!",
+    "url": "https://decrypt.co/videos/interviews/MqZOhomP/crypto-rebounds-after-trump-tacos-on-tariffs-bitgo-21b-ipo-solanas-skr-token-soars-250-fdv",
+    "date": "2026-01-22T16:14:50Z"
+   },
+   {
+    "title": "Trump’s speech at Davos gives small boost to Crypto! Saylor buys $2.13B BTC! Blondish Interview!",
+    "url": "https://decrypt.co/videos/interviews/nWmEOl4c/trumps-speech-at-davos-gives-small-boost-to-crypto-saylor-buys-213b-btc-blondish-interview",
+    "date": "2026-01-21T16:17:26Z"
+   },
+   {
+    "title": "Trump Tariffs 3: Return of the Bull Market! NYSE Tokenising, what that means for $Hype! Claude Meme Meta!",
+    "url": "https://decrypt.co/videos/interviews/O1HZN4PH/trump-tariffs-3-return-of-the-bull-market-nyse-tokenising-what-that-means-for-hype-claude-meme-meta",
+    "date": "2026-01-20T18:12:06Z"
+   },
+   {
+    "title": "Crypto sells off amidst Trump Tariff Turmoil! $Trove falls 90% in awful TGE! Pump Fund announced!",
+    "url": "https://decrypt.co/videos/interviews/lokwS0bc/crypto-sells-off-amidst-trump-tariff-turmoil-trove-falls-90-in-awful-tge-pump-fund-announced",
+    "date": "2026-01-20T16:07:15Z"
+   },
+   {
+    "title": "Massive Coinbase News! Bitcoin Rips to $96,750! Football.Fun TGE Interview with Founder!",
+    "url": "https://decrypt.co/videos/interviews/9g4stfJX/massive-coinbase-news-bitcoin-rips-to-96-750-footballfun-tge-interview-with-founder",
+    "date": "2026-01-15T16:49:34Z"
+   },
+   {
+    "title": "Are we back? Crypto is Green! Solana Intern goes rogue! Pump up 13%! Monero hits another ATH!",
+    "url": "https://decrypt.co/videos/interviews/Iv1NIhI4/are-we-back-crypto-is-green-solana-intern-goes-rogue-pump-up-13-monero-hits-another-ath",
+    "date": "2026-01-14T16:38:32Z"
+   },
+   {
+    "title": "Pump \u0026 Memes HEATING up! XMR vs ZEC! How important are these rate cuts? - Under Exposed",
+    "url": "https://decrypt.co/videos/interviews/IuLdmgP6/pump-memes-heating-up-xmr-vs-zec-how-important-are-these-rate-cuts-under-exposed",
+    "date": "2026-01-14T16:01:53Z"
+   },
+   {
+    "title": "PsyopAnime Meme up 30X! Are Memes back? Monero ATH! Interview W/ Joseph Chalom, CEO of Sharplink",
+    "url": "https://decrypt.co/videos/interviews/mefbKZgQ/psyopanime-meme-up-30x-are-memes-back-monero-ath-interview-w-joseph-chalom-ceo-of-sharplink",
+    "date": "2026-01-13T18:12:27Z"
+   },
+   {
+    "title": "A16z raise $15B! Jerome Powell vs Trump! Crypto remains flat! Special Guest: Dudas!",
+    "url": "https://decrypt.co/videos/interviews/0y90noNs/a16z-raise-15b-jerome-powell-vs-trump-crypto-remains-flat-special-guest-dudas",
+    "date": "2026-01-12T17:15:46Z"
+   },
+   {
+    "title": "ZEC Rebounds 11%! Trump says he won’t pardon Sam Bankman-Fried! Florida revisits it’s Strategic Bitcoin Reserve!",
+    "url": "https://decrypt.co/videos/interviews/72tPnqPX/zec-rebounds-11-trump-says-he-wont-pardon-sam-bankman-fried-florida-revisits-its-strategic-bitcoin-reserve",
+    "date": "2026-01-09T17:17:12Z"
+   },
+   {
+    "title": "The ZCash situation explained! Interview with ZEC bull Mert! BTC below $90K! ZEC falls 19%!",
+    "url": "https://decrypt.co/videos/interviews/wmsgKRFW/the-zcash-situation-explained-interview-with-zec-bull-mert-btc-below-90k-zec-falls-19",
+    "date": "2026-01-08T17:04:56Z"
+   },
+   {
+    "title": "First 2026 Dip! BTC at 92K! Morgan Stanley file for BTC, ETH \u0026 SOL ETFs! Hyperliquid Airdrop Speculation!",
+    "url": "https://decrypt.co/videos/interviews/GVQVX2ND/first-2026-dip-btc-at-92k-morgan-stanley-file-for-btc-eth-sol-etfs-hyperliquid-airdrop-speculation",
+    "date": "2026-01-07T16:14:54Z"
+   },
+   {
+    "title": "Crypto starts 2026 STRONG! Venezuela Impacts on the market! Lighter TGE reactions!",
+    "url": "https://decrypt.co/videos/interviews/XjhRjGIk/crypto-starts-2026-strong-venezuela-impacts-on-the-market-lighter-tge-reactions",
+    "date": "2026-01-06T18:16:42Z"
+   },
+   {
+    "title": "Global Crypto MCap up to $3.22 Trillion! XRP up 12%! Japan Endorse Crypto! Fear \u0026 Greed back to Neutral!",
+    "url": "https://decrypt.co/videos/interviews/OS1PGiAq/global-crypto-mcap-up-to-322-trillion-xrp-up-12-japan-endorse-crypto-fear-greed-back-to-neutral",
+    "date": "2026-01-06T16:13:32Z"
+   },
+   {
+    "title": "Crypto is Green! Up 6-9%! Memes outperform! Pepe up 67%! Infinex Founder Interview!",
+    "url": "https://decrypt.co/videos/interviews/EmmJkWJn/crypto-is-green-up-6-9-memes-outperform-pepe-up-67-infinex-founder-interview",
+    "date": "2026-01-05T16:28:36Z"
+   },
+   {
+    "title": "Crypto Wallets Can ‘Directly Compete With Neobanks'",
+    "url": "https://decrypt.co/videos/interviews/WsvLVFlp/crypto-wallets-can-directly-compete-with-neobanks",
+    "date": "2026-01-05T13:44:47Z"
+   },
+   {
+    "title": "2026 Crypto Predictions! Tom Lee still buying ETH! Rekt tease WorldStar collab!",
+    "url": "https://decrypt.co/videos/interviews/dBDZqp65/2026-crypto-predictions-tom-lee-still-buying-eth-rekt-tease-worldstar-collab",
+    "date": "2025-12-30T16:29:12Z"
+   },
+   {
+    "title": "The White Whale up 10x in a week! Lighter TGE! Saylor buys $109M BTC!",
+    "url": "https://decrypt.co/videos/interviews/50vopyFa/the-white-whale-up-10x-in-a-week-lighter-tge-saylor-buys-109m-btc",
+    "date": "2025-12-29T16:10:19Z"
+   }
+  ]
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.119047Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": [
+   {
+    "title": "Bitcoin Falls Lower as Trump's Iran Snub Sends Oil, Yields Higher",
+    "url": "https://decrypt.co/379438/bitcoin-price-falls-trump-iran-oil-yields",
+    "date": "2026-09-28T15:26:28Z"
+   },
+   {
+    "title": "Here’s what happened in crypto today",
+    "url": "https://cointelegraph.com/news/what-happened-in-crypto-today?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T13:32:34Z"
+   },
+   {
+    "title": "Strategy Sets New BTC Holdings Record After $143M Bitcoin Purchase",
+    "url": "https://decrypt.co/379415/strategy-sets-new-btc-holdings-record-after-143m-bitcoin-purchase",
+    "date": "2026-09-28T12:45:41Z"
+   },
+   {
+    "title": "Strategy buys 1,665 Bitcoin for $143M as BTC stack hits 847,666",
+    "url": "https://cointelegraph.com/news/strategy-1665-bitcoin-buy-holdings-847666-btc?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T12:38:01Z"
+   },
+   {
+    "title": "BTC price eyes best Q3 in nine years: Three things to know in Bitcoin this week",
+    "url": "https://cointelegraph.com/markets/btc-price-eyes-best-q3-in-nine-years-three-things-to-know-in-bitcoin-this-week?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T12:21:50Z"
+   },
+   {
+    "title": "THORChain rejects Bitget request to block hacker as $6 million moves to bitcoin",
+    "url": "https://www.coindesk.com/tech/2026/09/28/thorchain-rejects-bitget-request-to-block-hacker-as-usd6-million-moves-to-bitcoin",
+    "date": "2026-09-28T12:13:09Z"
+   },
+   {
+    "title": "Bitget resumes Bitcoin withdrawals as hacker swaps ETH via THORChain",
+    "url": "https://cointelegraph.com/news/bitget-btc-withdrawal-hacker-eth-swap-thorchain?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T11:05:24Z"
+   },
+   {
+    "title": "Bitcoin falls to $83,000 while altcoins unwind Friday's rally",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-falls-to-usd83-000-while-altcoins-unwind-friday-s-rally",
+    "date": "2026-09-28T10:15:04Z"
+   },
+   {
+    "title": "Live updates: Bitcoin slips back to $83,000 as bond yields surge to new cycle highs",
+    "url": "https://www.coindesk.com/business/2026/09/28/live-updates-bitcoin-sinks-below-usd83-000-as-iran-talks-stall-and-oil-climbs",
+    "date": "2026-09-28T10:02:37Z"
+   },
+   {
+    "title": "Caution builds in the bitcoin market even as prices stay well above summer lows",
+    "url": "https://www.coindesk.com/markets/2026/09/28/bitcoin-bears-pay-to-bet-on-further-declines-as-futures-positions-near-yearly-lows",
+    "date": "2026-09-28T09:29:34Z"
+   },
+   {
+    "title": "Bitcoin drops under $83K as liquidity hunting keeps bulls from targeting yearly open",
+    "url": "https://cointelegraph.com/markets/bitcoin-drops-under-83k-as-liquidity-hunting-keeps-bulls-from-targeting-yearly-open?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T09:03:20Z"
+   },
+   {
+    "title": "Bitcoin ETFs draw $2.4B in biggest inflow week since October 2025",
+    "url": "https://cointelegraph.com/markets/bitcoin-etf-billion-biggest-inflow-week-october-2025?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-28T08:24:40Z"
+   },
+   {
+    "title": "Riot Platforms repays $200M credit facility, releases collateral",
+    "url": "https://cointelegraph.com/news/riot-platforms-repays-200m-credit-facility-releases-collateral?utm_source=rss_feed\u0026utm_medium=rss\u0026utm_campaign=rss_partner_inbound",
+    "date": "2026-09-27T09:57:19Z"
+   },
+   {
+    "title": "Bitcoin ETFs Notch Seven-Day Winning Streak as 2026 Flows Turn Green",
+    "url": "https://decrypt.co/379391/bitcoin-etfs-notch-seven-day-winning-streak-as-2026-flows-turn-green",
+    "date": "2026-09-26T17:01:03Z"
+   },
+   {
+    "title": "AI Agents Are Racing to Make Quantum-Safe Bitcoin Cheap—And Winning",
+    "url": "https://decrypt.co/379378/ai-agents-racing-make-quantum-safe-bitcoin-cheap",
+    "date": "2026-09-26T15:01:05Z"
+   },
+   {
+    "title": "Bitcoin Rally Slows as $15.6 Billion Options Expiry Hits—XRP and Solana Keep Climbing",
+    "url": "https://decrypt.co/379319/bitcoin-slows-billion-options-expiry-xrp-solana",
+    "date": "2026-09-25T16:06:23Z"
+   },
+   {
+    "title": "Defense Secretary Pete Hegseth Holds Bitcoin in a Coinbase Wallet, Filing Shows",
+    "url": "https://decrypt.co/379290/defense-secretary-pete-hegseth-holds-bitcoin-in-a-coinbase-wallet-filing-shows",
+    "date": "2026-09-25T12:01:15Z"
+   },
+   {
+    "title": "Bitcoin Breakout Cools as Fed Rate-Hike Bets Climb",
+    "url": "https://decrypt.co/379189/bitcoins-breakout-cools-fed-rate-hike-bets-climb",
+    "date": "2026-09-24T16:01:01Z"
+   },
+   {
+    "title": "Trump sues JPMorgan for $5B! Ledger prepares for $4B IPO! “Crypto Adoption is no longer reversible” says PWC!",
+    "url": "https://decrypt.co/videos/interviews/VpBdSuOE/trump-sues-jpmorgan-for-5b-ledger-prepares-for-4b-ipo-crypto-adoption-is-no-longer-reversible-says-pwc",
+    "date": "2026-01-23T16:40:55Z"
+   },
+   {
+    "title": "Crypto rebounds after Trump TACO’s on Tariffs! BitGo $2.1B IPO! Solana’s SKR token soars 250% FDV!",
+    "url": "https://decrypt.co/videos/interviews/MqZOhomP/crypto-rebounds-after-trump-tacos-on-tariffs-bitgo-21b-ipo-solanas-skr-token-soars-250-fdv",
+    "date": "2026-01-22T16:14:50Z"
+   },
+   {
+    "title": "Trump’s speech at Davos gives small boost to Crypto! Saylor buys $2.13B BTC! Blondish Interview!",
+    "url": "https://decrypt.co/videos/interviews/nWmEOl4c/trumps-speech-at-davos-gives-small-boost-to-crypto-saylor-buys-213b-btc-blondish-interview",
+    "date": "2026-01-21T16:17:26Z"
+   },
+   {
+    "title": "Trump Tariffs 3: Return of the Bull Market! NYSE Tokenising, what that means for $Hype! Claude Meme Meta!",
+    "url": "https://decrypt.co/videos/interviews/O1HZN4PH/trump-tariffs-3-return-of-the-bull-market-nyse-tokenising-what-that-means-for-hype-claude-meme-meta",
+    "date": "2026-01-20T18:12:06Z"
+   },
+   {
+    "title": "Crypto sells off amidst Trump Tariff Turmoil! $Trove falls 90% in awful TGE! Pump Fund announced!",
+    "url": "https://decrypt.co/videos/interviews/lokwS0bc/crypto-sells-off-amidst-trump-tariff-turmoil-trove-falls-90-in-awful-tge-pump-fund-announced",
+    "date": "2026-01-20T16:07:15Z"
+   },
+   {
+    "title": "Massive Coinbase News! Bitcoin Rips to $96,750! Football.Fun TGE Interview with Founder!",
+    "url": "https://decrypt.co/videos/interviews/9g4stfJX/massive-coinbase-news-bitcoin-rips-to-96-750-footballfun-tge-interview-with-founder",
+    "date": "2026-01-15T16:49:34Z"
+   },
+   {
+    "title": "Are we back? Crypto is Green! Solana Intern goes rogue! Pump up 13%! Monero hits another ATH!",
+    "url": "https://decrypt.co/videos/interviews/Iv1NIhI4/are-we-back-crypto-is-green-solana-intern-goes-rogue-pump-up-13-monero-hits-another-ath",
+    "date": "2026-01-14T16:38:32Z"
+   },
+   {
+    "title": "Pump \u0026 Memes HEATING up! XMR vs ZEC! How important are these rate cuts? - Under Exposed",
+    "url": "https://decrypt.co/videos/interviews/IuLdmgP6/pump-memes-heating-up-xmr-vs-zec-how-important-are-these-rate-cuts-under-exposed",
+    "date": "2026-01-14T16:01:53Z"
+   },
+   {
+    "title": "PsyopAnime Meme up 30X! Are Memes back? Monero ATH! Interview W/ Joseph Chalom, CEO of Sharplink",
+    "url": "https://decrypt.co/videos/interviews/mefbKZgQ/psyopanime-meme-up-30x-are-memes-back-monero-ath-interview-w-joseph-chalom-ceo-of-sharplink",
+    "date": "2026-01-13T18:12:27Z"
+   },
+   {
+    "title": "A16z raise $15B! Jerome Powell vs Trump! Crypto remains flat! Special Guest: Dudas!",
+    "url": "https://decrypt.co/videos/interviews/0y90noNs/a16z-raise-15b-jerome-powell-vs-trump-crypto-remains-flat-special-guest-dudas",
+    "date": "2026-01-12T17:15:46Z"
+   },
+   {
+    "title": "ZEC Rebounds 11%! Trump says he won’t pardon Sam Bankman-Fried! Florida revisits it’s Strategic Bitcoin Reserve!",
+    "url": "https://decrypt.co/videos/interviews/72tPnqPX/zec-rebounds-11-trump-says-he-wont-pardon-sam-bankman-fried-florida-revisits-its-strategic-bitcoin-reserve",
+    "date": "2026-01-09T17:17:12Z"
+   },
+   {
+    "title": "The ZCash situation explained! Interview with ZEC bull Mert! BTC below $90K! ZEC falls 19%!",
+    "url": "https://decrypt.co/videos/interviews/wmsgKRFW/the-zcash-situation-explained-interview-with-zec-bull-mert-btc-below-90k-zec-falls-19",
+    "date": "2026-01-08T17:04:56Z"
+   },
+   {
+    "title": "First 2026 Dip! BTC at 92K! Morgan Stanley file for BTC, ETH \u0026 SOL ETFs! Hyperliquid Airdrop Speculation!",
+    "url": "https://decrypt.co/videos/interviews/GVQVX2ND/first-2026-dip-btc-at-92k-morgan-stanley-file-for-btc-eth-sol-etfs-hyperliquid-airdrop-speculation",
+    "date": "2026-01-07T16:14:54Z"
+   },
+   {
+    "title": "Crypto starts 2026 STRONG! Venezuela Impacts on the market! Lighter TGE reactions!",
+    "url": "https://decrypt.co/videos/interviews/XjhRjGIk/crypto-starts-2026-strong-venezuela-impacts-on-the-market-lighter-tge-reactions",
+    "date": "2026-01-06T18:16:42Z"
+   },
+   {
+    "title": "Global Crypto MCap up to $3.22 Trillion! XRP up 12%! Japan Endorse Crypto! Fear \u0026 Greed back to Neutral!",
+    "url": "https://decrypt.co/videos/interviews/OS1PGiAq/global-crypto-mcap-up-to-322-trillion-xrp-up-12-japan-endorse-crypto-fear-greed-back-to-neutral",
+    "date": "2026-01-06T16:13:32Z"
+   },
+   {
+    "title": "Crypto is Green! Up 6-9%! Memes outperform! Pepe up 67%! Infinex Founder Interview!",
+    "url": "https://decrypt.co/videos/interviews/EmmJkWJn/crypto-is-green-up-6-9-memes-outperform-pepe-up-67-infinex-founder-interview",
+    "date": "2026-01-05T16:28:36Z"
+   },
+   {
+    "title": "2026 Crypto Predictions! Tom Lee still buying ETH! Rekt tease WorldStar collab!",
+    "url": "https://decrypt.co/videos/interviews/dBDZqp65/2026-crypto-predictions-tom-lee-still-buying-eth-rekt-tease-worldstar-collab",
+    "date": "2025-12-30T16:29:12Z"
+   },
+   {
+    "title": "The White Whale up 10x in a week! Lighter TGE! Saylor buys $109M BTC!",
+    "url": "https://decrypt.co/videos/interviews/50vopyFa/the-white-whale-up-10x-in-a-week-lighter-tge-saylor-buys-109m-btc",
+    "date": "2025-12-29T16:10:19Z"
+   }
+  ],
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.119047Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.119047Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.119047Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.119047Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1196442Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1196442Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1196442Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1196442Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ },
+ {
+  "source": "crypto-rss",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:31:39.1196442Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 880,
+  "results": null,
+  "extra": "local keyword filter over 111 feed items"
+ }
+]

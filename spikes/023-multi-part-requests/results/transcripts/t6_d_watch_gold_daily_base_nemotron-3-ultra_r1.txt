@@ -1,0 +1,40 @@
+===== nemotron-3-ultra | t6_d_watch_gold_daily | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:01:15, stop step cap
+[12:00:00 user] Start watching gold prices daily from now on, and tell me when there's a big move.
+  (request: prompt 2308, output 170, 3.8s, finish tool_calls, reasoning 654 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 2620, output 227, 6.1s, finish tool_calls, reasoning 728 chars)
+[12:00:09 call] web_search {"query":"gold price API free daily OHLC","source":"web","limit":10}
+[12:00:15 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 2799, output 73, 2.2s, finish tool_calls, reasoning 97 chars)
+[12:00:19 call] web_search {"limit":10,"query":"free gold price API OHLC daily historical","source":"web"}
+[12:00:25 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 2979, output 84, 3.2s, finish tool_calls, reasoning 107 chars)
+[12:00:29 call] web_search {"limit":10,"query":"metals-api gold price free tier OR alpha vantage gold OR twelve data gold API","source":"web"}
+[12:00:35 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 3168, output 99, 3.6s, finish tool_calls, reasoning 152 chars)
+[12:00:39 call] web_search {"limit":10,"query":"gold price API free tier site:github.com OR site:rapidapi.com OR site:metals-api.com","source":"web"}
+[12:00:45 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 3363, output 94, 2.9s, finish tool_calls, reasoning 162 chars)
+[12:00:49 call] web_search {"limit":10,"query":"\"gold\" \"API\" \"XAU\" \"USD\" free tier daily","source":"web"}
+[12:00:55 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 3551, output 82, 3.3s, finish tool_calls, reasoning 142 chars)
+[12:00:59 call] web_search {"limit":10,"query":"metals-api.com gold price API documentation","source":"web"}
+[12:01:05 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 3731, output 83, 2.1s, finish tool_calls, reasoning 142 chars)
+[12:01:09 call] web_search {"limit":10,"query":"gold price API \"XAUUSD\" free","source":"web"}
+[12:01:15 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+
+----- background tasks
+
+----- assertions
+fail  test 6    created_chat_only_for_lasting_job  no create_chat; tools used: read_config, web_search, web_search, web_search, web_search, web_search, web_search, web_search
+skip  test 6    no_resend_after_notice             no finish turn
+fail  test 6    answer_contains                    no finish turn and the rest was never given
+skip  test 6    no_repeat                          no finish turn
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 3731
+tests: map[5:pass 6:fail] | prompt 24519 output 912 requests 8 peak 3731 polls 0 | 27s real, 75s virtual

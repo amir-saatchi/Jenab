@@ -1,0 +1,9 @@
+===== gemma4:31b L04_sql_fails guide v2 run 1 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish stop, prompt 4430, output 76, 8.0s)
+The query fails because you are attempting to access a system table (`_burrow_runs`). 
+
+According to the project's SQL rules, you are only permitted to run read-only `SELECT` statements on your own project tables. Access to internal tables starting with `_burrow_` or `sqlite_` is strictly prohibited for security and stability reasons.
+----- result: stop answer, loaded [], events 1

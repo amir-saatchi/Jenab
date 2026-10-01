@@ -1,0 +1,8 @@
+===== glm-4.5-flash L12_two_plus_two guide v2 run 1 chained false
+----- user
+What is 2+2?
+----- assistant (finish stop, prompt 1745, output 57, 45.9s)
+[reasoning 190 chars]
+
+2 + 2 = 4
+----- result: stop answer, loaded [], events 1

@@ -1,0 +1,7 @@
+===== nemotron-3-ultra L12_two_plus_two guide v2 run 1 chained false
+----- user
+What is 2+2?
+----- assistant (finish stop, prompt 2117, output 46, 4.0s)
+[reasoning 168 chars]
+2+2 = 4
+----- result: stop answer, loaded [], events 1

@@ -1,0 +1,16 @@
+===== glm-4.5-flash | t6_e_two_plus_two | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What's 2+2?
+  (request: prompt 1898, output 66, 2.8s, finish stop, reasoning 249 chars)
+[12:00:04 assistant] 
+2 + 2 = 4
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    2 + 2 = 4
+pass  test 5    max_prompt_tokens                  peak prompt 1898
+tests: map[5:pass 6:pass] | prompt 1898 output 66 requests 1 peak 1898 polls 0 | 3s real, 4s virtual

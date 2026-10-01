@@ -1,0 +1,12 @@
+===== nemotron-3-ultra L01_news_view guide v2 run 1 chained false
+----- user
+Add a table view news_last_week that shows the saved news of the last 7 days (date, title, link), newest first.
+----- assistant (finish tool_calls, prompt 4663, output 715, 21.1s)
+[reasoning 1851 chars]
+
+
+> save_view {"yaml":"version: 1\nid: news_last_week\ntitle: News last 7 days\ntype: table\ndescription: Bitcoin news from the last 7 days, newest first\nquery: |\n  SELECT date, title, url\n  FROM btc_news\n  WHERE date \u003e= :from\nfilters:\n  - param: from\n    control: date\n    label: \"From\"\n    default: \"today-7d\"\n    required: true\ncolumns:\n  - field: date\n    label: Date\n    format: date\n  - field: title\n    label: Title\n    format: text\n  - field: url\n    label: Link\n    format: url\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 20"}
+< save_view
+saved table view news_last_week (revision 1).
+
+----- result: stop write, loaded [], events 1

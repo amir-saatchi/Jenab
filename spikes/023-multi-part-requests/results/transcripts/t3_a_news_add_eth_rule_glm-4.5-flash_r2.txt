@@ -1,0 +1,35 @@
+===== glm-4.5-flash | t3_a_news_add_eth | cond rule | rep 2 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:32, stop done
+[12:00:00 user] Search the web for the latest Bitcoin news and summarise the top 3 stories.
+  (request: prompt 1469, output 112, 8.2s, finish tool_calls, reasoning 255 chars)
+[12:00:04 assistant] 
+I'll search for the latest Bitcoin news and then summarize the top 3 stories for you.
+
+[12:00:04 call] web_search {"query":"Bitcoin news latest 2026","source":"news","limit":10}
+[12:00:14 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+[12:00:14 mid_user] also add ETH
+  (request: prompt 1693, output 81, 3.7s, finish tool_calls, reasoning 183 chars)
+[12:00:18 call] web_search {"query":"Ethereum news latest 2026","source":"news","limit":10}
+[12:00:28 result web_search] 1. "ETH gas fees fall to a two-year low" - theblock.example, 2026-09-29: average fee 0.8 gwei. 2. "Ethereum staking queue shortens after the upgrade" - coindesk.example, 2026-09-28. 3. "ETH ETFs see first inflows in three weeks" - decrypt.example, 2026-09-27: 62M USD. 4. "ETH trades at 2,587 USD, up...
+  (request: prompt 1869, output 410, 13.9s, finish stop, reasoning 755 chars)
+[12:00:32 assistant] 
+Here are the top 3 stories from both Bitcoin and Ethereum:
+
+1. **Bitcoin ETFs continue strong inflows**: Spot bitcoin ETFs added $410 million in a single day on September 29th, marking the fourth consecutive day of inflows, indicating sustained institutional interest in Bitcoin.
+
+2. **Bitcoin hashrate hits record high**: Bitcoin's network hashrate reached a new record on September 28th, reflecting increased mining activity and network security.
+
+3. **Ethereum gas fees at two-year low**: Ethereum gas fees have fallen to a two-year low at just 0.8 gwei on September 29th, making transactions more affordable for users and potentially increasing network activity.
+
+Additional notable news includes Ethereum staking queue shortening after a recent upgrade and ETH ETFs seeing their first inflows in three weeks at $62 million.
+
+----- background tasks
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+pass  test 3    answer_contains                    I'll search for the latest Bitcoin news and then summarize the top 3 stories for you. Here are the top 3 stories from both Bitcoin and Ethereum: 1. **Bitcoin ET...
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 1869
+tests: map[3:pass 5:pass] | prompt 5031 output 603 requests 3 peak 1869 polls 0 | 26s real, 32s virtual

@@ -1,0 +1,38 @@
+[
+ {
+  "source": "marginalia",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T17:00:03.6008274Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 175,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T17:00:20.0638142Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 371,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T17:00:36.6015663Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 150,
+  "retries": 1,
+  "results": null
+ }
+]

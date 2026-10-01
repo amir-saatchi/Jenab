@@ -1,0 +1,15 @@
+===== nemotron-3-ultra | t6_f_card_schedule | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 2298, output 85, 2.0s, finish stop, reasoning 187 chars)
+[12:00:04 assistant] According to the project card, the **daily_prices** pipeline runs on a schedule: **daily at 08:00** (Europe/Berlin time zone).
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    According to the project card, the **daily_prices** pipeline runs on a schedule: **daily at 08:00** (Europe/Berlin time zone).
+pass  test 5    max_prompt_tokens                  peak prompt 2298
+tests: map[5:pass 6:pass] | prompt 2298 output 85 requests 1 peak 2298 polls 0 | 2s real, 4s virtual

@@ -1,0 +1,33 @@
+===== gemma4:31b | t3_a_news_add_eth | cond base | rep 2 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:32, stop done
+[12:00:00 user] Search the web for the latest Bitcoin news and summarise the top 3 stories.
+  (request: prompt 1323, output 23, 0.9s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] web_search {"query":"latest Bitcoin news","source":"news"}
+[12:00:14 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+[12:00:14 mid_user] also add ETH
+  (request: prompt 1558, output 23, 1.3s, finish tool_calls, reasoning 0 chars)
+[12:00:18 call] web_search {"query":"latest Ethereum news","source":"news"}
+[12:00:28 result web_search] 1. "ETH gas fees fall to a two-year low" - theblock.example, 2026-09-29: average fee 0.8 gwei. 2. "Ethereum staking queue shortens after the upgrade" - coindesk.example, 2026-09-28. 3. "ETH ETFs see first inflows in three weeks" - decrypt.example, 2026-09-27: 62M USD. 4. "ETH trades at 2,587 USD, up...
+  (request: prompt 1741, output 172, 1.0s, finish stop, reasoning 0 chars)
+[12:00:32 assistant] Here are the top 3 latest stories for Bitcoin and Ethereum:
+
+**Bitcoin (BTC)**
+1. **ETF Inflows:** Spot Bitcoin ETFs saw $410M in inflows in a single day, marking the fourth consecutive day of gains.
+2. **Network Strength:** The Bitcoin hashrate has reached a new all-time record.
+3. **Regulatory News:** The SEC has delayed its decision regarding the approval of staking ETFs.
+
+**Ethereum (ETH)**
+1. **Low Fees:** ETH gas fees have dropped to a two-year low, averaging around 0.8 gwei.
+2. **ETF Recovery:** Ethereum ETFs recorded their first inflows in three weeks, totaling $62M.
+3. **Staking:** The staking queue has shortened following a recent network upgrade.
+
+----- background tasks
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+pass  test 3    answer_contains                    Here are the top 3 latest stories for Bitcoin and Ethereum: **Bitcoin (BTC)** 1. **ETF Inflows:** Spot Bitcoin ETFs saw $410M in inflows in a single day, markin...
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 1741
+tests: map[3:pass 5:pass] | prompt 4622 output 218 requests 3 peak 1741 polls 0 | 3s real, 32s virtual

@@ -1,0 +1,28 @@
+===== nemotron-3-ultra | t6_d_watch_gold_daily | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Start watching gold prices daily from now on, and tell me when there's a big move.
+  (request: prompt 2529, output 191, 8.3s, finish tool_calls, reasoning 219 chars)
+[12:00:04 call] create_chat {"title":"Gold tracker","role":"Track gold prices daily, detect big moves (e.g. \u003e2% daily change), and alert the user. Store daily gold prices in a table. Use web search or APIs to fetch gold prices (e.g. from financial APIs or news sources).","message":"Start tracking gold prices daily. Fetch today's gold price (in USD per ounce), store it, and check for big moves vs yesterday. Report the current price and any significant change. Set up a daily routine for this."}
+[12:00:04 result create_chat] {"chat_id":"c_new1","status":"started","task_id":"t_1"}
+  (request: prompt 2704, output 108, 3.8s, finish stop, reasoning 250 chars)
+[12:00:08 assistant] Created a new chat **c_new1 "Gold tracker"** to watch gold prices daily and alert on big moves. It's starting its first run now (task t_1). I'll let you know what it reports.
+
+----- turn 2 (system) 12:01:04-12:01:08, stop done
+[12:01:04 notice] [task t_1 finished 12:01:04: reply from Gold tracker (c_new1): Gold watcher is set up: pipeline gold_daily is saved (daily at 08:00, writes to gold_prices) and I will report any daily move over 2%. Today's price: 2,641 USD/oz.
+]
+  (request: prompt 2843, output 135, 4.1s, finish stop, reasoning 228 chars)
+[12:01:08 assistant] The Gold tracker is now active. It created a pipeline **gold_daily** (runs daily at 08:00, stores prices in a `gold_prices` table) and will alert you on any daily move >2%. Today's gold price: **2,641 USD/oz**.
+
+----- background tasks
+t_1 create_chat c_new1 start 12:00:04 finish 12:01:04 delivered notice
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  role: Track gold prices daily, detect big moves (e.g. >2% daily change), and alert the user. Store daily g...
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Gold tracker is now active. It created a pipeline **gold_daily** (runs daily at 08:00, stores prices in a `gold_prices` table) and will alert you on any dai...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 2843
+tests: map[5:pass 6:pass] | prompt 8076 output 434 requests 3 peak 2843 polls 0 | 16s real, 68s virtual

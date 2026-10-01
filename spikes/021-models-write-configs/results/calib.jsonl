@@ -1,0 +1,6 @@
+{"Model":"gemma4:31b","Guide":"v1","Baseline":29,"WithGuide":2963,"WithTools":617,"GuideTokens":2934,"ToolTokens":588,"GuideChars":9998,"ToolChars":2037,"CardChars":0}
+{"Model":"glm-4.5-flash","Guide":"v1","Baseline":18,"WithGuide":2756,"WithTools":757,"GuideTokens":2738,"ToolTokens":739,"GuideChars":9998,"ToolChars":2037,"CardChars":0}
+{"Model":"glm-4.5-flash","Guide":"v2","Baseline":18,"WithGuide":3116,"WithTools":757,"GuideTokens":3098,"ToolTokens":739,"GuideChars":11519,"ToolChars":2037,"CardChars":0}
+{"Model":"gemma4:31b","Guide":"v2","Baseline":29,"WithGuide":3518,"WithTools":617,"GuideTokens":3489,"ToolTokens":588,"GuideChars":11519,"ToolChars":2037,"CardChars":0}
+{"Model":"nemotron-3-ultra","Guide":"v1","Baseline":27,"WithGuide":2801,"WithTools":994,"GuideTokens":2774,"ToolTokens":967,"GuideChars":9998,"ToolChars":2037,"CardChars":0}
+{"Model":"nemotron-3-ultra","Guide":"v2","Baseline":27,"WithGuide":3404,"WithTools":994,"GuideTokens":3377,"ToolTokens":967,"GuideChars":11519,"ToolChars":2037,"CardChars":0}

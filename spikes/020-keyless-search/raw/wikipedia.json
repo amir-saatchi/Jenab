@@ -1,0 +1,759 @@
+[
+ {
+  "source": "wikipedia",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:28:35.488174Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 942,
+  "results": [
+   {
+    "title": "History of bitcoin",
+    "url": "https://en.wikipedia.org/wiki/History_of_bitcoin",
+    "snippet": "called bitcoin prices a bubble. In early April 2013, the price per bitcoin dropped from $266 to around $50 and then rose to around $100. Over two weeks starting",
+    "mod_date": "2026-08-21T01:58:22Z",
+    "lang": "en"
+   },
+   {
+    "title": "Cryptocurrency",
+    "url": "https://en.wikipedia.org/wiki/Cryptocurrency",
+    "snippet": "Cryptocurrency prices are much more volatile than established financial assets such as stocks. For example, over one week in May 2022, bitcoin lost 20% of",
+    "mod_date": "2026-09-14T05:07:41Z",
+    "lang": "en"
+   },
+   {
+    "title": "Bitcoin",
+    "url": "https://en.wikipedia.org/wiki/Bitcoin",
+    "snippet": "This article contains special characters. Without proper rendering support, you may see question marks, boxes, or other symbols. Bitcoin (abbreviation:",
+    "mod_date": "2026-09-13T07:45:27Z",
+    "lang": "en"
+   },
+   {
+    "title": "Bitcoin in El Salvador",
+    "url": "https://en.wikipedia.org/wiki/Bitcoin_in_El_Salvador",
+    "snippet": "El Salvador was the first country in the world to use bitcoin as legal tender, after it was adopted as such by the Legislative Assembly of El Salvador",
+    "mod_date": "2026-08-17T01:20:05Z",
+    "lang": "en"
+   },
+   {
+    "title": "Lyn Alden",
+    "url": "https://en.wikipedia.org/wiki/Lyn_Alden",
+    "snippet": "\"historical volatility profile.\"[vague] She claims Bitcoin is a whole new asset class which is in its \"price discovery phase\" and should therefore be classified",
+    "mod_date": "2026-07-15T03:29:16Z",
+    "lang": "en"
+   },
+   {
+    "title": "Cryptocurrency bubble",
+    "url": "https://en.wikipedia.org/wiki/Cryptocurrency_bubble",
+    "snippet": "2011, Bitcoin's price again rose, to US$29.58. This came after attention from a Gawker article about the dark web market Silk Road. The price then fell",
+    "mod_date": "2026-09-18T08:50:11Z",
+    "lang": "en"
+   },
+   {
+    "title": "Grayscale Investments",
+    "url": "https://en.wikipedia.org/wiki/Grayscale_Investments",
+    "snippet": "arbitrage trades based on the difference in price between GBTC’s shares and the corresponding amount of bitcoin. At the time of Alameda’s bankruptcy, shares",
+    "mod_date": "2026-05-31T16:26:58Z",
+    "lang": "en"
+   },
+   {
+    "title": "CoinDesk",
+    "url": "https://en.wikipedia.org/wiki/CoinDesk",
+    "snippet": "is an American news site specializing in bitcoin and digital currencies. Founded by Shakil Khan, the firm also provides guides to bitcoin for those new",
+    "mod_date": "2026-09-22T03:57:02Z",
+    "lang": "en"
+   },
+   {
+    "title": "Dogecoin",
+    "url": "https://en.wikipedia.org/wiki/Dogecoin",
+    "snippet": "investing in the Bitcoin economy. Three days later, Dogecoin experienced its first major crash when its price dropped by 80% due to this event and to large",
+    "mod_date": "2026-09-13T10:45:16Z",
+    "lang": "en"
+   },
+   {
+    "title": "Silk Road (marketplace)",
+    "url": "https://en.wikipedia.org/wiki/Silk_Road_%28marketplace%29",
+    "snippet": "bitcoins held in escrow to be fixed to their value in US$ at the time of the sale to mitigate against Bitcoin's volatility. Any changes in the price of",
+    "mod_date": "2026-09-22T06:27:39Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=672"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:28:36.0248166Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 378,
+  "results": [
+   {
+    "title": "Ethereum",
+    "url": "https://en.wikipedia.org/wiki/Ethereum",
+    "snippet": "Ethereum forks (2014 to present)\". ethereum.org. Archived from the original on 24 April 2026. Retrieved 20 May 2026. \"Fulu-Osaka (Fusaka)\". ethereum.org",
+    "mod_date": "2026-09-27T23:02:42Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=1"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:28:37.1658207Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 419,
+  "results": [
+   {
+    "title": "History of bitcoin",
+    "url": "https://en.wikipedia.org/wiki/History_of_bitcoin",
+    "snippet": "Fortune. 2 January 2024. Retrieved 2 January 2024. \"Bitcoin Tops $73,000 to Hit New Record On Insatiable ETF Demand\". Bloomberg News. 13 March 2024. Retrieved",
+    "mod_date": "2026-08-21T01:58:22Z",
+    "lang": "en"
+   },
+   {
+    "title": "MicroStrategy",
+    "url": "https://en.wikipedia.org/wiki/MicroStrategy",
+    "snippet": "considered to be a bitcoin proxy due to Strategy's holdings of the cryptocurrency. Saylor has compared it to a bitcoin spot leveraged ETF, though it is not",
+    "mod_date": "2026-08-25T09:32:46Z",
+    "lang": "en"
+   },
+   {
+    "title": "BlackRock",
+    "url": "https://en.wikipedia.org/wiki/BlackRock",
+    "snippet": "(SEC) to launch a Spot Bitcoin Exchange-Traded Fund (ETF), and in November 2023 it filed another application for a Spot Ethereum ETF. The spot bitcoin",
+    "mod_date": "2026-09-28T14:22:39Z",
+    "lang": "en"
+   },
+   {
+    "title": "Bitcoin",
+    "url": "https://en.wikipedia.org/wiki/Bitcoin",
+    "snippet": "In October 2021, the first bitcoin futures exchange-traded fund (ETF), called BITO, from ProShares was approved by the SEC and listed on the CME. In early",
+    "mod_date": "2026-09-13T07:45:27Z",
+    "lang": "en"
+   },
+   {
+    "title": "Binance",
+    "url": "https://en.wikipedia.org/wiki/Binance",
+    "snippet": "concerns over the security of Filipino investors' funds. This decision follows the SEC's identification of Binance as operating without the necessary licensing",
+    "mod_date": "2026-09-21T08:45:56Z",
+    "lang": "en"
+   },
+   {
+    "title": "Gary Gensler",
+    "url": "https://en.wikipedia.org/wiki/Gary_Gensler",
+    "snippet": "Committee that the SEC had no plans to ban cryptocurrencies. On October 15, the SEC approved the first bitcoin futures exchange-traded fund (ETF) in the United",
+    "mod_date": "2026-08-31T09:26:59Z",
+    "lang": "en"
+   },
+   {
+    "title": "Digital Currency Group",
+    "url": "https://en.wikipedia.org/wiki/Digital_Currency_Group",
+    "snippet": "Origin Bitcoin Trust. Following that decision, in July 2024 the SEC granted approval for Grayscale's ETHE, along with seven other spot Ethereum ETFs including",
+    "mod_date": "2026-08-02T13:44:06Z",
+    "lang": "en"
+   },
+   {
+    "title": "Cryptocurrency in the second Trump presidency",
+    "url": "https://en.wikipedia.org/wiki/Cryptocurrency_in_the_second_Trump_presidency",
+    "snippet": "create a Bitcoin stockpile. In July, new SEC regulations espousing exchange-traded funds (ETFs) were issued, and the following week, TMTG filed SEC papers",
+    "mod_date": "2026-09-04T04:53:07Z",
+    "lang": "en"
+   },
+   {
+    "title": "EToro",
+    "url": "https://en.wikipedia.org/wiki/EToro",
+    "snippet": "authorized by the UK's Financial Conduct Authority. In 2014, eToro introduced Bitcoin trading and later added currency futures investments for the Russian ruble",
+    "mod_date": "2026-09-15T15:41:45Z",
+    "lang": "en"
+   },
+   {
+    "title": "Robinhood Markets",
+    "url": "https://en.wikipedia.org/wiki/Robinhood_Markets",
+    "snippet": "trading platform that facilitates trades of stocks, exchange-traded funds (ETFs), options, index options, futures contracts, event contracts on prediction",
+    "mod_date": "2026-09-23T05:33:06Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=15"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:28:38.365447Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 1199,
+  "results": [
+   {
+    "title": "Geldschöpfung",
+    "url": "https://de.wikipedia.org/wiki/Geldsch%C3%B6pfung",
+    "snippet": "Buchgeld nicht für Tilgung und Zinsen ausreicht. Jedoch kann die Differenz der von Banken verlangten und von Banken gezahlten Zinsen (etwa z L − z D {\\displaystyle",
+    "mod_date": "2026-02-16T17:15:15Z",
+    "lang": "de"
+   },
+   {
+    "title": "Zins",
+    "url": "https://de.wikipedia.org/wiki/Zins",
+    "snippet": "hohe Zinsen, das Zinsniveau sank bei Stabilisierung einer Gesellschaft und stieg beim Verfall einer Kultur. Im römischen Imperium lagen die Zinsen bei",
+    "mod_date": "2025-09-27T06:52:17Z",
+    "lang": "de"
+   },
+   {
+    "title": "Diskontsatz",
+    "url": "https://de.wikipedia.org/wiki/Diskontsatz",
+    "snippet": "der Bankenliquidität und der Zinsen am Geldmarkt zu steuern. Das leitete sich aus § 15 BbankG a. F. ab, der der Bundesbank das Recht einräumte, zur Beeinflussung",
+    "mod_date": "2026-05-02T08:29:01Z",
+    "lang": "de"
+   },
+   {
+    "title": "Leitzins",
+    "url": "https://de.wikipedia.org/wiki/Leitzins",
+    "snippet": "Veränderungen der Bankenliquidität und der Zinsen am Geldmarkt zu steuern. Das leitete sich aus § 15 BbankG ab, der der Bundesbank das Recht einräumte, zur Beeinflussung",
+    "mod_date": "2026-09-18T11:04:45Z",
+    "lang": "de"
+   },
+   {
+    "title": "Schuldendienstdeckungsgrad",
+    "url": "https://de.wikipedia.org/wiki/Schuldendienstdeckungsgrad",
+    "snippet": "Schuldendienst. Zu den Zinsen gehören alle Zinsaufwendungen, die aus zinstragenden Verbindlichkeiten resultieren (Ausnahmen: Zinsen für Pensionsrückstellungen",
+    "mod_date": "2023-12-27T21:32:49Z",
+    "lang": "de"
+   },
+   {
+    "title": "Hauptrefinanzierungsinstrument",
+    "url": "https://de.wikipedia.org/wiki/Hauptrefinanzierungsinstrument",
+    "snippet": "werden die Zinsen auf dem Geldmarkt an die Kredit- und Einlagezinsen weitergegeben, wie unter Geldschöpfung (Abschnitt Betrachtung der Zinsen) erklärt wird",
+    "mod_date": "2023-01-14T13:39:36Z",
+    "lang": "de"
+   },
+   {
+    "title": "Lombardsatz",
+    "url": "https://de.wikipedia.org/wiki/Lombardsatz",
+    "snippet": "der Bankenliquidität und der Zinsen am Geldmarkt zu steuern. Das leitete sich aus § 15 BBankG a. F. ab, der der Bundesbank das Recht einräumte, zur Beeinflussung",
+    "mod_date": "2026-06-07T13:52:06Z",
+    "lang": "de"
+   },
+   {
+    "title": "KfW",
+    "url": "https://de.wikipedia.org/wiki/KfW",
+    "snippet": "COVID-Pandemie senkte die KfW die Zinsen für Studienkredite auf null Prozent. Seit April 2023 müssen Studenten bis zu 7,82 Prozent Zinsen zahlen; davor waren es",
+    "mod_date": "2026-04-08T19:58:48Z",
+    "lang": "de"
+   },
+   {
+    "title": "Termingeld",
+    "url": "https://de.wikipedia.org/wiki/Termingeld",
+    "snippet": "Begriffs Termineinlagen fand sich in § 3 der Anweisung der Deutschen Bundesbank über Mindestreserven (AMR), wonach Termineinlagen als befristete Verbindlichkeiten",
+    "mod_date": "2024-05-13T13:03:29Z",
+    "lang": "de"
+   },
+   {
+    "title": "Weltfinanzkrise 2007–2008",
+    "url": "https://de.wikipedia.org/wiki/Weltfinanzkrise_2007%E2%80%932008",
+    "snippet": "Absicht der FED wirkte sich dies auf die langfristigen Zinsen aber nicht aus. Die niedrigen Zinsen hatten nicht zu einer Abwertung des US-Dollar geführt",
+    "mod_date": "2026-09-17T06:27:54Z",
+    "lang": "de"
+   }
+  ],
+  "extra": "host=de.wikipedia.org totalhits=235"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:28:39.2441056Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 878,
+  "results": [
+   {
+    "title": "بیت کوین در السالوادور",
+    "url": "https://fa.wikipedia.org/wiki/%D8%A8%DB%8C%D8%AA_%DA%A9%D9%88%DB%8C%D9%86_%D8%AF%D8%B1_%D8%A7%D9%84%D8%B3%D8%A7%D9%84%D9%88%D8%A7%D8%AF%D9%88%D8%B1",
+    "snippet": "سطح ملی قرار داده است. پذیرش بیت کوین به عنوان ارز قانونی هم در سطح بین‌المللی و هم در السالوادور به دلیل نوسانات بیت کوین، تأثیرات زیست‌محیطی آن و عدم",
+    "mod_date": "2026-08-01T07:33:05Z",
+    "lang": "fa"
+   },
+   {
+    "title": "بیت‌کوین",
+    "url": "https://fa.wikipedia.org/wiki/%D8%A8%DB%8C%D8%AA%E2%80%8C%DA%A9%D9%88%DB%8C%D9%86",
+    "snippet": "توزیع ایجاد بیت کوین‌های جدید در طول زمان امری ضروری است. کنترل استخراج بیت کوین در واقع برای حفظ ارزش بیت کوین می‌باشد که باعث می‌شود بیت کوین ضد تورم باشد",
+    "mod_date": "2026-08-21T15:49:32Z",
+    "lang": "fa"
+   },
+   {
+    "title": "فعالیت‌های اقتصادی سپاه پاسداران انقلاب اسلامی ایران",
+    "url": "https://fa.wikipedia.org/wiki/%D9%81%D8%B9%D8%A7%D9%84%DB%8C%D8%AA%E2%80%8C%D9%87%D8%A7%DB%8C_%D8%A7%D9%82%D8%AA%D8%B5%D8%A7%D8%AF%DB%8C_%D8%B3%D9%BE%D8%A7%D9%87_%D9%BE%D8%A7%D8%B3%D8%AF%D8%A7%D8%B1%D8%A7%D9%86_%D8%A7%D9%86%D9%82%D9%84%D8%A7%D8%A8_%D8%A7%D8%B3%D9%84%D8%A7%D9%85%DB%8C_%D8%A7%DB%8C%D8%B1%D8%A7%D9%86",
+    "snippet": "کانال های جایگزین برای معاملات کرده است. ارزهای رمزنگاری شده، به ویژه بیت کوین، راه مؤثری را برای دور زدن محدودیت های بانکی سنتی و جابجایی پول به آن سوی",
+    "mod_date": "2026-08-29T07:39:51Z",
+    "lang": "fa"
+   },
+   {
+    "title": "ارز دیجیتال در ایران",
+    "url": "https://fa.wikipedia.org/wiki/%D8%A7%D8%B1%D8%B2_%D8%AF%DB%8C%D8%AC%DB%8C%D8%AA%D8%A7%D9%84_%D8%AF%D8%B1_%D8%A7%DB%8C%D8%B1%D8%A7%D9%86",
+    "snippet": "برای استخراج‌کنندگان مجاز، هزینه سر به سر استخراج بیت‌کوین در ایران بسیار بالاتر از قیمت فعلی بیت‌کوین است. با تغییر تعرفه‌های انرژی در هر فصل و قطعی‌های",
+    "mod_date": "2026-09-26T18:18:29Z",
+    "lang": "fa"
+   },
+   {
+    "title": "جنگ دوازده‌روزه",
+    "url": "https://fa.wikipedia.org/wiki/%D8%AC%D9%86%DA%AF_%D8%AF%D9%88%D8%A7%D8%B2%D8%AF%D9%87%E2%80%8C%D8%B1%D9%88%D8%B2%D9%87",
+    "snippet": "قیمت نفت شد که بعداً به ۱۱ درصد رسید و به بالاترین سطح در یک ماه گذشته رسید. ارزش دلار آمریکا افزایش یافت، بیت‌کوین به ۱۰۳٬۰۰۰ دلار کاهش یافت و قیمت طلا",
+    "mod_date": "2026-09-03T05:21:35Z",
+    "lang": "fa"
+   },
+   {
+    "title": "حملات اسرائیل به ایران (خرداد–تیر ۱۴۰۴)",
+    "url": "https://fa.wikipedia.org/wiki/%D8%AD%D9%85%D9%84%D8%A7%D8%AA_%D8%A7%D8%B3%D8%B1%D8%A7%D8%A6%DB%8C%D9%84_%D8%A8%D9%87_%D8%A7%DB%8C%D8%B1%D8%A7%D9%86_%28%D8%AE%D8%B1%D8%AF%D8%A7%D8%AF%E2%80%93%D8%AA%DB%8C%D8%B1_%DB%B1%DB%B4%DB%B0%DB%B4%29",
+    "snippet": "قیمت نفت شد که بعداً به ۱۱ درصد رسید و به بالاترین سطح در یک ماه گذشته رسید. ارزش دلار آمریکا افزایش یافت، بیت‌کوین به ۱۰۳٬۰۰۰ دلار کاهش یافت و قیمت طلا",
+    "mod_date": "2026-09-20T00:23:44Z",
+    "lang": "fa"
+   },
+   {
+    "title": "حمله سایبری به نوبیتکس",
+    "url": "https://fa.wikipedia.org/wiki/%D8%AD%D9%85%D9%84%D9%87_%D8%B3%D8%A7%DB%8C%D8%A8%D8%B1%DB%8C_%D8%A8%D9%87_%D9%86%D9%88%D8%A8%DB%8C%D8%AA%DA%A9%D8%B3",
+    "snippet": "رمزارزی را نشان دادند. قیمت تتر و سایر دارایی‌های رمزارزی در بازار ایران نیز در روزهای پس از حمله مورد توجه قرار گرفت. با این حال، قیمت دارایی‌های رمزارزی",
+    "mod_date": "2026-09-03T05:52:10Z",
+    "lang": "fa"
+   },
+   {
+    "title": "استیبل کوین",
+    "url": "https://fa.wikipedia.org/wiki/%D8%A7%D8%B3%D8%AA%DB%8C%D8%A8%D9%84_%DA%A9%D9%88%DB%8C%D9%86",
+    "snippet": "پشتوانه را به افزایش قیمت بیت کوین در سال ۲۰۱۷ نسبت دادند. پس از آن تحقیقات شواهد کمی نشان داد که رویدادهای ضرب دلاری تتر بر ارزش بیت کوین تأثیر گذاشته است،",
+    "mod_date": "2026-07-11T15:22:15Z",
+    "lang": "fa"
+   },
+   {
+    "title": "بحران انرژی ایران",
+    "url": "https://fa.wikipedia.org/wiki/%D8%A8%D8%AD%D8%B1%D8%A7%D9%86_%D8%A7%D9%86%D8%B1%DA%98%DB%8C_%D8%A7%DB%8C%D8%B1%D8%A7%D9%86",
+    "snippet": "باقی مانده است. بازار ارزهای دیجیتال در ایران در حال رونق است. استفاده از بیت کوین، باعث مصرف انرژی زیادی است و به منابع الکتریکی قابل توجهی نیاز دارد. شبکه",
+    "mod_date": "2026-08-26T09:28:43Z",
+    "lang": "fa"
+   },
+   {
+    "title": "چت‌جی‌پی‌تی",
+    "url": "https://fa.wikipedia.org/wiki/%DA%86%D8%AA%E2%80%8C%D8%AC%DB%8C%E2%80%8C%D9%BE%DB%8C%E2%80%8C%D8%AA%DB%8C",
+    "snippet": "نوامبر ۲۰۲۲ منتشر شد، از سوی برخی ناظران دارای قابلیت‌هایی بی‌سابقه توصیف شد. کوین روز از روزنامهٔ نیویورک تایمز آن را «بهترین هوش مصنوعی گفت‌وگویی که تاکنون",
+    "mod_date": "2026-09-25T10:16:50Z",
+    "lang": "fa"
+   }
+  ],
+  "extra": "host=fa.wikipedia.org totalhits=82"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:28:39.7103759Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 465,
+  "results": [
+   {
+    "title": "Hector Martin (hacker)",
+    "url": "https://en.wikipedia.org/wiki/Hector_Martin_%28hacker%29",
+    "snippet": "marcan, is a Spanish security hacker and former lead developer on the Asahi Linux project. He is also known for hacking multiple PlayStation generations",
+    "mod_date": "2026-08-16T13:11:23Z",
+    "lang": "en"
+   },
+   {
+    "title": "TerminusDB",
+    "url": "https://en.wikipedia.org/wiki/TerminusDB",
+    "snippet": "we release TerminusDB — the database for data people\". Medium. Retrieved 2019-12-06. \"We Love GPLv3, but Are Switching License to Apache 2.0 | Hacker News\"",
+    "mod_date": "2026-08-16T20:13:51Z",
+    "lang": "en"
+   },
+   {
+    "title": "Stoat (software)",
+    "url": "https://en.wikipedia.org/wiki/Stoat_%28software%29",
+    "snippet": "of Hacker News. On June 13, 2023, the platform announced it had reached 100,000 registered users following a surge in users spurred by the release of",
+    "mod_date": "2026-09-08T19:02:58Z",
+    "lang": "en"
+   },
+   {
+    "title": "Alec Baldwin",
+    "url": "https://en.wikipedia.org/wiki/Alec_Baldwin",
+    "snippet": "2023). \"Charges dropped against Alec Baldwin in fatal on-set 'Rust' shooting: Sources\". ABC News. Archived from the original on April 20, 2023. Retrieved April",
+    "mod_date": "2026-09-13T03:27:43Z",
+    "lang": "en"
+   },
+   {
+    "title": "Atom (text editor)",
+    "url": "https://en.wikipedia.org/wiki/Atom_%28text_editor%29",
+    "snippet": "April 12, 2026. Retrieved 2026-05-23. Sobo, Nathan. \"Sunsetting Atom\". Hacker News. Retrieved 21 June 2022. Nathan Sobo [@nathansobo] (June 8, 2022). \"As",
+    "mod_date": "2026-09-02T14:33:17Z",
+    "lang": "en"
+   },
+   {
+    "title": "Loupe (software)",
+    "url": "https://en.wikipedia.org/wiki/Loupe_%28software%29",
+    "snippet": "Viewer App for GNOME\". It's FOSS News. Archived from the original on 1 February 2024. Retrieved 27 February 2024. Häcker, Felix (11 August 2023). \"#108",
+    "mod_date": "2026-08-12T19:19:37Z",
+    "lang": "en"
+   },
+   {
+    "title": "Content Authenticity Initiative",
+    "url": "https://en.wikipedia.org/wiki/Content_Authenticity_Initiative",
+    "snippet": "Neal (2024-05-09). \"C2PA from the Attacker's Perspective - The Hacker Factor Blog\". Hacker Factor. Retrieved 2025-04-24. \"Goals and Non-goals\". C2PA Specifications",
+    "mod_date": "2026-09-28T07:56:43Z",
+    "lang": "en"
+   },
+   {
+    "title": "QuestDB",
+    "url": "https://en.wikipedia.org/wiki/QuestDB",
+    "snippet": "QuestDB (YC S20) – Fast open source time series database\". Hacker News. \"Initial release\". GitHub. \"QuestDB 3.0.0\". GitHub. October 8, 2018. \"4.0.0\"",
+    "mod_date": "2026-09-05T21:36:31Z",
+    "lang": "en"
+   },
+   {
+    "title": "Thor Vector Graphics",
+    "url": "https://en.wikipedia.org/wiki/Thor_Vector_Graphics",
+    "snippet": "Retrieved 2026-01-31. \"ThorVG: Super Lightweight Vector Graphics Engine\". Hacker News. Retrieved 2025-12-20. lakfar (2025-09-05). \"Lottie в интерфейсах: как",
+    "mod_date": "2026-09-15T17:22:27Z",
+    "lang": "en"
+   },
+   {
+    "title": "Pokémon Legends: Z-A",
+    "url": "https://en.wikipedia.org/wiki/Pok%C3%A9mon_Legends:_Z-A",
+    "snippet": "community dubbing it as the Teraleak. However, the hacker who was behind the leak held back on releasing information regarding Z-A and future projects in",
+    "mod_date": "2026-09-15T18:38:45Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=333"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:28:41.0695145Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 723,
+  "results": [
+   {
+    "title": "Go (programming language)",
+    "url": "https://en.wikipedia.org/wiki/Go_%28programming_language%29",
+    "snippet": "current Go 1.26 release have maintained this promise. Go uses a go1.[major].[patch] versioning format, such as go1.26.0 and each major Go release is supported",
+    "mod_date": "2026-09-16T09:06:11Z",
+    "lang": "en"
+   },
+   {
+    "title": "Go! Go! Cory Carson",
+    "url": "https://en.wikipedia.org/wiki/Go%21_Go%21_Cory_Carson",
+    "snippet": "mini-movie titled Go! Go! Cory Carson: The Chrissy was released on May 1, 2020. Another special titled A Go! Go! Cory Carson Summer Camp was released on August",
+    "mod_date": "2026-08-15T03:19:02Z",
+    "lang": "en"
+   },
+   {
+    "title": "Lotus 1-2-3",
+    "url": "https://en.wikipedia.org/wiki/Lotus_1-2-3",
+    "snippet": "1989. Release 1.1. Introduced in 1991. Release 2. Introduced in 1992. Release 2.1. Introduced in 1994. Lotus 1-2-3/W Release 1 was the first release for",
+    "mod_date": "2026-07-26T20:23:43Z",
+    "lang": "en"
+   },
+   {
+    "title": "Thunderbirds Are Go (TV series)",
+    "url": "https://en.wikipedia.org/wiki/Thunderbirds_Are_Go_%28TV_series%29",
+    "snippet": "Are Go! Production began in June 2013 at Weta Workshop, while the principal voice cast was announced on 30 September 2014. Each series consists of 26 episodes",
+    "mod_date": "2026-08-10T07:12:08Z",
+    "lang": "en"
+   },
+   {
+    "title": "C+C Music Factory",
+    "url": "https://en.wikipedia.org/wiki/C+C_Music_Factory",
+    "snippet": "in the US. In 1991, the group released two top-ten singles, \"Here We Go (Let's Rock \u0026 Roll)\" and \"Things That Make You Go Hmmm...\" (inspired by a phrase",
+    "mod_date": "2026-06-01T12:44:09Z",
+    "lang": "en"
+   },
+   {
+    "title": "Before We Go",
+    "url": "https://en.wikipedia.org/wiki/Before_We_Go",
+    "snippet": "It was released on video on demand on July 21, 2015, and had a limited theatrical release in the United States on September 4, 2015. Before We Go received",
+    "mod_date": "2026-09-20T02:43:44Z",
+    "lang": "en"
+   },
+   {
+    "title": "2025–26 Go Ahead Eagles season",
+    "url": "https://en.wikipedia.org/wiki/2025%E2%80%9326_Go_Ahead_Eagles_season",
+    "snippet": "The 2025–26 season was the 123rd season in the history of Go Ahead Eagles, and the club's fifth consecutive season in the Eredivisie. In addition to the",
+    "mod_date": "2026-09-15T21:33:55Z",
+    "lang": "en"
+   },
+   {
+    "title": "Dylan Scott",
+    "url": "https://en.wikipedia.org/wiki/Dylan_Scott",
+    "snippet": "signed to Curb Records. Scott's debut single, \"Makin' This Boy Go Crazy\", was released in June 2013. Billy Dukes of Taste of Country gave the song three",
+    "mod_date": "2026-06-27T01:42:22Z",
+    "lang": "en"
+   },
+   {
+    "title": "Let Him Go",
+    "url": "https://en.wikipedia.org/wiki/Let_Him_Go",
+    "snippet": "grandson from a dangerous family living off-the-grid. Let Him Go was theatrically released in the United States on November 6, 2020, by Focus Features.",
+    "mod_date": "2026-09-14T17:58:18Z",
+    "lang": "en"
+   },
+   {
+    "title": "Teen Titans (TV series)",
+    "url": "https://en.wikipedia.org/wiki/Teen_Titans_%28TV_series%29",
+    "snippet": "Cartoon Network this Spring in 'Teen Titans Go!'\" (Press release). DC Comics. March 13, 2013. Retrieved May 26, 2013. \"Preview image - Teen Titans 76\". Newsarama",
+    "mod_date": "2026-09-12T10:59:54Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=243675"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:28:41.8795853Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 433,
+  "results": [
+   {
+    "title": "Batman v Superman: Dawn of Justice",
+    "url": "https://en.wikipedia.org/wiki/Batman_v_Superman:_Dawn_of_Justice",
+    "snippet": "Interview – Actor Sammi Rotibi on Batman v Superman, Django Unchained, Obsidian Dolls and more\". Flickering Myth. August 14, 2020. Retrieved June 9, 2021",
+    "mod_date": "2026-09-16T08:52:32Z",
+    "lang": "en"
+   },
+   {
+    "title": "Aquaman",
+    "url": "https://en.wikipedia.org/wiki/Aquaman",
+    "snippet": "to date. Aquaman (vol. 6) was launched in 2003, following on from the Obsidian Age storyline in JLA. In the wake of the DC event miniseries Infinite Crisis",
+    "mod_date": "2026-09-27T19:12:09Z",
+    "lang": "en"
+   },
+   {
+    "title": "List of Xbox One games (A–L)",
+    "url": "https://en.wikipedia.org/wiki/List_of_Xbox_One_games_%28A%E2%80%93L%29",
+    "snippet": "CC_ARTS Drageus Games Unreleased Oct 23, 2020 Oct 23, 2020 Grounded Survival Obsidian Entertainment Xbox Game Studios Sep 27, 2022 Sep 27, 2022 Sep 27, 2022",
+    "mod_date": "2026-07-28T02:01:39Z",
+    "lang": "en"
+   },
+   {
+    "title": "List of PlayStation 4 games (A–L)",
+    "url": "https://en.wikipedia.org/wiki/List_of_PlayStation_4_games_%28A%E2%80%93L%29",
+    "snippet": "CC_ARTS Drageus Games Unreleased Oct 23, 2020 Oct 23, 2020 Grounded Survival Obsidian Entertainment Xbox Game Studios Apr 16, 2024 Apr 16, 2024 Apr 16, 2024",
+    "mod_date": "2026-09-10T15:50:26Z",
+    "lang": "en"
+   },
+   {
+    "title": "List of DC Universe locations",
+    "url": "https://en.wikipedia.org/wiki/List_of_DC_Universe_locations",
+    "snippet": "as celebrating the real Superman. Milwaukee, Wisconsin: The hometown of Obsidian. New York City: The home base to many superheroes over the years, including",
+    "mod_date": "2026-09-25T17:36:29Z",
+    "lang": "en"
+   },
+   {
+    "title": "2022–2026 video game industry layoffs",
+    "url": "https://en.wikipedia.org/wiki/2022%E2%80%932026_video_game_industry_layoffs",
+    "snippet": "May 25, 2024. \"Closing out 2023 - Game Industry Layoffs - Obsidian Publish\". publish.obsidian.md. Archived from the original on March 3, 2026. Retrieved",
+    "mod_date": "2026-09-12T20:59:24Z",
+    "lang": "en"
+   },
+   {
+    "title": "Glass",
+    "url": "https://en.wikipedia.org/wiki/Glass",
+    "snippet": "form. Some glasses such as volcanic glass are naturally occurring, and obsidian has been used to make arrowheads and knives since the Stone Age. Archaeological",
+    "mod_date": "2026-09-24T10:01:37Z",
+    "lang": "en"
+   },
+   {
+    "title": "LGBTQ themes in Western animation",
+    "url": "https://en.wikipedia.org/wiki/LGBTQ_themes_in_Western_animation",
+    "snippet": "the story of Marceline and Bonnibel. The second episode of that series, \"Obsidian,\" brought together Marceline, Princess Bubblegum, and Glassboy, the latter",
+    "mod_date": "2026-08-26T23:59:20Z",
+    "lang": "en"
+   },
+   {
+    "title": "Human",
+    "url": "https://en.wikipedia.org/wiki/Human",
+    "snippet": "Neanderthals. Early trade likely involved materials for creating tools like obsidian. The first truly international trade routes were around the spice trade",
+    "mod_date": "2026-09-23T05:08:15Z",
+    "lang": "en"
+   },
+   {
+    "title": "Avengers: Infinity War",
+    "url": "https://en.wikipedia.org/wiki/Avengers:_Infinity_War",
+    "snippet": "Stones—from the planet Xandar, Thanos and his lieutenants—Ebony Maw, Cull Obsidian, Proxima Midnight, and Corvus Glaive—intercept the spaceship carrying the",
+    "mod_date": "2026-08-25T12:11:43Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=20"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:28:43.057055Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 510,
+  "results": [
+   {
+    "title": "Maharishi Mahesh Yogi",
+    "url": "https://en.wikipedia.org/wiki/Maharishi_Mahesh_Yogi",
+    "snippet": "Transcendental Meditation (TM) and leader of the worldwide organization that has been characterized in multiple ways, including as a new religious movement",
+    "mod_date": "2026-09-02T15:18:57Z",
+    "lang": "en"
+   },
+   {
+    "title": "Padre Pio",
+    "url": "https://en.wikipedia.org/wiki/Padre_Pio",
+    "snippet": "daily communion, spiritual reading, meditation, and frequent examination of one's conscience. He taught his spiritual followers that suffering was a special",
+    "mod_date": "2026-09-24T12:56:28Z",
+    "lang": "en"
+   },
+   {
+    "title": "List of The Daily Show episodes (2026)",
+    "url": "https://en.wikipedia.org/wiki/List_of_The_Daily_Show_episodes_%282026%29",
+    "snippet": "This is a list of episodes for The Daily Show, a late-night talk and satirical news television program airing on Comedy Central, during 2026 (the series'",
+    "mod_date": "2026-09-27T18:59:21Z",
+    "lang": "en"
+   },
+   {
+    "title": "Mindfulness",
+    "url": "https://en.wikipedia.org/wiki/Mindfulness",
+    "snippet": "on meditation research, found insufficient evidence of any effect of meditation programs on positive mood, attention, substance use, eating habits, sleep",
+    "mod_date": "2026-09-23T21:52:19Z",
+    "lang": "en"
+   },
+   {
+    "title": "Dominican Sisters of St. Cecilia",
+    "url": "https://en.wikipedia.org/wiki/Dominican_Sisters_of_St._Cecilia",
+    "snippet": "enters the convent and is given a modified version of the religious habit. The postulants spend the next year learning how to live in community as well as",
+    "mod_date": "2026-04-19T15:48:42Z",
+    "lang": "en"
+   },
+   {
+    "title": "Mindfulness-based cognitive therapy",
+    "url": "https://en.wikipedia.org/wiki/Mindfulness-based_cognitive_therapy",
+    "snippet": "Guide to Mindfulness-Based Cognitive Therapy, MBCT.com Mindfulness-based Cognitive Therapy Oxford Mindfulness Centre Mindfulness Meditation in daily life",
+    "mod_date": "2026-09-03T19:13:44Z",
+    "lang": "en"
+   },
+   {
+    "title": "Buddhism",
+    "url": "https://en.wikipedia.org/wiki/Buddhism",
+    "snippet": "as a practice which is taught prior to formal sitting meditation, and which supports meditation by weakening sense desires that are a hindrance to meditation",
+    "mod_date": "2026-09-22T02:54:59Z",
+    "lang": "en"
+   },
+   {
+    "title": "Scapular of Our Lady of Mount Carmel",
+    "url": "https://en.wikipedia.org/wiki/Scapular_of_Our_Lady_of_Mount_Carmel",
+    "snippet": "Our Lady of Mount Carmel (also known as the Brown Scapular) belongs to the habit of both the Carmelite Order and the Discalced Carmelite Order, both of",
+    "mod_date": "2026-07-25T11:05:10Z",
+    "lang": "en"
+   },
+   {
+    "title": "List of 2026 albums",
+    "url": "https://en.wikipedia.org/wiki/List_of_2026_albums",
+    "snippet": "mixtape Mask with single \"Habit\"\". The Line of Best Fit. May 8, 2026. Retrieved May 18, 2026. Green, Walden (May 14, 2026). \"There's a New Salem Album Out Today\"",
+    "mod_date": "2026-09-28T15:09:48Z",
+    "lang": "en"
+   },
+   {
+    "title": "Bryan Johnson",
+    "url": "https://en.wikipedia.org/wiki/Bryan_Johnson",
+    "snippet": "he had for years maintained health-compromising habits, due to the demands of entrepreneurship and as a young father. He started improving his well-being",
+    "mod_date": "2026-09-17T18:33:55Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=128"
+ },
+ {
+  "source": "wikipedia",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:28:44.1259562Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 478,
+  "results": [
+   {
+    "title": "European Central Bank",
+    "url": "https://en.wikipedia.org/wiki/European_Central_Bank",
+    "snippet": "intermediate monetary objectives and key interest rate of the EU. The ECB Executive Board enforces the policies and decisions of the Governing Council, and may",
+    "mod_date": "2026-09-25T21:28:19Z",
+    "lang": "en"
+   },
+   {
+    "title": "Bank rate",
+    "url": "https://en.wikipedia.org/wiki/Bank_rate",
+    "snippet": "policy for the euro area. The ECB's primary objective is to maintain price stability by controlling key interest rates to keep inflation below 2 percent",
+    "mod_date": "2025-12-09T18:07:13Z",
+    "lang": "en"
+   },
+   {
+    "title": "Quantitative easing",
+    "url": "https://en.wikipedia.org/wiki/Quantitative_easing",
+    "snippet": "the ECB.[citation needed] The Bank of Japan introduced QE from March 19, 2001, until March 2006, after having introduced negative interest rates in 1999",
+    "mod_date": "2026-09-22T13:31:02Z",
+    "lang": "en"
+   },
+   {
+    "title": "Eurozone",
+    "url": "https://en.wikipedia.org/wiki/Eurozone",
+    "snippet": "EU members. The European Central Bank (ECB) makes monetary policy for the eurozone, sets its base interest rate, and issues euro banknotes and coins. Since",
+    "mod_date": "2026-09-20T16:34:13Z",
+    "lang": "en"
+   },
+   {
+    "title": "Euro",
+    "url": "https://en.wikipedia.org/wiki/Euro",
+    "snippet": "matching liabilities vis-à-vis the ECB. These liabilities carry interest at the main refinancing rate of the ECB. The other 92% of euro banknotes are",
+    "mod_date": "2026-09-19T08:39:47Z",
+    "lang": "en"
+   },
+   {
+    "title": "The Intervention of ECB in the Eurozone Crisis",
+    "url": "https://en.wikipedia.org/wiki/The_Intervention_of_ECB_in_the_Eurozone_Crisis",
+    "snippet": "Effectively, the ECB used both traditional and nontraditional monetary policy tools and measures. The ECB lowered the key policy interest rate, in April 2010",
+    "mod_date": "2026-09-16T15:43:12Z",
+    "lang": "en"
+   },
+   {
+    "title": "President of the European Central Bank",
+    "url": "https://en.wikipedia.org/wiki/President_of_the_European_Central_Bank",
+    "snippet": "interest rates under control and maintained greater price stability than the Deutsche Bundesbank did before the euro. As well as defending the ECB's independence",
+    "mod_date": "2026-09-08T09:45:43Z",
+    "lang": "en"
+   },
+   {
+    "title": "Adoption of the euro in Bulgaria",
+    "url": "https://en.wikipedia.org/wiki/Adoption_of_the_euro_in_Bulgaria",
+    "snippet": "similarly averaged HICP rate for the eurozone (which according to ECB practice means more than 2% below), and if this low HICP rate has been primarily caused",
+    "mod_date": "2026-09-27T14:27:21Z",
+    "lang": "en"
+   },
+   {
+    "title": "Negative interest on excess reserves",
+    "url": "https://en.wikipedia.org/wiki/Negative_interest_on_excess_reserves",
+    "snippet": "Part 1: Negative interest rates\". Brookings Institution. Retrieved 27 January 2017. Why has the ECB introduced a negative interest rate? (European Central",
+    "mod_date": "2026-01-25T04:30:07Z",
+    "lang": "en"
+   },
+   {
+    "title": "Adoption of the euro in Lithuania",
+    "url": "https://en.wikipedia.org/wiki/Adoption_of_the_euro_in_Lithuania",
+    "snippet": "similarly averaged HICP rate for the eurozone (which according to ECB practice means more than 2% below), and if this low HICP rate has been primarily caused",
+    "mod_date": "2026-08-09T01:25:35Z",
+    "lang": "en"
+   }
+  ],
+  "extra": "host=en.wikipedia.org totalhits=231"
+ }
+]

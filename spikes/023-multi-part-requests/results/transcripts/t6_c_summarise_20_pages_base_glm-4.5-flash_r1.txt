@@ -1,0 +1,65 @@
+===== glm-4.5-flash | t6_c_summarise_20_pages | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:56, stop step cap
+[12:00:00 user] Summarise these 20 pages about the new EU crypto rules for me:
+1. https://rules.example.eu/page-01
+2. https://rules.example.eu/page-02
+3. https://rules.example.eu/page-03
+4. https://rules.example.eu/page-04
+5. https://rules.example.eu/page-05
+6. https://rules.example.eu/page-06
+7. https://rules.example.eu/page-07
+8. https://rules.example.eu/page-08
+9. https://rules.example.eu/page-09
+10. https://rules.example.eu/page-10
+11. https://rules.example.eu/page-11
+12. https://rules.example.eu/page-12
+13. https://rules.example.eu/page-13
+14. https://rules.example.eu/page-14
+15. https://rules.example.eu/page-15
+16. https://rules.example.eu/page-16
+17. https://rules.example.eu/page-17
+18. https://rules.example.eu/page-18
+19. https://rules.example.eu/page-19
+20. https://rules.example.eu/page-20
+
+  (request: prompt 2127, output 119, 3.9s, finish tool_calls, reasoning 289 chars)
+[12:00:04 assistant] 
+I'll help you summarize these 20 pages about the new EU crypto rules. Let me fetch each page and then provide you with a comprehensive summary.
+
+[12:00:04 call] fetch_page {"url":"https://rules.example.eu/page-01"}
+[12:00:07 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2219, output 55, 2.5s, finish tool_calls, reasoning 153 chars)
+[12:00:11 call] fetch_page {"url":"https://rules.example.eu/page-02"}
+[12:00:14 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2281, output 25, 1.2s, finish tool_calls, reasoning 1 chars)
+[12:00:18 call] fetch_page {"url":"https://rules.example.eu/page-03"}
+[12:00:21 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2343, output 25, 1.5s, finish tool_calls, reasoning 1 chars)
+[12:00:25 call] fetch_page {"url":"https://rules.example.eu/page-04"}
+[12:00:28 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2405, output 25, 1.7s, finish tool_calls, reasoning 1 chars)
+[12:00:32 call] fetch_page {"url":"https:// previews.example.eu/page-05"}
+[12:00:35 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2467, output 25, 1.2s, finish tool_calls, reasoning 1 chars)
+[12:00:39 call] fetch_page {"url":"https://rules.example.eu/page-06"}
+[12:00:42 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2529, output 25, 1.1s, finish tool_calls, reasoning 1 chars)
+[12:00:46 call] fetch_page {"url":"https://rules.example.eu/page-07"}
+[12:00:49 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2591, output 25, 1.3s, finish tool_calls, reasoning 1 chars)
+[12:00:53 call] fetch_page {"url":"https://rules.example.eu/page-08"}
+[12:00:56 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+
+----- background tasks
+
+----- assertions
+fail  test 6    used_subagent_for_one_off          no subagent; tools used: fetch_page, fetch_page, fetch_page, fetch_page, fetch_page, fetch_page, fetch_page, fetch_page
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+fail  test 6    answer_contains                    I'll help you summarize these 20 pages about the new EU crypto rules. Let me fetch each page and then provide you with a comprehensive summary.
+skip  test 6    no_repeat                          no finish turn
+fail  test info background_started                 no background task
+pass  test 5    max_prompt_tokens                  peak prompt 2591
+tests: map[5:pass 6:fail] | prompt 18962 output 324 requests 8 peak 2591 polls 0 | 18s real, 56s virtual

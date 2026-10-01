@@ -1,0 +1,26 @@
+===== gemma4:31b | t4_d_sma_ema_7day_high | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What's the difference between an SMA and an EMA, and what was BTC's highest close in the last 7 days?
+  (request: prompt 1389, output 108, 0.8s, finish tool_calls, reasoning 0 chars)
+[12:00:04 assistant] An SMA (Simple Moving Average) is the unweighted mean of a set of prices over a specific period. An EMA (Exponential Moving Average) gives more weight to recent prices, making it more responsive to new information and price changes.
+
+I am fetching the BTC price data for the last 7 days.
+
+
+[12:00:04 call] query {"sql":"SELECT MAX(close) FROM prices WHERE coin = 'BTC' AND date \u003e= date('2026-09-29', '-7 days')"}
+[12:00:05 result query] MAX(close) 65230.80 (1 rows)
+  (request: prompt 1522, output 29, 1.0s, finish stop, reasoning 0 chars)
+[12:00:09 assistant] BTC's highest close in the last 7 days was 65,230.80 USD.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    An SMA (Simple Moving Average) is the unweighted mean of a set of prices over a specific period. An EMA (Exponential Moving Average) gives more weight to recent...
+pass  test 4    answer_contains                    An SMA (Simple Moving Average) is the unweighted mean of a set of prices over a specific period. An EMA (Exponential Moving Average) gives more weight to recent...
+pass  test 5    max_prompt_tokens                  peak prompt 1522
+tests: map[4:pass 5:pass] | prompt 2911 output 137 requests 2 peak 1522 polls 0 | 2s real, 9s virtual

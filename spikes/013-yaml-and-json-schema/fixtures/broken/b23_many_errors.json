@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "daily_btc",
+  "trigger": { "manual": "true" },
+  "steps": [
+    { "id": "price", "use": "http.get", "with": { "url": "https://api.example.com/btc", "timeout": 30 } },
+    { "id": "q", "use": "db.query", "with": { "query": "SELECT 1" } }
+  ],
+  "on_error": "abort"
+}

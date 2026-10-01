@@ -1,0 +1,31 @@
+===== nemotron-3-ultra L05_design_table guide v2 run 1 chained false
+----- user
+Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don't create it yet.
+----- assistant (finish tool_calls, prompt 2144, output 89, 8.7s)
+[reasoning 305 chars]
+> load_skill {"name":"database-design"}
+< load_skill
+Skill loaded: database-design
+
+Rules: every table has an explicit primary key. Tables filled by pipelines also get `_run_id TEXT` and `_fetched_at TEXT` (the runtime fills them). Names are lower_snake_case. When a goal widens (a second coin, a second city), migrate to one general table with a key column (`prices(coin, date, …)`) instead of parallel tables.
+
+----- assistant (finish stop, prompt 2273, output 559, 44.2s)
+[reasoning 1184 chars]
+**Table design: `crypto_exchanges`**
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | `INTEGER` | `PRIMARY KEY` | Auto-increment surrogate key |
+| `name` | `TEXT` | `NOT NULL`, `UNIQUE` | Exchange name (e.g., "Binance", "Coinbase") |
+| `country` | `TEXT` | | Jurisdiction / headquarters |
+| `website` | `TEXT` | | Base URL (e.g., "https://binance.com") |
+| `trading_fee_percent` | `REAL` | | Maker/taker fee in percent (e.g., 0.10) |
+
+**Notes**
+- Lower-snake_case name per convention.
+- `id` is the explicit primary key; `name` is also unique so lookups by name are safe.
+- This is a reference/lookup table (not pipeline-fed), so it does **not** need the pipeline columns `_run_id` and `_fetched_at`.
+- If you later want to track fee changes over time, we’d widen to a history table like `exchange_fees(exchange_id, fee_percent, effective_from, …)` instead of adding columns here.
+
+Ready to create it when you are.
+----- result: stop answer, loaded [database-design:load_skill], events 2

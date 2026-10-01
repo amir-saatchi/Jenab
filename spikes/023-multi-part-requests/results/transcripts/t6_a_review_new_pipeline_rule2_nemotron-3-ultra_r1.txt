@@ -1,0 +1,46 @@
+===== nemotron-3-ultra | t6_a_review_new_pipeline | cond rule2 | rep 1 | tests [6]
+system prompt: 4068 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 2539, output 144, 2.0s, finish tool_calls, reasoning 481 chars)
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2743, output 864, 29.3s, finish stop, reasoning 1974 chars)
+[12:00:09 assistant] The `fear_greed` pipeline has several problems:
+
+**Critical**
+1. **Fake API URL** – `https://api.alternative.example/fng/` uses `.example` (reserved for documentation). The real endpoint is `https://api.alternative.me/fng/`.
+
+2. **No error handling** – No `on_error` on any step. The reviewer previously required this for `daily_prices`.
+
+**Data / logic**
+3. **Writes to `news` table with fabricated data** – URL `fng-{{ run.date }}` is not a real URL, coin is hardcoded to `BTC` (the index is market-wide), source is the fake domain.
+
+4. **No deduplication** – Running twice in a day would insert duplicate rows.
+
+5. **`run.date` availability unclear** – Not sure the template variable exists in this context.
+
+**Cost / ops**
+6. **LLM call every day** – `llm.summarize` with 400 tokens daily adds up; consider a simple template instead (the API returns a numeric value + classification).
+
+7. **No rate-limit / auth handling** – Plain GET with no headers or retry logic.
+
+**Suggestions**
+- Create a dedicated table (e.g., `fear_greed(index_value, classification, date)`) instead of stuffing into `news`.
+- Replace the LLM step with a tiny script that extracts `value` and `value_classification` from the JSON response.
+- Add `on_error` to each step (log, alert, or skip).
+- Use the real API URL and check its rate limits (alternative.me allows ~1 req/min).
+
+Want me to send this to the **Reviewer** chat for a formal cost/error-handling review, or would you like to fix the config first?
+
+----- background tasks
+
+----- assertions
+fail  test 6    right_target                       no send_to_chat; tools used: read_config
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+skip  test 6    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 6    no_repeat                          no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2743
+tests: map[5:pass 6:fail] | prompt 5282 output 1008 requests 2 peak 2743 polls 0 | 31s real, 9s virtual

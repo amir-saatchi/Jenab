@@ -1,0 +1,8 @@
+Jenab
+Copyright 2026 Amir Saatchi
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The Go skills in .claude/skills/golang-* are adapted from cc-skills-golang
+by Samuel Berthe (https://github.com/samber/cc-skills-golang), licensed under
+the MIT License. Each skill folder keeps its LICENSE file.

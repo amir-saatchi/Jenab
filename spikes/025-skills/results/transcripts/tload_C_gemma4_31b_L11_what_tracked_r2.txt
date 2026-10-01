@@ -1,0 +1,6 @@
+===== gemma4:31b L11_what_tracked guide v2 run 2 chained false
+----- user
+In two or three sentences, what does this project track?
+----- assistant (finish stop, prompt 1698, output 37, 0.7s)
+This project tracks Bitcoin's price history and related news. It uses a keyword-based filtering system to monitor specific news topics and organizes the data into tables and charts for analysis.
+----- result: stop answer, loaded [], events 1

@@ -1,0 +1,37 @@
+===== nemotron-3-ultra | t12_d_backfill_ohlc | cond base | rep 2 | tests [1 2]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Backfill the last 90 days of ETH prices in EUR. And what does OHLC stand for?
+  (request: prompt 1747, output 112, 2.4s, finish tool_calls, reasoning 221 chars)
+[12:00:04 call] run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1832, output 136, 15.2s, finish stop, reasoning 104 chars)
+[12:00:08 assistant] OHLC stands for **Open, High, Low, Close** — the four key price points for a trading period (day, hour, etc.):
+- **Open**: price at the start of the period
+- **High**: highest price during the period
+- **Low**: lowest price during the period
+- **Close**: price at the end of the period
+
+The backfill for 90 days of ETH/EUR is running (run `r_1`). It takes about 2 minutes. I'll let you know when it finishes.
+
+----- turn 2 (system) 12:02:04-12:02:08, stop done
+[12:02:04 notice] [run r_1 finished 12:02:04: backfill_prices: success. prices +90 rows: ETH daily OHLC in EUR from 2026-07-01 to 2026-09-28; 0 errors.]
+  (request: prompt 2023, output 87, 2.0s, finish stop, reasoning 114 chars)
+[12:02:08 assistant] Done — 90 days of ETH/EUR OHLC data added (2026-07-01 to 2026-09-28).
+
+----- background tasks
+r_1 run_pipeline backfill_prices start 12:00:04 finish 12:02:04 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 8 s, slow work (run_pipeline r_1 (background)) done at 124 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test 1    tool_called                        run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+fail  test info text_before_tool                   first run_pipeline call came before any text
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   OHLC stands for **Open, High, Low, Close** — the four key price points for a trading period (day, hour, etc.): - **Ope...
+pass  test 2    answer_contains                    Done — 90 days of ETH/EUR OHLC data added (2026-07-01 to 2026-09-28).
+pass  test 2    no_repeat                          5-gram overlap 0.08
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 2023
+tests: map[1:pass 2:pass 5:pass] | prompt 5602 output 335 requests 3 peak 2023 polls 0 | 20s real, 128s virtual

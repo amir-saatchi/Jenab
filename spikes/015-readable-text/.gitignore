@@ -1,0 +1,2 @@
+# copies of third-party web pages: keep local, do not publish (refetch with go run ./fetch)
+fixtures/

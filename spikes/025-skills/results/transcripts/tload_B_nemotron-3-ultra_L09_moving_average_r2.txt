@@ -1,0 +1,7 @@
+===== nemotron-3-ultra L09_moving_average guide v2 run 2 chained false
+----- user
+What is a moving average? Answer in two sentences.
+----- assistant (finish stop, prompt 2121, output 95, 13.6s)
+[reasoning 189 chars]
+A moving average is a statistical calculation that smooths out price or data fluctuations by averaging values over a rolling window of time periods. It helps identify trends by filtering out short-term noise, with common types including simple (SMA) and exponential (EMA) moving averages.
+----- result: stop answer, loaded [], events 1

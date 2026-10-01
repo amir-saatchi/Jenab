@@ -1,0 +1,6 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps: []
+# expect: 5 /steps minItems

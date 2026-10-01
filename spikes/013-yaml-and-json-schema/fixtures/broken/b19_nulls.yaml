@@ -1,0 +1,11 @@
+version: 1
+id: daily_btc
+description: ~
+trigger:
+  manual: true
+steps:
+  - id: keywords
+    use: db.query
+    with:
+# expect: 3 /description type
+# expect: 9 /steps/0/with type

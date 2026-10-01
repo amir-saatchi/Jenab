@@ -1,0 +1,41 @@
+===== glm-4.5-flash | t4_a_what_is_ma | cond base | rep 1 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1408, output 350, 9.8s, finish stop, reasoning 443 chars)
+[12:00:04 assistant] 
+A moving average is a widely used technical analysis tool that smooths out price data by creating a constantly updated average price over a specific time period. Here are the key points:
+
+**Basic Concept:**
+- It calculates the average of a set of prices over a defined number of periods
+- As new data becomes available, the oldest data point is dropped from the calculation
+- This creates a "moving" line that follows price trends while smoothing out short-term fluctuations
+
+**Common Types:**
+- **Simple Moving Average (SMA)**: Equal weight given to all data points in the period
+- **Exponential Moving Average (EMA)**: Gives more weight to recent data points, making it more responsive to new information
+
+**Common Time Periods:**
+- Short-term: 10-day, 20-day
+- Medium-term: 50-day, 100-day  
+- Long-term: 200-day
+
+**Uses in Trading:**
+- Identify trend direction (upward/downward)
+- Support and resistance levels
+- Crossover signals (when short-term MA crosses above/below long-term MA)
+- Smooth out price volatility
+
+For your crypto watch project, moving averages could be very useful for analyzing BTC and ETH price trends, helping to filter out daily noise and identify longer-term market direction.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A moving average is a widely used technical analysis tool that smooths out price data by creating a constantly updated average price over a specific time period...
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1408
+tests: map[4:pass 5:pass] | prompt 1408 output 350 requests 1 peak 1408 polls 0 | 10s real, 4s virtual

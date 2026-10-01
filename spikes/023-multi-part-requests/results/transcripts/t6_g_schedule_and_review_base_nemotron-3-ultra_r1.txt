@@ -1,0 +1,37 @@
+===== nemotron-3-ultra | t6_g_schedule_and_review | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:13, stop done
+[12:00:00 user] When does the new fear_greed pipeline run? And have the Reviewer check it for cost.
+  (request: prompt 2310, output 123, 6.5s, finish tool_calls, reasoning 372 chars)
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2514, output 337, 9.6s, finish tool_calls, reasoning 197 chars)
+[12:00:09 call] send_to_chat {"chat_id":"c_reviewer","message":"Please review the new fear_greed pipeline for cost and missing error handling. Here's the config:\n\n```yaml\nversion: 1\nid: fear_greed\ntitle: Fear and greed index\ntrigger: { schedule: \"0 9 * * *\", timezone: Europe/Berlin }\nsteps:\n  - id: index\n    use: http.get\n    with: { url: \"https://api.alternative.example/fng/\" }\n  - id: summary\n    use: llm.summarize\n    with: { text: \"{{ steps.index.body }}\", max_tokens: 400 }\n  - id: save\n    use: db.insert\n    with: { table: news, rows: [{ url: \"fng-{{ run.date }}\", coin: BTC, title: \"{{ steps.summary.text }}\", source: alternative.example }] }\n```\n\nIt runs daily at 09:00 Europe/Berlin. Please check:\n1. Cost of the LLM summarization step (max_tokens: 400)\n2. Missing error handling (no on_error steps)\n3. Any other concerns"}
+[12:00:09 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2820, output 132, 4.5s, finish stop, reasoning 241 chars)
+[12:00:13 assistant] The **fear_greed** pipeline runs **daily at 09:00 Europe/Berlin** (cron `0 9 * * *` in that timezone).
+
+I've asked the Reviewer to check it for cost and missing error handling. They'll reply when their turn ends.
+
+----- turn 2 (system) 12:00:54-12:00:58, stop done
+[12:00:54 notice] [task t_1 finished 12:00:54: reply from Reviewer (c_reviewer): fear_greed has 2 problems. 1) The http.get step has no on_error, so one failed fetch fails the whole run; add on_error with retry 3, then skip. 2) llm.summarize runs on every run although the index is a single number; drop it and write the number, which saves about 1,200 tokens a day. Otherwise it is fine.
+]
+  (request: prompt 3010, output 205, 4.8s, finish stop, reasoning 365 chars)
+[12:00:58 assistant] The Reviewer found two issues with **fear_greed**:
+
+1. **Missing error handling** – the `http.get` step has no `on_error`; a failed fetch fails the whole run. Add `on_error` with retry 3, then skip.
+
+2. **Unnecessary LLM call** – the index is a single number; the `llm.summarize` step (max_tokens: 400) runs every day, costing ~1,200 tokens/day. Drop it and write the raw number instead.
+
+----- background tasks
+t_1 send_to_chat c_reviewer start 12:00:09 finish 12:00:54 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    quick_before_finish                quick part at 14 s, slow work (send_to_chat t_1 (background)) done at 54 s
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Reviewer found two issues with **fear_greed**: 1. **Missing error handling** – the `http.get` step has no `on_error`; a failed fetch fails the whole run. ...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 3010
+tests: map[5:pass 6:pass] | prompt 10654 output 797 requests 4 peak 3010 polls 0 | 25s real, 58s virtual

@@ -1,0 +1,30 @@
+===== glm-4.5-flash L04_sql_fails guide v2 run 1 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 4274, output 294, 17.1s)
+[reasoning 1081 chars]
+
+Let me try running this query to see what happens:
+
+> query {"sql":"SELECT status, count(*) FROM _burrow_runs GROUP BY status"}
+< query
+error: rejected by the SQL guard: internal name _burrow_runs
+----- assistant (finish stop, prompt 4334, output 281, 13.1s)
+[reasoning 606 chars]
+
+The query fails because `_burrow_runs` is an internal system table that's not accessible through the query tool. The SQL guard protects internal tables like `_burrow_runs` which track pipeline runs and other system operations.
+
+Based on your project, you can only query the project tables:
+- `btc_news`
+- `btc_prices` 
+- `watch_keywords`
+
+If you want to see pipeline run information, you would need to use the project's views and forms instead, or query the available project tables. For example, you could try:
+
+```sql
+SELECT status, count(*) FROM btc_news GROUP BY status
+```
+
+Or check your existing views like `btc_news_table` or `btc_price_table` which are designed to query your project data.
+----- result: stop answer, loaded [], events 2

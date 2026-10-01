@@ -1,0 +1,26 @@
+===== glm-4.5-flash L04_sql_fails guide v2 run 2 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 1761, output 126, 4.3s)
+[reasoning 334 chars]
+
+I'll help you understand why that query is failing. Let me try running it to see what error occurs.
+
+> query {"sql":"SELECT status, count(*) FROM _burrow_runs GROUP BY status"}
+< query
+error: rejected by the SQL guard: internal name _burrow_runs
+----- assistant (finish stop, prompt 1832, output 297, 10.1s)
+[reasoning 738 chars]
+
+The query is failing because `_burrow_runs` is an internal system table that tracks pipeline runs and is not accessible through the query tool. The query tool only allows read-only access to user data tables.
+
+Based on your project, the available tables you can query are:
+- `btc_news` (Bitcoin news data)
+- `btc_prices` (Bitcoin price data) 
+- `watch_keywords` (News keywords)
+
+If you want to analyze pipeline run status, you would need to use the Burrow UI or other system interfaces rather than the query tool. For your data analysis needs, you can work with the available user tables instead.
+
+Would you like me to help you query any of the available tables instead?
+----- result: stop answer, loaded [], events 2

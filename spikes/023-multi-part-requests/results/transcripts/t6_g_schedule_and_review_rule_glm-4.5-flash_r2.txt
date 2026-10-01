@@ -1,0 +1,39 @@
+===== glm-4.5-flash | t6_g_schedule_and_review | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] When does the new fear_greed pipeline run? And have the Reviewer check it for cost.
+  (request: prompt 2132, output 242, 11.0s, finish tool_calls, reasoning 586 chars)
+[12:00:04 assistant] 
+The fear_greed pipeline runs daily at 09:00. Let me have the Reviewer check it for cost.
+
+[12:00:04 call] send_to_chat {"chat_id":"c_reviewer","message":"Please check the fear_greed pipeline for cost and error handling. It's a new pipeline that fetches the crypto fear and greed index and writes a one-line summary. It runs daily at 09:00."}
+[12:00:04 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2245, output 85, 4.0s, finish stop, reasoning 233 chars)
+[12:00:08 assistant] 
+The fear_greed pipeline runs daily at 09:00. I've asked the Reviewer to check it for cost and error handling.
+
+----- turn 2 (system) 12:00:49-12:00:53, stop done
+[12:00:49 notice] [task t_1 finished 12:00:49: reply from Reviewer (c_reviewer): fear_greed has 2 problems. 1) The http.get step has no on_error, so one failed fetch fails the whole run; add on_error with retry 3, then skip. 2) llm.summarize runs on every run although the index is a single number; drop it and write the number, which saves about 1,200 tokens a day. Otherwise it is fine.
+]
+  (request: prompt 2386, output 226, 8.2s, finish stop, reasoning 411 chars)
+[12:00:53 assistant] 
+The Reviewer has checked the fear_greed pipeline and found two issues that need to be addressed:
+
+1. **Error handling**: The http.get step has no on_error handler. It should be updated with `on_error` with retry 3, then skip to prevent a single failed fetch from failing the entire run.
+
+2. **Cost optimization**: The llm.summarize step is unnecessary since the fear and greed index is just a single number. Removing this step would save about 1,200 tokens per day.
+
+The pipeline runs daily at 09:00 as scheduled. These changes would improve both reliability and cost efficiency.
+
+----- background tasks
+t_1 send_to_chat c_reviewer start 12:00:04 finish 12:00:49 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    quick_before_finish                quick part at 4 s, slow work (send_to_chat t_1 (background)) done at 49 s
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Reviewer has checked the fear_greed pipeline and found two issues that need to be addressed: 1. **Error handling**: The http.get step has no on_error handle...
+fail  test 6    no_repeat                          repeats: runs daily at 09 (5-gram overlap 0.02)
+pass  test 5    max_prompt_tokens                  peak prompt 2386
+tests: map[5:pass 6:fail] | prompt 6763 output 553 requests 3 peak 2386 polls 0 | 23s real, 53s virtual

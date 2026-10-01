@@ -1,0 +1,4 @@
+version: 1
+id: daily_btc
+description: forgot the rest
+# expect: 1 # required

@@ -1,0 +1,171 @@
+===== glm-4.5-flash T2 guide v2 run 2 chained false
+----- user
+Create the pipeline daily_btc. Every day at 08:00 UTC (and also when run by hand) it:
+1. fetches today's BTC price from https://api.example.com/btc/daily (a placeholder; the JSON response looks like {"date": "2026-09-28", "close": 65000.5, "currency": "USD"}) and saves it in btc_prices for today's date;
+2. searches the web for Bitcoin news from the last day, including the watch keywords in the search;
+3. lets the LLM pick the 5 items most likely to affect the price, with a short reason for each;
+4. saves them in btc_news.
+Running it twice on the same day must not fail or create duplicates.
+----- assistant (finish tool_calls, prompt 1762, output 133, 8.1s)
+[reasoning 372 chars]
+
+I'll create the daily_btc pipeline for you. Let me start by loading the pipelines skill to understand the format and requirements.
+
+> load_skill {"name":"pipelines"}
+< load_skill
+Skill loaded: pipelines
+
+## 2. Pipelines: save_pipeline
+
+```yaml
+version: 1
+id: daily_weather            # lower_snake_case, unique in the project
+description: Daily weather for all cities
+trigger:
+  schedule: "0 7 * * *"      # 5-field cron, in timezone
+  timezone: Europe/Oslo      # IANA name
+  manual: true               # also runnable by hand; a trigger needs schedule and/or manual: true
+inputs:                      # optional: { name: { type: string|number|boolean|date, default } }
+  days: { type: number, default: 1 }
+steps:
+  - id: cities
+    use: db.query
+    with:
+      sql: SELECT name FROM cities
+  - id: weather
+    use: http.get
+    for_each: ${{ steps.cities.rows }}
+    with:
+      url: https://api.example.org/weather
+      query: { city: "${{ item.name }}" }
+  - id: rows
+    use: transform.map
+    with:
+      items: ${{ steps.weather.each }}
+      fields:
+        city: ${{ item.item.name }}
+        temp: ${{ item.json.temp }}
+        date: ${{ today() }}
+  - id: save
+    use: db.insert_many
+    with:
+      table: weather
+      on_conflict: upsert
+      rows: ${{ steps.rows.items }}
+```
+
+Top level: `version: 1`, `id`, `description`, `trigger`, `inputs`, `steps`, `on_error` (stop/continue), `timeout` (e.g. 5m). Nothing else.
+Step fields: `id`, `use`, `with`, `if` (`${{ }}` boolean; skipped when false), `for_each`, `retry` {max, backoff: a duration like 10s}, `timeout`, `continue_on_error`. Nothing else; step inputs always go under `with`.
+
+`for_each: ${{ <list> }}` runs the step once per element, with the element as `item`. Its output is NOT the normal output: it is `each` (a list, one entry per element: the element under `item` plus that run's outputs) and `count`. Example: after `price` (http.get with for_each over coin rows), `steps.price.each` is `[{item: {symbol: BTC}, status, headers, body, json}, ...]`, so a following transform.map over `${{ steps.price.each }}` uses `item.item.symbol` and `item.json.close`.
+Keep for_each to one step where you can: search once with all names in one query instead of once per coin. If a later step must save a list per element, give that db.insert_many its own `for_each: ${{ steps.x.each }}` and `rows: ${{ item.items }}`. There is no flatten function.
+
+Step catalog (`use`: inputs → outputs). Only these exist:
+- `http.get`: url, query (map), headers, timeout, fail_on_status (default true) → status, headers, body, json
+- `http.download`: url, key, headers, max_size → key, size, mime
+- `web.search`: query, limit, freshness (day/week/month/any) → results[] {title, url, snippet, published}
+- `html.extract`: url or html, mode (readable/selector), selector → title, text, links, status
+- `json.extract`: input, path (JSONPath `$...`) → value
+- `transform.map`: items, fields (name → expression using `item`) → items[]
+- `transform.filter`: items, condition (`${{ }}` using `item`) → items[]
+- `db.query`: sql (read-only SELECT, named params `:name`), params → rows[], count
+- `db.insert`: table, row (object), on_conflict (error/ignore/upsert), conflict_key (default: primary key) → inserted, updated, id
+- `db.insert_many`: table, rows (list), on_conflict, conflict_key → inserted, updated, skipped
+- `db.update`: table, set, where (SQL with :params), params → updated
+- `llm.select`: items, instruction, count, add (fields the LLM adds per item, e.g. `{ reason: string }`; types string/number/boolean) → items[] (the original items plus the add fields), indexes[]
+- `llm.extract`: input, instruction, output (field → string/number/boolean/date/list) → data
+- `bucket.put`: key, content, mime → key, size; `bucket.list`: prefix → objects[]
+- `app.notify`: title, message, level (info/warning)
+
+Build rows with transform.map (one output field per column), not with map literals. Row keys of db.insert/insert_many must be real columns of the table; every NOT NULL column without a default must be set; with upsert the row must contain the conflict key. Use `ignore` or `upsert` so a rerun is safe. Do not set `_run_id`/`_fetched_at`.
+
+## 3. Expressions
+
+Written as `${{ ... }}` (expr-lang syntax). A value that is only an expression keeps its type (list, number); an expression inside a longer string becomes text: `"news about ${{ inputs.topic }}"`. YAML: a plain value must not contain `: ` or ` #`, and a `${{ }}` inside a `{ ... }` flow block must be quoted. When in doubt, put the whole value in double quotes: `url: "https://api.example.com/${{ lower(item.symbol) }}/daily"`.
+Names: `steps.<id>.<output>` (earlier steps only), `inputs.<name>` (declared inputs only), `item` (inside for_each and per-item fields), `today()` (YYYY-MM-DD), `now()`, `date(s)`, `format_date(d, layout)`, `add_days(d, n)`.
+Functions: `map(list, .field)`, `filter(list, .x > 1)`, `all`, `any`, `len`, `lower`, `upper`, `trim`, `split`, `join(list, sep)`, `round`, `int`, `float`, `string`. Inside map/filter predicates use `.field` or `#`; no nested list functions in a predicate. A map literal in a predicate needs parentheses: `map(xs, ({a: .x}))`.
+A missing field is an error; use `??` for a default: `${{ steps.price.json.close ?? 0 }}`. Not allowed: `let`, `matches`, method calls (`x.map(...)`, `s.toLowerCase()`: write `map(x, .f)`, `lower(s)`), `$env`.
+
+----- assistant (finish tool_calls, prompt 3262, output 410, 17.4s)
+[reasoning 1404 chars]
+
+Now let me create the daily_btc pipeline. First, let me check the existing table structures to understand the data format:
+
+> describe_table {"name":"btc_prices"}
+< describe_table
+table btc_prices, 10 rows
+columns:
+- date TEXT PRIMARY KEY
+- price REAL
+- _run_id TEXT
+- _fetched_at TEXT
+primary key: (date)
+
+----- assistant (finish tool_calls, prompt 3350, output 19, 9.3s)
+[reasoning 1 chars]
+
+
+> describe_table {"name":"btc_news"}
+< describe_table
+table btc_news, 4 rows
+columns:
+- url TEXT PRIMARY KEY
+- date TEXT
+- title TEXT
+- reason TEXT
+- _run_id TEXT
+- _fetched_at TEXT
+primary key: (url)
+
+----- assistant (finish tool_calls, prompt 3421, output 19, 1.6s)
+[reasoning 1 chars]
+
+
+> describe_table {"name":"watch_keywords"}
+< describe_table
+table watch_keywords, 3 rows
+columns:
+- id INTEGER PRIMARY KEY
+- keyword TEXT NOT NULL
+primary key: (id)
+unique index sqlite_autoindex_watch_keywords_1 (keyword)
+
+----- assistant (finish tool_calls, prompt 3485, output 433, 18.2s)
+[reasoning 1 chars]
+
+Now I'll create the daily_btc pipeline. Based on the requirements:
+
+1. Fetch today's BTC price from the API
+2. Search for Bitcoin news with watch keywords
+3. Use LLM to pick 5 most relevant news items
+4. Save both to tables (with upsert to avoid duplicates)
+
+> save_pipeline {"yaml":"version: 1\nid: daily_btc\ndescription: Daily BTC price and news pipeline\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  manual: true\nsteps:\n  - id: fetch_btc_price\n    use: http.get\n    with:\n      url: https://api.example.com/btc/daily\n  - id: save_btc_price\n    use: db.insert\n    with:\n      table: btc_prices\n      on_conflict: upsert\n      row:\n        date: ${{ today() }}\n        price: ${{ steps.fetch_btc_price.json.close }}\n  - id: get_watch_keywords\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: search_news\n    use: web.search\n    with:\n      query: Bitcoin ${{ join(steps.get_watch_keywords.rows, ' OR ') }}\n      freshness: day\n      limit: 20\n  - id: select_news\n    use: llm.select\n    with:\n      items: ${{ steps.search_news.results }}\n      instruction: \"Select the 5 news items most likely to affect Bitcoin price, with a short reason for each\"\n      count: 5\n      add:\n        reason: string\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: btc_news\n      on_conflict: upsert\n      rows: ${{ transform.map(items: ${{ steps.select_news.items }}, fields:\n        url: ${{ item.url }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n      ) }}"}
+< save_pipeline
+INVALID, nothing was saved. 1 error(s); fix all of them and call save_pipeline again with the complete config:
+- line 44:0 (top level): YAML: line 44: mapping values are not allowed in this context (a plain value on that line contains ": ", often a map literal inside ${{ }}; put the whole value in double quotes, or build the rows with transform.map)
+
+----- assistant (finish tool_calls, prompt 4007, output 413, 15.6s)
+[reasoning 1 chars]
+
+I need to fix the YAML syntax error. The issue is with the transform.map inside the db.insert_many. Let me correct it:
+
+> save_pipeline {"yaml":"version: 1\nid: daily_btc\ndescription: Daily BTC price and news pipeline\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  manual: true\nsteps:\n  - id: fetch_btc_price\n    use: http.get\n    with:\n      url: https://api.example.com/btc/daily\n  - id: save_btc_price\n    use: db.insert\n    with:\n      table: btc_prices\n      on_conflict: upsert\n      row:\n        date: ${{ today() }}\n        price: ${{ steps.fetch_btc_price.json.close }}\n  - id: get_watch_keywords\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: search_news\n    use: web.search\n    with:\n      query: Bitcoin ${{ join(steps.get_watch_keywords.rows, ' OR ') }}\n      freshness: day\n      limit: 20\n  - id: select_news\n    use: llm.select\n    with:\n      items: ${{ steps.search_news.results }}\n      instruction: \"Select the 5 news items most likely to affect Bitcoin price, with a short reason for each\"\n      count: 5\n      add:\n        reason: string\n  - id: transform_news\n    use: transform.map\n    with:\n      items: ${{ steps.select_news.items }}\n      fields:\n        url: ${{ item.url }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: btc_news\n      on_conflict: upsert\n      rows: ${{ steps.transform_news.items }}"}
+< save_pipeline
+saved pipeline daily_btc (revision 1).
+hosts the user must approve before the first run: api.example.com
+
+----- assistant (finish stop, prompt 4502, output 192, 6.5s)
+[reasoning 1 chars]
+
+Perfect! The daily_btc pipeline has been successfully created. Here's what it does:
+
+1. **Fetches BTC price**: Every day at 08:00 UTC (and when run manually), it fetches today's BTC price from the API
+2. **Saves price**: Upserts the price into btc_prices table for today's date (prevents duplicates)
+3. **Gets watch keywords**: Retrieves all keywords from watch_keywords table
+4. **Searches news**: Searches for Bitcoin news from the last day using the watch keywords
+5. **Selects relevant news**: Uses LLM to pick the 5 most price-affecting news items with reasons
+6. **Saves news**: Upserts the selected news items into btc_news table (prevents duplicates)
+
+The pipeline is designed to be idempotent - running it multiple times on the same day won't create duplicates due to the upsert operations.
+----- result: stop done, valid true, first-try false, failed batches 1, checks 10/10

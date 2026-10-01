@@ -1,0 +1,27 @@
+===== nemotron-3-ultra | t4_c_pipeline_schedule | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1789, output 137, 5.6s, finish stop, reasoning 187 chars)
+[12:00:04 assistant] From the project card:
+
+**What it does:** Fetches today's price and the latest news for one coin and writes them to the `prices` and `news` tables.
+
+**Inputs:**
+- `coin` — BTC or ETH (default: BTC)
+- `currency` — USD or EUR (default: USD)
+
+**Schedule:** Daily at 08:00 (Europe/Berlin time).
+
+**Run time:** About 30 seconds.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    From the project card: **What it does:** Fetches today's price and the latest news for one coin and writes them to the `prices` and `news` tables. **Inputs:** -...
+pass  test 5    max_prompt_tokens                  peak prompt 1789
+tests: map[4:pass 5:pass] | prompt 1789 output 137 requests 1 peak 1789 polls 0 | 6s real, 4s virtual

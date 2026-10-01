@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://burrow.local/schema/migration.json",
+  "title": "Burrow structured migration steps (SPEC 7.5, 8.2), SPIKE-021 draft. The step kind is in `op` (SPEC 8.2 names no field for it).",
+  "type": "object",
+  "required": ["steps"],
+  "properties": {
+    "steps": { "type": "array", "minItems": 1, "maxItems": 40, "items": { "$ref": "#/$defs/step" } }
+  },
+  "$defs": {
+    "table": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+    "column_name": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$", "maxLength": 64 },
+    "columns_list": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/column_name" } },
+    "key": { "anyOf": [ { "$ref": "#/$defs/column_name" }, { "$ref": "#/$defs/columns_list" } ] },
+    "column": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/column_name" },
+        "type": { "enum": ["TEXT", "INTEGER", "REAL", "NUMERIC", "BLOB", "text", "integer", "real", "numeric", "blob"] },
+        "not_null": { "type": "boolean" },
+        "default": { "type": ["string", "number", "boolean", "null"] },
+        "check": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    },
+    "foreign_key": {
+      "type": "object",
+      "required": ["columns", "references"],
+      "additionalProperties": false,
+      "properties": {
+        "columns": { "$ref": "#/$defs/columns_list" },
+        "references": {
+          "type": "object",
+          "required": ["table", "columns"],
+          "additionalProperties": false,
+          "properties": { "table": { "$ref": "#/$defs/table" }, "columns": { "$ref": "#/$defs/columns_list" } }
+        },
+        "on_delete": { "enum": ["restrict", "cascade", "set_null", "no_action"] }
+      }
+    },
+    "columns_def": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/column" } },
+    "unique_def": { "type": "array", "items": { "$ref": "#/$defs/key" } },
+    "fks_def": { "type": "array", "items": { "$ref": "#/$defs/foreign_key" } },
+    "step": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "enum": ["create_table", "add_column", "rename_table", "rename_column", "create_index", "drop_index",
+                         "annotate_column", "insert_rows", "copy_data", "rebuild_table", "drop_column", "drop_table"] }
+      },
+      "allOf": [
+        { "if": { "properties": { "op": { "const": "create_table" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/create_table" } },
+        { "if": { "properties": { "op": { "const": "add_column" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/add_column" } },
+        { "if": { "properties": { "op": { "const": "rename_table" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/rename_table" } },
+        { "if": { "properties": { "op": { "const": "rename_column" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/rename_column" } },
+        { "if": { "properties": { "op": { "const": "create_index" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/create_index" } },
+        { "if": { "properties": { "op": { "const": "drop_index" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/drop_index" } },
+        { "if": { "properties": { "op": { "const": "annotate_column" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/annotate_column" } },
+        { "if": { "properties": { "op": { "const": "insert_rows" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/insert_rows" } },
+        { "if": { "properties": { "op": { "const": "copy_data" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/copy_data" } },
+        { "if": { "properties": { "op": { "const": "rebuild_table" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/rebuild_table" } },
+        { "if": { "properties": { "op": { "const": "drop_column" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/drop_column" } },
+        { "if": { "properties": { "op": { "const": "drop_table" } }, "required": ["op"] }, "then": { "$ref": "#/$defs/drop_table" } }
+      ]
+    },
+    "create_table": {
+      "type": "object",
+      "required": ["table", "columns", "primary_key"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {}, "table": { "$ref": "#/$defs/table" },
+        "columns": { "$ref": "#/$defs/columns_def" },
+        "primary_key": { "$ref": "#/$defs/key" },
+        "unique": { "$ref": "#/$defs/unique_def" },
+        "foreign_keys": { "$ref": "#/$defs/fks_def" }
+      }
+    },
+    "add_column": {
+      "type": "object",
+      "required": ["table", "column"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "table": { "$ref": "#/$defs/table" }, "column": { "$ref": "#/$defs/column" } }
+    },
+    "rename_table": {
+      "type": "object",
+      "required": ["from", "to"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "from": { "$ref": "#/$defs/table" }, "to": { "$ref": "#/$defs/table" } }
+    },
+    "rename_column": {
+      "type": "object",
+      "required": ["table", "from", "to"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "table": { "$ref": "#/$defs/table" }, "from": { "$ref": "#/$defs/column_name" }, "to": { "$ref": "#/$defs/column_name" } }
+    },
+    "create_index": {
+      "type": "object",
+      "required": ["table", "columns"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {}, "table": { "$ref": "#/$defs/table" }, "columns": { "$ref": "#/$defs/columns_list" },
+        "unique": { "type": "boolean" }, "name": { "$ref": "#/$defs/table" }
+      }
+    },
+    "drop_index": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "name": { "$ref": "#/$defs/table" } }
+    },
+    "annotate_column": {
+      "type": "object",
+      "required": ["table", "column", "kind"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "table": { "$ref": "#/$defs/table" }, "column": { "$ref": "#/$defs/column_name" }, "kind": { "enum": ["object_ref"] } }
+    },
+    "insert_rows": {
+      "type": "object",
+      "required": ["table", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {}, "table": { "$ref": "#/$defs/table" },
+        "rows": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "minProperties": 1, "additionalProperties": { "type": ["string", "number", "boolean", "null"] } } }
+      }
+    },
+    "copy_data": {
+      "type": "object",
+      "required": ["into", "columns", "from"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {}, "into": { "$ref": "#/$defs/table" }, "columns": { "$ref": "#/$defs/columns_list" },
+        "from": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rebuild_table": {
+      "type": "object",
+      "required": ["table", "columns", "primary_key", "mapping"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {}, "table": { "$ref": "#/$defs/table" },
+        "columns": { "$ref": "#/$defs/columns_def" },
+        "primary_key": { "$ref": "#/$defs/key" },
+        "unique": { "$ref": "#/$defs/unique_def" },
+        "foreign_keys": { "$ref": "#/$defs/fks_def" },
+        "mapping": { "type": "object", "additionalProperties": { "type": ["string", "null"] } }
+      }
+    },
+    "drop_column": {
+      "type": "object",
+      "required": ["table", "column"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "table": { "$ref": "#/$defs/table" }, "column": { "$ref": "#/$defs/column_name" } }
+    },
+    "drop_table": {
+      "type": "object",
+      "required": ["table"],
+      "additionalProperties": false,
+      "properties": { "op": {}, "table": { "$ref": "#/$defs/table" } }
+    }
+  }
+}

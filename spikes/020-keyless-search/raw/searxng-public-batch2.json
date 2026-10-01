@@ -1,0 +1,68 @@
+[
+ {
+  "source": "searxng-public:etsi.me",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:41:13.7850401Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 1334,
+  "results": null
+ },
+ {
+  "source": "searxng-public:etsi.me",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:41:16.6706452Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 219,
+  "results": null
+ },
+ {
+  "source": "searxng-public:searxng.site",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:41:17.432765Z",
+  "http_code": 403,
+  "status": "blocked",
+  "detail": "HTTP 403: \u003c!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"\u003e \u003chtml\u003e\u003chead\u003e \u003ctitle\u003e403 Forbidden\u003c/title\u003e \u003c/head\u003e\u003cbody\u003e \u003ch1\u003eForbidden\u003c/h1\u003e \u003cp\u003eYou don't have permission to ac",
+  "latency_ms": 762,
+  "results": null
+ },
+ {
+  "source": "searxng-public:searxng.site",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:41:20.8419333Z",
+  "http_code": 403,
+  "status": "blocked",
+  "detail": "HTTP 403: \u003c!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"\u003e \u003chtml\u003e\u003chead\u003e \u003ctitle\u003e403 Forbidden\u003c/title\u003e \u003c/head\u003e\u003cbody\u003e \u003ch1\u003eForbidden\u003c/h1\u003e \u003cp\u003eYou don't have permission to ac",
+  "latency_ms": 170,
+  "results": null
+ },
+ {
+  "source": "searxng-public:search.hbubli.cc",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:41:21.7279384Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 886,
+  "results": null
+ },
+ {
+  "source": "searxng-public:search.hbubli.cc",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:41:25.9014017Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 1059,
+  "results": null
+ }
+]

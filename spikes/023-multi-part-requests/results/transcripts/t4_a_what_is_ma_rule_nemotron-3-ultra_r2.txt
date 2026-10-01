@@ -1,0 +1,38 @@
+===== nemotron-3-ultra | t4_a_what_is_ma | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1780, output 371, 8.8s, finish stop, reasoning 195 chars)
+[12:00:04 assistant] A **moving average (MA)** is a statistical calculation used to smooth out price data by creating a constantly updated average price over a specific time period. It's one of the most common technical indicators in trading.
+
+**How it works:**
+- You pick a window (e.g., 10 days, 50 days, 200 days)
+- For each day, you average the closing prices over that window
+- As new data comes in, the oldest drops out and the newest enters — hence "moving"
+
+**Main types:**
+| Type | Formula | Characteristic |
+|------|---------|----------------|
+| **SMA** (Simple) | Equal weight to all prices in the window | Slower to react |
+| **EMA** (Exponential) | More weight to recent prices | Faster to react |
+| **WMA** (Weighted) | Linear weighting, newest heaviest | In between |
+
+**What traders use it for:**
+- **Trend direction** — price above MA = uptrend, below = downtrend
+- **Support/resistance** — MAs often act as dynamic levels
+- **Crossovers** — e.g., 50-day crossing above 200-day ("golden cross") signals bullish momentum
+- **Filtering noise** — smooths daily volatility to see the underlying trend
+
+In your Crypto Watch project, you could add a moving average to the `price_chart` view (e.g., a 20-day SMA line overlaid on BTC close prices) or compute it in a pipeline for signals.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A **moving average (MA)** is a statistical calculation used to smooth out price data by creating a constantly updated average price over a specific time period....
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1780
+tests: map[4:pass 5:pass] | prompt 1780 output 371 requests 1 peak 1780 polls 0 | 9s real, 4s virtual

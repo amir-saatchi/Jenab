@@ -1,0 +1,19 @@
+# secrets: never commit
+.env
+.env.*
+
+# build output
+*.exe
+node_modules/
+dist/
+
+# SQLite files from local runs
+*.db
+*.db-wal
+*.db-shm
+
+# installed by the skills tool from skills-lock.json
+.claude/skills/shadcn/
+
+# saved copies of third-party web pages; spikes/015-readable-text/fetch downloads them again
+spikes/015-readable-text/fixtures/

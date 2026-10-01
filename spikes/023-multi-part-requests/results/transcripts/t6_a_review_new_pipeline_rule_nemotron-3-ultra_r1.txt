@@ -1,0 +1,40 @@
+===== nemotron-3-ultra | t6_a_review_new_pipeline | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 2519, output 212, 4.0s, finish tool_calls, reasoning 798 chars)
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2723, output 1085, 34.6s, finish stop, reasoning 2813 chars)
+[12:00:09 assistant] The `fear_greed` pipeline has several problems:
+
+1. **Placeholder URL** – `https://api.alternative.example/fng/` uses the reserved `.example` TLD. The real endpoint is `https://api.alternative.me/fng/`.
+
+2. **No error handling** – No `on_error`, retries, or fallback. If the HTTP call fails (network, rate limit, API change), the run crashes.
+
+3. **Wrong table & schema misuse** – It writes a one-line summary into `news` with a fake URL (`fng-{{run.date}}`), `coin: BTC`, and source `alternative.example`.  
+   - The Fear & Greed Index is market-wide, not BTC-specific.  
+   - `news.url` is a primary key; re-runs on the same day would conflict.  
+   - Structured data (value, classification, timestamp) is lost.
+
+4. **LLM summarization of raw JSON** – The API returns JSON like `{"data":[{"value":"25","value_classification":"Extreme Fear",...}]}`. Feeding that straight to `llm.summarize` is unreliable; extract the fields first.
+
+5. **No dedicated storage** – There’s no table for the index. A simple table (`fear_greed(date, value, classification)`) would keep the structured history.
+
+6. **Hardcoded values** – `coin: BTC` and `source: alternative.example` are baked in; they should be derived or configurable.
+
+7. **Missing `on_error`** – The reviewer chat previously required this for `daily_prices`; the same standard applies here.
+
+Want me to send this to the **Reviewer** chat for a formal review, or would you like a corrected pipeline config first?
+
+----- background tasks
+
+----- assertions
+fail  test 6    right_target                       no send_to_chat; tools used: read_config
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+skip  test 6    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 6    no_repeat                          no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2723
+tests: map[5:pass 6:fail] | prompt 5242 output 1297 requests 2 peak 2723 polls 0 | 39s real, 9s virtual

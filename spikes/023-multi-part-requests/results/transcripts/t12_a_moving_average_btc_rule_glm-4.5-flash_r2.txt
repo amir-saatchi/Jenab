@@ -1,0 +1,54 @@
+===== glm-4.5-flash | t12_a_moving_average_btc | cond rule | rep 2 | tests [1 2]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:36, stop step cap
+[12:00:00 user] What is a moving average, and also fetch today's BTC price and news?
+  (request: prompt 1468, output 306, 11.1s, finish tool_calls, reasoning 771 chars)
+[12:00:04 assistant] 
+A moving average is a statistical calculation used to analyze data points by creating a series of averages of different subsets of the full data set. In financial markets, it's commonly used to smooth out price data and identify trends. For example, a 50-day moving average would be the average closing price over the past 50 days, which helps filter out short-term fluctuations and show the underlying trend.
+
+Now let me fetch today's BTC price and news for you:
+
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin": "BTC", "currency": "USD"}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1615, output 167, 4.8s, finish tool_calls, reasoning 135 chars)
+[12:00:08 assistant] 
+A moving average is a statistical calculation used to analyze data points by creating averages of different subsets of the full data set. In financial contexts, it's commonly used to smooth out price fluctuations and identify trends. For example, a 50-day moving average would be the average closing price over the past 50 trading days, helping to filter out short-term volatility and show the underlying price direction.
+
+I've started fetching today's BTC price and news. The pipeline is running in the background with run ID r_1. Let me check the status to see if it's completed.
+
+[12:00:08 call] run_status {"run_id":"r_1"}
+[12:00:09 result run_status] running for 5 s (typical length 30 s)
+  (request: prompt 1769, output 36, 1.4s, finish tool_calls, reasoning 66 chars)
+[12:00:13 call] run_status {"run_id":"r_1"}
+[12:00:13 result run_status] running for 10 s (typical length 30 s)
+  (request: prompt 1808, output 143, 4.3s, finish tool_calls, reasoning 1 chars)
+[12:00:17 call] run_status {"run_id":"r_1","sql":"SELECT * FROM prices WHERE coin = 'BTC' ORDER BY date DESC LIMIT 5"}
+[12:00:18 result run_status] running for 14 s (typical length 30 s)
+  (request: prompt 1871, output 21, 1.0s, finish tool_calls, reasoning 1 chars)
+[12:00:22 call] run_status {"run_id":"r_1"}
+[12:00:22 result run_status] running for 18 s (typical length 30 s)
+  (request: prompt 1910, output 21, 1.7s, finish tool_calls, reasoning 1 chars)
+[12:00:26 call] run_status {"run_id":"r_1"}
+[12:00:27 result run_status] running for 23 s (typical length 30 s)
+  (request: prompt 1949, output 21, 1.0s, finish tool_calls, reasoning 1 chars)
+[12:00:31 call] run_status {"run_id":"r_1"}
+[12:00:31 result run_status] running for 28 s (typical length 30 s)
+  (request: prompt 1988, output 21, 1.0s, finish tool_calls, reasoning 1 chars)
+[12:00:35 call] run_status {"run_id":"r_1"}
+[12:00:36 result run_status] finished 12:00:34: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered poll
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 4 s, slow work (run_pipeline r_1 (background)) done at 34 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test info text_before_tool                   A moving average is a statistical calculation used to analyze data points by cre...
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   A moving average is a statistical calculation used to analyze data points by creating a series of averages of different ...
+fail  test 2    answer_contains                    no finish turn and the rest was never given
+skip  test 2    no_repeat                          no finish turn
+skip  test 2    no_restart                         no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 1988
+tests: map[1:pass 2:fail 5:pass] | prompt 14378 output 736 requests 8 peak 1988 polls 7 | 29s real, 36s virtual

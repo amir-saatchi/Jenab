@@ -1,0 +1,11 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      urls: https://api.example.com/btc
+# expect: 8 /steps/0/with required
+# expect: 9 /steps/0/with/urls additionalProperties

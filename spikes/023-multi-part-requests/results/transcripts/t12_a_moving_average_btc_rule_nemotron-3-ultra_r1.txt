@@ -1,0 +1,48 @@
+===== nemotron-3-ultra | t12_a_moving_average_btc | cond rule | rep 1 | tests [1 2]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] What is a moving average, and also fetch today's BTC price and news?
+  (request: prompt 1791, output 288, 18.1s, finish tool_calls, reasoning 320 chars)
+[12:00:04 assistant] A **moving average (MA)** is a technical indicator that smooths price data by creating a constantly updated average price over a specific period. It helps identify trends by filtering out short-term noise.
+
+- **Simple Moving Average (SMA)**: Average of closing prices over N periods (e.g., 20-day SMA = sum of last 20 closes ÷ 20).
+- **Exponential Moving Average (EMA)**: Gives more weight to recent prices, reacts faster to changes.
+- Common periods: 20, 50, 200 days. Crossovers (e.g., 50-day crossing above 200-day = "golden cross") signal trend changes.
+
+Now I'll fetch today's BTC price and news via the pipeline:
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"BTC","currency":"USD"}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 2030, output 83, 2.9s, finish stop, reasoning 195 chars)
+[12:00:08 assistant] Started the daily_prices pipeline for BTC/USD (run `r_1`). It takes about 30 seconds. I'll show the results when it finishes.
+
+----- turn 2 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 2179, output 205, 8.0s, finish stop, reasoning 167 chars)
+[12:00:38 assistant] The pipeline completed successfully. Here's today's data:
+
+**BTC Price (2026-09-29)**
+- Close: **$64,210.50 USD**
+- Change: **+1.8%** vs yesterday
+
+**Latest BTC News (3 new items)**
+1. *"Spot bitcoin ETFs add 410M USD in a day"*
+2. *"SEC delays decision on staking ETFs"*
+3. *"Miner reserves keep falling"*
+
+The price and news are now stored in your `prices` and `news` tables. You can view them in the `price_chart` and `news_table` views.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 4 s, slow work (run_pipeline r_1 (background)) done at 34 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test info text_before_tool                   A **moving average (MA)** is a technical indicator that smooths price data by cr...
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   A **moving average (MA)** is a technical indicator that smooths price data by creating a constantly updated average pric...
+pass  test 2    answer_contains                    The pipeline completed successfully. Here's today's data: **BTC Price (2026-09-29)** - Close: **$64,210.50 USD** - Change: **+1.8%** vs yesterday **Latest BTC N...
+pass  test 2    no_repeat                          5-gram overlap 0.00
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 2179
+tests: map[1:pass 2:pass 5:pass] | prompt 6000 output 576 requests 3 peak 2179 polls 0 | 29s real, 38s virtual

@@ -1,0 +1,101 @@
+===== nemotron-3-ultra | t12_b_staking_pages_pow_pos | cond base | rep 1 | tests [1 2]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:01:20, stop done
+[12:00:00 user] Please summarise these 20 articles about Ethereum staking for me. Meanwhile, quick question: what's the difference between proof of work and proof of stake?
+1. https://staking.example.org/article-01
+2. https://staking.example.org/article-02
+3. https://staking.example.org/article-03
+4. https://staking.example.org/article-04
+5. https://staking.example.org/article-05
+6. https://staking.example.org/article-06
+7. https://staking.example.org/article-07
+8. https://staking.example.org/article-08
+9. https://staking.example.org/article-09
+10. https://staking.example.org/article-10
+11. https://staking.example.org/article-11
+12. https://staking.example.org/article-12
+13. https://staking.example.org/article-13
+14. https://staking.example.org/article-14
+15. https://staking.example.org/article-15
+16. https://staking.example.org/article-16
+17. https://staking.example.org/article-17
+18. https://staking.example.org/article-18
+19. https://staking.example.org/article-19
+20. https://staking.example.org/article-20
+
+  (request: prompt 2028, output 252, 5.6s, finish tool_calls, reasoning 406 chars)
+[12:00:04 call] fetch_page {"url":"https://staking.example.org/article-01"}
+[12:00:04 call] fetch_page {"url":"https://staking.example.org/article-02"}
+[12:00:04 call] fetch_page {"url":"https://staking.example.org/article-03"}
+[12:00:04 call] fetch_page {"url":"https://staking.example.org/article-04"}
+[12:00:04 call] fetch_page {"url":"https://staking.example.org/article-05"}
+[12:00:07 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:10 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:13 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:16 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:19 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2387, output 222, 3.8s, finish tool_calls, reasoning 294 chars)
+[12:00:23 call] fetch_page {"url":"https://staking.example.org/article-06"}
+[12:00:23 call] fetch_page {"url":"https://staking.example.org/article-07"}
+[12:00:23 call] fetch_page {"url":"https://staking.example.org/article-08"}
+[12:00:23 call] fetch_page {"url":"https://staking.example.org/article-09"}
+[12:00:23 call] fetch_page {"url":"https://staking.example.org/article-10"}
+[12:00:26 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:29 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:32 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:35 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:38 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 2746, output 208, 3.7s, finish tool_calls, reasoning 212 chars)
+[12:00:42 call] fetch_page {"url":"https://staking.example.org/article-11"}
+[12:00:42 call] fetch_page {"url":"https://staking.example.org/article-12"}
+[12:00:42 call] fetch_page {"url":"https://staking.example.org/article-13"}
+[12:00:42 call] fetch_page {"url":"https://staking.example.org/article-14"}
+[12:00:42 call] fetch_page {"url":"https://staking.example.org/article-15"}
+[12:00:45 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:48 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:51 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:54 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:00:57 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 3105, output 184, 5.8s, finish tool_calls, reasoning 102 chars)
+[12:01:01 call] fetch_page {"url":"https://staking.example.org/article-16"}
+[12:01:01 call] fetch_page {"url":"https://staking.example.org/article-17"}
+[12:01:01 call] fetch_page {"url":"https://staking.example.org/article-18"}
+[12:01:01 call] fetch_page {"url":"https://staking.example.org/article-19"}
+[12:01:01 call] fetch_page {"url":"https://staking.example.org/article-20"}
+[12:01:04 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:01:07 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:01:10 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:01:13 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+[12:01:16 result fetch_page] (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  (request: prompt 3464, output 518, 31.9s, finish stop, reasoning 232 chars)
+[12:01:20 assistant] All 20 URLs point to `staking.example.org`, which serves synthetic placeholder text — the same generic snippet repeated for every article. There's no real Ethereum staking content to summarise.
+
+**Proof of Work vs Proof of Stake (quick answer)**
+
+| Aspect | Proof of Work (PoW) | Proof of Stake (PoS) |
+|--------|---------------------|----------------------|
+| **How blocks are produced** | Miners compete to solve a cryptographic puzzle; first to solve it proposes the next block. | Validators are chosen pseudo-randomly, weighted by the amount of ETH they’ve staked. |
+| **Security resource** | Electricity + specialised hardware (ASICs/GPUs). | Capital at risk (staked ETH). |
+| **Energy use** | High — Bitcoin/Ethereum (pre-Merge) consumed ~100 TWh/yr. | ~99.95% less; Ethereum post-Merge uses ~0.01 TWh/yr. |
+| **Economic penalty** | Wasted electricity if you mine an invalid chain. | **Slashing** — a portion or all of your stake is burned for misbehaviour (double-signing, surround votes, inactivity). |
+| **Entry barrier** | Expensive hardware, cheap electricity, physical space. | 32 ETH to run a solo validator (or less via pooling/staking services). |
+| **Finality** | Probabilistic — more confirmations = more certainty. | Deterministic — epochs finalise via Casper FFG; once finalised, blocks can’t be reverted without massive slashing. |
+| **Centralisation risks** | Mining pools, ASIC manufacturers, cheap-power regions. | Large staking providers (Lido, exchanges), but protocol encourages decentralisation via penalties for correlated failures. |
+| **Ethereum status** | Used until **The Merge (15 Sep 2022)**. | Live since The Merge; current consensus. |
+
+In short: PoW burns energy to make attacks expensive; PoS burns *money* (staked ETH) to make attacks expensive. Ethereum switched to PoS to cut energy use, lower hardware barriers, and enable stronger finality guarantees.
+
+----- background tasks
+
+----- assertions
+fail  test 1    quick_before_finish                quick part at 80 s, after the slow work (fetch_page (foreground)) was done at 7 s
+pass  test 1    slow_started                       fetch_page foreground
+pass  test info text_before_tool                   All 20 URLs point to `staking.example.org`, which serves synthetic placeholder t...
+fail  test info background_started                 no background task
+skip  test info mentions_running                   no background task
+skip  test 2    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 2    no_repeat                          no finish turn
+skip  test 2    no_restart                         no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 3464
+tests: map[1:fail 2:na 5:pass] | prompt 13730 output 1384 requests 5 peak 3464 polls 0 | 51s real, 80s virtual

@@ -1,0 +1,28 @@
+===== gemma4:31b | t6_d_watch_gold_daily | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Start watching gold prices daily from now on, and tell me when there's a big move.
+  (request: prompt 2072, output 57, 1.2s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] create_chat {"message":"Please start tracking gold prices daily. Monitor for significant price movements and report them back to the Mother chat.","role":"Watch gold prices daily and alert on big moves.","title":"Gold Tracker"}
+[12:00:04 result create_chat] {"chat_id":"c_new1","status":"started","task_id":"t_1"}
+  (request: prompt 2159, output 30, 1.0s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] I've created a new chat, "Gold Tracker," to monitor gold prices daily and alert you of any significant moves.
+
+----- turn 2 (system) 12:01:04-12:01:08, stop done
+[12:01:04 notice] [task t_1 finished 12:01:04: reply from Gold Tracker (c_new1): Gold watcher is set up: pipeline gold_daily is saved (daily at 08:00, writes to gold_prices) and I will report any daily move over 2%. Today's price: 2,641 USD/oz.
+]
+  (request: prompt 2280, output 48, 1.0s, finish stop, reasoning 0 chars)
+[12:01:08 assistant] The Gold Tracker is now active. It will monitor prices daily at 08:00 and alert us if there is a move greater than 2%. Today's price is 2,641 USD/oz.
+
+----- background tasks
+t_1 create_chat c_new1 start 12:00:04 finish 12:01:04 delivered notice
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  role: Watch gold prices daily and alert on big moves.
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Gold Tracker is now active. It will monitor prices daily at 08:00 and alert us if there is a move greater than 2%. Today's price is 2,641 USD/oz.
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 2280
+tests: map[5:pass 6:pass] | prompt 6511 output 135 requests 3 peak 2280 polls 0 | 3s real, 68s virtual

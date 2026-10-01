@@ -1,0 +1,7 @@
+prompt tokens used before this invocation: 1283734 of 2000000
+note: glm-4.5-flash is not in zai /models
+calib glm-4.5-flash v2: guide 3098 tokens (11519 chars), tools 739 tokens (2037 chars) 
+21:54:39 glm-4.5-flash    T2 run 1: stop=done valid=true first=false failedBatches=1 checks=10/10 req=4 prompt=18397 peak=5215 62s budget=1306022 
+21:55:49 glm-4.5-flash    T4 run 1: stop=done valid=true first=true failedBatches=0 checks=11/13 req=11 prompt=55947 peak=6803 70s budget=1361969 
+
+prompt tokens used in total: 1361969 of 2000000 (output 97432)

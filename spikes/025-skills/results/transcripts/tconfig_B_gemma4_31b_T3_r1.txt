@@ -1,0 +1,80 @@
+===== gemma4:31b T3 guide v2 run 1 chained false
+----- user
+Create these views:
+1. btc_price_table: a table of the BTC price, newest first, with a "From" date filter that defaults to 90 days ago, and a "Refresh now" button that runs daily_btc.
+2. btc_price_chart: a line chart of the price over time.
+3. btc_news_table: a table of the saved news (date, title, reason, link), newest first.
+4. keyword_list: a table of the watch keywords where each row can be deleted.
+5. add_keyword: a form to add a watch keyword.
+----- assistant (finish tool_calls, prompt 1711, output 17, 0.9s)
+> load_skill {"name":"config-guide"}
+< load_skill
+Skill loaded: config-guide
+
+## 4. Views: save_view (table, chart) and save_form (form)
+
+Common: `version: 1`, `id`, `title`, `type` (table/chart/form), `description`, `query` (table/chart: one read-only SELECT, plain SQL, no `${{ }}`), `params` (fixed parameter values), `filters`, `actions` [{label, run_pipeline: <pipeline id>}].
+Filters bind named query parameters: `{ param, control: text|number|date|select|checkbox, label, default, required, options }`. Every `:name` in the query must be bound by a filter or `params` (not both). Date defaults: ISO date, `today`, `today-7d`, `today-3m`, `today-1y`, `start_of_month`, `start_of_year`. A cleared optional filter binds NULL: write `(:coin IS NULL OR coin = :coin)`. `select` needs `options`: a list `[A, B]` or `{ query: "SELECT ..." }`.
+
+Table: `columns` [{field, label, format, format_options {currency: USD, decimals}, align}], `default_sort` {field, direction: asc|desc} (always required, also for small tables), `page_size`, `rows_from` {table, key} (needed for row_actions; the query must select the key), `row_actions` [{label, open_form: <form id>} or {label, delete: true, confirm: true}]. No ORDER BY/LIMIT in a table query; the runtime sorts and pages.
+Formats: text, number, currency, percent, date, datetime, url, boolean, image, file.
+Chart: `chart_type` line|bar|scatter, `x` {field, label, format}, `y` [{field, label}], `series_by` (a field that splits rows into series; then y has exactly one entry).
+Fields in columns, default_sort, x, y, series_by must be columns of the query result (aliases count).
+
+```yaml
+version: 1
+id: weather_chart
+title: Temperature
+type: chart
+chart_type: line
+query: |
+  SELECT date, city, temp FROM weather
+  WHERE date >= :from AND (:city IS NULL OR city = :city)
+filters:
+  - { param: from, control: date, label: "From", default: "today-30d", required: true }
+  - { param: city, control: select, label: "City", options: { query: "SELECT name FROM cities" } }
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: temp, label: "°C" }
+series_by: city
+```
+
+Form: `fields` [{field, label, control: text|textarea|number|date|select|checkbox|file, required, default, options}], `submit` {action: insert|update|run_pipeline, table (insert/update), key (update), pipeline (run_pipeline)}, `load` (update only: `SELECT ... WHERE id = :key`). Insert forms: field names are table columns; every NOT NULL column without a default needs a field with `required: true`. run_pipeline forms: field names are the pipeline's inputs.
+
+```yaml
+version: 1
+id: add_city
+title: Add city
+type: form
+fields:
+  - { field: name, label: "City", control: text, required: true }
+  - { field: country, label: "Country", control: text, required: true }
+submit: { action: insert, table: cities }
+```
+
+----- assistant (finish tool_calls, prompt 2570, output 636, 5.0s)
+> save_view {"yaml":"version: 1\nid: btc_price_table\ntitle: BTC Price\ntype: table\nquery: |\n  SELECT date, price \n  FROM btc_prices \n  WHERE date \u003e= :from\nfilters:\n  - { param: from, control: date, label: \"From\", default: \"today-3m\", required: true }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\ndefault_sort: { field: date, direction: desc }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }\n"}
+> save_view {"yaml":"version: 1\nid: btc_price_chart\ntitle: BTC Price Chart\ntype: chart\nchart_type: line\nquery: |\n  SELECT date, price \n  FROM btc_prices \n  ORDER BY date ASC\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price\" }\n"}
+> save_view {"yaml":"version: 1\nid: btc_news_table\ntitle: BTC News\ntype: table\nquery: |\n  SELECT date, title, reason, url \n  FROM btc_news\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: title, label: \"Title\", format: text }\n  - { field: reason, label: \"Reason\", format: text }\n  - { field: url, label: \"Link\", format: url }\ndefault_sort: { field: date, direction: desc }\n"}
+> save_view {"yaml":"version: 1\nid: keyword_list\ntitle: Watch Keywords\ntype: table\nquery: |\n  SELECT id, keyword \n  FROM watch_keywords\ncolumns:\n  - { field: id, label: \"ID\", format: number }\n  - { field: keyword, label: \"Keyword\", format: text }\ndefault_sort: { field: keyword, direction: asc }\nrows_from: { table: watch_keywords, key: id }\nrow_actions:\n  - { label: \"Delete\", delete: true, confirm: true }\n"}
+> save_form {"yaml":"version: 1\nid: add_keyword\ntitle: Add Keyword\ntype: form\nfields:\n  - { field: keyword, label: \"Keyword\", control: text, required: true }\nsubmit: { action: insert, table: watch_keywords }\n"}
+< save_view
+saved table view btc_price_table (revision 1).
+
+< save_view
+saved chart view btc_price_chart (revision 1).
+
+< save_view
+saved table view btc_news_table (revision 1).
+
+< save_view
+saved table view keyword_list (revision 1).
+
+< save_form
+saved form view add_keyword (revision 1).
+
+----- assistant (finish stop, prompt 3444, output 59, 1.0s)
+Created 4 views (BTC Price table and chart, BTC News table, and Keyword list) and 1 form to add keywords.
+The BTC Price table includes a 90-day default filter and a refresh button for the `daily_btc` pipeline.
+----- result: stop done, valid true, first-try true, failed batches 0, checks 4/5
+  FAIL btc_price_table: 10 seeded prices newest first, From filter ~90 days, Refresh runs daily_btc: no date filter defaulting to ~90 days ago

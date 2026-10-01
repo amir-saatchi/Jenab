@@ -1,0 +1,15 @@
+===== nemotron-3-ultra | t6_e_two_plus_two | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What's 2+2?
+  (request: prompt 2517, output 35, 5.4s, finish stop, reasoning 130 chars)
+[12:00:04 assistant] 4
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    4
+pass  test 5    max_prompt_tokens                  peak prompt 2517
+tests: map[5:pass 6:pass] | prompt 2517 output 35 requests 1 peak 2517 polls 0 | 5s real, 4s virtual

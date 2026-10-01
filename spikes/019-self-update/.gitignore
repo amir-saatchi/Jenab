@@ -1,0 +1,7 @@
+# test signing keys: private halves never go into git
+keys/*.key
+# builds and run output
+bin/
+out/
+out-*/
+out-driver.txt

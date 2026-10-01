@@ -1,0 +1,18 @@
+===== nemotron-3-ultra | t6_f_card_schedule | cond base | rep 2 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 2298, output 86, 22.5s, finish tool_calls, reasoning 245 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 2610, output 85, 4.0s, finish stop, reasoning 153 chars)
+[12:00:09 assistant] The `daily_prices` pipeline runs **daily at 08:00 Europe/Berlin time** (the schedule is `0 8 * * *` in that timezone).
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    The `daily_prices` pipeline runs **daily at 08:00 Europe/Berlin time** (the schedule is `0 8 * * *` in that timezone).
+pass  test 5    max_prompt_tokens                  peak prompt 2610
+tests: map[5:pass 6:pass] | prompt 4908 output 171 requests 2 peak 2610 polls 0 | 26s real, 9s virtual

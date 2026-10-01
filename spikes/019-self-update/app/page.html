@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BurrowSpike019</title>
+<style>
+  body { font: 13px system-ui, sans-serif; margin: 12px; background: #fff; color: #222; }
+  #log { font: 11px ui-monospace, monospace; white-space: pre; overflow: hidden; height: 130px; }
+</style>
+</head>
+<body>
+<b>BurrowSpike019 v{{VERSION}}</b> (self-update spike, closes itself)
+<div id="log"></div>
+<script type="module">
+  // Our own UI in place of the updater's window: subscribe to the updater's
+  // events from JS and echo each one back to Go, so the log proves the page
+  // gets them (and when).
+  import { Events } from "/wails/runtime.js";
+  const el = document.getElementById("log");
+  const names = ["check-started", "update-available", "no-update", "download-started",
+    "download-progress", "download-complete", "verifying", "installing", "update-ready", "error", "meta"];
+  for (const n of names) {
+    const full = "wails:updater:" + n;
+    Events.On(full, (e) => {
+      const d = e && e.data !== undefined ? e.data : e;
+      el.textContent = (n + " " + JSON.stringify(d ?? null).slice(0, 80) + "\n" + el.textContent).slice(0, 2000);
+      Events.Emit("spike:js-event", { name: full, jsTime: Date.now(), data: n === "download-progress" ? d : (d && d.version ? { version: d.version } : d) });
+    });
+  }
+  Events.Emit("spike:page-ready", { jsTime: Date.now() });
+</script>
+</body>
+</html>

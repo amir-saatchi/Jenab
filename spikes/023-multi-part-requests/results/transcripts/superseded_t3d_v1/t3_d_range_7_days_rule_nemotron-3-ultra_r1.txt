@@ -1,0 +1,38 @@
+===== nemotron-3-ultra | t3_d_range_7_days | cond rule | rep 1 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:01:05, stop step cap
+[12:00:00 user] What were BTC's highest and lowest closes over the last 30 days in our database? And check the web for what caused the biggest move.
+  (request: prompt 1805, output 141, 2.8s, finish tool_calls, reasoning 319 chars)
+[12:00:04 call] query {"sql":"SELECT date, close\nFROM prices\nWHERE coin = 'BTC'\n  AND date \u003e= date('2026-09-28', '-30 days')\nORDER BY date;"}
+[12:00:05 result query] date | close 2026-08-29 | 64629.92 2026-08-30 | 64535.25 2026-08-31 | 62464.87 2026-09-01 | 60788.40 2026-09-02 | 60069.04 2026-09-03 | 58940.10 2026-09-04 | 60116.65 2026-09-05 | 62476.77 2026-09-06 | 63955.36 2026-09-07 | 64186.72 2026-09-08 | 64258.74 2026-09-09 | 63034.09 2026-09-10 | 60605.51 2...
+[12:00:05 mid_user] make that the last 7 days instead
+  (request: prompt 2557, output 103, 3.0s, finish tool_calls, reasoning 118 chars)
+[12:00:09 call] query {"sql":"SELECT date, close\nFROM prices\nWHERE coin = 'BTC'\n  AND date \u003e= date('2026-09-28', '-7 days')\nORDER BY date;"}
+[12:00:10 result query] date | close 2026-09-21 | 62310.40 2026-09-22 | 62980.10 2026-09-23 | 63455.00 2026-09-24 | 64950.20 2026-09-25 | 64100.00 2026-09-26 | 65230.80 2026-09-27 | 63880.50 2026-09-28 | 64512.30 (8 rows)
+  (request: prompt 2811, output 201, 5.1s, finish tool_calls, reasoning 335 chars)
+[12:00:14 call] web_search {"query":"Bitcoin price surge September 2026 crypto news","source":"news","limit":10}
+[12:00:20 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+  (request: prompt 3069, output 208, 9.6s, finish tool_calls, reasoning 419 chars)
+[12:00:24 call] web_search {"limit":10,"query":"Bitcoin price September 23 24 2026 crypto news rally","source":"news"}
+[12:00:30 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+  (request: prompt 3333, output 89, 16.1s, finish tool_calls, reasoning 114 chars)
+[12:00:34 call] web_search {"limit":10,"query":"Bitcoin price September 24 2026 ETF inflows rally","source":"news"}
+[12:00:40 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+  (request: prompt 3596, output 87, 2.4s, finish tool_calls, reasoning 110 chars)
+[12:00:44 call] web_search {"limit":10,"query":"Bitcoin price September 2026 ETF inflows week","source":"news"}
+[12:00:50 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+  (request: prompt 3856, output 89, 5.3s, finish tool_calls, reasoning 115 chars)
+[12:00:54 call] web_search {"limit":10,"query":"Bitcoin price September 23 24 2026 rally cause","source":"web"}
+[12:01:00 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+  (request: prompt 4119, output 94, 4.0s, finish tool_calls, reasoning 169 chars)
+[12:01:04 call] query {"sql":"SELECT *\nFROM news\nWHERE coin = 'BTC'\n  AND published_at \u003e= '2026-09-21'\nORDER BY published_at DESC;"}
+[12:01:05 result query] url | coin | title | source | published_at https://coindesk.example/2026/09/28/etf-inflows | BTC | Spot bitcoin ETFs log a fourth day of inflows | coindesk.example | 2026-09-28T17:10:00Z https://theblock.example/2026/09/28/hashrate-record | BTC | Bitcoin hashrate sets a new record | theblock.example...
+
+----- background tasks
+
+----- assertions
+fail  test 3    after_message                      delivered mid_turn; later text does not match 65[,.]?230
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 4119
+tests: map[3:fail 5:pass] | prompt 25146 output 1012 requests 8 peak 4119 polls 0 | 48s real, 65s virtual

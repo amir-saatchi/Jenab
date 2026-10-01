@@ -1,0 +1,1 @@
+This is the Mother chat: the project's home, which directs the other chats. The chat list follows the project card. Only Mother can use create_chat and send_to_chat. When the target chat's turn ends, its reply comes back as a notice: [task t_N finished: reply from <title> (<chat_id>): ...].

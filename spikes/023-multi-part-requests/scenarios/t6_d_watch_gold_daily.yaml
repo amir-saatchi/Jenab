@@ -1,0 +1,13 @@
+id: t6_d_watch_gold_daily
+title: '"Start watching gold prices daily from now on" -> new role chat'
+tests: ["6"]
+context: mother
+why: 'create_chat with a gold-watching role (a lasting job); pass on the setup reply.'
+messages:
+  - text: "Start watching gold prices daily from now on, and tell me when there's a big move."
+asserts:
+  - {type: created_chat_only_for_lasting_job, test: "6", expect: true, role_match: '(?i)gold'}
+  - {type: no_resend_after_notice, test: "6"}
+  - {type: answer_contains, test: "6", turn: finish, match: '(?i)gold_daily|2[,.]?641|08:00|2%'}
+  - {type: no_repeat, test: "6", max_overlap: 0.3}
+  - {type: tool_not_called, test: info, tools: [subagent]}

@@ -1,0 +1,24 @@
+===== glm-4.5-flash | t6_h_gold_once | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:14, stop done
+[12:00:00 user] Check once whether gold is above 2,600 USD today.
+  (request: prompt 1904, output 83, 3.3s, finish tool_calls, reasoning 175 chars)
+[12:00:04 assistant] 
+I'll check the current gold price for you.
+
+[12:00:04 call] web_search {"query":"gold price USD today per ounce","limit":5}
+[12:00:10 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 2045, output 128, 4.1s, finish stop, reasoning 313 chars)
+[12:00:14 assistant] 
+Yes, gold is above 2,600 USD today. According to the latest market data, spot gold is trading at 2,641 USD/oz, up 0.6% for the day.
+
+----- background tasks
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    tool_not_called                    
+pass  test 6    answer_contains                    I'll check the current gold price for you. Yes, gold is above 2,600 USD today. According to the latest market data, spot gold is trading at 2,641 USD/oz, up 0.6...
+skip  test 6    no_resend_after_notice             no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2045
+tests: map[5:pass 6:pass] | prompt 3949 output 211 requests 2 peak 2045 polls 0 | 7s real, 14s virtual

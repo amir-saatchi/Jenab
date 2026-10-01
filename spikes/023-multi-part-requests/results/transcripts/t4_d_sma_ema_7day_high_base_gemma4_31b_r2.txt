@@ -1,0 +1,26 @@
+===== gemma4:31b | t4_d_sma_ema_7day_high | cond base | rep 2 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What's the difference between an SMA and an EMA, and what was BTC's highest close in the last 7 days?
+  (request: prompt 1334, output 45, 0.8s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] query {"sql":"SELECT MAX(close) FROM prices WHERE coin = 'BTC' AND date \u003e= date('2026-09-29', '-7 days')"}
+[12:00:05 result query] MAX(close) 65230.80 (1 rows)
+  (request: prompt 1403, output 122, 0.9s, finish stop, reasoning 0 chars)
+[12:00:09 assistant] **SMA vs. EMA**
+*   **SMA (Simple Moving Average):** Calculates the average price over a specific period by summing the closing prices and dividing by the number of periods. It treats all data points equally.
+*   **EMA (Exponential Moving Average):** Applies more weight to the most recent prices. This makes it more responsive to new information and price swings than the SMA.
+
+**BTC Highest Close (Last 7 Days)**
+The highest closing price for BTC in the last 7 days was **$65,230.80**.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    **SMA vs. EMA** * **SMA (Simple Moving Average):** Calculates the average price over a specific period by summing the closing prices and dividing by the number ...
+pass  test 4    answer_contains                    **SMA vs. EMA** * **SMA (Simple Moving Average):** Calculates the average price over a specific period by summing the closing prices and dividing by the number ...
+pass  test 5    max_prompt_tokens                  peak prompt 1403
+tests: map[4:pass 5:pass] | prompt 2737 output 167 requests 2 peak 1403 polls 0 | 2s real, 9s virtual

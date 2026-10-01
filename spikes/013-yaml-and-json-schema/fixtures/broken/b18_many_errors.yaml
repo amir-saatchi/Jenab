@@ -1,0 +1,33 @@
+version: 2
+id: daily_btc
+trigger:
+  schedule: "every morning"
+  timezone: Mars/Olympus
+  catch_up: sometimes
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: ftp://api.example.com/btc
+      fail_on_status: "no"
+  - id: save
+    use: db.insert
+    with:
+      table: btc_prices
+      on_conflict: replace
+  - use: db.query
+    with:
+      sql: SELECT 1
+      limit: 10
+on_eror: continue
+# expect: 1 /version const
+# expect: 4 /trigger/schedule format
+# expect: 5 /trigger/timezone format
+# expect: 6 /trigger/catch_up enum
+# expect: 11 /steps/0/with/url format
+# expect: 12 /steps/0/with/fail_on_status type
+# expect: 15 /steps/1/with required
+# expect: 17 /steps/1/with/on_conflict enum
+# expect: 18 /steps/2 required
+# expect: 21 /steps/2/with/limit additionalProperties
+# expect: 22 /on_eror additionalProperties

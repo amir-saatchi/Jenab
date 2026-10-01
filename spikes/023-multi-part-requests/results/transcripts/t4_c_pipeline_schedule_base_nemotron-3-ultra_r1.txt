@@ -1,0 +1,25 @@
+===== nemotron-3-ultra | t4_c_pipeline_schedule | cond base | rep 1 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1739, output 100, 3.0s, finish tool_calls, reasoning 305 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 2051, output 234, 6.1s, finish stop, reasoning 441 chars)
+[12:00:09 assistant] **What it does:**  
+- Fetches the current price for one coin (BTC or ETH) in USD or EUR from CoinGecko and upserts it into the `prices` table.  
+- Reads the latest news for that coin from an RSS feed (last 1 day) and upserts items into the `news` table.
+
+**When it runs:**  
+Daily at **08:00 Europe/Berlin** (cron `0 8 * * *`).
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    **What it does:** - Fetches the current price for one coin (BTC or ETH) in USD or EUR from CoinGecko and upserts it into the `prices` table. - Reads the latest ...
+pass  test 5    max_prompt_tokens                  peak prompt 2051
+tests: map[4:pass 5:pass] | prompt 3790 output 334 requests 2 peak 2051 polls 0 | 9s real, 9s virtual

@@ -1,0 +1,53 @@
+===== nemotron-3-ultra | t6_b_eth_this_week | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:36, stop step cap
+[12:00:00 user] How did ETH do this week?
+  (request: prompt 2518, output 386, 9.1s, finish tool_calls, reasoning 1025 chars)
+[12:00:04 call] send_to_chat {"chat_id":"c_eth","message":"How did ETH do this week (week 39, 2026-09-29)? Please give me the weekly log summary."}
+[12:00:04 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2617, output 118, 3.0s, finish tool_calls, reasoning 351 chars)
+[12:00:08 call] task_status {"id":"t_1"}
+[12:00:09 result task_status] running for 5 s (typical length 45 s)
+  (request: prompt 2673, output 41, 3.0s, finish tool_calls, reasoning 58 chars)
+[12:00:13 call] task_status {"id":"t_1"}
+[12:00:13 result task_status] running for 10 s (typical length 45 s)
+  (request: prompt 2730, output 40, 3.0s, finish tool_calls, reasoning 50 chars)
+[12:00:17 call] task_status {"id":"t_1"}
+[12:00:18 result task_status] running for 14 s (typical length 45 s)
+  (request: prompt 2787, output 40, 5.0s, finish tool_calls, reasoning 50 chars)
+[12:00:22 call] task_status {"id":"t_1"}
+[12:00:22 result task_status] running for 18 s (typical length 45 s)
+  (request: prompt 2844, output 40, 4.0s, finish tool_calls, reasoning 50 chars)
+[12:00:26 call] task_status {"id":"t_1"}
+[12:00:27 result task_status] running for 23 s (typical length 45 s)
+  (request: prompt 2901, output 40, 1.9s, finish tool_calls, reasoning 50 chars)
+[12:00:31 call] task_status {"id":"t_1"}
+[12:00:31 result task_status] running for 28 s (typical length 45 s)
+  (request: prompt 2958, output 40, 4.9s, finish tool_calls, reasoning 50 chars)
+[12:00:35 call] task_status {"id":"t_1"}
+[12:00:36 result task_status] running for 32 s (typical length 45 s)
+
+----- turn 2 (system) 12:00:49-12:00:53, stop done
+[12:00:49 notice] [task t_1 finished 12:00:49: reply from ETH tracker (c_eth): ETH rose 4.2% this week, from 2,483 to 2,587 USD. Main news: gas fees at a two-year low, and the first ETF inflows in three weeks (62M USD). My weekly log is updated.
+]
+  (request: prompt 3107, output 155, 8.3s, finish stop, reasoning 247 chars)
+[12:00:53 assistant] ETH rose **4.2% this week**, from **$2,483 to $2,587**.
+
+**Key drivers:**
+- Gas fees hit a two‑year low
+- First ETF inflows in three weeks ($62 M)
+
+The ETH tracker’s weekly log (week 39) has been updated with this summary.
+
+----- background tasks
+t_1 send_to_chat c_eth start 12:00:04 finish 12:00:49 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    ETH rose **4.2% this week**, from **$2,483 to $2,587**. **Key drivers:** - Gas fees hit a two‑year low - First ETF inflows in three weeks ($62 M) The ETH trac...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 3107
+tests: map[5:pass 6:pass] | prompt 25135 output 900 requests 9 peak 3107 polls 7 | 42s real, 53s virtual

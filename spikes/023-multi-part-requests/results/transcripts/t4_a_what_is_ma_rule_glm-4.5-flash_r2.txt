@@ -1,0 +1,27 @@
+===== glm-4.5-flash | t4_a_what_is_ma | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1458, output 243, 7.2s, finish stop, reasoning 246 chars)
+[12:00:04 assistant] 
+A moving average is a widely used technical analysis tool that smooths out price data by creating a constantly updated average price over a specific time period. It helps identify trends by filtering out short-term price fluctuations.
+
+Key characteristics:
+- **Simple Moving Average (SMA)**: Calculates the average closing price over a set number of periods (e.g., 20-day SMA)
+- **Exponential Moving Average (EMA)**: Gives more weight to recent prices, making it more responsive to new information
+- **Purpose**: Helps identify trend direction, support/resistance levels, and potential trend reversals
+- **Common periods**: 10, 20, 50, 100, and 200 days for stocks; often shorter periods (like 9, 21) for cryptocurrencies
+
+Moving averages are commonly used in trading strategies like crossovers (when short-term MA crosses above/below long-term MA) and as dynamic support/resistance levels.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A moving average is a widely used technical analysis tool that smooths out price data by creating a constantly updated average price over a specific time period...
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1458
+tests: map[4:pass 5:pass] | prompt 1458 output 243 requests 1 peak 1458 polls 0 | 7s real, 4s virtual

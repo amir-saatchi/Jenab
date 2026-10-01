@@ -1,0 +1,27 @@
+===== gemma4:31b L05_design_table guide v2 run 1 chained false
+----- user
+Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don't create it yet.
+----- assistant (finish tool_calls, prompt 1721, output 17, 0.6s)
+> load_skill {"name":"database-design"}
+< load_skill
+Skill loaded: database-design
+
+Rules: every table has an explicit primary key. Tables filled by pipelines also get `_run_id TEXT` and `_fetched_at TEXT` (the runtime fills them). Names are lower_snake_case. When a goal widens (a second coin, a second city), migrate to one general table with a key column (`prices(coin, date, …)`) instead of parallel tables.
+
+----- assistant (finish stop, prompt 1837, output 230, 1.6s)
+I propose the following design for the `crypto_exchanges` table:
+
+**Table: `crypto_exchanges`**
+- `id`: INTEGER PRIMARY KEY (Auto-incrementing unique identifier)
+- `name`: TEXT NOT NULL (The name of the exchange)
+- `country`: TEXT (The country where the exchange is based)
+- `website`: TEXT (The official URL)
+- `trading_fee_pct`: REAL (The trading fee as a percentage, e.g., 0.1 for 0.1%)
+- `_run_id`: TEXT (To track which pipeline run imported the data)
+- `_fetched_at`: TEXT (Timestamp of when the data was fetched)
+
+**Design Notes:**
+- I've used `REAL` for the trading fee to allow for precise decimal percentages.
+- I included `_run_id` and `_fetched_at` following the project standards for tables that will likely be populated via pipelines.
+- `name` is marked as NOT NULL to ensure every entry is identifiable.
+----- result: stop answer, loaded [database-design:load_skill], events 2

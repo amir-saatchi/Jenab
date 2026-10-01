@@ -1,0 +1,10 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: post
+    use: http.post
+    with:
+      url: https://api.example.com/btc
+# expect: 7 /steps/0/use enum

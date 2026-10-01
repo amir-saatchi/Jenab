@@ -1,0 +1,33 @@
+===== gemma4:31b | t12_d_backfill_ohlc | cond base | rep 2 | tests [1 2]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Backfill the last 90 days of ETH prices in EUR. And what does OHLC stand for?
+  (request: prompt 1329, output 37, 26.2s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1387, output 72, 1.7s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] OHLC stands for **Open, High, Low, and Close**. It represents the price of an asset at the start and end of a specific time period, as well as the highest and lowest prices reached during that period.
+
+I've started the backfill for ETH prices in EUR (Run ID: `r_1`).
+
+----- turn 2 (system) 12:02:04-12:02:08, stop done
+[12:02:04 notice] [run r_1 finished 12:02:04: backfill_prices: success. prices +90 rows: ETH daily OHLC in EUR from 2026-07-01 to 2026-09-28; 0 errors.]
+  (request: prompt 1532, output 52, 1.3s, finish stop, reasoning 0 chars)
+[12:02:08 assistant] The backfill for ETH prices in EUR is complete. 90 rows have been added to the `prices` table for the period 2026-07-01 to 2026-09-28.
+
+----- background tasks
+r_1 run_pipeline backfill_prices start 12:00:04 finish 12:02:04 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 8 s, slow work (run_pipeline r_1 (background)) done at 124 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test 1    tool_called                        run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+fail  test info text_before_tool                   first run_pipeline call came before any text
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   OHLC stands for **Open, High, Low, and Close**. It represents the price of an asset at the start and end of a specific t...
+pass  test 2    answer_contains                    The backfill for ETH prices in EUR is complete. 90 rows have been added to the `prices` table for the period 2026-07-01 to 2026-09-28.
+pass  test 2    no_repeat                          5-gram overlap 0.12
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1532
+tests: map[1:pass 2:pass 5:pass] | prompt 4248 output 161 requests 3 peak 1532 polls 0 | 29s real, 128s virtual

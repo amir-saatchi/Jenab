@@ -1,0 +1,67 @@
+===== glm-4.5-flash | t3_c_run_then_add_eth | cond rule | rep 2 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Run the daily prices pipeline now.
+  (request: prompt 1459, output 190, 6.4s, finish tool_calls, reasoning 574 chars)
+[12:00:04 assistant] 
+I'll run the daily prices pipeline with the default inputs (BTC in USD).
+
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin": "BTC", "currency": "USD"}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1530, output 76, 2.5s, finish stop, reasoning 150 chars)
+[12:00:08 assistant] 
+The daily prices pipeline has started with run ID r_1. It will fetch today's price and latest news for BTC in USD, which should take about 30 seconds to complete.
+
+----- turn 2 (user) 12:00:12-12:00:20, stop done
+[12:00:12 user] also run it for ETH
+  (request: prompt 1579, output 78, 2.4s, finish tool_calls, reasoning 171 chars)
+[12:00:16 call] run_pipeline {"id":"daily_prices","inputs":{"coin": "ETH", "currency": "USD"}}
+[12:00:16 result run_pipeline] {"run_id":"r_2","status":"started"}
+  (request: prompt 1634, output 74, 2.4s, finish stop, reasoning 1 chars)
+[12:00:20 assistant] 
+I've now started the daily prices pipeline for both BTC and ETH in USD:
+
+- BTC pipeline started with run ID r_1
+- ETH pipeline started with run ID r_2
+
+Both pipelines are running in the background and should complete in about 30 seconds each. They will fetch today's price and latest news for their respective cryptocurrencies.
+
+----- turn 3 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 1795, output 192, 5.6s, finish stop, reasoning 423 chars)
+[12:00:38 assistant] 
+The BTC daily prices pipeline has completed successfully:
+- Added BTC price for 2026-09-29: $64,210.50 USD (+1.8% vs yesterday)
+- Added 3 news articles about Bitcoin ETFs, staking ETFs, and miner reserves
+
+Let me check the status of the ETH pipeline (r_2) that was also requested.
+
+----- turn 4 (system) 12:00:46-12:00:50, stop done
+[12:00:46 notice] [run r_2 finished 12:00:46: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 1959, output 265, 7.7s, finish stop, reasoning 523 chars)
+[12:00:50 assistant] 
+Both daily prices pipelines have completed successfully:
+
+**BTC (r_1):**
+- Price: $64,210.50 USD (+1.8% vs yesterday)
+- Added 3 news articles about Bitcoin ETFs, staking ETFs, and miner reserves
+
+**ETH (r_2):**
+- Price: $2,587.40 USD (+2.3% vs yesterday)
+- Added 3 news articles about ETH gas fees, staking queue, and ETH ETF inflows
+
+Both cryptocurrencies showed positive gains today with ETH performing slightly better than BTC.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+r_2 run_pipeline daily_prices start 12:00:16 finish 12:00:46 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered new_turn
+pass  test 3    max_calls                          1 calls
+pass  test 3    answer_contains                    The BTC daily prices pipeline has completed successfully: - Added BTC price for 2026-09-29: $64,210.50 USD (+1.8% vs yesterday) - Added 3 news articles about Bi...
+pass  test 3    answer_contains                    The BTC daily prices pipeline has completed successfully: - Added BTC price for 2026-09-29: $64,210.50 USD (+1.8% vs yesterday) - Added 3 news articles about Bi...
+pass  test info no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1959
+tests: map[3:pass 5:pass] | prompt 9956 output 875 requests 6 peak 1959 polls 0 | 27s real, 50s virtual

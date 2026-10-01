@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 900" width="1640" height="900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker></defs>
+<rect width="1640" height="900" fill="#ffffff"/>
+<text x="20.0" y="30.0" font-size="20" fill="#2b2b2b" font-weight="600">02 · Page open, chat docked</text>
+<text x="20.0" y="49.0" font-size="12" fill="#767676">The user opened the Bitcoin page from the right sidebar. The chat moves to the dock.</text>
+<rect x="20.0" y="60.0" width="1280.0" height="800.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="20.8" y="60.8" width="1278.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="20.0" y1="88.0" x2="1300.0" y2="88.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="32.0" y="78.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1286.0" y="78.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<rect x="20.0" y="88.0" width="56.0" height="772.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="76.0" y1="88.0" x2="76.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<rect x="36.0" y="102.0" width="24.0" height="24.0" rx="4" fill="#2b2b2b" stroke="none" stroke-width="1"/>
+<text x="48.0" y="119.0" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">B</text>
+<text x="48.0" y="158.0" font-size="18" fill="#2b2b2b" text-anchor="middle">+</text>
+<text x="48.0" y="190.0" font-size="9.5" fill="#767676" text-anchor="middle">Srch</text>
+<line x1="32.0" y1="204.0" x2="64.0" y2="204.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="32.0" y="214.0" width="32.0" height="30.0" rx="5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="48.0" y="234.0" font-size="13" fill="#2b2b2b" text-anchor="middle">◆</text>
+<circle cx="48.0" cy="272" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="276.0" font-size="11" fill="#2b2b2b" text-anchor="middle">R</text>
+<circle cx="48.0" cy="312" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="316.0" font-size="11" fill="#2b2b2b" text-anchor="middle">E</text>
+<circle cx="59.0" cy="302" r="4" fill="#2b2b2b"/>
+<circle cx="48.0" cy="352" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="356.0" font-size="11" fill="#2b2b2b" text-anchor="middle">F</text>
+<circle cx="59.0" cy="342" r="6" fill="#2b2b2b"/>
+<text x="59.0" y="345.5" font-size="9" fill="#ffffff" font-weight="600" text-anchor="middle">!</text>
+<circle cx="48.0" cy="392" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="396.0" font-size="11" fill="#2b2b2b" text-anchor="middle">I</text>
+<text x="48.0" y="840.0" font-size="15" fill="#2b2b2b" text-anchor="middle">⚙</text>
+<rect x="1060.0" y="88.0" width="240.0" height="772.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="1060.0" y1="88.0" x2="1060.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1072.0" y="116.0" font-size="12" fill="#2b2b2b" font-weight="600">Pages</text>
+<line x1="1072.0" y1="126.0" x2="1104.4" y2="126.0" stroke="#2b2b2b" stroke-width="2"/>
+<text x="1120.4" y="116.0" font-size="12" fill="#767676">Pipelines</text>
+<text x="1194.7" y="116.0" font-size="12" fill="#767676">Files</text>
+<text x="1243.1" y="116.0" font-size="12" fill="#767676">Links</text>
+<line x1="1060.0" y1="128.0" x2="1300.0" y2="128.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="1068.0" y="138.0" width="224.0" height="32.0" rx="5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="1078.0" y="159.0" font-size="12.5" fill="#2b2b2b" font-weight="600">▤  Bitcoin</text>
+<text x="1282.0" y="159.0" font-size="10.5" fill="#767676" text-anchor="end">6 blocks</text>
+<text x="1078.0" y="195.0" font-size="12.5" fill="#2b2b2b">▤  ETH</text>
+<text x="1282.0" y="195.0" font-size="10.5" fill="#767676" text-anchor="end">4 blocks</text>
+<text x="1078.0" y="231.0" font-size="12.5" fill="#2b2b2b">▤  Gold</text>
+<text x="1282.0" y="231.0" font-size="10.5" fill="#767676" text-anchor="end">3 blocks</text>
+<text x="1074.0" y="264.0" font-size="11" fill="#767676">Pages are built by the agent. Ask</text>
+<text x="1074.0" y="279.0" font-size="11" fill="#767676">in the chat to add or change one.</text>
+<text x="96.0" y="120.0" font-size="20" fill="#2b2b2b" font-weight="600">Bitcoin</text>
+<text x="96.0" y="140.0" font-size="12" fill="#767676">Daily price and the news most likely to move it</text>
+<rect x="580.0" y="104.0" width="100.0" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="630.0" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">✕ Close page</text>
+<text x="96.0" y="169.0" font-size="12" fill="#767676">From</text>
+<rect x="132.0" y="152.0" width="120.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="140.0" y="169.3" font-size="12" fill="#2b2b2b">2026-06-30  ▾</text>
+<rect x="262.0" y="153.0" width="106.2" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="315.1" y="169.3" font-size="12" fill="#2b2b2b" text-anchor="middle">↻ Refresh now</text>
+<rect x="96.0" y="190.0" width="385.3" height="190.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="108.0" y="210.0" font-size="12" fill="#2b2b2b" font-weight="600">Price, 90 days</text>
+<line x1="112.0" y1="224.0" x2="112.0" y2="354.0" stroke="#9a9a9a" stroke-width="1"/>
+<line x1="112.0" y1="354.0" x2="465.3" y2="354.0" stroke="#9a9a9a" stroke-width="1"/>
+<polyline points="118.0,304.6 133.5,299.4 149.0,302.0 164.5,291.6 180.1,295.5 195.6,285.1 211.1,289.0 226.6,278.6 242.1,282.5 257.6,273.4 273.2,276.0 288.7,304.6 304.2,309.8 319.7,299.4 335.2,289.0 350.7,281.2 366.2,270.8 381.8,266.9 397.3,260.4 412.8,263.0 428.3,252.6 443.8,256.5 459.3,247.4" fill="none" stroke="#2b2b2b" stroke-width="1.6"/>
+<text x="132.0" y="368.0" font-size="10" fill="#767676">Jul</text>
+<text x="249.8" y="368.0" font-size="10" fill="#767676">Aug</text>
+<text x="367.6" y="368.0" font-size="10" fill="#767676">Sep</text>
+<rect x="493.3" y="190.0" width="186.7" height="190.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="505.3" y="210.0" font-size="12" fill="#2b2b2b" font-weight="600">Today</text>
+<text x="507.3" y="266.0" font-size="28" fill="#2b2b2b" font-weight="600">$64,210</text>
+<text x="507.3" y="292.0" font-size="12" fill="#2b2b2b">▲ 2.1 % vs yesterday</text>
+<text x="507.3" y="314.0" font-size="11" fill="#767676">Last update 08:00</text>
+<rect x="96.0" y="392.0" width="236.3" height="212.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="108.0" y="412.0" font-size="12" fill="#2b2b2b" font-weight="600">Prices</text>
+<rect x="106.0" y="422.0" width="216.3" height="21.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<text x="112.0" y="437.0" font-size="11" fill="#767676" font-weight="600">Date</text>
+<text x="231.0" y="437.0" font-size="11" fill="#767676" font-weight="600">Price</text>
+<line x1="106.0" y1="443.0" x2="322.3" y2="443.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="458.0" font-size="11" fill="#2b2b2b">29 Sep</text>
+<text x="231.0" y="458.0" font-size="11" fill="#2b2b2b">$64,210</text>
+<line x1="106.0" y1="464.0" x2="322.3" y2="464.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="479.0" font-size="11" fill="#2b2b2b">28 Sep</text>
+<text x="231.0" y="479.0" font-size="11" fill="#2b2b2b">$62,880</text>
+<line x1="106.0" y1="485.0" x2="322.3" y2="485.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="500.0" font-size="11" fill="#2b2b2b">27 Sep</text>
+<rect x="231.0" y="493.0" width="70.1" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<line x1="106.0" y1="506.0" x2="322.3" y2="506.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="521.0" font-size="11" fill="#2b2b2b">26 Sep</text>
+<rect x="231.0" y="514.0" width="70.1" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<line x1="106.0" y1="527.0" x2="322.3" y2="527.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="542.0" font-size="11" fill="#2b2b2b">25 Sep</text>
+<rect x="231.0" y="535.0" width="70.1" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<line x1="106.0" y1="548.0" x2="322.3" y2="548.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="112.0" y="563.0" font-size="11" fill="#2b2b2b">24 Sep</text>
+<rect x="231.0" y="556.0" width="70.1" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<text x="108.0" y="594.0" font-size="10.5" fill="#767676">Page 1 of 2   ‹  ›</text>
+<rect x="344.3" y="392.0" width="335.7" height="212.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="356.3" y="412.0" font-size="12" fill="#2b2b2b" font-weight="600">News</text>
+<rect x="354.3" y="422.0" width="315.7" height="24.0" rx="4" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<text x="364.3" y="438.0" font-size="11" fill="#767676">2 selected</text>
+<rect x="436.3" y="424.0" width="75.5" height="20.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="474.1" y="438.0" font-size="11" fill="#2b2b2b" text-anchor="middle">Mark read</text>
+<rect x="354.3" y="450.0" width="315.7" height="21.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<text x="385.6" y="465.0" font-size="11" fill="#767676" font-weight="600">Title</text>
+<text x="556.0" y="465.0" font-size="11" fill="#767676" font-weight="600">Source</text>
+<line x1="354.3" y1="471.0" x2="670.0" y2="471.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="360.3" y="486.0" font-size="11" fill="#2b2b2b">☑</text>
+<rect x="385.6" y="479.0" width="122.7" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="556.0" y="479.0" width="45.5" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="619.2" y="475.0" width="30.2" height="13.0" rx="6.5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="634.3" y="485.0" font-size="10" fill="#2b2b2b" text-anchor="middle">new</text>
+<line x1="354.3" y1="492.0" x2="670.0" y2="492.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="360.3" y="507.0" font-size="11" fill="#2b2b2b">☑</text>
+<rect x="385.6" y="500.0" width="122.7" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="556.0" y="500.0" width="45.5" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="619.2" y="496.0" width="30.2" height="13.0" rx="6.5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="634.3" y="506.0" font-size="10" fill="#2b2b2b" text-anchor="middle">new</text>
+<line x1="354.3" y1="513.0" x2="670.0" y2="513.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="360.3" y="528.0" font-size="11" fill="#2b2b2b">☐</text>
+<rect x="385.6" y="521.0" width="122.7" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="556.0" y="521.0" width="45.5" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="619.2" y="517.0" width="35.6" height="13.0" rx="6.5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="637.0" y="527.0" font-size="10" fill="#2b2b2b" text-anchor="middle">read</text>
+<line x1="354.3" y1="534.0" x2="670.0" y2="534.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="360.3" y="549.0" font-size="11" fill="#2b2b2b">☐</text>
+<rect x="385.6" y="542.0" width="122.7" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="556.0" y="542.0" width="45.5" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="619.2" y="538.0" width="35.6" height="13.0" rx="6.5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="637.0" y="548.0" font-size="10" fill="#2b2b2b" text-anchor="middle">read</text>
+<line x1="354.3" y1="555.0" x2="670.0" y2="555.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="360.3" y="570.0" font-size="11" fill="#2b2b2b">☐</text>
+<rect x="385.6" y="563.0" width="122.7" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="556.0" y="563.0" width="45.5" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="619.2" y="559.0" width="35.6" height="13.0" rx="6.5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="637.0" y="569.0" font-size="10" fill="#2b2b2b" text-anchor="middle">read</text>
+<rect x="96.0" y="616.0" width="584.0" height="180.0" rx="8" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="110.0" y="638.0" font-size="13" fill="#2b2b2b" font-weight="600">Keywords</text>
+<rect x="108.0" y="650.0" width="274.0" height="134.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="120.0" y="670.0" font-size="12" fill="#2b2b2b" font-weight="600">Watch keywords</text>
+<rect x="118.0" y="678.0" width="254.0" height="21.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<text x="124.0" y="693.0" font-size="11" fill="#767676" font-weight="600">Keyword</text>
+<line x1="118.0" y1="699.0" x2="372.0" y2="699.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="124.0" y="714.0" font-size="11" fill="#2b2b2b">bitcoin ETF</text>
+<text x="263.7" y="714.0" font-size="11" fill="#2b2b2b">Edit · Delete</text>
+<line x1="118.0" y1="720.0" x2="372.0" y2="720.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="124.0" y="735.0" font-size="11" fill="#2b2b2b">halving</text>
+<text x="263.7" y="735.0" font-size="11" fill="#2b2b2b">Edit · Delete</text>
+<line x1="118.0" y1="741.0" x2="372.0" y2="741.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="124.0" y="756.0" font-size="11" fill="#2b2b2b">SEC</text>
+<text x="263.7" y="756.0" font-size="11" fill="#2b2b2b">Edit · Delete</text>
+<rect x="394.0" y="650.0" width="274.0" height="134.0" rx="6" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="406.0" y="670.0" font-size="12" fill="#2b2b2b" font-weight="600">Add keyword</text>
+<text x="406.0" y="692.0" font-size="11" fill="#767676">Keyword</text>
+<rect x="406.0" y="700.0" width="250.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="414.0" y="717.3" font-size="12" fill="#767676">e.g. mining</text>
+<rect x="406.0" y="738.0" width="60.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="436.0" y="754.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Add</text>
+<rect x="700.0" y="88.0" width="360.0" height="772.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1"/>
+<line x1="700.0" y1="88.0" x2="700.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<text x="716.0" y="116.0" font-size="14" fill="#2b2b2b" font-weight="600">◆ Mother</text>
+<rect x="880.0" y="104.0" width="80.3" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="920.2" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Dock left</text>
+<rect x="968.0" y="104.0" width="47.9" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="992.0" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Hide</text>
+<line x1="700.0" y1="140.0" x2="1060.0" y2="140.0" stroke="#d9d9d9" stroke-width="1"/>
+<line x1="716.0" y1="164.0" x2="762.3" y2="164.0" stroke="#d9d9d9" stroke-width="1"/>
+<line x1="997.7" y1="164.0" x2="1044.0" y2="164.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="880.0" y="168.0" font-size="10.5" fill="#767676" text-anchor="middle">You opened Bitcoin · From = 2026-06-30</text>
+<rect x="804.2" y="184.0" width="239.8" height="31.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="817.2" y="205.0" font-size="12" fill="#2b2b2b">Why did the price drop on 12 Sep?</text>
+<text x="716.0" y="239.0" font-size="12.5" fill="#2b2b2b">Three news items that morning mention the SEC</text>
+<text x="716.0" y="257.0" font-size="12.5" fill="#2b2b2b">ruling on ETF options. The drop started the same</text>
+<text x="716.0" y="275.0" font-size="12.5" fill="#2b2b2b">hour.</text>
+<rect x="716.0" y="291.0" width="175.0" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="729.0" y="307.1" font-size="11.5" fill="#2b2b2b">✓  query · news · 3 rows</text>
+<text x="716.0" y="334.0" font-size="10.5" fill="#767676">Undo turn  ·  10:31</text>
+<rect x="716.0" y="772.0" width="328.0" height="80.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="730.0" y="796.0" font-size="12.5" fill="#767676">Ask about this page…</text>
+<text x="730.0" y="836.0" font-size="16" fill="#2b2b2b">+</text>
+<rect x="750.0" y="818.0" width="121.0" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="763.0" y="833.0" font-size="11" fill="#2b2b2b">Model: default ▾</text>
+<rect x="960.0" y="818.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="996.0" y="834.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Send ↑</text>
+<circle cx="48.0" cy="440.0" r="10" fill="#d9480f"/>
+<text x="48.0" y="444.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<circle cx="186.0" cy="114.0" r="10" fill="#d9480f"/>
+<text x="186.0" y="118.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<circle cx="570.0" cy="116.0" r="10" fill="#d9480f"/>
+<text x="570.0" y="120.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<circle cx="487.0" cy="190.0" r="10" fill="#d9480f"/>
+<text x="487.0" y="194.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<circle cx="668.0" cy="202.0" r="10" fill="#d9480f"/>
+<text x="668.0" y="206.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<circle cx="670.0" cy="434.0" r="10" fill="#d9480f"/>
+<text x="670.0" y="438.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<circle cx="668.0" cy="628.0" r="10" fill="#d9480f"/>
+<text x="668.0" y="632.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<circle cx="870.0" cy="116.0" r="10" fill="#d9480f"/>
+<text x="870.0" y="120.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<circle cx="740.0" cy="164.0" r="10" fill="#d9480f"/>
+<text x="740.0" y="168.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<circle cx="1050.0" cy="158.0" r="10" fill="#d9480f"/>
+<text x="1050.0" y="162.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<text x="1325.0" y="72.0" font-size="14" fill="#2b2b2b" font-weight="600">Notes</text>
+<circle cx="1335.0" cy="92.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="96.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<text x="1353.0" y="96.0" font-size="12" fill="#2b2b2b">While a page is open, the left sidebar</text>
+<text x="1353.0" y="112.0" font-size="12" fill="#2b2b2b">folds to icons; the user can unfold it</text>
+<text x="1353.0" y="128.0" font-size="12" fill="#2b2b2b">(SPEC 5.12).</text>
+<circle cx="1335.0" cy="147.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="151.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<text x="1353.0" y="151.0" font-size="12" fill="#2b2b2b">Page header: title, description, page</text>
+<text x="1353.0" y="167.0" font-size="12" fill="#2b2b2b">filters and buttons.</text>
+<circle cx="1335.0" cy="186.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="190.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<text x="1353.0" y="190.0" font-size="12" fill="#2b2b2b">Close page gives the chat its full width</text>
+<text x="1353.0" y="206.0" font-size="12" fill="#2b2b2b">back.</text>
+<circle cx="1335.0" cy="225.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="229.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<text x="1353.0" y="229.0" font-size="12" fill="#2b2b2b">Rows on a 12-column grid: here 8 + 4, 5 +</text>
+<text x="1353.0" y="245.0" font-size="12" fill="#2b2b2b">7, then a card.</text>
+<circle cx="1335.0" cy="264.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="268.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<text x="1353.0" y="268.0" font-size="12" fill="#2b2b2b">stat block: one number, a change and a</text>
+<text x="1353.0" y="284.0" font-size="12" fill="#2b2b2b">caption.</text>
+<circle cx="1335.0" cy="303.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="307.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<text x="1353.0" y="307.0" font-size="12" fill="#2b2b2b">Bulk row action: select rows, then Mark</text>
+<text x="1353.0" y="323.0" font-size="12" fill="#2b2b2b">read. It can be undone.</text>
+<circle cx="1335.0" cy="342.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="346.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="1353.0" y="346.0" font-size="12" fill="#2b2b2b">card: a titled frame with its own rows (a</text>
+<text x="1353.0" y="362.0" font-size="12" fill="#2b2b2b">list and a form).</text>
+<circle cx="1335.0" cy="381.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="385.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<text x="1353.0" y="385.0" font-size="12" fill="#2b2b2b">Dock controls: swap the side or hide.</text>
+<text x="1353.0" y="401.0" font-size="12" fill="#2b2b2b">Saved per chat.</text>
+<circle cx="1335.0" cy="420.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="424.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<text x="1353.0" y="424.0" font-size="12" fill="#2b2b2b">The chat shows the open-page notice that</text>
+<text x="1353.0" y="440.0" font-size="12" fill="#2b2b2b">the agent also gets.</text>
+<circle cx="1335.0" cy="459.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="463.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<text x="1353.0" y="463.0" font-size="12" fill="#2b2b2b">The open page is highlighted in the right</text>
+<text x="1353.0" y="479.0" font-size="12" fill="#2b2b2b">sidebar.</text>
+<text x="1325.0" y="512.0" font-size="14" fill="#2b2b2b" font-weight="600">Open questions</text>
+<circle cx="1335" cy="532" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="536.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="536.0" font-size="12" fill="#2b2b2b">Keep the right sidebar open next to a</text>
+<text x="1353.0" y="552.0" font-size="12" fill="#2b2b2b">page, or fold it too?</text>
+<circle cx="1335" cy="571" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="575.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="575.0" font-size="12" fill="#2b2b2b">Can the user resize the dock? What is its</text>
+<text x="1353.0" y="591.0" font-size="12" fill="#2b2b2b">minimum width?</text>
+<text x="1325.0" y="624.0" font-size="14" fill="#2b2b2b" font-weight="600">Requirements</text>
+<text x="1325.0" y="644.0" font-size="12" fill="#767676">R-45 to R-49, R-110 to R-114</text>
+<rect x="1325.0" y="663.0" width="30.0" height="16.0" rx="3" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="1365.0" y="675.0" font-size="11" fill="#767676">= proposed here, not in the SPEC yet</text>
+</svg>

@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://burrow.local/schema/pipeline.json",
+  "title": "Burrow pipeline (SPEC 6), SPIKE-021 draft",
+  "type": "object",
+  "required": ["version", "id", "trigger", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "description": { "type": "string", "maxLength": 2000 },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schedule": { "type": "string", "format": "cron" },
+        "timezone": { "type": "string", "format": "iana-tz" },
+        "catch_up": { "enum": ["once", "skip"] },
+        "manual": { "type": "boolean" }
+      },
+      "anyOf": [
+        { "required": ["schedule"] },
+        { "required": ["manual"], "properties": { "manual": { "const": true } } }
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type"],
+        "properties": {
+          "type": { "enum": ["string", "number", "boolean", "date"] },
+          "default": { "type": ["string", "number", "boolean", "null"] },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "steps": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/$defs/step" } },
+    "on_error": { "enum": ["stop", "continue"] },
+    "timeout": { "type": "string", "format": "go-duration" }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+    "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$", "maxLength": 64 },
+    "expr": { "type": "string", "pattern": "^\\s*\\$\\{\\{[\\s\\S]*\\}\\}\\s*$" },
+    "text": { "type": "string" },
+    "int_or_expr": { "anyOf": [ { "type": "integer", "minimum": 1 }, { "$ref": "#/$defs/expr" } ] },
+    "list_or_expr": { "anyOf": [ { "type": "array" }, { "$ref": "#/$defs/expr" } ] },
+    "object_or_expr": { "anyOf": [ { "type": "object" }, { "$ref": "#/$defs/expr" } ] },
+    "scalar_map": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean", "null"] } },
+    "conflict": { "enum": ["error", "ignore", "upsert"] },
+    "conflict_key": { "anyOf": [ { "$ref": "#/$defs/name" }, { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/name" } } ] },
+    "step": {
+      "type": "object",
+      "required": ["id", "use"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "use": {
+          "enum": ["http.get", "http.download", "web.search", "html.extract", "json.extract",
+                   "transform.map", "transform.filter", "db.query", "db.insert", "db.insert_many",
+                   "db.update", "llm.select", "llm.extract", "bucket.put", "bucket.list",
+                   "app.notify", "script.starlark"]
+        },
+        "with": { "type": "object" },
+        "if": { "$ref": "#/$defs/expr" },
+        "for_each": { "$ref": "#/$defs/expr" },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max": { "type": "integer", "minimum": 0, "maximum": 10 },
+            "backoff": { "type": "string", "format": "go-duration" }
+          }
+        },
+        "timeout": { "type": "string", "format": "go-duration" },
+        "continue_on_error": { "type": "boolean" }
+      },
+      "allOf": [
+        { "if": { "properties": { "use": { "const": "http.get" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_http_get" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "http.download" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_http_download" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "web.search" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_web_search" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "html.extract" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_html_extract" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "json.extract" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_json_extract" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "transform.map" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_transform_map" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "transform.filter" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_transform_filter" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "db.query" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_db_query" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "db.insert" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_db_insert" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "db.insert_many" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_db_insert_many" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "db.update" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_db_update" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "llm.select" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_llm_select" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "llm.extract" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_llm_extract" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "bucket.put" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_bucket_put" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "bucket.list" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_bucket_list" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "app.notify" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_app_notify" } }, "required": ["with"] } },
+        { "if": { "properties": { "use": { "const": "script.starlark" } }, "required": ["use"] },
+          "then": { "properties": { "with": { "$ref": "#/$defs/with_script_starlark" } }, "required": ["with"] } }
+      ]
+    },
+    "with_http_get": {
+      "type": "object",
+      "required": ["url"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "http-url" },
+        "query": { "$ref": "#/$defs/scalar_map" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "timeout": { "type": "string", "format": "go-duration" },
+        "fail_on_status": { "type": "boolean" }
+      }
+    },
+    "with_http_download": {
+      "type": "object",
+      "required": ["url", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "http-url" },
+        "key": { "type": "string", "minLength": 1 },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "max_size": { "type": "string", "pattern": "^[0-9]+(KB|MB)$" }
+      }
+    },
+    "with_web_search": {
+      "type": "object",
+      "required": ["query"],
+      "additionalProperties": false,
+      "properties": {
+        "query": { "type": "string", "minLength": 1 },
+        "limit": { "$ref": "#/$defs/int_or_expr" },
+        "freshness": { "enum": ["day", "week", "month", "any"] }
+      }
+    },
+    "with_html_extract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "http-url" },
+        "html": { "type": "string" },
+        "mode": { "enum": ["readable", "selector"] },
+        "selector": { "type": "string" }
+      },
+      "oneOf": [ { "required": ["url"] }, { "required": ["html"] } ]
+    },
+    "with_json_extract": {
+      "type": "object",
+      "required": ["input", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "input": {},
+        "path": { "type": "string", "pattern": "^\\$" }
+      }
+    },
+    "with_transform_map": {
+      "type": "object",
+      "required": ["items", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "$ref": "#/$defs/list_or_expr" },
+        "fields": { "type": "object", "minProperties": 1, "additionalProperties": { "type": ["string", "number", "boolean", "null"] } }
+      }
+    },
+    "with_transform_filter": {
+      "type": "object",
+      "required": ["items", "condition"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "$ref": "#/$defs/list_or_expr" },
+        "condition": { "$ref": "#/$defs/expr" }
+      }
+    },
+    "with_db_query": {
+      "type": "object",
+      "required": ["sql"],
+      "additionalProperties": false,
+      "properties": {
+        "sql": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/scalar_map" }
+      }
+    },
+    "with_db_insert": {
+      "type": "object",
+      "required": ["table", "row"],
+      "additionalProperties": false,
+      "properties": {
+        "table": { "$ref": "#/$defs/id" },
+        "row": { "$ref": "#/$defs/object_or_expr" },
+        "on_conflict": { "$ref": "#/$defs/conflict" },
+        "conflict_key": { "$ref": "#/$defs/conflict_key" }
+      }
+    },
+    "with_db_insert_many": {
+      "type": "object",
+      "required": ["table", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "table": { "$ref": "#/$defs/id" },
+        "rows": { "$ref": "#/$defs/list_or_expr" },
+        "on_conflict": { "$ref": "#/$defs/conflict" },
+        "conflict_key": { "$ref": "#/$defs/conflict_key" }
+      }
+    },
+    "with_db_update": {
+      "type": "object",
+      "required": ["table", "set", "where"],
+      "additionalProperties": false,
+      "properties": {
+        "table": { "$ref": "#/$defs/id" },
+        "set": { "type": "object", "minProperties": 1 },
+        "where": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/scalar_map" }
+      }
+    },
+    "with_llm_select": {
+      "type": "object",
+      "required": ["items", "instruction", "count"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "$ref": "#/$defs/list_or_expr" },
+        "instruction": { "type": "string", "minLength": 1 },
+        "count": { "$ref": "#/$defs/int_or_expr" },
+        "add": { "type": "object", "additionalProperties": { "enum": ["string", "number", "boolean"] } },
+        "model": { "type": "string" },
+        "max_input_tokens": { "type": "integer", "minimum": 100 }
+      }
+    },
+    "with_llm_extract": {
+      "type": "object",
+      "required": ["input", "instruction", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "input": {},
+        "instruction": { "type": "string", "minLength": 1 },
+        "output": { "type": "object", "minProperties": 1, "additionalProperties": { "enum": ["string", "number", "boolean", "date", "list"] } },
+        "model": { "type": "string" }
+      }
+    },
+    "with_bucket_put": {
+      "type": "object",
+      "required": ["key", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "content": {},
+        "mime": { "type": "string" }
+      }
+    },
+    "with_bucket_list": {
+      "type": "object",
+      "required": ["prefix"],
+      "additionalProperties": false,
+      "properties": { "prefix": { "type": "string" } }
+    },
+    "with_app_notify": {
+      "type": "object",
+      "required": ["title", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "level": { "enum": ["info", "warning"] }
+      }
+    },
+    "with_script_starlark": {
+      "type": "object",
+      "required": ["code"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "inputs": { "type": "object" }
+      }
+    }
+  }
+}

@@ -1,0 +1,122 @@
+[
+ {
+  "source": "marginalia",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:29:10.3359686Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 138,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:29:26.7648333Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 311,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:29:43.0035213Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 138,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:29:59.2587935Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 147,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:30:15.4905783Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 138,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:30:31.7278785Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 139,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:30:47.9680051Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: QPM Limit Exceeded",
+  "latency_ms": 144,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:31:04.2029949Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 143,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:31:20.4378232Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 140,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "marginalia",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:31:36.9967346Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Daily Limit Exceeded",
+  "latency_ms": 149,
+  "retries": 1,
+  "results": null
+ }
+]

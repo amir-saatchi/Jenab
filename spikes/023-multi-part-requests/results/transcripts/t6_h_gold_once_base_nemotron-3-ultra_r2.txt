@@ -1,0 +1,20 @@
+===== nemotron-3-ultra | t6_h_gold_once | cond base | rep 2 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:14, stop done
+[12:00:00 user] Check once whether gold is above 2,600 USD today.
+  (request: prompt 2304, output 92, 2.8s, finish tool_calls, reasoning 151 chars)
+[12:00:04 call] web_search {"query":"gold price today USD 2026","source":"news","limit":5}
+[12:00:10 result web_search] 1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today. 2. "Central banks keep buying gold" - reuters.example, 2026-09-28. 3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+  (request: prompt 2484, output 136, 4.2s, finish stop, reasoning 232 chars)
+[12:00:14 assistant] Yes, gold is above 2,600 USD today. The latest price is **2,641 USD/oz** (as of 2026-09-29), up about 0.6% on the day.
+
+----- background tasks
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    tool_not_called                    
+pass  test 6    answer_contains                    Yes, gold is above 2,600 USD today. The latest price is **2,641 USD/oz** (as of 2026-09-29), up about 0.6% on the day.
+skip  test 6    no_resend_after_notice             no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2484
+tests: map[5:pass 6:pass] | prompt 4788 output 228 requests 2 peak 2484 polls 0 | 7s real, 14s virtual

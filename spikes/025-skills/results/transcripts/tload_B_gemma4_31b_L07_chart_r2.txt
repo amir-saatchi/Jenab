@@ -1,0 +1,55 @@
+===== gemma4:31b L07_chart guide v2 run 2 chained false
+----- user
+Build a bar chart of the number of saved news items per day.
+----- assistant (finish tool_calls, prompt 1700, output 17, 1.0s)
+> load_skill {"name":"config-guide"}
+< load_skill
+Skill loaded: config-guide
+
+## 4. Views: save_view (table, chart) and save_form (form)
+
+Common: `version: 1`, `id`, `title`, `type` (table/chart/form), `description`, `query` (table/chart: one read-only SELECT, plain SQL, no `${{ }}`), `params` (fixed parameter values), `filters`, `actions` [{label, run_pipeline: <pipeline id>}].
+Filters bind named query parameters: `{ param, control: text|number|date|select|checkbox, label, default, required, options }`. Every `:name` in the query must be bound by a filter or `params` (not both). Date defaults: ISO date, `today`, `today-7d`, `today-3m`, `today-1y`, `start_of_month`, `start_of_year`. A cleared optional filter binds NULL: write `(:coin IS NULL OR coin = :coin)`. `select` needs `options`: a list `[A, B]` or `{ query: "SELECT ..." }`.
+
+Table: `columns` [{field, label, format, format_options {currency: USD, decimals}, align}], `default_sort` {field, direction: asc|desc} (always required, also for small tables), `page_size`, `rows_from` {table, key} (needed for row_actions; the query must select the key), `row_actions` [{label, open_form: <form id>} or {label, delete: true, confirm: true}]. No ORDER BY/LIMIT in a table query; the runtime sorts and pages.
+Formats: text, number, currency, percent, date, datetime, url, boolean, image, file.
+Chart: `chart_type` line|bar|scatter, `x` {field, label, format}, `y` [{field, label}], `series_by` (a field that splits rows into series; then y has exactly one entry).
+Fields in columns, default_sort, x, y, series_by must be columns of the query result (aliases count).
+
+```yaml
+version: 1
+id: weather_chart
+title: Temperature
+type: chart
+chart_type: line
+query: |
+  SELECT date, city, temp FROM weather
+  WHERE date >= :from AND (:city IS NULL OR city = :city)
+filters:
+  - { param: from, control: date, label: "From", default: "today-30d", required: true }
+  - { param: city, control: select, label: "City", options: { query: "SELECT name FROM cities" } }
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: temp, label: "°C" }
+series_by: city
+```
+
+Form: `fields` [{field, label, control: text|textarea|number|date|select|checkbox|file, required, default, options}], `submit` {action: insert|update|run_pipeline, table (insert/update), key (update), pipeline (run_pipeline)}, `load` (update only: `SELECT ... WHERE id = :key`). Insert forms: field names are table columns; every NOT NULL column without a default needs a field with `required: true`. run_pipeline forms: field names are the pipeline's inputs.
+
+```yaml
+version: 1
+id: add_city
+title: Add city
+type: form
+fields:
+  - { field: name, label: "City", control: text, required: true }
+  - { field: country, label: "Country", control: text, required: true }
+submit: { action: insert, table: cities }
+```
+
+----- assistant (finish tool_calls, prompt 2559, output 110, 1.2s)
+> save_view {"yaml":"version: 1\nid: btc_news_count_chart\ntitle: News items per day\ntype: chart\nchart_type: bar\nquery: |\n  SELECT date, COUNT(*) as count\n  FROM btc_news\n  GROUP BY date\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: count, label: \"Items\" }\n"}
+< save_view
+saved chart view btc_news_count_chart (revision 1).
+
+----- result: stop write, loaded [config-guide:load_skill], events 2

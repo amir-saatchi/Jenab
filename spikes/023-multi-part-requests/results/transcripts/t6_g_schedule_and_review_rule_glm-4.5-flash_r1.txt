@@ -1,0 +1,44 @@
+===== glm-4.5-flash | t6_g_schedule_and_review | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:13, stop done
+[12:00:00 user] When does the new fear_greed pipeline run? And have the Reviewer check it for cost.
+  (request: prompt 2132, output 156, 5.0s, finish tool_calls, reasoning 500 chars)
+[12:00:04 assistant] 
+I'll check the fear_greed pipeline schedule and have the Reviewer check it for cost.
+
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2332, output 173, 5.5s, finish tool_calls, reasoning 254 chars)
+[12:00:09 call] send_to_chat {"chat_id":"c_reviewer","message":"Please review the fear_greed pipeline for cost and error handling. It's a new pipeline that fetches the crypto fear and greed index and writes a summary to the news table. The config shows it uses an HTTP GET request to alternative.example, an LLM summarization step, and a database insert. Check if there are any cost concerns or missing error handling."}
+[12:00:09 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2451, output 58, 2.1s, finish stop, reasoning 1 chars)
+[12:00:13 assistant] 
+The fear_greed pipeline runs daily at 09:00 (9 AM) in Europe/Berlin timezone.
+
+I've asked the Reviewer to check it for cost and error handling. The Reviewer is now reviewing the pipeline and will provide feedback when complete.
+
+----- turn 2 (system) 12:00:54-12:00:58, stop done
+[12:00:54 notice] [task t_1 finished 12:00:54: reply from Reviewer (c_reviewer): fear_greed has 2 problems. 1) The http.get step has no on_error, so one failed fetch fails the whole run; add on_error with retry 3, then skip. 2) llm.summarize runs on every run although the index is a single number; drop it and write the number, which saves about 1,200 tokens a day. Otherwise it is fine.
+]
+  (request: prompt 2617, output 248, 8.4s, finish stop, reasoning 522 chars)
+[12:00:58 assistant] 
+The Reviewer has completed their analysis of the fear_greed pipeline and found two issues:
+
+1. **Error handling**: The http.get step has no on_error configuration. It should be updated with `on_error: { retry: 3, then: skip }` so that a failed fetch doesn't fail the entire pipeline.
+
+2. **Cost optimization**: The llm.summarize step is unnecessary since the fear and greed index is just a single number. Dropping this step and writing the number directly would save about 1,200 tokens per day.
+
+The pipeline is otherwise fine structurally. These changes would make it more robust and cost-effective.
+
+----- background tasks
+t_1 send_to_chat c_reviewer start 12:00:09 finish 12:00:54 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    quick_before_finish                quick part at 14 s, slow work (send_to_chat t_1 (background)) done at 54 s
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Reviewer has completed their analysis of the fear_greed pipeline and found two issues: 1. **Error handling**: The http.get step has no on_error configuratio...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 2617
+tests: map[5:pass 6:pass] | prompt 9532 output 635 requests 4 peak 2617 polls 0 | 21s real, 58s virtual

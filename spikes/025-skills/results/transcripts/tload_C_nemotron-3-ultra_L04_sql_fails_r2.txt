@@ -1,0 +1,20 @@
+===== nemotron-3-ultra L04_sql_fails guide v2 run 2 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 2134, output 190, 20.8s)
+[reasoning 690 chars]
+
+
+> load_skill {"name":"sql-queries"}
+< load_skill
+Skill loaded: sql-queries
+
+## 5. SQL rules
+
+SQLite dialect. Only a single SELECT (or WITH ... SELECT); no writes, no PRAGMA, no ATTACH, no `_burrow_*` or `sqlite_*` tables. Named parameters only (`:name`), never string building. Use `describe_table` or `query` when unsure about columns or data.
+
+----- assistant (finish stop, prompt 2259, output 238, 18.8s)
+[reasoning 617 chars]
+The query fails because `_burrow_runs` is an **internal Burrow table** (prefixed with `_burrow_*`). The read-only SQL guard explicitly rejects any query that references `_burrow_*` or `sqlite_*` tables. Only your project tables (like `btc_news`, `btc_prices`, `watch_keywords`) can be queried.
+----- result: stop answer, loaded [sql-queries:load_skill], events 2

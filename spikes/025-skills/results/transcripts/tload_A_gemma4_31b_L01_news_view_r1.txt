@@ -1,0 +1,9 @@
+===== gemma4:31b L01_news_view guide v2 run 1 chained false
+----- user
+Add a table view news_last_week that shows the saved news of the last 7 days (date, title, link), newest first.
+----- assistant (finish tool_calls, prompt 4435, output 181, 2.0s)
+> save_view {"yaml":"version: 1\nid: news_last_week\ntitle: News Last Week\ntype: table\ndescription: Saved news from the last 7 days\nquery: |\n  SELECT date, title, url as link FROM btc_news\n  WHERE date \u003e= :from\nfilters:\n  - { param: from, control: date, label: \"From\", default: \"today-7d\", required: true }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: title, label: \"Title\", format: text }\n  - { field: link, label: \"Link\", format: url }\ndefault_sort: { field: date, direction: desc }\npage_size: 20"}
+< save_view
+saved table view news_last_week (revision 1).
+
+----- result: stop write, loaded [], events 1

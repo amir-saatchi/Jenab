@@ -1,0 +1,26 @@
+===== glm-4.5-flash L04_sql_fails guide v2 run 2 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 1761, output 212, 6.8s)
+[reasoning 690 chars]
+
+I'll help you debug this query. Let me first check if the `_burrow_runs` table exists and what its structure is.
+
+> describe_table {"name":"_burrow_runs"}
+< describe_table
+error: table "_burrow_runs" not found
+----- assistant (finish stop, prompt 1825, output 271, 13.9s)
+[reasoning 625 chars]
+
+The query fails because the table `_burrow_runs` doesn't exist in your Burrow project. 
+
+Based on your project card, the available tables are:
+- `btc_news`
+- `btc_prices` 
+- `watch_keywords`
+
+The `_burrow_runs` table appears to be a system table that isn't present in this project. If you need to track pipeline runs, you might need to create a table for that purpose, or check if there's a different table name used for run tracking in your project.
+
+Would you like me to help you create a table to track pipeline runs, or were you looking for information about a different table?
+----- result: stop answer, loaded [], events 2

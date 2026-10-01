@@ -1,0 +1,118 @@
+[
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:53:59.8742874Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11355,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:54:32.2797411Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 13760,
+  "results": [
+   {
+    "title": "What the cryptographic world computer means for Ethereum",
+    "url": "https://insidebitcoins.com/news/cryptographic-world-computer-ethereum",
+    "date": "2026-09-28T15:00:00Z",
+    "lang": "English"
+   }
+  ]
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:55:00.069593Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11548,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:55:30.4708241Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11940,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:56:09.0721729Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 20540,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:56:32.7774627Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 14245,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:56:59.0933554Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 10561,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:57:30.1548539Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11622,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:57:58.9696691Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 10437,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d-slow",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:58:28.5256709Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 9992,
+  "results": null
+ }
+]

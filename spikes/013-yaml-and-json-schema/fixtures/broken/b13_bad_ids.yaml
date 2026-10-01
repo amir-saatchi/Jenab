@@ -1,0 +1,11 @@
+version: 1
+id: Daily-BTC
+trigger:
+  manual: true
+steps:
+  - id: 1price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+# expect: 2 /id pattern
+# expect: 6 /steps/0/id pattern

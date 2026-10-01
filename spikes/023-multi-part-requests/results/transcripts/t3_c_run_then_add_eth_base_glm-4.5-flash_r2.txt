@@ -1,0 +1,63 @@
+===== glm-4.5-flash | t3_c_run_then_add_eth | cond base | rep 2 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Run the daily prices pipeline now.
+  (request: prompt 1409, output 150, 4.6s, finish tool_calls, reasoning 513 chars)
+[12:00:04 assistant] 
+I'll run the daily prices pipeline for BTC in USD using the default settings.
+
+[12:00:04 call] run_pipeline {"id":"daily_prices"}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1461, output 86, 2.8s, finish stop, reasoning 180 chars)
+[12:00:08 assistant] 
+The daily prices pipeline has started with run ID r_1. It will fetch today's price and latest news for BTC (default) in USD (default) and should take about 30 seconds to complete.
+
+----- turn 2 (user) 12:00:12-12:00:20, stop done
+[12:00:12 user] also run it for ETH
+  (request: prompt 1515, output 100, 3.3s, finish tool_calls, reasoning 315 chars)
+[12:00:16 call] run_pipeline {"id":"daily_prices","inputs":{"coin": "ETH"}}
+[12:00:16 result run_pipeline] {"run_id":"r_2","status":"started"}
+  (request: prompt 1564, output 65, 2.3s, finish stop, reasoning 1 chars)
+[12:00:20 assistant] 
+I've started the daily prices pipeline for ETH with run ID r_2. Both BTC and ETH price updates are now running in the background.</think>
+I've started the daily prices pipeline for ETH with run ID r_2. Both BTC and ETH price updates are now running in the background.
+
+----- turn 3 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 1685, output 200, 6.6s, finish stop, reasoning 467 chars)
+[12:00:38 assistant] 
+The BTC daily prices pipeline has completed successfully! It added:
+- 1 price row for BTC on 2026-09-29 with a close price of $64,210.50 USD (+1.8% vs yesterday)
+- 3 news rows about BTC including ETF flows, SEC decisions, and miner reserves
+
+The ETH pipeline (r_2) is still running in the background.
+
+----- turn 4 (system) 12:00:46-12:00:50, stop done
+[12:00:46 notice] [run r_2 finished 12:00:46: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 1853, output 266, 7.4s, finish stop, reasoning 503 chars)
+[12:00:50 assistant] 
+Both daily prices pipelines have completed successfully:
+
+**BTC (r_1):**
+- Price: $64,210.50 USD (+1.8% vs yesterday)
+- Added 3 news items about ETF flows, SEC decisions, and miner reserves
+
+**ETH (r_2):**
+- Price: $2,587.40 USD (+2.3% vs yesterday) 
+- Added 3 news items about gas fees, staking, and ETF inflows
+
+Both cryptocurrencies showed positive price movements today, with ETH performing slightly better.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+r_2 run_pipeline daily_prices start 12:00:16 finish 12:00:46 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered new_turn
+pass  test 3    max_calls                          1 calls
+pass  test 3    answer_contains                    The BTC daily prices pipeline has completed successfully! It added: - 1 price row for BTC on 2026-09-29 with a close price of $64,210.50 USD (+1.8% vs yesterday...
+pass  test 3    answer_contains                    The BTC daily prices pipeline has completed successfully! It added: - 1 price row for BTC on 2026-09-29 with a close price of $64,210.50 USD (+1.8% vs yesterday...
+pass  test info no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1853
+tests: map[3:pass 5:pass] | prompt 9487 output 867 requests 6 peak 1853 polls 0 | 27s real, 50s virtual

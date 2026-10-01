@@ -1,0 +1,22 @@
+===== gemma4:31b | t3_b_price_use_eur | cond rule | rep 2 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:28, stop done
+[12:00:00 user] What's the current BTC price in USD? Use the coingecko connection.
+  (request: prompt 1379, output 36, 1.8s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] call_api {"connection":"coingecko","path":"/simple/price?ids=bitcoin\u0026vs_currencies=usd"}
+[12:00:12 result call_api] 200 OK {"bitcoin":{"usd":64210.5,"usd_24h_change":1.8}}
+[12:00:12 mid_user] stop, use EUR
+  (request: prompt 1470, output 36, 1.3s, finish tool_calls, reasoning 0 chars)
+[12:00:16 call] call_api {"connection":"coingecko","path":"/simple/price?ids=bitcoin\u0026vs_currencies=eur"}
+[12:00:24 result call_api] 200 OK {"bitcoin":{"eur":55190.2,"eur_24h_change":1.8}}
+  (request: prompt 1543, output 21, 1.0s, finish stop, reasoning 0 chars)
+[12:00:28 assistant] The current BTC price is 55,190.2 EUR.
+
+----- background tasks
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 1543
+tests: map[3:pass 5:pass] | prompt 4392 output 93 requests 3 peak 1543 polls 0 | 4s real, 28s virtual

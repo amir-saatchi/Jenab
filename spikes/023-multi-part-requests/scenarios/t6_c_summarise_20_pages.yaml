@@ -1,0 +1,35 @@
+id: t6_c_summarise_20_pages
+title: '"Summarise these 20 pages" -> one-off subagent'
+tests: ["6"]
+context: mother
+why: 'subagent (ideally background) for the 20 pages; no new chat, no send to an existing chat; pass on the summary.'
+messages:
+  - text: |
+      Summarise these 20 pages about the new EU crypto rules for me:
+      1. https://rules.example.eu/page-01
+      2. https://rules.example.eu/page-02
+      3. https://rules.example.eu/page-03
+      4. https://rules.example.eu/page-04
+      5. https://rules.example.eu/page-05
+      6. https://rules.example.eu/page-06
+      7. https://rules.example.eu/page-07
+      8. https://rules.example.eu/page-08
+      9. https://rules.example.eu/page-09
+      10. https://rules.example.eu/page-10
+      11. https://rules.example.eu/page-11
+      12. https://rules.example.eu/page-12
+      13. https://rules.example.eu/page-13
+      14. https://rules.example.eu/page-14
+      15. https://rules.example.eu/page-15
+      16. https://rules.example.eu/page-16
+      17. https://rules.example.eu/page-17
+      18. https://rules.example.eu/page-18
+      19. https://rules.example.eu/page-19
+      20. https://rules.example.eu/page-20
+asserts:
+  - {type: used_subagent_for_one_off, test: "6"}
+  - {type: created_chat_only_for_lasting_job, test: "6", expect: false}
+  - {type: no_resend_after_notice, test: "6"}
+  - {type: answer_contains, test: "6", turn: any, match: '(?i)mica|travel rule|stablecoin'}
+  - {type: no_repeat, test: "6", max_overlap: 0.3}
+  - {type: background_started, test: info, tools: [subagent]}

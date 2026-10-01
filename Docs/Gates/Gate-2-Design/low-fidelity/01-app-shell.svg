@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 900" width="1640" height="900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker></defs>
+<rect width="1640" height="900" fill="#ffffff"/>
+<text x="20.0" y="30.0" font-size="20" fill="#2b2b2b" font-weight="600">01 · App shell, full chat</text>
+<text x="20.0" y="49.0" font-size="12" fill="#767676">The Mother chat of the Bitcoin project, with no page open.</text>
+<rect x="20.0" y="60.0" width="1280.0" height="800.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="20.8" y="60.8" width="1278.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="20.0" y1="88.0" x2="1300.0" y2="88.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="32.0" y="78.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1286.0" y="78.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<rect x="20.0" y="88.0" width="240.0" height="772.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="260.0" y1="88.0" x2="260.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<rect x="32.0" y="100.0" width="216.0" height="32.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<rect x="40.0" y="107.0" width="18.0" height="18.0" rx="3" fill="#2b2b2b" stroke="none" stroke-width="1"/>
+<text x="49.0" y="120.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">B</text>
+<text x="66.0" y="121.0" font-size="13" fill="#2b2b2b" font-weight="600">Bitcoin</text>
+<text x="236.0" y="121.0" font-size="12" fill="#2b2b2b" text-anchor="end">▾</text>
+<rect x="32.0" y="142.0" width="150.0" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="107.0" y="158.3" font-size="12" fill="#2b2b2b" text-anchor="middle">+ New chat</text>
+<rect x="190.0" y="142.0" width="58.0" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="219.0" y="158.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Search</text>
+<text x="34.0" y="192.0" font-size="10" fill="#767676" font-weight="600">CHATS</text>
+<rect x="28.0" y="200.0" width="224.0" height="42.0" rx="5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="38.0" y="218.0" font-size="12" fill="#2b2b2b">◆</text>
+<text x="242.0" y="218.0" font-size="9.5" fill="#767676" text-anchor="end">pinned</text>
+<text x="54.0" y="218.0" font-size="12.5" fill="#2b2b2b" font-weight="600">Mother</text>
+<text x="54.0" y="233.0" font-size="10.5" fill="#767676">Project home</text>
+<text x="38.0" y="264.0" font-size="12.5" fill="#2b2b2b">Reviewer</text>
+<text x="38.0" y="279.0" font-size="10.5" fill="#767676">Role: reviews new pipelines</text>
+<text x="38.0" y="310.0" font-size="12.5" fill="#2b2b2b">ETH tracker</text>
+<text x="38.0" y="325.0" font-size="10.5" fill="#767676">Role: tracks ETH daily</text>
+<circle cx="238" cy="313" r="4" fill="#2b2b2b"/>
+<text x="228.0" y="317.0" font-size="9.5" fill="#767676" text-anchor="end">working</text>
+<text x="38.0" y="356.0" font-size="12.5" fill="#2b2b2b">Fees question</text>
+<text x="38.0" y="371.0" font-size="10.5" fill="#767676">Waiting for you</text>
+<circle cx="238" cy="359" r="8" fill="#2b2b2b"/>
+<text x="238.0" y="363.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">!</text>
+<text x="38.0" y="402.0" font-size="12.5" fill="#2b2b2b">Import old prices</text>
+<text x="38.0" y="417.0" font-size="10.5" fill="#767676">Yesterday</text>
+<line x1="32.0" y1="790.0" x2="248.0" y2="790.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="36.0" y="816.0" font-size="12.5" fill="#2b2b2b">⚙  Settings</text>
+<text x="36.0" y="840.0" font-size="10.5" fill="#767676">Tray: 2 schedules on · next 08:00</text>
+<rect x="1060.0" y="88.0" width="240.0" height="772.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="1060.0" y1="88.0" x2="1060.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1072.0" y="116.0" font-size="12" fill="#2b2b2b" font-weight="600">Pages</text>
+<line x1="1072.0" y1="126.0" x2="1104.4" y2="126.0" stroke="#2b2b2b" stroke-width="2"/>
+<text x="1120.4" y="116.0" font-size="12" fill="#767676">Pipelines</text>
+<text x="1194.7" y="116.0" font-size="12" fill="#767676">Files</text>
+<text x="1243.1" y="116.0" font-size="12" fill="#767676">Links</text>
+<line x1="1060.0" y1="128.0" x2="1300.0" y2="128.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="1078.0" y="159.0" font-size="12.5" fill="#2b2b2b">▤  Bitcoin</text>
+<text x="1282.0" y="159.0" font-size="10.5" fill="#767676" text-anchor="end">6 blocks</text>
+<text x="1078.0" y="195.0" font-size="12.5" fill="#2b2b2b">▤  ETH</text>
+<text x="1282.0" y="195.0" font-size="10.5" fill="#767676" text-anchor="end">4 blocks</text>
+<text x="1078.0" y="231.0" font-size="12.5" fill="#2b2b2b">▤  Gold</text>
+<text x="1282.0" y="231.0" font-size="10.5" fill="#767676" text-anchor="end">3 blocks</text>
+<text x="1074.0" y="264.0" font-size="11" fill="#767676">Pages are built by the agent. Ask</text>
+<text x="1074.0" y="279.0" font-size="11" fill="#767676">in the chat to add or change one.</text>
+<text x="284.0" y="116.0" font-size="15" fill="#2b2b2b" font-weight="600">◆ Mother</text>
+<text x="284.0" y="134.0" font-size="11" fill="#767676">Project home · directs the other chats</text>
+<rect x="1015.5" y="104.0" width="28.5" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1029.8" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">⋯</text>
+<rect x="901.3" y="104.0" width="106.2" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="954.4" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Session notes</text>
+<rect x="780.6" y="104.0" width="112.7" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="836.9" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Refresh memory</text>
+<line x1="260.0" y1="146.0" x2="1060.0" y2="146.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="562.2" y="166.0" width="427.8" height="48.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="575.2" y="187.0" font-size="12" fill="#2b2b2b">Track Bitcoin every day: the price and the news that moves it.</text>
+<text x="575.2" y="204.0" font-size="12" fill="#2b2b2b">And what was the price a year ago?</text>
+<text x="330.0" y="240.0" font-size="12.5" fill="#2b2b2b">A year ago Bitcoin was about $58,900 (29 Sep 2025). I'll set up the daily tracking now.</text>
+<rect x="330.0" y="254.0" width="175.0" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="270.1" font-size="11.5" fill="#2b2b2b">✓  query · 1 row · 40 ms</text>
+<rect x="330.0" y="284.0" width="386.2" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="300.1" font-size="11.5" fill="#2b2b2b">✓  Schema agent · created btc_prices, news, watch_keywords</text>
+<rect x="330.0" y="314.0" width="317.9" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="330.1" font-size="11.5" fill="#2b2b2b">✓  save_pipeline daily_btc · every day at 08:00</text>
+<rect x="330.0" y="344.0" width="218.5" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="360.1" font-size="11.5" fill="#2b2b2b">✓  save_page bitcoin · 6 blocks</text>
+<text x="330.0" y="386.0" font-size="12.5" fill="#2b2b2b">Done. The pipeline runs every day at 08:00 and fills the Bitcoin page.</text>
+<rect x="330.0" y="402.0" width="93.3" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="376.6" y="418.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Open page ▸</text>
+<rect x="330.0" y="434.0" width="324.1" height="24.0" rx="12.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="450.1" font-size="11.5" fill="#2b2b2b">Memory updated: project goals      undo  ·  edit</text>
+<text x="330.0" y="479.0" font-size="10.5" fill="#767676">Undo turn  ·  Copy  ·  10:14</text>
+<rect x="879.8" y="504.0" width="110.2" height="31.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="892.8" y="525.0" font-size="12" fill="#2b2b2b">Also add ETH.</text>
+<rect x="330.0" y="549.0" width="355.1" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="565.1" font-size="11.5" fill="#2b2b2b">●  Schema agent · designing prices(coin, …) · running</text>
+<rect x="330.0" y="587.0" width="500.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="330.0" y="600.0" width="275.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="610.0" y="598.0" width="2.0" height="12.0" rx="0" fill="#2b2b2b" stroke="none" stroke-width="1"/>
+<rect x="300.0" y="764.0" width="720.0" height="80.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="314.0" y="788.0" font-size="12.5" fill="#767676">Write anytime. Your message joins the running turn.</text>
+<text x="314.0" y="828.0" font-size="16" fill="#2b2b2b">+</text>
+<rect x="334.0" y="810.0" width="121.0" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="347.0" y="825.0" font-size="11" fill="#2b2b2b">Model: default ▾</text>
+<rect x="463.0" y="810.0" width="150.7" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="476.0" y="825.0" font-size="11" fill="#2b2b2b">Approvals: Standard ▾</text>
+<rect x="936.0" y="810.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="972.0" y="826.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">■ Stop</text>
+<circle cx="252.0" cy="116.0" r="10" fill="#d9480f"/>
+<text x="252.0" y="120.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<circle cx="252.0" cy="222.0" r="10" fill="#d9480f"/>
+<text x="252.0" y="226.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<circle cx="252.0" cy="312.0" r="10" fill="#d9480f"/>
+<text x="252.0" y="316.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<circle cx="318.0" cy="268.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="272.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<circle cx="318.0" cy="452.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="456.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<circle cx="318.0" cy="477.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="481.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<circle cx="1050.0" cy="160.0" r="10" fill="#d9480f"/>
+<text x="1050.0" y="164.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<circle cx="290.0" cy="834.0" r="10" fill="#d9480f"/>
+<text x="290.0" y="838.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<circle cx="252.0" cy="822.0" r="10" fill="#d9480f"/>
+<text x="252.0" y="826.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<circle cx="318.0" cy="561.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="565.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<text x="1325.0" y="72.0" font-size="14" fill="#2b2b2b" font-weight="600">Notes</text>
+<circle cx="1335.0" cy="92.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="96.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<text x="1353.0" y="96.0" font-size="12" fill="#2b2b2b">Project switcher. Each project is one</text>
+<text x="1353.0" y="112.0" font-size="12" fill="#2b2b2b">folder.</text>
+<circle cx="1335.0" cy="131.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="135.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<text x="1353.0" y="135.0" font-size="12" fill="#2b2b2b">Mother is pinned at the top. It can't be</text>
+<text x="1353.0" y="151.0" font-size="12" fill="#2b2b2b">archived, only cleared.</text>
+<circle cx="1335.0" cy="170.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="174.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<text x="1353.0" y="174.0" font-size="12" fill="#2b2b2b">Each chat shows its role or last</text>
+<text x="1353.0" y="190.0" font-size="12" fill="#2b2b2b">activity, and a status: working (●) or</text>
+<text x="1353.0" y="206.0" font-size="12" fill="#2b2b2b">waiting for you (!).</text>
+<circle cx="1335.0" cy="225.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="229.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<text x="1353.0" y="229.0" font-size="12" fill="#2b2b2b">Tool calls are one-line chips. Click one</text>
+<text x="1353.0" y="245.0" font-size="12" fill="#2b2b2b">to see its arguments, a result preview</text>
+<text x="1353.0" y="261.0" font-size="12" fill="#2b2b2b">and the time.</text>
+<circle cx="1335.0" cy="280.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="284.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<text x="1353.0" y="284.0" font-size="12" fill="#2b2b2b">Memory edits show a chip with undo and</text>
+<text x="1353.0" y="300.0" font-size="12" fill="#2b2b2b">edit (SPEC 3.3). Refresh memory in the</text>
+<text x="1353.0" y="316.0" font-size="12" fill="#2b2b2b">header updates memory and a summary in</text>
+<text x="1353.0" y="332.0" font-size="12" fill="#2b2b2b">the session notes, then shortens the</text>
+<text x="1353.0" y="348.0" font-size="12" fill="#2b2b2b">history (SPEC 3.5).</text>
+<circle cx="1335.0" cy="367.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="371.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<text x="1353.0" y="371.0" font-size="12" fill="#2b2b2b">Every turn ends with Undo turn.</text>
+<circle cx="1335.0" cy="390.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="394.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="1353.0" y="394.0" font-size="12" fill="#2b2b2b">Right sidebar: Pages, Pipelines, Files,</text>
+<text x="1353.0" y="410.0" font-size="12" fill="#2b2b2b">Links (SPEC 5.9, 6.10).</text>
+<circle cx="1335.0" cy="429.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="433.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<text x="1353.0" y="433.0" font-size="12" fill="#2b2b2b">Composer: the model picker for this chat</text>
+<text x="1353.0" y="449.0" font-size="12" fill="#2b2b2b">(SPEC 3.9) and the approval level:</text>
+<text x="1353.0" y="465.0" font-size="12" fill="#2b2b2b">Strict, Standard or Auto (SPEC 8.8).</text>
+<circle cx="1335.0" cy="484.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="488.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<text x="1353.0" y="488.0" font-size="12" fill="#2b2b2b">Settings, and whether schedules keep</text>
+<text x="1353.0" y="504.0" font-size="12" fill="#2b2b2b">running in the tray.</text>
+<circle cx="1335.0" cy="523.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="527.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<text x="1353.0" y="527.0" font-size="12" fill="#2b2b2b">While a turn runs, Send becomes Stop, and</text>
+<text x="1353.0" y="543.0" font-size="12" fill="#2b2b2b">a new message joins the running turn.</text>
+<text x="1325.0" y="576.0" font-size="14" fill="#2b2b2b" font-weight="600">Open questions</text>
+<circle cx="1335" cy="596" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="600.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="600.0" font-size="12" fill="#2b2b2b">SPEC 8.6 gives Mother its own colour. Is</text>
+<text x="1353.0" y="616.0" font-size="12" fill="#2b2b2b">the pin and the ◆ enough, or a colour as</text>
+<text x="1353.0" y="632.0" font-size="12" fill="#2b2b2b">well?</text>
+<circle cx="1335" cy="651" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="655.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="655.0" font-size="12" fill="#2b2b2b">Other projects: a dropdown (shown), or a</text>
+<text x="1353.0" y="671.0" font-size="12" fill="#2b2b2b">projects screen?</text>
+<text x="1325.0" y="704.0" font-size="14" fill="#2b2b2b" font-weight="600">Requirements</text>
+<text x="1325.0" y="724.0" font-size="12" fill="#767676">R-10, R-11, R-12, R-14, R-16, R-24, R-26,</text>
+<text x="1325.0" y="740.0" font-size="12" fill="#767676">R-46, R-72, R-117, R-121</text>
+<rect x="1325.0" y="759.0" width="30.0" height="16.0" rx="3" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="1365.0" y="771.0" font-size="11" fill="#767676">= proposed here, not in the SPEC yet</text>
+</svg>

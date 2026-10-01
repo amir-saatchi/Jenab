@@ -1,0 +1,40 @@
+===== glm-4.5-flash | t6_a_review_new_pipeline | cond base | rep 2 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:14, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 1900, output 165, 6.0s, finish tool_calls, reasoning 481 chars)
+[12:00:04 assistant] 
+I'll check the new pipeline for you. It looks like the "fear_greed" pipeline was saved today and hasn't been reviewed yet. Let me examine its configuration first.
+
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2118, output 293, 8.4s, finish tool_calls, reasoning 1158 chars)
+[12:00:09 call] describe_table {"name":"news"}
+[12:00:10 result describe_table] table news - url TEXT (primary key 1) - coin TEXT - title TEXT - source TEXT - published_at TEXT rows: 12
+  (request: prompt 2175, output 199, 6.1s, finish stop, reasoning 1 chars)
+[12:00:14 assistant] 
+I've reviewed the new "fear_greed" pipeline and found several issues:
+
+1. **Missing error handling**: The pipeline doesn't have any error handling steps. If the API call fails or the LLM summarization encounters issues, the pipeline will fail without recovery.
+
+2. **Hardcoded values**: The pipeline uses hardcoded values like "BTC" and "alternative.example" which should probably be configurable inputs.
+
+3. **Missing timestamp**: The pipeline saves to the news table but doesn't include a published_at timestamp, which is a required field in the table.
+
+4. **API endpoint**: The URL "https://api.alternative.example/fng/" appears to be a placeholder and may not be a real API endpoint.
+
+5. **No validation**: There's no validation of the API response before passing it to the LLM.
+
+The pipeline should be updated to include error handling, make values configurable, add proper timestamps, and use a real API endpoint.
+
+----- background tasks
+
+----- assertions
+fail  test 6    right_target                       no send_to_chat; tools used: read_config, describe_table
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+skip  test 6    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 6    no_repeat                          no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2175
+tests: map[5:pass 6:fail] | prompt 6193 output 657 requests 3 peak 2175 polls 0 | 21s real, 14s virtual

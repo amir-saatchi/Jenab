@@ -1,0 +1,406 @@
+===== glm-4.5-flash T4 guide v2 run 2 chained false
+----- user
+Also track Ethereum. Move the prices into one general table prices(coin, date, price), keeping every BTC row collected so far (coin 'BTC'), give each news item a coin, and drop btc_prices once nothing needs it. Keep the pipeline id daily_btc, but make it fetch the price of every tracked coin (ETH comes from https://api.example.com/eth/daily, same JSON as BTC) and search news for all tracked coins, with the LLM also saying which coin each picked item is about. The price table and chart must show both coins (the chart one line per coin), and the news table must show the coin. Update the pipeline and the views in the same change as the migration.
+----- assistant (finish tool_calls, prompt 1884, output 176, 11.8s)
+[reasoning 552 chars]
+
+I'll help you migrate to track both Bitcoin and Ethereum. Let me start by loading the necessary skills to understand the migration process and pipeline configuration.
+
+> load_skill {"name":"migrations"}
+< load_skill
+Skill loaded: migrations
+
+## 1. Schema changes: apply_migration
+
+Never write SQL DDL. Send structured steps; each step has `op`:
+
+| op | fields |
+|---|---|
+| create_table | `table`, `columns` [{`name`, `type` TEXT/INTEGER/REAL/NUMERIC/BLOB, `not_null`, `default`, `check`}], `primary_key` (column or list, required), `unique` (list of column or column lists), `foreign_keys` [{`columns`, `references`: {`table`, `columns`}, `on_delete`}] |
+| add_column | `table`, `column` {name, type, not_null, default, check}; NOT NULL needs a default |
+| rename_table | `from`, `to` |
+| rename_column | `table`, `from`, `to` |
+| create_index | `table`, `columns`, `unique`, `name` (optional) |
+| drop_index | `name` |
+| annotate_column | `table`, `column`, `kind: object_ref` (columns holding bucket keys) |
+| insert_rows | `table`, `rows` (list of objects, at most 50) |
+| copy_data | `into`, `columns`, `from` (one SELECT returning those columns in order) |
+| rebuild_table | `table`, new definition as in create_table, `mapping` {new_col: old_col or null} |
+| drop_column | `table`, `column` |
+| drop_table | `table` |
+
+Steps run in order in one transaction; afterwards every saved view and pipeline is re-validated against the new schema. Every view and pipeline that uses a renamed or dropped table (see "Dependents" in the project card) must go in the SAME call, updated, as full YAML strings in `views` and `pipelines`; otherwise the whole migration is rejected. Read each one with get_config first.
+To move data into a new table: create_table, then copy_data with a SELECT that returns the columns in order (`SELECT 'BTC', date, price FROM old`), then drop_table the old one. To add a NOT NULL column to a table with rows, give it a default.
+
+```json
+{"steps":[{"op":"create_table","table":"cities","columns":[{"name":"name","type":"TEXT"},{"name":"country","type":"TEXT","not_null":true}],"primary_key":"name"},
+ {"op":"insert_rows","table":"cities","rows":[{"name":"Oslo","country":"NO"}]}]}
+```
+
+----- assistant (finish tool_calls, prompt 2470, output 39, 5.6s)
+[reasoning 101 chars]
+
+
+> load_skill {"name":"pipelines"}
+< load_skill
+Skill loaded: pipelines
+
+## 2. Pipelines: save_pipeline
+
+```yaml
+version: 1
+id: daily_weather            # lower_snake_case, unique in the project
+description: Daily weather for all cities
+trigger:
+  schedule: "0 7 * * *"      # 5-field cron, in timezone
+  timezone: Europe/Oslo      # IANA name
+  manual: true               # also runnable by hand; a trigger needs schedule and/or manual: true
+inputs:                      # optional: { name: { type: string|number|boolean|date, default } }
+  days: { type: number, default: 1 }
+steps:
+  - id: cities
+    use: db.query
+    with:
+      sql: SELECT name FROM cities
+  - id: weather
+    use: http.get
+    for_each: ${{ steps.cities.rows }}
+    with:
+      url: https://api.example.org/weather
+      query: { city: "${{ item.name }}" }
+  - id: rows
+    use: transform.map
+    with:
+      items: ${{ steps.weather.each }}
+      fields:
+        city: ${{ item.item.name }}
+        temp: ${{ item.json.temp }}
+        date: ${{ today() }}
+  - id: save
+    use: db.insert_many
+    with:
+      table: weather
+      on_conflict: upsert
+      rows: ${{ steps.rows.items }}
+```
+
+Top level: `version: 1`, `id`, `description`, `trigger`, `inputs`, `steps`, `on_error` (stop/continue), `timeout` (e.g. 5m). Nothing else.
+Step fields: `id`, `use`, `with`, `if` (`${{ }}` boolean; skipped when false), `for_each`, `retry` {max, backoff: a duration like 10s}, `timeout`, `continue_on_error`. Nothing else; step inputs always go under `with`.
+
+`for_each: ${{ <list> }}` runs the step once per element, with the element as `item`. Its output is NOT the normal output: it is `each` (a list, one entry per element: the element under `item` plus that run's outputs) and `count`. Example: after `price` (http.get with for_each over coin rows), `steps.price.each` is `[{item: {symbol: BTC}, status, headers, body, json}, ...]`, so a following transform.map over `${{ steps.price.each }}` uses `item.item.symbol` and `item.json.close`.
+Keep for_each to one step where you can: search once with all names in one query instead of once per coin. If a later step must save a list per element, give that db.insert_many its own `for_each: ${{ steps.x.each }}` and `rows: ${{ item.items }}`. There is no flatten function.
+
+Step catalog (`use`: inputs → outputs). Only these exist:
+- `http.get`: url, query (map), headers, timeout, fail_on_status (default true) → status, headers, body, json
+- `http.download`: url, key, headers, max_size → key, size, mime
+- `web.search`: query, limit, freshness (day/week/month/any) → results[] {title, url, snippet, published}
+- `html.extract`: url or html, mode (readable/selector), selector → title, text, links, status
+- `json.extract`: input, path (JSONPath `$...`) → value
+- `transform.map`: items, fields (name → expression using `item`) → items[]
+- `transform.filter`: items, condition (`${{ }}` using `item`) → items[]
+- `db.query`: sql (read-only SELECT, named params `:name`), params → rows[], count
+- `db.insert`: table, row (object), on_conflict (error/ignore/upsert), conflict_key (default: primary key) → inserted, updated, id
+- `db.insert_many`: table, rows (list), on_conflict, conflict_key → inserted, updated, skipped
+- `db.update`: table, set, where (SQL with :params), params → updated
+- `llm.select`: items, instruction, count, add (fields the LLM adds per item, e.g. `{ reason: string }`; types string/number/boolean) → items[] (the original items plus the add fields), indexes[]
+- `llm.extract`: input, instruction, output (field → string/number/boolean/date/list) → data
+- `bucket.put`: key, content, mime → key, size; `bucket.list`: prefix → objects[]
+- `app.notify`: title, message, level (info/warning)
+
+Build rows with transform.map (one output field per column), not with map literals. Row keys of db.insert/insert_many must be real columns of the table; every NOT NULL column without a default must be set; with upsert the row must contain the conflict key. Use `ignore` or `upsert` so a rerun is safe. Do not set `_run_id`/`_fetched_at`.
+
+## 3. Expressions
+
+Written as `${{ ... }}` (expr-lang syntax). A value that is only an expression keeps its type (list, number); an expression inside a longer string becomes text: `"news about ${{ inputs.topic }}"`. YAML: a plain value must not contain `: ` or ` #`, and a `${{ }}` inside a `{ ... }` flow block must be quoted. When in doubt, put the whole value in double quotes: `url: "https://api.example.com/${{ lower(item.symbol) }}/daily"`.
+Names: `steps.<id>.<output>` (earlier steps only), `inputs.<name>` (declared inputs only), `item` (inside for_each and per-item fields), `today()` (YYYY-MM-DD), `now()`, `date(s)`, `format_date(d, layout)`, `add_days(d, n)`.
+Functions: `map(list, .field)`, `filter(list, .x > 1)`, `all`, `any`, `len`, `lower`, `upper`, `trim`, `split`, `join(list, sep)`, `round`, `int`, `float`, `string`. Inside map/filter predicates use `.field` or `#`; no nested list functions in a predicate. A map literal in a predicate needs parentheses: `map(xs, ({a: .x}))`.
+A missing field is an error; use `??` for a default: `${{ steps.price.json.close ?? 0 }}`. Not allowed: `let`, `matches`, method calls (`x.map(...)`, `s.toLowerCase()`: write `map(x, .f)`, `lower(s)`), `$env`.
+
+----- assistant (finish tool_calls, prompt 3944, output 37, 11.4s)
+[reasoning 1 chars]
+
+Now let me examine the current pipeline and views to understand what needs to be updated.
+
+> get_config {"id":"daily_btc"}
+< get_config
+pipeline daily_btc (revision 1):
+version: 1
+id: daily_btc
+description: Daily BTC price and the 5 news items most likely to affect it
+trigger:
+  schedule: "0 8 * * *"
+  timezone: UTC
+  catch_up: once
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc/daily
+
+  - id: save_price
+    use: db.insert
+    with:
+      table: btc_prices
+      on_conflict: upsert
+      row:
+        date: ${{ today() }}
+        price: ${{ steps.price.json.close }}
+
+  - id: keywords
+    use: db.query
+    with:
+      sql: SELECT keyword FROM watch_keywords
+
+  - id: news
+    use: web.search
+    with:
+      query: "bitcoin ${{ join(map(steps.keywords.rows, .keyword), ' ') }} news"
+      limit: 20
+      freshness: day
+
+  - id: top5
+    use: llm.select
+    with:
+      items: ${{ steps.news.results }}
+      count: 5
+      instruction: Pick the items most likely to affect the Bitcoin price today.
+      add: { reason: string }
+
+  - id: news_rows
+    use: transform.map
+    with:
+      items: ${{ steps.top5.items }}
+      fields:
+        url: ${{ item.url }}
+        title: ${{ item.title }}
+        reason: ${{ item.reason }}
+        date: ${{ today() }}
+
+  - id: save_news
+    use: db.insert_many
+    with:
+      table: btc_news
+      on_conflict: ignore
+      rows: ${{ steps.news_rows.items }}
+
+----- assistant (finish tool_calls, prompt 4360, output 20, 2.3s)
+[reasoning 1 chars]
+
+
+> get_config {"id":"btc_price_table"}
+< get_config
+view btc_price_table (revision 1):
+version: 1
+id: btc_price_table
+title: Bitcoin price
+type: table
+query: |
+  SELECT date, price FROM btc_prices
+  WHERE date >= :from_date
+filters:
+  - { param: from_date, control: date, label: "From", default: "today-90d", required: true }
+default_sort: { field: date, direction: desc }
+columns:
+  - { field: date, label: "Date", format: date }
+  - { field: price, label: "Price", format: currency, format_options: { currency: USD } }
+actions:
+  - { label: "Refresh now", run_pipeline: daily_btc }
+
+----- assistant (finish tool_calls, prompt 4538, output 20, 1.9s)
+[reasoning 1 chars]
+
+
+> get_config {"id":"btc_price_chart"}
+< get_config
+view btc_price_chart (revision 1):
+version: 1
+id: btc_price_chart
+title: Bitcoin price chart
+type: chart
+chart_type: line
+query: SELECT date, price FROM btc_prices
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: price, label: "Price (USD)" }
+
+----- assistant (finish tool_calls, prompt 4641, output 20, 1.4s)
+[reasoning 1 chars]
+
+
+> get_config {"id":"btc_news_table"}
+< get_config
+view btc_news_table (revision 1):
+version: 1
+id: btc_news_table
+title: Bitcoin news
+type: table
+query: SELECT date, title, reason, url FROM btc_news
+default_sort: { field: date, direction: desc }
+columns:
+  - { field: date, label: "Date", format: date }
+  - { field: title, label: "Title" }
+  - { field: reason, label: "Why it matters" }
+  - { field: url, label: "Link", format: url }
+
+----- assistant (finish tool_calls, prompt 4783, output 19, 3.8s)
+[reasoning 1 chars]
+
+
+> get_config {"id":"keyword_list"}
+< get_config
+view keyword_list (revision 1):
+version: 1
+id: keyword_list
+title: News keywords
+type: table
+query: SELECT id, keyword FROM watch_keywords
+default_sort: { field: keyword, direction: asc }
+columns:
+  - { field: keyword, label: "Keyword", format: text }
+rows_from: { table: watch_keywords, key: id }
+row_actions:
+  - { label: "Delete", delete: true, confirm: true }
+
+----- assistant (finish tool_calls, prompt 4906, output 19, 2.6s)
+[reasoning 1 chars]
+
+
+> get_config {"id":"add_keyword"}
+< get_config
+view add_keyword (revision 1):
+version: 1
+id: add_keyword
+title: Add news keyword
+type: form
+fields:
+  - { field: keyword, label: "Keyword", control: text, required: true }
+submit:
+  action: insert
+  table: watch_keywords
+
+----- assistant (finish tool_calls, prompt 4993, output 32, 1.9s)
+[reasoning 1 chars]
+
+Now let me check the current table structures to understand the data:
+
+> describe_table {"name":"btc_prices"}
+< describe_table
+table btc_prices, 10 rows
+columns:
+- date TEXT PRIMARY KEY
+- price REAL
+- _run_id TEXT
+- _fetched_at TEXT
+primary key: (date)
+
+----- assistant (finish tool_calls, prompt 5069, output 19, 1.9s)
+[reasoning 1 chars]
+
+
+> describe_table {"name":"btc_news"}
+< describe_table
+table btc_news, 4 rows
+columns:
+- url TEXT PRIMARY KEY
+- date TEXT
+- title TEXT
+- reason TEXT
+- _run_id TEXT
+- _fetched_at TEXT
+primary key: (url)
+
+----- assistant (finish tool_calls, prompt 5140, output 19, 3.0s)
+[reasoning 1 chars]
+
+
+> describe_table {"name":"watch_keywords"}
+< describe_table
+table watch_keywords, 3 rows
+columns:
+- id INTEGER PRIMARY KEY
+- keyword TEXT NOT NULL
+primary key: (id)
+unique index sqlite_autoindex_watch_keywords_1 (keyword)
+
+----- assistant (finish tool_calls, prompt 5204, output 1410, 63.6s)
+[reasoning 1 chars]
+
+Now I'll create the migration. I need to:
+
+1. Create a new `prices` table with coin, date, price columns
+2. Copy existing BTC data from `btc_prices` to the new table
+3. Create a new `news` table with coin column
+4. Copy existing BTC news data to the new table with coin='BTC'
+5. Drop the old `btc_prices` table
+6. Update the pipeline to handle multiple coins
+7. Update all the views to work with the new schema
+
+Let me start with the migration:
+
+> apply_migration {"steps":[{"op": "create_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT", "not_null": true}, {"name": "price", "type": "REAL"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["coin", "date"]}, {"op": "create_table", "table": "news", "columns": [{"name": "url", "type": "TEXT", "not_null": true}, {"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT"}, {"name": "title", "type": "TEXT"}, {"name": "reason", "type": "TEXT"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["url"]}, {"op": "copy_data", "into": "prices", "columns": ["coin", "date", "price", "_run_id", "_fetched_at"], "from": "SELECT 'BTC', date, price, _run_id, _fetched_at FROM btc_prices"}, {"op": "copy_data", "into": "news", "columns": ["url", "coin", "date", "title", "reason", "_run_id", "_fetched_at"], "from": "SELECT url, 'BTC', date, title, reason, _run_id, _fetched_at FROM btc_news"}, {"op": "drop_table", "table": "btc_prices"}],"pipelines":["version: 1\nid: daily_btc\ndescription: Daily price and news for all tracked coins\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  catch_up: once\n  manual: true\nsteps:\n  - id: coins\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: price_data\n    use: http.get\n    for_each: ${{ steps.coins.rows }}\n    with:\n      url: \"https://api.example.com/${{ lower(item.keyword) }}/daily\"\n  - id: price_rows\n    use: transform.map\n    with:\n      items: ${{ steps.price_data.each }}\n      fields:\n        coin: ${{ item.item.keyword }}\n        date: ${{ today() }}\n        price: ${{ item.json.close }}\n  - id: save_prices\n    use: db.insert_many\n    with:\n      table: prices\n      on_conflict: upsert\n      rows: ${{ steps.price_rows.items }}\n  - id: news\n    use: web.search\n    with:\n      query: \"${{ join(map(steps.coins.rows, .keyword), ' ') }} news\"\n      limit: 20\n      freshness: day\n  - id: top5\n    use: llm.select\n    with:\n      items: ${{ steps.news.results }}\n      count: 5\n      instruction: Pick the items most likely to affect the tracked coins' prices today. For each item, identify which coin it is about (BTC, ETH, etc.) and explain why it matters.\n      add: { reason: string, coin: string }\n  - id: news_rows\n    use: transform.map\n    with:\n      items: ${{ steps.top5.items }}\n      fields:\n        url: ${{ item.url }}\n        coin: ${{ item.coin }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: news\n      on_conflict: ignore\n      rows: ${{ steps.news_rows.items }}"],"views":["version: 1\nid: price_table\ntitle: Cryptocurrency prices\ntype: table\nquery: |\n  SELECT coin, date, price FROM prices\n  WHERE date >= :from_date\nfilters:\n  - { param: from_date, control: date, label: \"From\", default: \"today-90d\", required: true }\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }", "version: 1\nid: price_chart\ntitle: Cryptocurrency price chart\ntype: chart\nchart_type: line\nquery: SELECT coin, date, price FROM prices\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price (USD)\" }\ngroup_by: coin", "version: 1\nid: news_table\ntitle: Cryptocurrency news\ntype: table\nquery: SELECT date, coin, title, reason, url FROM news\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: title, label: \"Title\" }\n  - { field: reason, label: \"Why it matters\" }\n  - { field: url, label: \"Link\", format: url }"]}
+< apply_migration
+INVALID, nothing was saved. 3 error(s); fix all of them and call apply_migration again with the complete config:
+- views[1]: line 10:1 group_by: unknown field "group_by"
+- stored view btc_price_chart (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+- stored view btc_price_table (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+
+----- assistant (finish tool_calls, prompt 6717, output 1500, 61.2s)
+[reasoning 1 chars]
+
+I need to fix the chart configuration and include all the dependent views. Let me correct the chart and include all the views that need updating:
+
+> apply_migration {"steps":[{"op": "create_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT", "not_null": true}, {"name": "price", "type": "REAL"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["coin", "date"]}, {"op": "create_table", "table": "news", "columns": [{"name": "url", "type": "TEXT", "not_null": true}, {"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT"}, {"name": "title", "type": "TEXT"}, {"name": "reason", "type": "TEXT"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["url"]}, {"op": "copy_data", "into": "prices", "columns": ["coin", "date", "price", "_run_id", "_fetched_at"], "from": "SELECT 'BTC', date, price, _run_id, _fetched_at FROM btc_prices"}, {"op": "copy_data", "into": "news", "columns": ["url", "coin", "date", "title", "reason", "_run_id", "_fetched_at"], "from": "SELECT url, 'BTC', date, title, reason, _run_id, _fetched_at FROM btc_news"}, {"op": "drop_table", "table": "btc_prices"}],"pipelines":["version: 1\nid: daily_btc\ndescription: Daily price and news for all tracked coins\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  catch_up: once\n  manual: true\nsteps:\n  - id: coins\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: price_data\n    use: http.get\n    for_each: ${{ steps.coins.rows }}\n    with:\n      url: \"https://api.example.com/${{ lower(item.keyword) }}/daily\"\n  - id: price_rows\n    use: transform.map\n    with:\n      items: ${{ steps.price_data.each }}\n      fields:\n        coin: ${{ item.item.keyword }}\n        date: ${{ today() }}\n        price: ${{ item.json.close }}\n  - id: save_prices\n    use: db.insert_many\n    with:\n      table: prices\n      on_conflict: upsert\n      rows: ${{ steps.price_rows.items }}\n  - id: news\n    use: web.search\n    with:\n      query: \"${{ join(map(steps.coins.rows, .keyword), ' ') }} news\"\n      limit: 20\n      freshness: day\n  - id: top5\n    use: llm.select\n    with:\n      items: ${{ steps.news.results }}\n      count: 5\n      instruction: Pick the items most likely to affect the tracked coins' prices today. For each item, identify which coin it is about (BTC, ETH, etc.) and explain why it matters.\n      add: { reason: string, coin: string }\n  - id: news_rows\n    use: transform.map\n    with:\n      items: ${{ steps.top5.items }}\n      fields:\n        url: ${{ item.url }}\n        coin: ${{ item.coin }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: news\n      on_conflict: ignore\n      rows: ${{ steps.news_rows.items }}"],"views":["version: 1\nid: price_table\ntitle: Cryptocurrency prices\ntype: table\nquery: |\n  SELECT coin, date, price FROM prices\n  WHERE date >= :from_date\nfilters:\n  - { param: from_date, control: date, label: \"From\", default: \"today-90d\", required: true }\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }", "version: 1\nid: price_chart\ntitle: Cryptocurrency price chart\ntype: chart\nchart_type: line\nquery: SELECT coin, date, price FROM prices\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price (USD)\" }\nseries:\n  - { field: coin, label: \"Coin\" }", "version: 1\nid: news_table\ntitle: Cryptocurrency news\ntype: table\nquery: SELECT date, coin, title, reason, url FROM news\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: title, label: \"Title\" }\n  - { field: reason, label: \"Why it matters\" }\n  - { field: url, label: \"Link\", format: url }", "version: 1\nid: keyword_list\ntitle: News keywords\ntype: table\nquery: SELECT id, keyword FROM watch_keywords\ndefault_sort: { field: keyword, direction: asc }\ncolumns:\n  - { field: keyword, label: \"Keyword\", format: text }\nrows_from: { table: watch_keywords, key: id }\nrow_actions:\n  - { label: \"Delete\", delete: true, confirm: true }", "version: 1\nid: add_keyword\ntitle: Add news keyword\ntype: form\nfields:\n  - { field: keyword, label: \"Keyword\", control: text, required: true }\nsubmit:\n  action: insert\n  table: watch_keywords }"]}
+< apply_migration
+INVALID, nothing was saved. 5 error(s); fix all of them and call apply_migration again with the complete config:
+- views[1]: line 10:1 series: unknown field "series"
+- views[4]: line 9:10 submit.table: 'watch_keywords }' does not match pattern '^[a-z][a-z0-9_]*$'
+- views[4]: line 9:10 submit.table: table "watch_keywords }" not found (did you mean "watch_keywords"?)
+- stored view btc_price_chart (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+- stored view btc_price_table (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+
+----- assistant (finish tool_calls, prompt 8384, output 1477, 45.4s)
+[reasoning 1 chars]
+
+I need to fix the chart configuration and the form submission. Let me correct these issues:
+
+> apply_migration {"steps":[{"op": "create_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT", "not_null": true}, {"name": "price", "type": "REAL"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["coin", "date"]}, {"op": "create_table", "table": "news", "columns": [{"name": "url", "type": "TEXT", "not_null": true}, {"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT"}, {"name": "title", "type": "TEXT"}, {"name": "reason", "type": "TEXT"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["url"]}, {"op": "copy_data", "into": "prices", "columns": ["coin", "date", "price", "_run_id", "_fetched_at"], "from": "SELECT 'BTC', date, price, _run_id, _fetched_at FROM btc_prices"}, {"op": "copy_data", "into": "news", "columns": ["url", "coin", "date", "title", "reason", "_run_id", "_fetched_at"], "from": "SELECT url, 'BTC', date, title, reason, _run_id, _fetched_at FROM btc_news"}, {"op": "drop_table", "table": "btc_prices"}],"pipelines":["version: 1\nid: daily_btc\ndescription: Daily price and news for all tracked coins\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  catch_up: once\n  manual: true\nsteps:\n  - id: coins\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: price_data\n    use: http.get\n    for_each: ${{ steps.coins.rows }}\n    with:\n      url: \"https://api.example.com/${{ lower(item.keyword) }}/daily\"\n  - id: price_rows\n    use: transform.map\n    with:\n      items: ${{ steps.price_data.each }}\n      fields:\n        coin: ${{ item.item.keyword }}\n        date: ${{ today() }}\n        price: ${{ item.json.close }}\n  - id: save_prices\n    use: db.insert_many\n    with:\n      table: prices\n      on_conflict: upsert\n      rows: ${{ steps.price_rows.items }}\n  - id: news\n    use: web.search\n    with:\n      query: \"${{ join(map(steps.coins.rows, .keyword), ' ') }} news\"\n      limit: 20\n      freshness: day\n  - id: top5\n    use: llm.select\n    with:\n      items: ${{ steps.news.results }}\n      count: 5\n      instruction: Pick the items most likely to affect the tracked coins' prices today. For each item, identify which coin it is about (BTC, ETH, etc.) and explain why it matters.\n      add: { reason: string, coin: string }\n  - id: news_rows\n    use: transform.map\n    with:\n      items: ${{ steps.top5.items }}\n      fields:\n        url: ${{ item.url }}\n        coin: ${{ item.coin }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: news\n      on_conflict: ignore\n      rows: ${{ steps.news_rows.items }}"],"views":["version: 1\nid: price_table\ntitle: Cryptocurrency prices\ntype: table\nquery: |\n  SELECT coin, date, price FROM prices\n  WHERE date >= :from_date\nfilters:\n  - { param: from_date, control: date, label: \"From\", default: \"today-90d\", required: true }\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }", "version: 1\nid: price_chart\ntitle: Cryptocurrency price chart\ntype: chart\nchart_type: line\nquery: SELECT coin, date, price FROM prices\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price (USD)\" }\nseries_by: coin", "version: 1\nid: news_table\ntitle: Cryptocurrency news\ntype: table\nquery: SELECT date, coin, title, reason, url FROM news\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: title, label: \"Title\" }\n  - { field: reason, label: \"Why it matters\" }\n  - { field: url, label: \"Link\", format: url }", "version: 1\nid: keyword_list\ntitle: News keywords\ntype: table\nquery: SELECT id, keyword FROM watch_keywords\ndefault_sort: { field: keyword, direction: asc }\ncolumns:\n  - { field: keyword, label: \"Keyword\", format: text }\nrows_from: { table: watch_keywords, key: id }\nrow_actions:\n  - { label: \"Delete\", delete: true, confirm: true }", "version: 1\nid: add_keyword\ntitle: Add news keyword\ntype: form\nfields:\n  - { field: keyword, label: \"Keyword\", control: text, required: true }\nsubmit:\n  action: insert\n  table: watch_keywords"]}
+< apply_migration
+INVALID, nothing was saved. 2 error(s); fix all of them and call apply_migration again with the complete config:
+- stored view btc_price_chart (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+- stored view btc_price_table (not sent with this migration) would break: query: SQLite: no such table: btc_prices
+
+----- assistant (finish tool_calls, prompt 9945, output 1856, 89.8s)
+[reasoning 1 chars]
+
+I need to include the old views that are still referencing the dropped table. Let me include all the views that need to be updated:
+
+> apply_migration {"steps":[{"op": "create_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT", "not_null": true}, {"name": "price", "type": "REAL"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["coin", "date"]}, {"op": "create_table", "table": "news", "columns": [{"name": "url", "type": "TEXT", "not_null": true}, {"name": "coin", "type": "TEXT", "not_null": true}, {"name": "date", "type": "TEXT"}, {"name": "title", "type": "TEXT"}, {"name": "reason", "type": "TEXT"}, {"name": "_run_id", "type": "TEXT"}, {"name": "_fetched_at", "type": "TEXT"}], "primary_key": ["url"]}, {"op": "copy_data", "into": "prices", "columns": ["coin", "date", "price", "_run_id", "_fetched_at"], "from": "SELECT 'BTC', date, price, _run_id, _fetched_at FROM btc_prices"}, {"op": "copy_data", "into": "news", "columns": ["url", "coin", "date", "title", "reason", "_run_id", "_fetched_at"], "from": "SELECT url, 'BTC', date, title, reason, _run_id, _fetched_at FROM btc_news"}, {"op": "drop_table", "table": "btc_prices"}],"pipelines":["version: 1\nid: daily_btc\ndescription: Daily price and news for all tracked coins\ntrigger:\n  schedule: \"0 8 * * *\"\n  timezone: UTC\n  catch_up: once\n  manual: true\nsteps:\n  - id: coins\n    use: db.query\n    with:\n      sql: SELECT keyword FROM watch_keywords\n  - id: price_data\n    use: http.get\n    for_each: ${{ steps.coins.rows }}\n    with:\n      url: \"https://api.example.com/${{ lower(item.keyword) }}/daily\"\n  - id: price_rows\n    use: transform.map\n    with:\n      items: ${{ steps.price_data.each }}\n      fields:\n        coin: ${{ item.item.keyword }}\n        date: ${{ today() }}\n        price: ${{ item.json.close }}\n  - id: save_prices\n    use: db.insert_many\n    with:\n      table: prices\n      on_conflict: upsert\n      rows: ${{ steps.price_rows.items }}\n  - id: news\n    use: web.search\n    with:\n      query: \"${{ join(map(steps.coins.rows, .keyword), ' ') }} news\"\n      limit: 20\n      freshness: day\n  - id: top5\n    use: llm.select\n    with:\n      items: ${{ steps.news.results }}\n      count: 5\n      instruction: Pick the items most likely to affect the tracked coins' prices today. For each item, identify which coin it is about (BTC, ETH, etc.) and explain why it matters.\n      add: { reason: string, coin: string }\n  - id: news_rows\n    use: transform.map\n    with:\n      items: ${{ steps.top5.items }}\n      fields:\n        url: ${{ item.url }}\n        coin: ${{ item.coin }}\n        date: ${{ today() }}\n        title: ${{ item.title }}\n        reason: ${{ item.reason }}\n  - id: save_news\n    use: db.insert_many\n    with:\n      table: news\n      on_conflict: ignore\n      rows: ${{ steps.news_rows.items }}"],"views":["version: 1\nid: price_table\ntitle: Cryptocurrency prices\ntype: table\nquery: |\n  SELECT coin, date, price FROM prices\n  WHERE date >= :from_date\nfilters:\n  - { param: from_date, control: date, label: \"From\", default: \"today-90d\", required: true }\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }", "version: 1\nid: price_chart\ntitle: Cryptocurrency price chart\ntype: chart\nchart_type: line\nquery: SELECT coin, date, price FROM prices\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price (USD)\" }\nseries_by: coin", "version: 1\nid: news_table\ntitle: Cryptocurrency news\ntype: table\nquery: SELECT date, coin, title, reason, url FROM news\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: coin, label: \"Coin\", format: text }\n  - { field: title, label: \"Title\" }\n  - { field: reason, label: \"Why it matters\" }\n  - { field: url, label: \"Link\", format: url }", "version: 1\nid: keyword_list\ntitle: News keywords\ntype: table\nquery: SELECT id, keyword FROM watch_keywords\ndefault_sort: { field: keyword, direction: asc }\ncolumns:\n  - { field: keyword, label: \"Keyword\", format: text }\nrows_from: { table: watch_keywords, key: id }\nrow_actions:\n  - { label: \"Delete\", delete: true, confirm: true }", "version: 1\nid: add_keyword\ntitle: Add news keyword\ntype: form\nfields:\n  - { field: keyword, label: \"Keyword\", control: text, required: true }\nsubmit:\n  action: insert\n  table: watch_keywords", "version: 1\nid: btc_price_table\ntitle: Bitcoin price\ntype: table\nquery: |\n  SELECT coin, date, price FROM prices\n  WHERE coin = 'BTC' AND date >= :from_date\nfilters:\n  - { param: from_date, control: date, label: \"From\", default: \"today-90d\", required: true }\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }", "version: 1\nid: btc_price_chart\ntitle: Bitcoin price chart\ntype: chart\nchart_type: line\nquery: SELECT coin, date, price FROM prices WHERE coin = 'BTC'\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price (USD)\" }", "version: 1\nid: btc_news_table\ntitle: Bitcoin news\ntype: table\nquery: SELECT date, coin, title, reason, url FROM news WHERE coin = 'BTC'\ndefault_sort: { field: date, direction: desc }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: title, label: \"Title\" }\n  - { field: reason, label: \"Why it matters\" }\n  - { field: url, label: \"Link\", format: url }"]}
+< apply_migration
+applied: migration committed, schema version 2.
+- created table prices
+- created table news
+- copied 10 rows into prices
+- copied 4 rows into news
+- dropped table btc_prices
+destructive steps (approved by the user): drop_table btc_prices (10 rows)
+dependents updated: pipeline daily_btc, view price_table, view price_chart, view news_table, view keyword_list, view add_keyword, view btc_price_table, view btc_price_chart, view btc_news_table
+
+----- assistant (finish tool_calls, prompt 12018, output 53, 25.5s)
+[reasoning 1 chars]
+
+Perfect! The migration has been successfully applied. Now let me add "ETH" to the watch_keywords table to enable Ethereum tracking:
+
+> query {"sql":"INSERT INTO watch_keywords (keyword) VALUES ('ETH')"}
+< query
+error: rejected by the SQL guard: must start with SELECT, WITH or VALUES
+----- result: stop request cap, valid true, first-try false, failed batches 3, checks 4/13
+  FAIL news table has coin; old news are BTC: table btc_news: -1 of 4 seeded rows with coin BTC
+  FAIL mock run succeeds twice (rerun safe): run 1 steps[1] (price_data) failed: GET https://api.example.com/etf/daily: status 404
+  FAIL fetches the BTC and the ETH URL: fetched [https://api.example.com/etf/daily]
+  FAIL prices today: BTC 65000.5 and ETH 3200.25, one row each: BTC rows 0 (0), ETH rows 0 (0)
+  FAIL news: 5 new items, each with coin BTC/ETH and a reason: no news table with coin
+  FAIL news search covers both coins: queries []
+  FAIL price table shows both coins: coins map[BTC:true] err <nil>
+  FAIL price chart: one line per coin (series_by): series_by "" coins map[BTC:true] err <nil>
+  FAIL news table view shows the coin: rows 4 coin column false err <nil>

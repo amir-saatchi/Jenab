@@ -1,0 +1,39 @@
+===== glm-4.5-flash | t6_d_watch_gold_daily | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Start watching gold prices daily from now on, and tell me when there's a big move.
+  (request: prompt 2131, output 320, 11.1s, finish tool_calls, reasoning 810 chars)
+[12:00:04 assistant] 
+I'll create a new chat to watch gold prices daily and notify you of significant moves.
+
+[12:00:04 call] create_chat {"title":"Gold price watcher","role":"Track gold prices daily, store the data, and notify the user when there's a significant price movement (e.g., more than 3% change in a day).","message":"Start watching gold prices daily from now on. Track the price movements and notify me when there's a big move (more than 3% change in a day). You'll need to set up daily price tracking for gold similar to how BTC and ETH are tracked in this project."}
+[12:00:04 result create_chat] {"chat_id":"c_new1","status":"started","task_id":"t_1"}
+  (request: prompt 2297, output 156, 5.1s, finish stop, reasoning 463 chars)
+[12:00:08 assistant] 
+I've created a new chat called "Gold price watcher" that will track gold prices daily and notify you when there's a significant price movement (more than 3% change). The chat is now active and will start monitoring gold prices from today.
+
+----- turn 2 (system) 12:01:04-12:01:08, stop done
+[12:01:04 notice] [task t_1 finished 12:01:04: reply from Gold price watcher (c_new1): Gold watcher is set up: pipeline gold_daily is saved (daily at 08:00, writes to gold_prices) and I will report any daily move over 2%. Today's price: 2,641 USD/oz.
+]
+  (request: prompt 2426, output 219, 8.0s, finish stop, reasoning 515 chars)
+[12:01:08 assistant] 
+Great! The Gold price watcher is now active and has set up a daily pipeline to track gold prices. It will:
+
+- Run daily at 08:00 to fetch the latest gold price
+- Store the data in a new "gold_prices" table
+- Notify you when there's a significant price movement (over 2% change)
+
+Today's gold price is $2,641 USD/oz. The watcher will continue monitoring and will alert you if there are any notable price changes.
+
+----- background tasks
+t_1 create_chat c_new1 start 12:00:04 finish 12:01:04 delivered notice
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  role: Track gold prices daily, store the data, and notify the user when there's a significant price moveme...
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    Great! The Gold price watcher is now active and has set up a daily pipeline to track gold prices. It will: - Run daily at 08:00 to fetch the latest gold price -...
+pass  test 6    no_repeat                          5-gram overlap 0.07
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 2426
+tests: map[5:pass 6:pass] | prompt 6854 output 695 requests 3 peak 2426 polls 0 | 24s real, 68s virtual

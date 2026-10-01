@@ -1,0 +1,16 @@
+===== glm-4.5-flash | t6_f_card_schedule | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 2120, output 185, 4.9s, finish stop, reasoning 568 chars)
+[12:00:04 assistant] 
+The daily_prices pipeline runs daily at 08:00. It fetches today's price and the latest news for one coin (BTC or ETH, default BTC) and writes them to the prices and news tables. A run takes about 30 seconds.
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    The daily_prices pipeline runs daily at 08:00. It fetches today's price and the latest news for one coin (BTC or ETH, default BTC) and writes them to the prices...
+pass  test 5    max_prompt_tokens                  peak prompt 2120
+tests: map[5:pass 6:pass] | prompt 2120 output 185 requests 1 peak 2120 polls 0 | 5s real, 4s virtual

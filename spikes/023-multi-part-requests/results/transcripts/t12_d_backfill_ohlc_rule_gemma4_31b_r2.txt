@@ -1,0 +1,34 @@
+===== gemma4:31b | t12_d_backfill_ohlc | cond rule | rep 2 | tests [1 2]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Backfill the last 90 days of ETH prices in EUR. And what does OHLC stand for?
+  (request: prompt 1384, output 51, 1.4s, finish tool_calls, reasoning 0 chars)
+[12:00:04 assistant] OHLC stands for Open, High, Low, and Close.
+
+
+[12:00:04 call] run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1457, output 24, 0.5s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] I've started the backfill for ETH prices in EUR (run `r_1`).
+
+----- turn 2 (system) 12:02:04-12:02:08, stop done
+[12:02:04 notice] [run r_1 finished 12:02:04: backfill_prices: success. prices +90 rows: ETH daily OHLC in EUR from 2026-07-01 to 2026-09-28; 0 errors.]
+  (request: prompt 1552, output 26, 0.6s, finish stop, reasoning 0 chars)
+[12:02:08 assistant] The backfill for ETH prices in EUR is complete. 90 rows have been added to the `prices` table.
+
+----- background tasks
+r_1 run_pipeline backfill_prices start 12:00:04 finish 12:02:04 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 4 s, slow work (run_pipeline r_1 (background)) done at 124 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test 1    tool_called                        run_pipeline {"id":"backfill_prices","inputs":{"coin":"ETH","currency":"EUR","days":90}}
+pass  test info text_before_tool                   OHLC stands for Open, High, Low, and Close.
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   OHLC stands for Open, High, Low, and Close. I've started the backfill for ETH prices in EUR (run `r_1`).
+pass  test 2    answer_contains                    The backfill for ETH prices in EUR is complete. 90 rows have been added to the `prices` table.
+pass  test 2    no_repeat                          5-gram overlap 0.21
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1552
+tests: map[1:pass 2:pass 5:pass] | prompt 4393 output 101 requests 3 peak 1552 polls 0 | 3s real, 128s virtual

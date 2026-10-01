@@ -1,0 +1,16 @@
+===== gemma4:31b L04_sql_fails guide v2 run 2 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 1711, output 17, 1.1s)
+> load_skill {"name":"sql-queries"}
+< load_skill
+Skill loaded: sql-queries
+
+## 5. SQL rules
+
+SQLite dialect. Only a single SELECT (or WITH ... SELECT); no writes, no PRAGMA, no ATTACH, no `_burrow_*` or `sqlite_*` tables. Named parameters only (`:name`), never string building. Use `describe_table` or `query` when unsure about columns or data.
+
+----- assistant (finish stop, prompt 1819, output 70, 1.8s)
+The query fails because the `query` tool is restricted to read-only access of your project's data tables. For security and stability, the SQL guard explicitly rejects any queries targeting internal system tables, including those starting with `_burrow_` (like `_burrow_runs`) or `sqlite_`.
+----- result: stop answer, loaded [sql-queries:load_skill], events 2

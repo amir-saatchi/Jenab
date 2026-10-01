@@ -1,0 +1,8 @@
+===== glm-4.5-flash L11_what_tracked guide v2 run 1 chained false
+----- user
+In two or three sentences, what does this project track?
+----- assistant (finish stop, prompt 1750, output 235, 25.9s)
+[reasoning 878 chars]
+
+This project tracks Bitcoin-related information, including news articles with URLs, titles, and dates, as well as Bitcoin price data over time. It also maintains a system for managing keywords to filter and track specific Bitcoin-related news content.
+----- result: stop answer, loaded [], events 1

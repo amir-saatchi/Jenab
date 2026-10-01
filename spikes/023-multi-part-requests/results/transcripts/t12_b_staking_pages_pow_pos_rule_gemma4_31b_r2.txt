@@ -1,0 +1,66 @@
+===== gemma4:31b | t12_b_staking_pages_pow_pos | cond rule | rep 2 | tests [1 2]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:13, stop done
+[12:00:00 user] Please summarise these 20 articles about Ethereum staking for me. Meanwhile, quick question: what's the difference between proof of work and proof of stake?
+1. https://staking.example.org/article-01
+2. https://staking.example.org/article-02
+3. https://staking.example.org/article-03
+4. https://staking.example.org/article-04
+5. https://staking.example.org/article-05
+6. https://staking.example.org/article-06
+7. https://staking.example.org/article-07
+8. https://staking.example.org/article-08
+9. https://staking.example.org/article-09
+10. https://staking.example.org/article-10
+11. https://staking.example.org/article-11
+12. https://staking.example.org/article-12
+13. https://staking.example.org/article-13
+14. https://staking.example.org/article-14
+15. https://staking.example.org/article-15
+16. https://staking.example.org/article-16
+17. https://staking.example.org/article-17
+18. https://staking.example.org/article-18
+19. https://staking.example.org/article-19
+20. https://staking.example.org/article-20
+
+  (request: prompt 1705, output 437, 1.8s, finish tool_calls, reasoning 0 chars)
+[12:00:04 assistant] Proof of Work (PoW) requires miners to solve complex mathematical puzzles using computational power to secure the network and mint new coins. Proof of Stake (PoS) replaces mining with staking, where validators are chosen to create new blocks based on the number of coins they hold and are willing to "stake" as collateral. PoS is significantly more energy-efficient than PoW.
+
+I am now summarizing the 20 articles for you in the background.
+
+
+[12:00:04 call] subagent {"background":true,"task":"Summarize the following 20 articles about Ethereum staking:\n1. https://staking.example.org/article-01\n2. https://staking.example.org/article-02\n3. https://staking.example.org/article-03\n4. https://staking.example.org/article-04\n5. https://staking.example.org/article-05\n6. https://staking.example.org/article-06\n7. https://staking.example.org/article-07\n8. https://staking.example.org/article-08\n9. https://staking.example.org/article-09\n10. https://staking.example.org/article-10\n11. https://staking.example.org/article-11\n12. https://staking.example.org/article-12\n13. https://staking.example.org/article-13\n14. https://staking.example.org/article-14\n15. https://staking.example.org/article-15\n16. https://staking.example.org/article-16\n17. https://staking.example.org/article-17\n18. https://staking.example.org/article-18\n19. https://staking.example.org/article-19\n20. https://staking.example.org/article-20"}
+[12:00:04 result subagent] {"status":"started","task_id":"t_1"}
+  (request: prompt 2159, output 21, 0.8s, finish tool_calls, reasoning 0 chars)
+[12:00:08 call] task_status {"id":"t_1"}
+[12:00:09 result task_status] running for 5 s (typical length 90 s)
+  (request: prompt 2199, output 1, 0.8s, finish stop, reasoning 0 chars)
+[12:00:13 assistant] 
+
+----- turn 2 (system) 12:01:34-12:01:38, stop done
+[12:01:34 notice] [task t_1 finished 12:01:34: subagent result: Summary of 20 pages on ETH staking: 1) the withdrawal queue is down to about 2 days after the upgrade; 2) liquid staking holds 31% of staked ETH, the largest provider 24%; 3) the average staking yield is 2.9% a year; 4) slashing is rare (0.04% of validators); 5) restaking adds yield but also new risks.
+]
+  (request: prompt 2326, output 126, 1.6s, finish stop, reasoning 0 chars)
+[12:01:38 assistant] Here is the summary of the 20 articles on Ethereum staking:
+
+*   **Withdrawals:** The withdrawal queue has decreased to approximately 2 days following the upgrade.
+*   **Liquid Staking:** This method accounts for 31% of all staked ETH, with the largest provider holding 24%.
+*   **Yield:** The average annual staking yield is 2.9%.
+*   **Slashing:** Slashing events are rare, affecting only 0.04% of validators.
+*   **Restaking:** While restaking can increase yields, it introduces additional risks.
+
+----- background tasks
+t_1 subagent  start 12:00:04 finish 12:01:34 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 4 s, slow work (subagent t_1 (background)) done at 94 s
+pass  test 1    slow_started                       subagent background t_1
+pass  test info text_before_tool                   Proof of Work (PoW) requires miners to solve complex mathematical puzzles using ...
+pass  test info background_started                 subagent t_1
+pass  test info mentions_running                   Proof of Work (PoW) requires miners to solve complex mathematical puzzles using computational power to secure the networ...
+pass  test 2    answer_contains                    Here is the summary of the 20 articles on Ethereum staking: * **Withdrawals:** The withdrawal queue has decreased to approximately 2 days following the upgrade....
+pass  test 2    no_repeat                          5-gram overlap 0.00
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 2326
+tests: map[1:pass 2:pass 5:pass] | prompt 8389 output 585 requests 4 peak 2326 polls 1 | 5s real, 98s virtual

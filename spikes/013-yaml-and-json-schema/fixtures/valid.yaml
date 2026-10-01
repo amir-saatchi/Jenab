@@ -1,0 +1,78 @@
+version: 1
+id: daily_btc
+description: Daily BTC price and the 5 news items most likely to affect it
+trigger:
+  schedule: "0 8 * * *"
+  timezone: Europe/Berlin
+  catch_up: once
+  manual: true
+inputs:
+  coin: { type: string, default: BTC }
+  days: { type: number, default: 90 }
+on_error: stop
+timeout: 5m
+steps:
+  - id: price
+    use: http.get
+    retry: { max: 3, backoff: 10s }
+    with:
+      url: https://api.example.com/btc/daily
+      query: { symbol: "${{ inputs.coin }}", days: 1 }
+
+  - id: save_price
+    use: db.insert
+    with:
+      table: btc_prices
+      on_conflict: upsert
+      row:
+        date: ${{ today() }}
+        price: ${{ steps.price.json.close }}
+
+  - id: keywords
+    use: db.query
+    with:
+      sql: |
+        SELECT keyword
+        FROM watch_keywords
+        WHERE keyword <> ''
+        ORDER BY keyword
+
+  - id: news
+    use: web.search
+    with:
+      query: "bitcoin ${{ join(map(steps.keywords.rows, .keyword), ' ') }} news"
+      limit: 20
+      freshness: day
+
+  - id: top5
+    use: llm.select
+    with:
+      items: ${{ steps.news.results }}
+      count: 5
+      instruction: Pick the items most likely to affect the Bitcoin price today.
+      add: { reason: string }
+
+  - id: news_rows
+    use: transform.map
+    with:
+      items: ${{ steps.top5.items }}
+      fields:
+        url: ${{ item.url }}
+        title: ${{ item.title }}
+        reason: ${{ item.reason }}
+        date: ${{ today() }}
+
+  - id: save_news
+    use: db.insert_many
+    with:
+      table: btc_news
+      on_conflict: ignore
+      rows: ${{ steps.news_rows.items }}
+
+  - id: done
+    use: app.notify
+    if: ${{ steps.save_news.inserted > 0 }}
+    with:
+      title: "BTC: ${{ steps.save_news.inserted }} new items"
+      message: "Price saved: ${{ steps.price.json.close }}"
+      level: info

@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #00c853; overflow: hidden; }
+  /* one flat colour: no visible text, and the test image is loaded but not shown */
+  #s, img { display: none; }
+</style>
+</head>
+<body>
+<div id="s">SPIKE-003</div>
+<img id="pic" src="/objects/p1/pic.png">
+<script>
+async function report(q) { await fetch('/report?' + new URLSearchParams(q)); }
+async function main() {
+  const q = {};
+  try {
+    const t = await fetch('/objects/p1/hello.txt');
+    q.text = t.status + ' ' + (await t.text());
+    q.text_type = t.headers.get('content-type');
+  } catch (e) { q.text = 'error ' + e; }
+  try {
+    const r = await fetch('/objects/p1/big.bin', { headers: { Range: 'bytes=10-19' } });
+    q.range = r.status + ' ' + (await r.text()) + ' ' + r.headers.get('content-range');
+  } catch (e) { q.range = 'error ' + e; }
+  try {
+    const t0 = performance.now();
+    const r = await fetch('/objects/p1/big.bin');
+    const b = await r.arrayBuffer();
+    q.big = r.status + ' ' + b.byteLength + ' bytes in ' + Math.round(performance.now() - t0) + ' ms';
+  } catch (e) { q.big = 'error ' + e; }
+  try {
+    const r = await fetch('/objects/p1/missing.txt');
+    q.missing = String(r.status);
+  } catch (e) { q.missing = 'error ' + e; }
+  const img = document.getElementById('pic');
+  if (!img.complete) await new Promise(res => { img.onload = res; img.onerror = res; });
+  q.img = img.naturalWidth === 8 ? 'loaded' : 'failed';  // display:none still loads it
+  q.user_agent = navigator.userAgent;
+  q.done = '1';
+  await report(q);
+}
+main();
+// input reaches the page: report each click and key press
+document.addEventListener('mousedown', () => fetch('/input?k=click'));
+document.addEventListener('keydown', () => fetch('/input?k=key'));
+// the colour Go wants the page to show now; a page that stops running or painting keeps the old one
+setInterval(async () => {
+  try { document.body.style.background = await (await fetch('/state')).text(); } catch (e) {}
+}, 100);
+</script>
+</body>
+</html>

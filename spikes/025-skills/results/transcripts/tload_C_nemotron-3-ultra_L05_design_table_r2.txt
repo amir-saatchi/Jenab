@@ -1,0 +1,34 @@
+===== nemotron-3-ultra L05_design_table guide v2 run 2 chained false
+----- user
+Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don't create it yet.
+----- assistant (finish tool_calls, prompt 2144, output 89, 10.6s)
+[reasoning 305 chars]
+> load_skill {"name":"database-design"}
+< load_skill
+Skill loaded: database-design
+
+Rules: every table has an explicit primary key. Tables filled by pipelines also get `_run_id TEXT` and `_fetched_at TEXT` (the runtime fills them). Names are lower_snake_case. When a goal widens (a second coin, a second city), migrate to one general table with a key column (`prices(coin, date, …)`) instead of parallel tables.
+
+----- assistant (finish stop, prompt 2273, output 654, 46.9s)
+[reasoning 1156 chars]
+**Table design: `crypto_exchanges`**
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | `INTEGER` | `PRIMARY KEY` | Auto-incrementing surrogate key |
+| `name` | `TEXT` | `NOT NULL UNIQUE` | Exchange name (e.g., "Binance", "Coinbase") |
+| `country` | `TEXT` | | Jurisdiction / headquarters |
+| `website` | `TEXT` | | Base URL (e.g., "https://binance.com") |
+| `trading_fee_percent` | `REAL` | | Maker/taker fee in percent (e.g., `0.1` = 0.1%) |
+| `_run_id` | `TEXT` | | Pipeline run identifier (if populated by a pipeline) |
+| `_fetched_at` | `TEXT` | | ISO-8601 timestamp of the fetch (if populated by a pipeline) |
+
+**Rationale**
+- `id` as primary key keeps joins stable even if an exchange rebrands.
+- `name` is unique so lookups by name are safe.
+- `trading_fee_percent` stored as a plain number (not basis points) for readability; the app can format as "0.10%".
+- `_run_id` / `_fetched_at` are included per the project convention for any table that a pipeline writes—if you later add a scheduled scraper, they’re already there.
+- Lower-snake_case naming matches the project style.
+
+Let me know if you want to adjust anything (e.g., separate maker/taker fees, add a `notes` column, or make `website` a checked URL), and I’ll create it with `apply_migration`.
+----- result: stop answer, loaded [database-design:load_skill], events 2

@@ -1,0 +1,39 @@
+===== glm-4.5-flash | t6_a_review_new_pipeline | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 2121, output 163, 5.8s, finish tool_calls, reasoning 474 chars)
+[12:00:04 assistant] 
+I'll check the new pipeline for you. It looks like the "fear_greed" pipeline was saved today and hasn't been reviewed yet. Let me examine its configuration.
+
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2338, output 518, 17.6s, finish stop, reasoning 1462 chars)
+[12:00:09 assistant] 
+I've reviewed the fear_greed pipeline configuration. Here are the issues I found:
+
+1. **API endpoint**: The URL "https://api.alternative.example/fng/" appears to be a placeholder and likely won't work with a real API.
+
+2. **Missing error handling**: There's no error handling for the API call or LLM summarization steps. If either fails, the entire pipeline will fail.
+
+3. **Hardcoded values**: 
+   - The coin is hardcoded as "BTC" in the database insertion
+   - The source is hardcoded as "alternative.example"
+
+4. **Data validation**: No validation of the API response before passing it to the LLM.
+
+5. **URL format**: The URL format "fng-{{ run.date }}" for the news entry might not be appropriate.
+
+The pipeline needs error handling, proper API endpoint configuration, and more flexible data handling to be production-ready.
+
+----- background tasks
+
+----- assertions
+fail  test 6    right_target                       no send_to_chat; tools used: read_config
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+skip  test 6    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 6    no_repeat                          no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2338
+tests: map[5:pass 6:fail] | prompt 4459 output 681 requests 2 peak 2338 polls 0 | 23s real, 9s virtual

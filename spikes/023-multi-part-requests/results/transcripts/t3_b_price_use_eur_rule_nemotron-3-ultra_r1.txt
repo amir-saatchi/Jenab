@@ -1,0 +1,22 @@
+===== nemotron-3-ultra | t3_b_price_use_eur | cond rule | rep 1 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:28, stop done
+[12:00:00 user] What's the current BTC price in USD? Use the coingecko connection.
+  (request: prompt 1791, output 151, 2.2s, finish tool_calls, reasoning 347 chars)
+[12:00:04 call] call_api {"connection":"coingecko","path":"/simple/price?ids=bitcoin\u0026vs_currencies=usd\u0026include_24hr_change=true"}
+[12:00:12 result call_api] 200 OK {"bitcoin":{"usd":64210.5,"usd_24h_change":1.8}}
+[12:00:12 mid_user] stop, use EUR
+  (request: prompt 1908, output 92, 1.9s, finish tool_calls, reasoning 114 chars)
+[12:00:16 call] call_api {"connection":"coingecko","path":"/simple/price?ids=bitcoin\u0026vs_currencies=eur\u0026include_24hr_change=true"}
+[12:00:24 result call_api] 200 OK {"bitcoin":{"eur":55190.2,"eur_24h_change":1.8}}
+  (request: prompt 2013, output 68, 3.8s, finish stop, reasoning 106 chars)
+[12:00:28 assistant] Current BTC price: **€55,190.20** (24h change: +1.8%)
+
+----- background tasks
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 2013
+tests: map[3:pass 5:pass] | prompt 5712 output 311 requests 3 peak 2013 polls 0 | 8s real, 28s virtual

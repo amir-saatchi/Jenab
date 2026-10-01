@@ -1,0 +1,51 @@
+===== nemotron-3-ultra | t12_a_moving_average_btc | cond rule | rep 2 | tests [1 2]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:36, stop step cap
+[12:00:00 user] What is a moving average, and also fetch today's BTC price and news?
+  (request: prompt 1791, output 284, 6.9s, finish tool_calls, reasoning 315 chars)
+[12:00:04 assistant] A **moving average (MA)** is a technical indicator that smooths price data by creating a constantly updated average price over a specific period. It helps identify trends by filtering out short-term fluctuations.
+
+- **Simple Moving Average (SMA)**: Arithmetic mean of prices over N periods (e.g., 20-day SMA = sum of last 20 closes ÷ 20).
+- **Exponential Moving Average (EMA)**: Gives more weight to recent prices, reacts faster to new data.
+- Common periods: 20, 50, 200 days. Crossovers (e.g., 50-day crossing 200-day) signal trend changes.
+
+Now I'll fetch today's BTC price and news via the daily pipeline:
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"BTC","currency":"USD"}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 2027, output 53, 1.8s, finish tool_calls, reasoning 108 chars)
+[12:00:08 call] run_status {"run_id":"r_1"}
+[12:00:09 result run_status] running for 5 s (typical length 30 s)
+  (request: prompt 2085, output 80, 4.4s, finish tool_calls, reasoning 223 chars)
+[12:00:13 call] run_status {"run_id":"r_1"}
+[12:00:13 result run_status] running for 10 s (typical length 30 s)
+  (request: prompt 2144, output 42, 1.5s, finish tool_calls, reasoning 54 chars)
+[12:00:17 call] run_status {"run_id":"r_1"}
+[12:00:18 result run_status] running for 14 s (typical length 30 s)
+  (request: prompt 2203, output 42, 2.1s, finish tool_calls, reasoning 54 chars)
+[12:00:22 call] run_status {"run_id":"r_1"}
+[12:00:22 result run_status] running for 18 s (typical length 30 s)
+  (request: prompt 2262, output 42, 4.6s, finish tool_calls, reasoning 54 chars)
+[12:00:26 call] run_status {"run_id":"r_1"}
+[12:00:27 result run_status] running for 23 s (typical length 30 s)
+  (request: prompt 2321, output 42, 1.9s, finish tool_calls, reasoning 54 chars)
+[12:00:31 call] run_status {"run_id":"r_1"}
+[12:00:31 result run_status] running for 28 s (typical length 30 s)
+  (request: prompt 2380, output 42, 1.6s, finish tool_calls, reasoning 54 chars)
+[12:00:35 call] run_status {"run_id":"r_1"}
+[12:00:36 result run_status] finished 12:00:34: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered poll
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 4 s, slow work (run_pipeline r_1 (background)) done at 34 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test info text_before_tool                   A **moving average (MA)** is a technical indicator that smooths price data by cr...
+pass  test info background_started                 run_pipeline r_1
+fail  test info mentions_running                   A **moving average (MA)** is a technical indicator that smooths price data by creating a constantly updated average pric...
+fail  test 2    answer_contains                    no finish turn and the rest was never given
+skip  test 2    no_repeat                          no finish turn
+skip  test 2    no_restart                         no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2380
+tests: map[1:pass 2:fail 5:pass] | prompt 17213 output 627 requests 8 peak 2380 polls 7 | 25s real, 36s virtual

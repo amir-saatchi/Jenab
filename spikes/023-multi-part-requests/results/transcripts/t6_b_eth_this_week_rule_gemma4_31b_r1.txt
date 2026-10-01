@@ -1,0 +1,28 @@
+===== gemma4:31b | t6_b_eth_this_week | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] How did ETH do this week?
+  (request: prompt 2059, output 45, 0.7s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] send_to_chat {"chat_id":"c_eth","message":"How did ETH do this week? Please provide a summary of its performance and any key news."}
+[12:00:04 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2127, output 35, 0.6s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] I've asked the ETH tracker to summarize this week's performance and key news. I'll let you know as soon as it replies.
+
+----- turn 2 (system) 12:00:49-12:00:53, stop done
+[12:00:49 notice] [task t_1 finished 12:00:49: reply from ETH tracker (c_eth): ETH rose 4.2% this week, from 2,483 to 2,587 USD. Main news: gas fees at a two-year low, and the first ETF inflows in three weeks (62M USD). My weekly log is updated.
+]
+  (request: prompt 2256, output 55, 0.6s, finish stop, reasoning 0 chars)
+[12:00:53 assistant] ETH rose 4.2% this week, moving from 2,483 to 2,587 USD. Key highlights include gas fees hitting a two-year low and the first ETF inflows in three weeks, totaling 62M USD.
+
+----- background tasks
+t_1 send_to_chat c_eth start 12:00:04 finish 12:00:49 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    ETH rose 4.2% this week, moving from 2,483 to 2,587 USD. Key highlights include gas fees hitting a two-year low and the first ETF inflows in three weeks, totali...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 2256
+tests: map[5:pass 6:pass] | prompt 6442 output 135 requests 3 peak 2256 polls 0 | 3s real, 53s virtual

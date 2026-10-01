@@ -1,0 +1,35 @@
+===== glm-4.5-flash | t4_c_pipeline_schedule | cond base | rep 2 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1416, output 151, 5.0s, finish tool_calls, reasoning 553 chars)
+[12:00:04 assistant] 
+I'll check the daily_prices pipeline configuration for you.
+
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 1705, output 310, 10.1s, finish stop, reasoning 638 chars)
+[12:00:09 assistant] 
+The daily_prices pipeline:
+
+**What it does:**
+- Fetches current price data for a cryptocurrency (BTC or ETH, default BTC) in a specified currency (USD or EUR, default USD)
+- Saves the price data to the prices table
+- Fetches news for the specified cryptocurrency 
+- Saves the news to the news table
+
+**When it runs:**
+- Daily at 8:00 AM Berlin time (08:00 Europe/Berlin)
+
+The pipeline has 4 steps: fetch price data, save price, fetch news, and save news. It's designed to keep the database updated with the latest prices and news for cryptocurrencies on a daily schedule.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    I'll check the daily_prices pipeline configuration for you. The daily_prices pipeline: **What it does:** - Fetches current price data for a cryptocurrency (BTC ...
+pass  test 5    max_prompt_tokens                  peak prompt 1705
+tests: map[4:pass 5:pass] | prompt 3121 output 461 requests 2 peak 1705 polls 0 | 15s real, 9s virtual

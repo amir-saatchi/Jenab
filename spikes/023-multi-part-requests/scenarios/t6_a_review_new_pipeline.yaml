@@ -1,0 +1,13 @@
+id: t6_a_review_new_pipeline
+title: '"Check the new pipeline for problems" -> Reviewer'
+tests: ["6"]
+context: mother
+why: 'send_to_chat(c_reviewer) naming fear_greed; when the reply comes, pass on the two problems once.'
+messages:
+  - text: "Can you check the new pipeline for problems?"
+asserts:
+  - {type: right_target, test: "6", chat_id: c_reviewer, match: '(?i)fear_greed|fear.{0,5}greed'}
+  - {type: created_chat_only_for_lasting_job, test: "6", expect: false}
+  - {type: no_resend_after_notice, test: "6"}
+  - {type: answer_contains, test: "6", turn: finish, match: '(?i)on_error|error handling|retry'}
+  - {type: no_repeat, test: "6", max_overlap: 0.3}

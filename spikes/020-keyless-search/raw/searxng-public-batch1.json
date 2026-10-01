@@ -1,0 +1,112 @@
+[
+ {
+  "source": "searxng-public:searx.tiekoetter.com",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:40:33.6509005Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 913,
+  "results": null
+ },
+ {
+  "source": "searxng-public:searx.tiekoetter.com",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:40:36.8599167Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 121,
+  "results": null
+ },
+ {
+  "source": "searxng-public:priv.au",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:40:37.6132506Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 753,
+  "results": null
+ },
+ {
+  "source": "searxng-public:priv.au",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:40:41.7251255Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 864,
+  "results": null
+ },
+ {
+  "source": "searxng-public:baresearch.org",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:40:43.5737594Z",
+  "http_code": 200,
+  "status": "blocked",
+  "detail": "not JSON (probably HTML/format disabled): \u003c!doctype html\u003e\u003chtml lang=\"en\"\u003e\u003chead\u003e\u003ctitle\u003eMaking sure you\u0026#39;re not a bot!\u003c/title\u003e\u003clink rel=\"stylesheet\" href=\"/.within.website/x/xess/xess.min.css?cachebust",
+  "latency_ms": 1847,
+  "results": null
+ },
+ {
+  "source": "searxng-public:baresearch.org",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:40:45.9414361Z",
+  "http_code": 200,
+  "status": "blocked",
+  "detail": "not JSON (probably HTML/format disabled): \u003c!doctype html\u003e\u003chtml lang=\"en\"\u003e\u003chead\u003e\u003ctitle\u003eMaking sure you\u0026#39;re not a bot!\u003c/title\u003e\u003clink rel=\"stylesheet\" href=\"/.within.website/x/xess/xess.min.css?cachebust",
+  "latency_ms": 215,
+  "results": null
+ },
+ {
+  "source": "searxng-public:search.inetol.net",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:40:46.7058792Z",
+  "http_code": 200,
+  "status": "blocked",
+  "detail": "not JSON (probably HTML/format disabled): \u003c!doctype html\u003e \u003chtml lang=\"en\"\u003e \u003chead\u003e \u003ctitle\u003eSecurity check - Substation\u003c/title\u003e \u003cmeta charset=\"UTF-8\" /\u003e \u003cmeta content=\"width=device-width, initial-scale=1.0",
+  "latency_ms": 764,
+  "results": null
+ },
+ {
+  "source": "searxng-public:search.inetol.net",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:40:50.0865501Z",
+  "http_code": 200,
+  "status": "blocked",
+  "detail": "not JSON (probably HTML/format disabled): \u003c!doctype html\u003e \u003chtml lang=\"en\"\u003e \u003chead\u003e \u003ctitle\u003eSecurity check - Substation\u003c/title\u003e \u003cmeta charset=\"UTF-8\" /\u003e \u003cmeta content=\"width=device-width, initial-scale=1.0",
+  "latency_ms": 144,
+  "results": null
+ },
+ {
+  "source": "searxng-public:searx.dresden.network",
+  "query_id": "q01",
+  "round": 1,
+  "time": "2026-09-28T16:40:50.7069152Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 620,
+  "results": null
+ },
+ {
+  "source": "searxng-public:searx.dresden.network",
+  "query_id": "q02",
+  "round": 1,
+  "time": "2026-09-28T16:40:54.1979909Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Too Many Requests",
+  "latency_ms": 110,
+  "results": null
+ }
+]

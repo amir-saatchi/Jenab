@@ -1,0 +1,13 @@
+id: t6_g_schedule_and_review
+title: 'Quick question plus delegation - fear_greed''s schedule, and have the Reviewer check it for cost'
+tests: ["6"]
+context: mother
+why: 'Answer 09:00 at once, send_to_chat(c_reviewer) about fear_greed and cost; pass on the reply without repeating the schedule.'
+messages:
+  - text: "When does the new fear_greed pipeline run? And have the Reviewer check it for cost."
+asserts:
+  - {type: right_target, test: "6", chat_id: c_reviewer, match: '(?i)fear_greed|fear.{0,5}greed'}
+  - {type: quick_before_finish, test: "6", match_all: ['(?i)0?9:00|9 ?am|\b9 o.clock|09\.00'], tools: [send_to_chat, subagent, create_chat]}
+  - {type: no_resend_after_notice, test: "6"}
+  - {type: answer_contains, test: "6", turn: finish, match: '(?i)1,?200|tokens|llm'}
+  - {type: no_repeat, test: "6", max_overlap: 0.3, markers: ['(?i)(runs|scheduled) (daily |every day )?at 0?9']}

@@ -1,0 +1,6 @@
+prompt tokens used before this invocation: 22770 of 2000000
+note: glm-4.5-flash is not in zai /models
+20:41:18 nemotron-3-ultra T1 run 1: stop=done valid=true first=true failedBatches=0 checks=3/4 req=2 prompt=8309 peak=4387 48s budget=38800 
+20:41:24 gemma4:31b       T1 run 1: stop=done valid=true first=false failedBatches=2 checks=2/4 req=4 prompt=16787 peak=4722 6s budget=55587 
+20:42:49 nemotron-3-ultra T2 run 1: stop=done valid=true first=false failedBatches=2 checks=9/10 req=5 prompt=24218 peak=5683 85s budget=100337 
+20:42:52 gemma4:31b       T2 run 1: stop=done valid=true first=true failedBatches=0 checks=10/10 req=2 prompt=8357 peak=4441 3s budget=115092 

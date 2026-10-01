@@ -1,0 +1,30 @@
+===== gemma4:31b | t4_a_what_is_ma | cond base | rep 2 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1313, output 321, 2.0s, finish stop, reasoning 0 chars)
+[12:00:04 assistant] A moving average (MA) is a technical analysis tool used to smooth out price data by creating a constantly updated average price. It helps filter out short-term "noise" (random price fluctuations) to reveal the underlying trend.
+
+**How it works:**
+It calculates the average price over a specific number of periods (e.g., 20 days, 50 days, or 200 days). As a new data point becomes available, the oldest data point is dropped, and the average "moves" forward.
+
+**Common Types:**
+1.  **Simple Moving Average (SMA):** The arithmetic mean of the prices over the chosen period. Every day carries equal weight.
+2.  **Exponential Moving Average (EMA):** Gives more weight to recent prices, making it more responsive to new information and price changes.
+
+**Common Uses in Crypto/Trading:**
+*   **Trend Identification:** If the price is above the MA, the trend is generally considered bullish; if below, bearish.
+*   **Support and Resistance:** Traders often view major MAs (like the 200-day SMA) as psychological floors or ceilings where the price might bounce or stall.
+*   **Crossovers:** When a short-term MA (e.g., 50-day) crosses above a long-term MA (e.g., 200-day), it is called a **"Golden Cross"** (bullish signal). The opposite is a **"Death Cross"** (bearish signal).
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A moving average (MA) is a technical analysis tool used to smooth out price data by creating a constantly updated average price. It helps filter out short-term ...
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1313
+tests: map[4:pass 5:pass] | prompt 1313 output 321 requests 1 peak 1313 polls 0 | 2s real, 4s virtual

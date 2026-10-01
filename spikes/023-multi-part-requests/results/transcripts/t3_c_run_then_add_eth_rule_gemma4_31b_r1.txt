@@ -1,0 +1,41 @@
+===== gemma4:31b | t3_c_run_then_add_eth | cond rule | rep 1 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Run the daily prices pipeline now.
+  (request: prompt 1369, output 17, 0.8s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] run_pipeline {"id":"daily_prices"}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1407, output 24, 0.7s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] The `daily_prices` pipeline has been started (Run ID: `r_1`).
+
+----- turn 2 (user) 12:00:12-12:00:20, stop done
+[12:00:12 user] also run it for ETH
+  (request: prompt 1445, output 25, 1.1s, finish tool_calls, reasoning 0 chars)
+[12:00:16 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+[12:00:16 result run_pipeline] {"run_id":"r_2","status":"started"}
+  (request: prompt 1491, output 27, 1.4s, finish stop, reasoning 0 chars)
+[12:00:20 assistant] The `daily_prices` pipeline has also been started for ETH (Run ID: `r_2`).
+
+----- turn 3 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 1621, output 46, 1.5s, finish stop, reasoning 0 chars)
+[12:00:38 assistant] The `daily_prices` run for BTC (`r_1`) finished successfully. BTC closed at 64,210.50 USD (+1.8%), and 3 new news articles were added.
+
+----- turn 4 (system) 12:00:46-12:00:50, stop done
+[12:00:46 notice] [run r_2 finished 12:00:46: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 1767, output 46, 1.1s, finish stop, reasoning 0 chars)
+[12:00:50 assistant] The `daily_prices` run for ETH (`r_2`) also finished successfully. ETH closed at 2,587.40 USD (+2.3%), and 3 new news articles were added.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+r_2 run_pipeline daily_prices start 12:00:16 finish 12:00:46 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered new_turn
+pass  test 3    max_calls                          1 calls
+pass  test 3    answer_contains                    The `daily_prices` run for BTC (`r_1`) finished successfully. BTC closed at 64,210.50 USD (+1.8%), and 3 new news articles were added. The `daily_prices` run fo...
+pass  test 3    answer_contains                    The `daily_prices` run for BTC (`r_1`) finished successfully. BTC closed at 64,210.50 USD (+1.8%), and 3 new news articles were added. The `daily_prices` run fo...
+pass  test info no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1767
+tests: map[3:pass 5:pass] | prompt 9100 output 185 requests 6 peak 1767 polls 0 | 7s real, 50s virtual

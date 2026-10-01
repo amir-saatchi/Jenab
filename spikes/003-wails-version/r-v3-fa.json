@@ -1,0 +1,43 @@
+{
+  "App": "Wails v3.0.0-beta.26, frameless, background alpha 1",
+  "Page": {
+    "big": "200 5242880 bytes in 78 ms",
+    "done": "1",
+    "img": "loaded",
+    "missing": "404",
+    "range": "206 abcdef0123 bytes 10-19/5242880",
+    "text": "200 hello from the bucket",
+    "text_type": "text/plain; charset=utf-8",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+  },
+  "Painted": {
+    "at start": "99%",
+    "hide/show by the Wails API, 1.5s after": "20 of 20",
+    "hide/show by the Wails API, 300ms after": "20 of 20",
+    "minimise/restore by WM_SYSCOMMAND (like the taskbar), 1.5s after": "20 of 20",
+    "minimise/restore by WM_SYSCOMMAND (like the taskbar), 300ms after": "20 of 20",
+    "minimise/restore by the Wails API, 1.5s after": "10 of 10",
+    "minimise/restore by the Wails API, 300ms after": "10 of 10",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 1.5s after": "0 of 1",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 300ms after": "1 of 1",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 5s after": "0 of 1",
+    "minimised for 30s, restore by WM_SYSCOMMAND, 1.5s after": "1 of 1",
+    "minimised for 30s, restore by WM_SYSCOMMAND, 300ms after": "1 of 1",
+    "minimised for 30s, restore by WM_SYSCOMMAND, 5s after": "1 of 1"
+  },
+  "Failures": [
+    "minimised for 2m0s, restore by WM_SYSCOMMAND round 1, 1.5s after: 0% painted",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND round 1, 5s after: 0% painted"
+  ],
+  "Ticks": {
+    "5 s hidden (expect ~50)": 50
+  },
+  "Second": "first instance got \"D:\\\\DEV\\\\Burrow\\\\spikes\\\\003-wails-version\\\\app-v3.exe --second\"; second exited after 51ms (err \u003cnil\u003e)",
+  "Notify": "sent without error",
+  "Events": null,
+  "Extra": {
+    "tray": "created with icon, tooltip and menu"
+  },
+  "TotalTime": "4m38s",
+  "WindowHWND": "0x610a9e"
+}

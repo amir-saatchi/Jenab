@@ -1,0 +1,8 @@
+===== glm-4.5-flash L09_moving_average guide v2 run 2 chained false
+----- user
+What is a moving average? Answer in two sentences.
+----- assistant (finish stop, prompt 1749, output 154, 16.1s)
+[reasoning 531 chars]
+
+A moving average is a statistical calculation that creates a series of averages of different subsets of the full data set over time. It smooths out short-term fluctuations and helps identify longer-term trends by averaging data points within a specific window that moves forward in time.
+----- result: stop answer, loaded [], events 1

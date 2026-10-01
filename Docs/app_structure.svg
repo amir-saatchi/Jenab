@@ -1,0 +1,428 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1290" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Jenab — app structure (SPEC v0.6)</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="1290" fill="#ffffff"/>
+
+  <text x="700" y="38" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2328">Jenab — app structure (SPEC v0.6)</text>
+  <text x="700" y="60" text-anchor="middle" font-size="12" fill="#666">Open-source Go + Wails v3 desktop agent harness · design stage · components from SPEC.md v0.4 and PROPOSAL.md §5</text>
+
+  <!-- ================= FRONTEND ================= -->
+  <rect x="20" y="74" width="1360" height="130" rx="10" fill="#EEF4FF" stroke="#4A7BD0"/>
+  <text x="36" y="96" font-size="14" font-weight="bold" fill="#2B4F8F">Frontend — Wails webview</text>
+  <text x="1364" y="96" text-anchor="end" font-size="11" fill="#7A7A85">React + TypeScript · shadcn/ui · Zustand · TanStack Table · Recharts · Bun</text>
+
+  <rect x="40" y="108" width="280" height="84" rx="8" fill="#fff" stroke="#4A7BD0"/>
+  <rect x="340" y="108" width="520" height="84" rx="8" fill="#fff" stroke="#4A7BD0"/>
+  <rect x="880" y="108" width="480" height="84" rx="8" fill="#fff" stroke="#4A7BD0"/>
+  <g font-size="13" font-weight="bold" fill="#1f2328">
+    <text x="52" y="130">Left sidebar</text>
+    <text x="352" y="130">Chat (full, or docked beside an open page)</text>
+    <text x="892" y="130">Pages (right sidebar → main area)</text>
+  </g>
+  <g font-size="12" fill="#444">
+    <text x="52" y="150">Projects · Mother chat · chats</text>
+    <text x="52" y="166">Flagged pipelines · notifications</text>
+    <text x="352" y="150">Streamed replies · tool calls · previews with refs</text>
+    <text x="352" y="166">Memory chips [undo] [edit] · approval cards (hosts, migrations)</text>
+    <text x="352" y="182">Undo turn · Refresh memory (chip, diff, undo)</text>
+    <text x="892" y="150">rows of blocks: table · chart · pie · stat · form</text>
+    <text x="892" y="166">Resources: Files (bucket) · Links</text>
+    <text x="892" y="182">Project settings · run log · update notice</text>
+  </g>
+
+  <!-- ================= WAILS SHELL ================= -->
+  <rect x="20" y="222" width="1360" height="54" rx="8" fill="#F4F4F6" stroke="#8A8A96"/>
+  <text x="36" y="244" font-size="13" font-weight="bold" fill="#45454F">Wails v3 shell</text>
+  <text x="160" y="244" font-size="11" fill="#7A7A85">v3.0.0-beta.26, pinned tag · normal OS window frame (SPIKE-003)</text>
+  <text x="36" y="265" font-size="12" fill="#444">bindings (Go calls) · events (streams, async results) · asset handler /objects/&lt;project_id&gt;/&lt;key&gt; · tray + background mode · notifications · single instance</text>
+
+  <!-- ================= GO BACKEND ================= -->
+  <rect x="20" y="294" width="1160" height="736" rx="10" fill="#F1FAF1" stroke="#4E9A4E"/>
+  <text x="36" y="316" font-size="14" font-weight="bold" fill="#2F6B2F">Go backend</text>
+  <text x="132" y="316" font-size="11" fill="#7A7A85">one process · pure Go, no cgo (modernc.org/sqlite) · time/tzdata embedded</text>
+
+  <!-- Row A: orchestration -->
+  <text x="40" y="338" font-size="11" font-weight="bold" fill="#2F6B2F">ORCHESTRATION</text>
+  <rect x="40" y="346" width="340" height="114" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="400" y="346" width="400" height="114" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="820" y="346" width="340" height="114" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <g font-size="13" font-weight="bold" fill="#1f2328">
+    <text x="52" y="368">Context builder</text>
+    <text x="412" y="368">Agents</text>
+    <text x="832" y="368">Orchestrator</text>
+  </g>
+  <g font-size="12" fill="#444">
+    <text x="52" y="388">system prompt → user memory → project memory</text>
+    <text x="52" y="404">→ project card → notes → history → turn</text>
+    <text x="52" y="420">3–8 turns or 24k tokens; no compaction</text>
+    <text x="52" y="436">tool output: preview + ref; stub after a cut</text>
+    <text x="52" y="452">cache point after block 5 (Anthropic)</text>
+
+    <text x="412" y="388">Main agent: chat + tools, edits memory and notes</text>
+    <text x="412" y="404">Schema agent: returns structured migration steps</text>
+    <text x="412" y="420">→ applied · rejected · needs_approval</text>
+    <text x="412" y="436">Subagents: isolated context (long reads)</text>
+    <text x="412" y="452">only main agents (and the user) write memory</text>
+
+    <text x="832" y="388">owns the agent loop, one turn at a time</text>
+    <text x="832" y="404">writes message + tool_call to chats.db first</text>
+    <text x="832" y="420">every change logged · Undo turn · Revert run</text>
+    <text x="832" y="436">undo lists conflicts; migrations not undone</text>
+    <text x="832" y="452">memory/run updates → notice in current turn</text>
+  </g>
+
+  <!-- Row B: execution -->
+  <text x="40" y="484" font-size="11" font-weight="bold" fill="#2F6B2F">EXECUTION</text>
+  <rect x="40" y="492" width="208" height="158" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="268" y="492" width="208" height="158" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="496" y="492" width="208" height="158" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="724" y="492" width="208" height="158" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <rect x="952" y="492" width="208" height="158" rx="8" fill="#fff" stroke="#4E9A4E"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="50" y="514">View + form runtime</text>
+    <text x="278" y="514">Scheduler</text>
+    <text x="506" y="514">Pipeline runner</text>
+    <text x="734" y="514">Tool registry</text>
+    <text x="962" y="514">Config validator</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="50" y="532">table · chart · form configs</text>
+    <text x="50" y="547">wraps query: sort + paging</text>
+    <text x="50" y="562">reader pool, 2 s timeout</text>
+    <text x="50" y="577">no LLM, no network on open</text>
+    <text x="50" y="592">charts: at most 10,000 rows</text>
+    <text x="50" y="607">forms: Go type check → writer</text>
+    <text x="50" y="622">re-validate after migration</text>
+
+    <text x="278" y="532">cron (5 fields), own checks</text>
+    <text x="278" y="547">DST rule · IANA time zones</text>
+    <text x="278" y="562">wall-clock check every minute</text>
+    <text x="278" y="577">+ OS resume events (Windows)</text>
+    <text x="278" y="592">catch-up: once or skip (24 h)</text>
+    <text x="278" y="607">one run per pipeline · FIFO</text>
+    <text x="278" y="622">max_parallel_runs = 4</text>
+
+    <text x="506" y="532">http · web · html · transform</text>
+    <text x="506" y="547">db · llm · bucket · app steps</text>
+    <text x="506" y="562">sandboxed expressions</text>
+    <text x="506" y="577">secrets bound to hosts</text>
+    <text x="506" y="592">new hosts need approval</text>
+    <text x="506" y="607">private-net block · redaction</text>
+    <text x="506" y="622">dry run on a VACUUM INTO copy</text>
+
+    <text x="734" y="532">query · describe_table</text>
+    <text x="734" y="547">insert · request_schema_change</text>
+    <text x="734" y="562">save_view · save_pipeline</text>
+    <text x="734" y="577">validate · dry_run · run_*</text>
+    <text x="734" y="592">update_memory · session notes</text>
+    <text x="734" y="607">search_history · read_ref</text>
+    <text x="734" y="622">web_search · fetch_page</text>
+    <text x="734" y="637">bucket_*, save_link, subagent</text>
+
+    <text x="962" y="532">no anchors or duplicate keys</text>
+    <text x="962" y="547">JSON Schema 2020-12</text>
+    <text x="962" y="562">steps · refs · schema · SQL</text>
+    <text x="962" y="577">expressions · cron · network</text>
+    <text x="962" y="592">errors: line:col + path</text>
+    <text x="962" y="607">all errors returned at once</text>
+  </g>
+  <g font-size="10" fill="#7A7A85">
+    <text x="278" y="637">adhocore/gronx (SPIKE-004, 014)</text>
+    <text x="506" y="637">expr-lang/expr (SPIKE-005)</text>
+    <text x="962" y="622">go.yaml.in/yaml/v3</text>
+    <text x="962" y="637">santhosh-tekuri/jsonschema/v6</text>
+  </g>
+
+  <!-- Starlark child process (separate OS process) -->
+  <rect x="268" y="668" width="292" height="56" rx="8" fill="#fff" stroke="#4E9A4E" stroke-dasharray="6 4"/>
+  <text x="280" y="686" font-size="12" font-weight="bold" fill="#1f2328">Starlark child process</text>
+  <text x="548" y="686" text-anchor="end" font-size="10" fill="#7A7A85">go.starlark.net</text>
+  <g font-size="11" fill="#444">
+    <text x="280" y="701">Job Object 256 MB · 10M steps · kill</text>
+    <text x="280" y="715">read-only db.query · no network/secrets</text>
+  </g>
+
+  <!-- Row C left: data access -->
+  <rect x="40" y="744" width="720" height="276" rx="8" fill="#F8FCF8" stroke="#8CBF8C"/>
+  <text x="52" y="764" font-size="13" font-weight="bold" fill="#2F6B2F">Async data layer (per project)</text>
+  <text x="290" y="764" font-size="11" fill="#7A7A85">one writer goroutine + reader pool per db file</text>
+  <rect x="52" y="776" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="288" y="776" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="524" y="776" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="52" y="896" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="288" y="896" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="524" y="896" width="224" height="108" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="62" y="796">Reader pools (per db file)</text>
+    <text x="298" y="796">SQL guard (agent queries)</text>
+    <text x="534" y="796">Migrations (schema agent)</text>
+    <text x="62" y="916">Writer goroutines</text>
+    <text x="298" y="916">Object store (bucket)</text>
+    <text x="534" y="916">Project lifecycle</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="62" y="813">query_only; never wait on writer</text>
+    <text x="62" y="828">timeouts: views 2 s, query 10 s</text>
+    <text x="62" y="843">no cursor held across pages</text>
+    <text x="62" y="858">no read tx longer than timeout</text>
+    <text x="62" y="873">registry.db: one connection</text>
+
+    <text x="298" y="813">1 text check (Go lexer) first</text>
+    <text x="298" y="828">2 EXPLAIN program scan</text>
+    <text x="298" y="843">3 guarded reader connection:</text>
+    <text x="310" y="858">ATTACHED 0 · LENGTH 16 MiB</text>
+    <text x="298" y="873">all writes built by Go</text>
+
+    <text x="534" y="813">structured steps → Go DDL</text>
+    <text x="534" y="828">one tx: DDL, data, dependents,</text>
+    <text x="534" y="843">change log, schema version</text>
+    <text x="534" y="858">schema guard before commit</text>
+    <text x="534" y="873">snapshot before destructive</text>
+
+    <text x="62" y="933">project.db: interactive first,</text>
+    <text x="62" y="948">1 background after 10 in a row</text>
+    <text x="62" y="963">chats.db: one queue (appends)</text>
+    <text x="62" y="978">typed requests, short tx</text>
+    <text x="62" y="993">500-row chunks, 1 tx each</text>
+
+    <text x="298" y="933">local folder behind ObjectStore</text>
+    <text x="298" y="948">put: tmp/ → fsync → rename → tx</text>
+    <text x="298" y="963">SHA-256 names · dedup · versions</text>
+    <text x="298" y="978">sweep keeps bytes undo needs</text>
+    <text x="298" y="993">UI reads via asset handler</text>
+
+    <text x="534" y="933">open: jenab.lock, quick_check</text>
+    <text x="534" y="948">crash: running → interrupted</text>
+    <text x="534" y="963">clean tmp/ + .partial, sweep</text>
+    <text x="534" y="978">idle 10 min: checkpoint, close</text>
+    <text x="534" y="993">user_version = storage format</text>
+  </g>
+
+  <!-- Row C right: providers and services -->
+  <rect x="780" y="744" width="380" height="276" rx="8" fill="#F8FCF8" stroke="#8CBF8C"/>
+  <text x="792" y="764" font-size="13" font-weight="bold" fill="#2F6B2F">Providers &amp; services</text>
+  <rect x="792" y="776" width="356" height="70" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="792" y="858" width="356" height="70" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <rect x="792" y="940" width="356" height="70" rx="6" fill="#fff" stroke="#8CBF8C"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="802" y="795">LLM providers (own Provider interface)</text>
+    <text x="802" y="877">Web access</text>
+    <text x="802" y="959">Updater (Wails pkg/updater)</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="802" y="811">Anthropic + OpenAI SDKs; local models via base URL</text>
+    <text x="802" y="825">complete streams only · truncation check · retries</text>
+    <text x="802" y="893">search: Tavily · Brave · SearXNG · feeds · GDELT</text>
+    <text x="802" y="907">pages: charset → main content → Markdown → bucket</text>
+    <text x="802" y="975">ed25519-signed releases · https feed · fails closed</text>
+    <text x="802" y="989">checks at start + every 6 h · restarts only when idle</text>
+    <text x="802" y="1003">per-user install, no admin · watchdog relaunch</text>
+  </g>
+  <g font-size="10" fill="#7A7A85">
+    <text x="802" y="839">anthropics/anthropic-sdk-go · openai/openai-go/v3</text>
+    <text x="802" y="921">go-readability/v2 · html-to-markdown/v2 · x/net charset</text>
+  </g>
+
+  <!-- ================= RIGHT COLUMN ================= -->
+  <!-- Rules of thumb -->
+  <rect x="1200" y="294" width="180" height="180" rx="8" fill="#FAFAFA" stroke="#BBBBBB"/>
+  <text x="1212" y="316" font-size="13" font-weight="bold" fill="#45454F">Rules of thumb</text>
+  <g font-size="11" fill="#444">
+    <text x="1212" y="336">Views read;</text>
+    <text x="1212" y="351">pipelines write.</text>
+    <text x="1212" y="366">Tables hold data;</text>
+    <text x="1212" y="381">memory holds intent.</text>
+    <text x="1212" y="396">Data reaches the db</text>
+    <text x="1212" y="411">without passing</text>
+    <text x="1212" y="426">through the LLM.</text>
+    <text x="1212" y="441">No transaction spans</text>
+    <text x="1212" y="456">a network or LLM call.</text>
+  </g>
+
+  <!-- Legend -->
+  <rect x="1200" y="488" width="180" height="236" rx="8" fill="#FAFAFA" stroke="#BBBBBB"/>
+  <text x="1212" y="510" font-size="13" font-weight="bold" fill="#45454F">Legend</text>
+  <rect x="1212" y="519" width="16" height="10" fill="#EEF4FF" stroke="#4A7BD0"/>
+  <rect x="1212" y="537" width="16" height="10" fill="#F4F4F6" stroke="#8A8A96"/>
+  <rect x="1212" y="555" width="16" height="10" fill="#F1FAF1" stroke="#4E9A4E"/>
+  <rect x="1212" y="573" width="16" height="10" fill="#FFF7EC" stroke="#D08A2E"/>
+  <rect x="1212" y="591" width="16" height="10" fill="#F6F0FB" stroke="#8A5CC0"/>
+  <rect x="1212" y="649" width="16" height="10" fill="#fff" stroke="#4E9A4E" stroke-dasharray="3 2"/>
+  <g font-size="11" fill="#444">
+    <text x="1236" y="528">Frontend (webview)</text>
+    <text x="1236" y="546">Wails v3 shell</text>
+    <text x="1236" y="564">Go backend</text>
+    <text x="1236" y="582">Local storage</text>
+    <text x="1236" y="600">External services</text>
+    <text x="1240" y="620">call / data flow</text>
+    <text x="1240" y="638">calls + events</text>
+    <text x="1236" y="658">separate process</text>
+  </g>
+  <g font-size="10" fill="#7A7A85">
+    <text x="1212" y="682">grey text = library</text>
+    <text x="1212" y="696">or limit decided in</text>
+    <text x="1212" y="710">a SPIKE</text>
+  </g>
+
+  <!-- External services -->
+  <rect x="1200" y="736" width="180" height="292" rx="10" fill="#F6F0FB" stroke="#8A5CC0"/>
+  <text x="1212" y="758" font-size="14" font-weight="bold" fill="#5B3A87">External services</text>
+  <rect x="1212" y="776" width="156" height="70" rx="6" fill="#fff" stroke="#8A5CC0"/>
+  <rect x="1212" y="858" width="156" height="70" rx="6" fill="#fff" stroke="#8A5CC0"/>
+  <rect x="1212" y="940" width="156" height="70" rx="6" fill="#fff" stroke="#8A5CC0"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="1222" y="795">LLM APIs</text>
+    <text x="1222" y="877">Search + websites</text>
+    <text x="1222" y="959">Release feed</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="1222" y="811">Anthropic · OpenAI</text>
+    <text x="1222" y="825">OpenAI-style · local</text>
+    <text x="1222" y="839">user's own keys</text>
+    <text x="1222" y="893">Tavily · Brave · SearXNG</text>
+    <text x="1222" y="907">feeds · Wiki · GDELT</text>
+    <text x="1222" y="921">http/https only</text>
+    <text x="1222" y="975">https manifest</text>
+    <text x="1222" y="989">ed25519 signature</text>
+    <text x="1222" y="1003">stable or beta channel</text>
+  </g>
+
+  <!-- ================= LOCAL STORAGE ================= -->
+  <rect x="20" y="1044" width="1360" height="200" rx="10" fill="#FFF7EC" stroke="#D08A2E"/>
+  <text x="36" y="1066" font-size="14" font-weight="bold" fill="#8A5A17">Local storage</text>
+  <text x="1364" y="1066" text-anchor="end" font-size="11" fill="#7A7A85">&lt;user data dir&gt;/Jenab/ · local disk only</text>
+
+  <!-- per-project folder -->
+  <rect x="40" y="1076" width="720" height="156" rx="8" fill="#FFFCF7" stroke="#D08A2E"/>
+  <rect x="52" y="1086" width="196" height="110" rx="6" fill="#fff" stroke="#D08A2E"/>
+  <rect x="258" y="1086" width="160" height="110" rx="6" fill="#fff" stroke="#D08A2E"/>
+  <rect x="428" y="1086" width="110" height="110" rx="6" fill="#fff" stroke="#D08A2E"/>
+  <rect x="548" y="1086" width="110" height="110" rx="6" fill="#fff" stroke="#D08A2E"/>
+  <rect x="668" y="1086" width="80" height="110" rx="6" fill="#fff" stroke="#D08A2E"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="60" y="1104">project.db</text>
+    <text x="266" y="1104">chats.db</text>
+    <text x="436" y="1104">objects/</text>
+    <text x="556" y="1104">snapshots/</text>
+    <text x="676" y="1104">tmp/</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="60" y="1120">agent tables (explicit PK)</text>
+    <text x="60" y="1134">views · pipelines · memory</text>
+    <text x="60" y="1148">change log + row keys</text>
+    <text x="60" y="1162">runs · approvals · links</text>
+    <text x="60" y="1176">bucket index · notifications</text>
+
+    <text x="266" y="1120">chats · messages</text>
+    <text x="266" y="1134">message_parts</text>
+    <text x="266" y="1148">session_notes</text>
+    <text x="266" y="1162">review_chunks</text>
+    <text x="266" y="1176">messages_fts (FTS5)</text>
+
+    <text x="436" y="1120">bucket bytes,</text>
+    <text x="436" y="1134">named by</text>
+    <text x="436" y="1148">SHA-256</text>
+    <text x="436" y="1162">ab/12/ab12f9…</text>
+
+    <text x="556" y="1120">VACUUM INTO</text>
+    <text x="556" y="1134">copies, last 5</text>
+    <text x="556" y="1148">written as</text>
+    <text x="556" y="1162">.partial, then</text>
+    <text x="556" y="1176">fsync + rename</text>
+
+    <text x="676" y="1120">dry-run</text>
+    <text x="676" y="1134">copies,</text>
+    <text x="676" y="1148">partial</text>
+    <text x="676" y="1162">downloads</text>
+  </g>
+  <text x="52" y="1220" font-size="12" font-weight="bold" fill="#8A5A17">projects/&lt;project_id&gt;/</text>
+  <text x="214" y="1220" font-size="11" fill="#7A7A85">one per project (ULID) · jenab.lock while open · export via VACUUM INTO</text>
+
+  <!-- app-wide files -->
+  <rect x="780" y="1076" width="186" height="156" rx="8" fill="#fff" stroke="#D08A2E"/>
+  <rect x="978" y="1076" width="186" height="156" rx="8" fill="#fff" stroke="#D08A2E"/>
+  <rect x="1176" y="1076" width="184" height="156" rx="8" fill="#fff" stroke="#D08A2E"/>
+  <g font-size="12" font-weight="bold" fill="#1f2328">
+    <text x="790" y="1096">OS keychain</text>
+    <text x="988" y="1096">config.toml</text>
+    <text x="1186" y="1096">registry.db</text>
+  </g>
+  <g font-size="11" fill="#444">
+    <text x="790" y="1114">Windows Credential Manager</text>
+    <text x="790" y="1129">local machine, no roaming</text>
+    <text x="790" y="1144">provider and connection keys</text>
+    <text x="790" y="1159">read per use, not cached</text>
+    <text x="790" y="1174">not in the project folder</text>
+
+    <text x="988" y="1114">providers, model aliases</text>
+    <text x="988" y="1129">history window sizes</text>
+    <text x="988" y="1144">max parallel runs / calls</text>
+    <text x="988" y="1159">search provider settings</text>
+    <text x="988" y="1174">download MIME allow-list</text>
+    <text x="988" y="1189">no secret values</text>
+
+    <text x="1186" y="1114">projects: name, folder,</text>
+    <text x="1186" y="1129">workspace, pinned</text>
+    <text x="1186" y="1144">user memory (1,000 tokens)</text>
+    <text x="1186" y="1159">API connections</text>
+    <text x="1186" y="1174">rebuilt from projects/</text>
+  </g>
+  <text x="790" y="1219" font-size="10" fill="#7A7A85">zalando/go-keyring</text>
+
+  <!-- ================= ARROWS ================= -->
+  <g stroke="#555" stroke-width="1.5" fill="none">
+    <!-- frontend ⇄ Wails shell -->
+    <path d="M180,193 V221" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <path d="M600,193 V221" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <path d="M1120,193 V221" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <!-- shell ⇄ orchestrator, shell ⇄ view runtime -->
+    <path d="M990,277 V345" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <path d="M30,277 V571 H39" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <!-- row A -->
+    <path d="M380,403 H399" marker-end="url(#arrow)"/>
+    <path d="M820,403 H801" marker-end="url(#arrow)"/>
+    <path d="M770,460 V491" marker-end="url(#arrow)"/>
+    <!-- row B -->
+    <path d="M476,560 H495" marker-end="url(#arrow)"/>
+    <path d="M724,560 H705" marker-end="url(#arrow)"/>
+    <path d="M932,560 H951" marker-end="url(#arrow)"/>
+    <path d="M530,650 V667" marker-end="url(#arrow)"/>
+    <!-- execution → data access / providers -->
+    <path d="M144,650 V743" marker-end="url(#arrow)"/>
+    <path d="M620,650 V743" marker-end="url(#arrow)"/>
+    <path d="M745,650 V743" marker-end="url(#arrow)"/>
+    <path d="M860,650 V743" marker-end="url(#arrow)"/>
+    <path d="M1160,420 H1170 V757 H1161" marker-end="url(#arrow)"/>
+    <!-- providers → external services -->
+    <path d="M1148,811 H1211" marker-end="url(#arrow)"/>
+    <path d="M1148,893 H1211" marker-end="url(#arrow)"/>
+    <path d="M1148,975 H1211" marker-end="url(#arrow)"/>
+    <!-- data layer → files -->
+    <path d="M160,1004 V1085" marker-end="url(#arrow)"/>
+    <path d="M266,1004 V1085" marker-end="url(#arrow)"/>
+    <path d="M470,1004 V1085" marker-end="url(#arrow)"/>
+    <path d="M870,1020 V1075" marker-end="url(#arrow)"/>
+    <!-- legend samples -->
+    <path d="M1212,616 H1232" marker-end="url(#arrow)"/>
+    <path d="M1213,634 H1232" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- arrow labels -->
+  <g font-size="10" fill="#666">
+    <text x="996" y="290">calls · events</text>
+    <text x="36" y="289">views · forms</text>
+    <text x="776" y="481">tool calls</text>
+    <text x="150" y="700">view queries</text>
+    <text x="626" y="700">background writes</text>
+    <text x="751" y="700">reads · writes</text>
+    <text x="866" y="700">web_search · fetch_page</text>
+    <text x="1164" y="700" text-anchor="end">LLM calls</text>
+    <text x="876" y="1062">keys · secrets</text>
+  </g>
+
+  <text x="700" y="1270" text-anchor="middle" font-size="11" fill="#666">Every .db runs in WAL mode · project.db and chats.db each get their own writer and reader pool · not in v1: remote bucket backends, event triggers, parallel branches, team access</text>
+</svg>

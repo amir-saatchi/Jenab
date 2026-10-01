@@ -1,0 +1,111 @@
+===== nemotron-3-ultra T3 guide v2 run 2 chained false
+----- user
+Create these views:
+1. btc_price_table: a table of the BTC price, newest first, with a "From" date filter that defaults to 90 days ago, and a "Refresh now" button that runs daily_btc.
+2. btc_price_chart: a line chart of the price over time.
+3. btc_news_table: a table of the saved news (date, title, reason, link), newest first.
+4. keyword_list: a table of the watch keywords where each row can be deleted.
+5. add_keyword: a form to add a watch keyword.
+----- assistant (finish tool_calls, prompt 2133, output 58, 9.0s)
+[reasoning 135 chars]
+
+
+> load_skill {"name":"config-guide"}
+< load_skill
+Skill loaded: config-guide
+
+## 4. Views: save_view (table, chart) and save_form (form)
+
+Common: `version: 1`, `id`, `title`, `type` (table/chart/form), `description`, `query` (table/chart: one read-only SELECT, plain SQL, no `${{ }}`), `params` (fixed parameter values), `filters`, `actions` [{label, run_pipeline: <pipeline id>}].
+Filters bind named query parameters: `{ param, control: text|number|date|select|checkbox, label, default, required, options }`. Every `:name` in the query must be bound by a filter or `params` (not both). Date defaults: ISO date, `today`, `today-7d`, `today-3m`, `today-1y`, `start_of_month`, `start_of_year`. A cleared optional filter binds NULL: write `(:coin IS NULL OR coin = :coin)`. `select` needs `options`: a list `[A, B]` or `{ query: "SELECT ..." }`.
+
+Table: `columns` [{field, label, format, format_options {currency: USD, decimals}, align}], `default_sort` {field, direction: asc|desc} (always required, also for small tables), `page_size`, `rows_from` {table, key} (needed for row_actions; the query must select the key), `row_actions` [{label, open_form: <form id>} or {label, delete: true, confirm: true}]. No ORDER BY/LIMIT in a table query; the runtime sorts and pages.
+Formats: text, number, currency, percent, date, datetime, url, boolean, image, file.
+Chart: `chart_type` line|bar|scatter, `x` {field, label, format}, `y` [{field, label}], `series_by` (a field that splits rows into series; then y has exactly one entry).
+Fields in columns, default_sort, x, y, series_by must be columns of the query result (aliases count).
+
+```yaml
+version: 1
+id: weather_chart
+title: Temperature
+type: chart
+chart_type: line
+query: |
+  SELECT date, city, temp FROM weather
+  WHERE date >= :from AND (:city IS NULL OR city = :city)
+filters:
+  - { param: from, control: date, label: "From", default: "today-30d", required: true }
+  - { param: city, control: select, label: "City", options: { query: "SELECT name FROM cities" } }
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: temp, label: "°C" }
+series_by: city
+```
+
+Form: `fields` [{field, label, control: text|textarea|number|date|select|checkbox|file, required, default, options}], `submit` {action: insert|update|run_pipeline, table (insert/update), key (update), pipeline (run_pipeline)}, `load` (update only: `SELECT ... WHERE id = :key`). Insert forms: field names are table columns; every NOT NULL column without a default needs a field with `required: true`. run_pipeline forms: field names are the pipeline's inputs.
+
+```yaml
+version: 1
+id: add_city
+title: Add city
+type: form
+fields:
+  - { field: name, label: "City", control: text, required: true }
+  - { field: country, label: "Country", control: text, required: true }
+submit: { action: insert, table: cities }
+```
+
+----- assistant (finish tool_calls, prompt 2971, output 255, 27.3s)
+[reasoning 192 chars]
+> save_view {"yaml":"version: 1\nid: btc_price_table\ntitle: BTC Price Table\ntype: table\ndescription: BTC price history, newest first\nquery: |\n  SELECT date, price\n  FROM btc_prices\n  WHERE date \u003e= :from\n  ORDER BY date DESC\nfilters:\n  - param: from\n    control: date\n    label: \"From\"\n    default: \"today-90d\"\n    required: true\nactions:\n  - label: \"Refresh now\"\n    run_pipeline: daily_btc\ncolumns:\n  - field: date\n    label: Date\n    format: date\n  - field: price\n    label: Price (USD)\n    format: currency\n    format_options:\n      currency: USD\n      decimals: 2\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 50"}
+< save_view
+saved table view btc_price_table (revision 1).
+warnings (do not block saving):
+- warning: line 6:8 query: ORDER BY in a table query is ignored; the runtime sorts and paginates (use default_sort)
+
+----- assistant (finish tool_calls, prompt 3269, output 232, 25.1s)
+[reasoning 133 chars]
+> save_view {"yaml":"version: 1\nid: btc_price_table\ntitle: BTC Price Table\ntype: table\ndescription: BTC price history, newest first\nquery: |\n  SELECT date, price\n  FROM btc_prices\n  WHERE date \u003e= :from\nfilters:\n  - param: from\n    control: date\n    label: \"From\"\n    default: \"today-90d\"\n    required: true\nactions:\n  - label: \"Refresh now\"\n    run_pipeline: daily_btc\ncolumns:\n  - field: date\n    label: Date\n    format: date\n  - field: price\n    label: Price (USD)\n    format: currency\n    format_options:\n      currency: USD\n      decimals: 2\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 50"}
+< save_view
+saved table view btc_price_table (revision 2).
+
+----- assistant (finish tool_calls, prompt 3502, output 176, 8.2s)
+[reasoning 77 chars]
+> save_view {"yaml":"version: 1\nid: btc_price_chart\ntitle: BTC Price Chart\ntype: chart\ndescription: BTC price over time\nquery: |\n  SELECT date, price\n  FROM btc_prices\n  WHERE date \u003e= :from\n  ORDER BY date ASC\nfilters:\n  - param: from\n    control: date\n    label: \"From\"\n    default: \"today-90d\"\n    required: true\nchart_type: line\nx:\n  field: date\n  label: Date\n  format: date\ny:\n  - field: price\n    label: Price (USD)"}
+< save_view
+saved chart view btc_price_chart (revision 1).
+
+----- assistant (finish tool_calls, prompt 3712, output 182, 6.1s)
+[reasoning 42 chars]
+
+
+> save_view {"yaml":"version: 1\nid: btc_news_table\ntitle: BTC News\ntype: table\ndescription: Saved BTC news articles, newest first\nquery: |\n  SELECT date, title, reason, url\n  FROM btc_news\n  ORDER BY date DESC\ncolumns:\n  - field: date\n    label: Date\n    format: date\n  - field: title\n    label: Title\n    format: text\n  - field: reason\n    label: Reason\n    format: text\n  - field: url\n    label: Link\n    format: url\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 50"}
+< save_view
+saved table view btc_news_table (revision 1).
+warnings (do not block saving):
+- warning: line 6:8 query: ORDER BY in a table query is ignored; the runtime sorts and paginates (use default_sort)
+
+----- assistant (finish tool_calls, prompt 3974, output 176, 6.1s)
+[reasoning 114 chars]
+> save_view {"yaml":"version: 1\nid: keyword_list\ntitle: Watch Keywords\ntype: table\ndescription: Keywords to watch for in BTC news\nquery: |\n  SELECT id, keyword\n  FROM watch_keywords\n  ORDER BY keyword ASC\ncolumns:\n  - field: keyword\n    label: Keyword\n    format: text\ndefault_sort:\n  field: keyword\n  direction: asc\npage_size: 50\nrows_from:\n  table: watch_keywords\n  key: id\nrow_actions:\n  - label: Delete\n    delete: true\n    confirm: true"}
+< save_view
+saved table view keyword_list (revision 1).
+warnings (do not block saving):
+- warning: line 6:8 query: ORDER BY in a table query is ignored; the runtime sorts and paginates (use default_sort)
+
+----- assistant (finish tool_calls, prompt 4206, output 162, 19.2s)
+[reasoning 260 chars]
+> save_form {"yaml":"version: 1\nid: add_keyword\ntitle: Add Watch Keyword\ntype: form\ndescription: Add a new keyword to watch for in BTC news\nfields:\n  - field: keyword\n    label: Keyword\n    control: text\n    required: true\nsubmit:\n  action: insert\n  table: watch_keywords"}
+< save_form
+saved form view add_keyword (revision 1).
+
+----- assistant (finish stop, prompt 4351, output 153, 11.8s)
+[reasoning 67 chars]
+Created all five views:
+
+1. **btc_price_table** – table of BTC prices with a "From" date filter (defaults to 90 days ago) and a "Refresh now" button that runs the `daily_btc` pipeline.
+2. **btc_price_chart** – line chart of price over time with the same date filter.
+3. **btc_news_table** – table of saved news (date, title, reason, link), newest first.
+4. **keyword_list** – table of watch keywords with a delete row action.
+5. **add_keyword** – form to insert a new keyword into `watch_keywords`.
+----- result: stop done, valid true, first-try true, failed batches 0, checks 5/5

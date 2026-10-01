@@ -1,0 +1,27 @@
+{
+  "App": "Wails v2.12.0, frameless, background alpha 1",
+  "Page": {
+    "big": "200 5242880 bytes in 122 ms",
+    "done": "1",
+    "img": "loaded",
+    "missing": "404",
+    "range": "206 abcdef0123 bytes 10-19/5242880",
+    "text": "200 hello from the bucket",
+    "text_type": "text/plain; charset=utf-8",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+  },
+  "Painted": {
+    "at start": "99%",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 1.5s after": "5 of 5",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 300ms after": "5 of 5",
+    "minimised for 2m0s, restore by WM_SYSCOMMAND, 5s after": "5 of 5"
+  },
+  "Failures": null,
+  "Ticks": {},
+  "Second": "",
+  "Notify": "",
+  "Events": null,
+  "Extra": {},
+  "TotalTime": "10m31s",
+  "WindowHWND": "0x7508fa"
+}

@@ -1,0 +1,19 @@
+===== gemma4:31b T1 guide v1 run 1 chained false
+----- user
+New project: track the daily Bitcoin price and the news most likely to move it. Create the tables:
+- btc_prices: one row per day: date (YYYY-MM-DD) and the price in USD. Filled daily by a pipeline.
+- btc_news: news items: url (the key), date, title, and reason (why it matters). Filled daily by a pipeline.
+- watch_keywords: keywords the user types to steer the news search: id (integer key) and keyword (required, unique).
+----- assistant (finish tool_calls, prompt 3712, output 318, 1.7s)
+> apply_migration {"steps":[{"columns":[{"name":"date","not_null":true,"type":"TEXT"},{"name":"price","not_null":true,"type":"NUMERIC"},{"name":"_run_id","type":"TEXT"},{"name":"_fetched_at","type":"TEXT"}],"op":"create_table","primary_key":"date","table":"btc_prices"},{"columns":[{"name":"url","not_null":true,"type":"TEXT"},{"name":"date","not_null":true,"type":"TEXT"},{"name":"title","not_null":true,"type":"TEXT"},{"name":"reason","type":"TEXT"},{"name":"_run_id","type":"TEXT"},{"name":"_fetched_at","type":"TEXT"}],"op":"create_table","primary_key":"url","table":"btc_news"},{"columns":[{"name":"id","not_null":true,"type":"INTEGER"},{"name":"keyword","not_null":true,"type":"TEXT"}],"op":"create_table","primary_key":"id","table":"watch_keywords"},{"columns":["keyword"],"op":"create_index","table":"watch_keywords","unique":true}]}
+< apply_migration
+applied: migration committed, schema version 1.
+- created table btc_prices
+- created table btc_news
+- created table watch_keywords
+- created index idx_watch_keywords_keyword
+
+----- assistant (finish stop, prompt 4188, output 42, 0.8s)
+Created tables `btc_prices`, `btc_news`, and `watch_keywords` to track Bitcoin price and news.
+The schema includes primary keys and unique constraints as requested.
+----- result: stop done, valid true, first-try true, failed batches 0, checks 4/4

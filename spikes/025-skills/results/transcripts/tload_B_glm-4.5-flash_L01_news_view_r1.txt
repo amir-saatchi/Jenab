@@ -1,0 +1,65 @@
+===== glm-4.5-flash L01_news_view guide v2 run 1 chained false
+----- user
+Add a table view news_last_week that shows the saved news of the last 7 days (date, title, link), newest first.
+----- assistant (finish tool_calls, prompt 1766, output 179, 5.7s)
+[reasoning 532 chars]
+
+I'll help you create a table view showing news from the last 7 days. Let me first load the config guide to understand the proper format for table views.
+
+> load_skill {"name":"config-guide"}
+< load_skill
+Skill loaded: config-guide
+
+## 4. Views: save_view (table, chart) and save_form (form)
+
+Common: `version: 1`, `id`, `title`, `type` (table/chart/form), `description`, `query` (table/chart: one read-only SELECT, plain SQL, no `${{ }}`), `params` (fixed parameter values), `filters`, `actions` [{label, run_pipeline: <pipeline id>}].
+Filters bind named query parameters: `{ param, control: text|number|date|select|checkbox, label, default, required, options }`. Every `:name` in the query must be bound by a filter or `params` (not both). Date defaults: ISO date, `today`, `today-7d`, `today-3m`, `today-1y`, `start_of_month`, `start_of_year`. A cleared optional filter binds NULL: write `(:coin IS NULL OR coin = :coin)`. `select` needs `options`: a list `[A, B]` or `{ query: "SELECT ..." }`.
+
+Table: `columns` [{field, label, format, format_options {currency: USD, decimals}, align}], `default_sort` {field, direction: asc|desc} (always required, also for small tables), `page_size`, `rows_from` {table, key} (needed for row_actions; the query must select the key), `row_actions` [{label, open_form: <form id>} or {label, delete: true, confirm: true}]. No ORDER BY/LIMIT in a table query; the runtime sorts and pages.
+Formats: text, number, currency, percent, date, datetime, url, boolean, image, file.
+Chart: `chart_type` line|bar|scatter, `x` {field, label, format}, `y` [{field, label}], `series_by` (a field that splits rows into series; then y has exactly one entry).
+Fields in columns, default_sort, x, y, series_by must be columns of the query result (aliases count).
+
+```yaml
+version: 1
+id: weather_chart
+title: Temperature
+type: chart
+chart_type: line
+query: |
+  SELECT date, city, temp FROM weather
+  WHERE date >= :from AND (:city IS NULL OR city = :city)
+filters:
+  - { param: from, control: date, label: "From", default: "today-30d", required: true }
+  - { param: city, control: select, label: "City", options: { query: "SELECT name FROM cities" } }
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: temp, label: "°C" }
+series_by: city
+```
+
+Form: `fields` [{field, label, control: text|textarea|number|date|select|checkbox|file, required, default, options}], `submit` {action: insert|update|run_pipeline, table (insert/update), key (update), pipeline (run_pipeline)}, `load` (update only: `SELECT ... WHERE id = :key`). Insert forms: field names are table columns; every NOT NULL column without a default needs a field with `required: true`. run_pipeline forms: field names are the pipeline's inputs.
+
+```yaml
+version: 1
+id: add_city
+title: Add city
+type: form
+fields:
+  - { field: name, label: "City", control: text, required: true }
+  - { field: country, label: "Country", control: text, required: true }
+submit: { action: insert, table: cities }
+```
+
+----- assistant (finish tool_calls, prompt 2606, output 445, 17.5s)
+[reasoning 833 chars]
+
+Now I'll create a table view showing news from the last 7 days. Based on the btc_news table structure, I'll create a view that displays date, title, and link (url) sorted newest first.
+
+> save_view {"yaml":"version: 1\nid: news_last_week\ntitle: News Last Week\ntype: table\ndescription: Shows Bitcoin news from the last 7 days, newest first\nquery: |\n  SELECT date, title, url \n  FROM btc_news \n  WHERE date >= :start_date\n  ORDER BY date DESC\nfilters:\n  - { param: start_date, control: date, label: \"Start Date\", default: \"today-7d\", required: true }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: title, label: \"Title\", format: text }\n  - { field: url, label: \"Link\", format: url }\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 50"}
+< save_view
+saved table view news_last_week (revision 1).
+warnings (do not block saving):
+- warning: line 6:8 query: ORDER BY in a table query is ignored; the runtime sorts and paginates (use default_sort)
+
+----- result: stop write, loaded [config-guide:load_skill], events 2

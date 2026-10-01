@@ -1,0 +1,68 @@
+# Fake-tool delays (virtual time) and results shared by all scenarios. A scenario's own
+# `delays` and `rules` are checked first. `match` is a regex on the raw tool arguments (JSON).
+# query, describe_table, read_config, run_pipeline, run_status, task_status, list_chats and
+# call_api are coded in fixture.go / orch.go (a real in-memory SQLite database, pipeline
+# inputs checked, run lengths: daily_prices 30 s, backfill_prices 4/3 s per day, fear_greed 20 s).
+delays:
+  query: 1s
+  describe_table: 1s
+  read_config: 1s
+  run_status: 500ms
+  task_status: 500ms
+  web_search: 6s
+  fetch_page: 3s
+  call_api: 3s
+  subagent: 90s
+  list_chats: 500ms
+  create_chat: 60s
+  send_to_chat: 45s
+
+rules:
+  web_search:
+    - match: '(?i)gold|xau'
+      result: |
+        1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today.
+        2. "Central banks keep buying gold" - reuters.example, 2026-09-28.
+        3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+    - match: '(?i)\beth\b|ethereum|ether'
+      result: |
+        1. "ETH gas fees fall to a two-year low" - theblock.example, 2026-09-29: average fee 0.8 gwei.
+        2. "Ethereum staking queue shortens after the upgrade" - coindesk.example, 2026-09-28.
+        3. "ETH ETFs see first inflows in three weeks" - decrypt.example, 2026-09-27: 62M USD.
+        4. "ETH trades at 2,587 USD, up 4% on the week" - cryptoslate.example, 2026-09-29.
+    - result: |
+        1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows.
+        2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28.
+        3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28.
+        4. "BTC jumped 4% on 2026-09-12 after low US inflation data" - reuters.example, 2026-09-13: the largest daily move this month.
+        5. "Miner reserves fall to a three-year low" - cryptoslate.example, 2026-09-25.
+  fetch_page:
+    - result: |
+        (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  subagent:
+    - match: '(?i)stak'
+      result: |
+        Summary of 20 pages on ETH staking: 1) the withdrawal queue is down to about 2 days after the upgrade; 2) liquid staking holds 31% of staked ETH, the largest provider 24%; 3) the average staking yield is 2.9% a year; 4) slashing is rare (0.04% of validators); 5) restaking adds yield but also new risks.
+    - match: '(?i)mica|\beu\b|europe|regulat|rules'
+      result: |
+        Summary of 20 pages on the new EU crypto rules: 1) the MiCA transition period ends on 2026-07-01, after that providers need a licence; 2) stablecoin issuers must hold reserves in EU banks; 3) the travel rule applies to transfers above 1,000 EUR; 4) self-hosted wallets are not banned, but large transfers need checks.
+    - match: '(?i)gold'
+      result: |
+        Spot gold is 2,641 USD/oz today (markets.example.com, 2026-09-29), so it is above 2,600 USD.
+    - result: |
+        Done. The sources agree with the project data; nothing new found.
+  send_to_chat:
+    - match: 'c_reviewer'
+      result: |
+        fear_greed has 2 problems. 1) The http.get step has no on_error, so one failed fetch fails the whole run; add on_error with retry 3, then skip. 2) llm.summarize runs on every run although the index is a single number; drop it and write the number, which saves about 1,200 tokens a day. Otherwise it is fine.
+    - match: 'c_eth'
+      result: |
+        ETH rose 4.2% this week, from 2,483 to 2,587 USD. Main news: gas fees at a two-year low, and the first ETF inflows in three weeks (62M USD). My weekly log is updated.
+    - result: |
+        Noted. Nothing else to report.
+  create_chat:
+    - match: '(?i)gold'
+      result: |
+        Gold watcher is set up: pipeline gold_daily is saved (daily at 08:00, writes to gold_prices) and I will report any daily move over 2%. Today's price: 2,641 USD/oz.
+    - result: |
+        Set up and ready.

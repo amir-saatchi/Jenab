@@ -1,0 +1,20 @@
+prompt tokens used before this invocation: 995940 of 2000000
+21:47:00 nemotron-3-ultra T1 run 3: stop=done valid=true first=true failedBatches=0 checks=4/4 req=2 prompt=8345 peak=4409 25s budget=1004285 
+21:47:11 gemma4:31b       T1 run 3: stop=done valid=true first=true failedBatches=0 checks=4/4 req=2 prompt=7928 peak=4201 10s budget=1012213 
+21:51:09 nemotron-3-ultra T2 run 3: stop=done valid=true first=false failedBatches=2 checks=10/10 req=5 prompt=24352 peak=5750 238s budget=1036565 
+21:51:14 gemma4:31b       T2 run 3: stop=done valid=true first=true failedBatches=0 checks=10/10 req=2 prompt=8362 peak=4446 5s budget=1044927 
+21:52:55 nemotron-3-ultra T3 run 3: stop=done valid=true first=true failedBatches=0 checks=5/5 req=8 prompt=39320 peak=5610 101s budget=1084247 
+21:53:01 gemma4:31b       T3 run 3: stop=done valid=true first=true failedBatches=0 checks=5/5 req=2 prompt=8637 peak=4748 6s budget=1092884 
+22:04:34 nemotron-3-ultra T4 run 3: stop=done valid=true first=false failedBatches=3 checks=13/13 req=9 prompt=93997 peak=15084 692s budget=1186881 
+22:05:00 gemma4:31b       T4 run 3: stop=repair limit valid=false first=false failedBatches=5 checks=2/13 req=6 prompt=42053 peak=10408 26s budget=1228934 
+22:11:42 nemotron-3-ultra T1 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=4/4 req=2 prompt=8345 peak=4409 23s budget=1321954 
+22:11:42 nemotron-3-ultra T2 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=9/10 req=2 prompt=9949 peak=5234 37s budget=1321954 
+22:11:42 nemotron-3-ultra T3 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=3/5 req=6 prompt=36873 peak=6617 66s budget=1321954 
+22:11:42 nemotron-3-ultra T4 run 1 chained: stop=done valid=true first=false failedBatches=2 checks=10/13 req=4 prompt=37853 peak=12054 275s budget=1321954 
+22:12:51 gemma4:31b       T1 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=4/4 req=2 prompt=7928 peak=4201 6s budget=1396621 
+22:12:51 gemma4:31b       T2 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=10/10 req=2 prompt=9470 peak=5001 5s budget=1396621 
+22:12:51 gemma4:31b       T3 run 1 chained: stop=done valid=true first=true failedBatches=0 checks=5/5 req=2 prompt=11285 peak=6087 8s budget=1396621 
+22:12:51 gemma4:31b       T4 run 1 chained: stop=repair limit valid=false first=false failedBatches=5 checks=2/13 req=5 prompt=45984 peak=12142 49s budget=1396621 
+
+prompt tokens used in total: 1396621 of 2000000 (output 125168)
+rate/error log: ollama nemotron-3-ultra T4/r3/q3 attempt 1 status 0: unexpected EOF -> retry after 2s (no retry-after header, backoff)

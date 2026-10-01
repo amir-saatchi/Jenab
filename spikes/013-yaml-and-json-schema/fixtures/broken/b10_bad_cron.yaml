@@ -1,0 +1,11 @@
+version: 1
+id: daily_btc
+trigger:
+  schedule: "0 8 * *"
+  timezone: UTC
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+# expect: 4 /trigger/schedule format

@@ -1,0 +1,16 @@
+===== glm-4.5-flash | t6_f_card_schedule | cond base | rep 2 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 1899, output 70, 5.0s, finish stop, reasoning 263 chars)
+[12:00:04 assistant] 
+The daily_prices pipeline runs daily at 08:00.
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    The daily_prices pipeline runs daily at 08:00.
+pass  test 5    max_prompt_tokens                  peak prompt 1899
+tests: map[5:pass 6:pass] | prompt 1899 output 70 requests 1 peak 1899 polls 0 | 5s real, 4s virtual

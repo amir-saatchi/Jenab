@@ -1,0 +1,12 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: save_price
+    use: db.insert
+    with:
+      table: btc_prices
+      on_conflict: replace
+      row: { date: "${{ today() }}", price: 1 }
+# expect: 10 /steps/0/with/on_conflict enum

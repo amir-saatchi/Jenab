@@ -1,0 +1,245 @@
+prompt tokens used before this invocation: 61909 of 2100000
+note: glm-4.5-flash is not in zai /models
+02:04:43 nemotron-3-ultra t12_a_moving_average_btc   rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 6000 peak 2179 polls 0 29s | budget 76972 | fails  
+02:04:47 gemma4:31b       t12_a_moving_average_btc   rule r1: T1=pass T2=pass T5=pass | turns 2 req 4 prompt 6178 peak 1703 polls 1 4s | budget 83150 | fails  
+02:05:03 glm-4.5-flash    t12_a_moving_average_btc   rule r1: T1=pass T2=fail T5=pass | turns 2 req 7 prompt 14094 peak 2707 polls 2 49s | budget 100143 | fails no_repeat 
+02:05:18 nemotron-3-ultra t12_a_moving_average_btc   base r1: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 16517 peak 2307 polls 7 30s | budget 106116 | fails text_before_tool,answer_contains 
+02:05:20 gemma4:31b       t12_a_moving_average_btc   base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4384 peak 1588 polls 0 3s | budget 113822 | fails  
+02:05:31 glm-4.5-flash    t12_a_moving_average_btc   base r1: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 14020 peak 1934 polls 7 28s | budget 123102 | fails mentions_running,answer_contains 
+02:05:46 nemotron-3-ultra t12_b_staking_pages_pow_pos rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 7510 peak 2794 polls 0 26s | budget 130612 | fails  
+02:05:51 gemma4:31b       t12_b_staking_pages_pow_pos rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 6152 peak 2286 polls 0 5s | budget 138468 | fails  
+02:06:13 glm-4.5-flash    t12_b_staking_pages_pow_pos rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 6471 peak 2567 polls 0 42s | budget 153501 | fails  
+02:06:42 nemotron-3-ultra t12_b_staking_pages_pow_pos base r1: T1=fail T2=na T5=pass | turns 1 req 5 prompt 13730 peak 3464 polls 0 51s | budget 160566 | fails quick_before_finish,background_started 
+02:06:45 gemma4:31b       t12_b_staking_pages_pow_pos base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5963 peak 2303 polls 0 3s | budget 166529 | fails text_before_tool 
+02:06:52 glm-4.5-flash    t12_b_staking_pages_pow_pos base r1: T1=pass T2=fail T5=pass | turns 2 req 3 prompt 5896 peak 2295 polls 0 39s | budget 170618 | fails no_repeat 
+02:07:10 nemotron-3-ultra t12_c_eth_run_and_columns  rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5932 peak 2198 polls 0 25s | budget 177829 | fails text_before_tool 
+02:07:11 glm-4.5-flash    t12_c_eth_run_and_columns  rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4830 peak 1757 polls 0 18s | budget 179586 | fails  
+02:07:13 gemma4:31b       t12_c_eth_run_and_columns  rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4544 peak 1661 polls 0 3s | budget 184130 | fails text_before_tool 
+02:07:28 glm-4.5-flash    t12_c_eth_run_and_columns  base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4690 peak 1717 polls 0 17s | budget 196409 | fails  
+02:07:33 nemotron-3-ultra t12_c_eth_run_and_columns  base r1: T1=fail T2=fail T5=pass | turns 1 req 8 prompt 16207 peak 2243 polls 7 20s | budget 205027 | fails quick_before_finish,text_before_tool,mentions_running,answer_contains 
+02:07:36 gemma4:31b       t12_c_eth_run_and_columns  base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4417 peak 1644 polls 0 3s | budget 210917 | fails text_before_tool 
+02:07:45 glm-4.5-flash    t12_d_backfill_ohlc        rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4781 peak 1732 polls 0 17s | budget 217904 | fails  
+02:07:48 nemotron-3-ultra t12_d_backfill_ohlc        rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5753 peak 2074 polls 0 13s | budget 219978 | fails text_before_tool 
+02:07:51 gemma4:31b       t12_d_backfill_ohlc        rule r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4434 peak 1563 polls 0 3s | budget 224412 | fails mentions_running 
+02:07:57 nemotron-3-ultra t12_d_backfill_ohlc        base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5546 peak 1967 polls 0 6s | budget 231381 | fails text_before_tool 
+02:08:00 gemma4:31b       t12_d_backfill_ohlc        base r1: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4248 peak 1532 polls 0 3s | budget 237138 | fails text_before_tool 
+02:08:17 glm-4.5-flash    t12_d_backfill_ohlc        base r1: T1=pass T2=pass T5=pass | turns 2 req 9 prompt 16069 peak 2212 polls 0 32s | budget 254122 | fails  
+02:08:21 nemotron-3-ultra t3_a_news_add_eth          rule r1: T3=pass T5=pass | turns 1 req 3 prompt 6124 peak 2277 polls 0 22s | budget 257868 | fails  
+02:08:25 gemma4:31b       t3_a_news_add_eth          rule r1: T3=pass T5=pass | turns 1 req 3 prompt 4787 peak 1796 polls 0 3s | budget 264348 | fails  
+02:08:33 nemotron-3-ultra t3_a_news_add_eth          base r1: T3=pass T5=pass | turns 1 req 3 prompt 5956 peak 2215 polls 0 9s | budget 270304 | fails  
+02:08:36 gemma4:31b       t3_a_news_add_eth          base r1: T3=pass T5=pass | turns 1 req 3 prompt 4622 peak 1741 polls 0 3s | budget 274926 | fails  
+02:08:39 glm-4.5-flash    t3_a_news_add_eth          rule r1: T3=pass T5=pass | turns 1 req 3 prompt 5032 peak 1870 polls 0 22s | budget 278587 | fails  
+02:08:44 nemotron-3-ultra t3_b_price_use_eur         rule r1: T3=pass T5=pass | turns 1 req 3 prompt 5712 peak 2013 polls 0 8s | budget 283927 | fails  
+02:08:47 gemma4:31b       t3_b_price_use_eur         rule r1: T3=pass T5=pass | turns 1 req 3 prompt 4392 peak 1543 polls 0 3s | budget 289962 | fails  
+02:08:58 nemotron-3-ultra t3_b_price_use_eur         base r1: T3=pass T5=pass | turns 1 req 3 prompt 5562 peak 1963 polls 0 11s | budget 295524 | fails  
+02:09:00 glm-4.5-flash    t3_a_news_add_eth          base r1: T3=pass T5=pass | turns 1 req 3 prompt 4880 peak 1818 polls 0 21s | budget 300081 | fails  
+02:09:00 gemma4:31b       t3_b_price_use_eur         base r1: T3=pass T5=pass | turns 1 req 3 prompt 4227 peak 1488 polls 0 2s | budget 301569 | fails  
+02:09:10 glm-4.5-flash    t3_b_price_use_eur         rule r1: T3=pass T5=pass | turns 1 req 3 prompt 4658 peak 1629 polls 0 11s | budget 313732 | fails  
+02:09:21 glm-4.5-flash    t3_b_price_use_eur         base r1: T3=fail T5=pass | turns 1 req 2 prompt 2997 peak 1579 polls 0 11s | budget 318872 | fails after_message 
+02:09:22 nemotron-3-ultra t3_c_run_then_add_eth      rule r1: T3=pass T5=pass | turns 4 req 6 prompt 12013 peak 2365 polls 0 22s | budget 321237 | fails  
+02:09:29 gemma4:31b       t3_c_run_then_add_eth      rule r1: T3=pass T5=pass | turns 4 req 6 prompt 9100 peak 1767 polls 0 7s | budget 331796 | fails  
+02:09:47 glm-4.5-flash    t3_c_run_then_add_eth      rule r1: T3=pass T5=pass | turns 4 req 6 prompt 9796 peak 1896 polls 0 26s | budget 347430 | fails  
+02:10:08 nemotron-3-ultra t3_c_run_then_add_eth      base r1: T3=pass T5=pass | turns 4 req 6 prompt 11566 peak 2216 polls 0 39s | budget 359328 | fails  
+02:10:15 gemma4:31b       t3_c_run_then_add_eth      base r1: T3=pass T5=pass | turns 4 req 6 prompt 8756 peak 1707 polls 0 7s | budget 369883 | fails  
+02:10:16 glm-4.5-flash    t3_c_run_then_add_eth      base r1: T3=pass T5=pass | turns 4 req 7 prompt 11344 peak 1916 polls 1 29s | budget 371799 | fails  
+02:10:48 glm-4.5-flash    t3_d_range_7_days          rule r1: T3=fail T5=pass | turns 1 req 8 prompt 19349 peak 3033 polls 0 32s | budget 401390 | fails after_message 
+02:11:03 nemotron-3-ultra t3_d_range_7_days          rule r1: T3=fail T5=pass | turns 1 req 8 prompt 25146 peak 4119 polls 0 48s | budget 421753 | fails after_message 
+02:11:07 gemma4:31b       t3_d_range_7_days          rule r1: T3=pass T5=pass | turns 3 req 5 prompt 8508 peak 1928 polls 0 5s | budget 430261 | fails no_background 
+02:11:08 glm-4.5-flash    t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 4 prompt 7741 peak 2282 polls 0 20s | budget 432543 | fails  
+02:11:14 glm-4.5-flash    t4_a_what_is_ma            rule r1: T4=pass T5=pass | turns 1 req 1 prompt 1458 peak 1458 polls 0 7s | budget 435756 | fails  
+02:11:24 glm-4.5-flash    t4_a_what_is_ma            base r1: T4=pass T5=pass | turns 1 req 1 prompt 1408 peak 1408 polls 0 10s | budget 439672 | fails  
+02:11:31 glm-4.5-flash    t4_b_yesterday_close       rule r1: T4=pass T5=pass | turns 1 req 2 prompt 2996 peak 1536 polls 0 7s | budget 445431 | fails  
+02:11:39 glm-4.5-flash    t4_b_yesterday_close       base r1: T4=pass T5=pass | turns 1 req 2 prompt 2896 peak 1486 polls 0 8s | budget 451354 | fails  
+02:11:45 glm-4.5-flash    t4_c_pipeline_schedule     rule r1: T4=pass T5=pass | turns 1 req 1 prompt 1466 peak 1466 polls 0 6s | budget 452820 | fails  
+02:11:51 nemotron-3-ultra t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 5 prompt 13349 peak 3296 polls 0 44s | budget 457532 | fails  
+02:11:55 gemma4:31b       t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 4 prompt 6650 peak 2001 polls 0 4s | budget 464182 | fails  
+02:11:58 glm-4.5-flash    t4_c_pipeline_schedule     base r1: T4=pass T5=pass | turns 1 req 2 prompt 3110 peak 1694 polls 0 12s | budget 465876 | fails  
+02:12:09 nemotron-3-ultra t4_a_what_is_ma            rule r1: T4=pass T5=pass | turns 1 req 1 prompt 1780 peak 1780 polls 0 14s | budget 469134 | fails  
+02:12:12 gemma4:31b       t4_a_what_is_ma            rule r1: T4=pass T5=pass | turns 1 req 1 prompt 1368 peak 1368 polls 0 3s | budget 470502 | fails  
+02:12:15 glm-4.5-flash    t4_d_sma_ema_7day_high     rule r1: T4=pass T5=pass | turns 1 req 2 prompt 3226 peak 1748 polls 0 17s | budget 472250 | fails  
+02:12:58 glm-4.5-flash    t4_d_sma_ema_7day_high     base r1: T4=fail T5=pass | turns 1 req 8 prompt 17868 peak 2816 polls 0 43s | budget 490118 | fails no_background 
+02:13:00 nemotron-3-ultra t4_a_what_is_ma            base r1: T4=pass T5=pass | turns 1 req 1 prompt 1730 peak 1730 polls 0 48s | budget 491848 | fails  
+02:13:01 gemma4:31b       t4_a_what_is_ma            base r1: T4=pass T5=pass | turns 1 req 1 prompt 1313 peak 1313 polls 0 2s | budget 493161 | fails  
+02:13:07 nemotron-3-ultra t4_b_yesterday_close       rule r1: T4=pass T5=pass | turns 1 req 2 prompt 3645 peak 1862 polls 0 6s | budget 498927 | fails  
+02:13:09 gemma4:31b       t4_b_yesterday_close       rule r1: T4=pass T5=pass | turns 1 req 2 prompt 2800 peak 1429 polls 0 2s | budget 501727 | fails  
+02:13:13 nemotron-3-ultra t4_b_yesterday_close       base r1: T4=pass T5=pass | turns 1 req 2 prompt 3545 peak 1812 polls 0 5s | budget 505272 | fails  
+02:13:15 gemma4:31b       t4_b_yesterday_close       base r1: T4=pass T5=pass | turns 1 req 2 prompt 2690 peak 1374 polls 0 2s | budget 507962 | fails  
+02:13:21 glm-4.5-flash    t6_a_review_new_pipeline   rule r1: T5=pass T6=fail | turns 1 req 2 prompt 4459 peak 2338 polls 0 23s | budget 510300 | fails right_target 
+02:13:36 nemotron-3-ultra t4_c_pipeline_schedule     rule r1: T4=pass T5=pass | turns 1 req 1 prompt 1789 peak 1789 polls 0 21s | budget 513989 | fails  
+02:13:38 gemma4:31b       t4_c_pipeline_schedule     rule r1: T4=pass T5=pass | turns 1 req 2 prompt 3064 peak 1687 polls 0 2s | budget 517053 | fails  
+02:13:47 glm-4.5-flash    t6_a_review_new_pipeline   base r1: T5=pass T6=fail | turns 1 req 3 prompt 6191 peak 2174 polls 0 26s | budget 523083 | fails right_target 
+02:13:47 nemotron-3-ultra t4_c_pipeline_schedule     base r1: T4=pass T5=pass | turns 1 req 2 prompt 3790 peak 2051 polls 0 9s | budget 525134 | fails  
+02:13:49 gemma4:31b       t4_c_pipeline_schedule     base r1: T4=pass T5=pass | turns 1 req 2 prompt 2954 peak 1632 polls 0 2s | budget 528088 | fails  
+02:13:57 nemotron-3-ultra t4_d_sma_ema_7day_high     rule r1: T4=pass T5=pass | turns 1 req 2 prompt 3833 peak 2032 polls 0 8s | budget 538492 | fails  
+02:13:58 gemma4:31b       t4_d_sma_ema_7day_high     rule r1: T4=pass T5=pass | turns 1 req 2 prompt 2913 peak 1524 polls 0 2s | budget 541405 | fails  
+02:14:13 glm-4.5-flash    t6_b_eth_this_week         rule r1: T5=pass T6=pass | turns 2 req 6 prompt 20909 peak 4891 polls 0 26s | budget 557494 | fails  
+02:14:21 nemotron-3-ultra t4_d_sma_ema_7day_high     base r1: T4=pass T5=pass | turns 1 req 2 prompt 3733 peak 1982 polls 0 23s | budget 563375 | fails  
+02:14:24 gemma4:31b       t4_d_sma_ema_7day_high     base r1: T4=pass T5=pass | turns 1 req 2 prompt 2737 peak 1403 polls 0 3s | budget 568182 | fails  
+02:14:37 glm-4.5-flash    t6_b_eth_this_week         base r1: T5=pass T6=pass | turns 2 req 7 prompt 16089 peak 2766 polls 0 25s | budget 580821 | fails  
+02:15:02 nemotron-3-ultra t6_a_review_new_pipeline   rule r1: T5=pass T6=fail | turns 1 req 2 prompt 5242 peak 2723 polls 0 39s | budget 588655 | fails right_target 
+02:15:06 gemma4:31b       t6_a_review_new_pipeline   rule r1: T5=pass T6=pass | turns 2 req 3 prompt 6472 peak 2283 polls 0 3s | budget 595127 | fails  
+02:15:12 glm-4.5-flash    t6_c_summarise_20_pages    rule r1: T5=pass T6=pass | turns 2 req 3 prompt 8028 peak 2917 polls 0 34s | budget 600342 | fails  
+02:15:29 glm-4.5-flash    t6_c_summarise_20_pages    base r1: T5=pass T6=fail | turns 1 req 8 prompt 18962 peak 2591 polls 0 18s | budget 624847 | fails used_subagent_for_one_off,answer_contains,background_started 
+02:15:32 nemotron-3-ultra t6_a_review_new_pipeline   base r1: T5=pass T6=pass | turns 2 req 4 prompt 11022 peak 3181 polls 0 26s | budget 628028 | fails  
+02:15:42 gemma4:31b       t6_a_review_new_pipeline   base r1: T5=pass T6=pass | turns 2 req 4 prompt 8540 peak 2434 polls 0 9s | budget 638699 | fails  
+02:15:53 nemotron-3-ultra t6_b_eth_this_week         rule r1: T5=pass T6=pass | turns 2 req 3 prompt 7858 peak 2736 polls 0 11s | budget 651224 | fails  
+02:15:56 gemma4:31b       t6_b_eth_this_week         rule r1: T5=pass T6=pass | turns 2 req 3 prompt 6442 peak 2256 polls 0 3s | budget 660182 | fails  
+02:16:01 glm-4.5-flash    t6_d_watch_gold_daily      rule r1: T5=pass T6=fail | turns 3 req 5 prompt 12012 peak 2698 polls 0 32s | budget 665177 | fails no_repeat 
+02:16:20 nemotron-3-ultra t6_b_eth_this_week         base r1: T5=pass T6=pass | turns 2 req 9 prompt 23122 peak 2883 polls 7 25s | budget 692113 | fails  
+02:16:23 gemma4:31b       t6_b_eth_this_week         base r1: T5=pass T6=pass | turns 2 req 3 prompt 5691 peak 1995 polls 0 3s | budget 697804 | fails  
+02:16:38 nemotron-3-ultra t6_c_summarise_20_pages    rule r1: T5=pass T6=pass | turns 2 req 3 prompt 8772 peak 3073 polls 0 15s | budget 713972 | fails  
+02:16:41 gemma4:31b       t6_c_summarise_20_pages    rule r1: T5=pass T6=pass | turns 2 req 3 prompt 8020 peak 2899 polls 0 3s | budget 721992 | fails  
+02:16:43 glm-4.5-flash    t6_d_watch_gold_daily      base r1: T5=pass T6=pass | turns 3 req 7 prompt 16284 peak 2777 polls 0 42s | budget 724769 | fails  
+02:16:45 glm-4.5-flash    t6_e_two_plus_two          rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2119 peak 2119 polls 0 2s | budget 729444 | fails  
+02:16:48 glm-4.5-flash    t6_e_two_plus_two          base r1: T5=pass T6=pass | turns 1 req 1 prompt 1898 peak 1898 polls 0 3s | budget 734116 | fails  
+02:16:53 glm-4.5-flash    t6_f_card_schedule         rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2120 peak 2120 polls 0 5s | budget 736236 | fails  
+02:17:02 glm-4.5-flash    t6_f_card_schedule         base r1: T5=pass T6=pass | turns 1 req 2 prompt 4076 peak 2177 polls 0 9s | budget 743236 | fails  
+02:17:14 nemotron-3-ultra t6_c_summarise_20_pages    base r1: T5=pass T6=fail | turns 1 req 6 prompt 17858 peak 3306 polls 0 33s | budget 757304 | fails used_subagent_for_one_off,background_started 
+02:17:16 gemma4:31b       t6_c_summarise_20_pages    base r1: T5=pass T6=pass | turns 1 req 2 prompt 4720 peak 2580 polls 0 2s | budget 764475 | fails background_started 
+02:17:23 glm-4.5-flash    t6_g_schedule_and_review   rule r1: T5=pass T6=pass | turns 2 req 4 prompt 9532 peak 2617 polls 0 21s | budget 767092 | fails  
+02:17:32 nemotron-3-ultra t6_d_watch_gold_daily      rule r1: T5=pass T6=pass | turns 2 req 3 prompt 8076 peak 2843 polls 0 16s | budget 777079 | fails  
+02:17:35 gemma4:31b       t6_d_watch_gold_daily      rule r1: T5=pass T6=pass | turns 2 req 3 prompt 6511 peak 2280 polls 0 3s | budget 785701 | fails  
+02:17:43 glm-4.5-flash    t6_g_schedule_and_review   base r1: T5=pass T6=pass | turns 2 req 4 prompt 8645 peak 2387 polls 0 20s | budget 792632 | fails  
+02:17:49 glm-4.5-flash    t6_h_gold_once             rule r1: T5=pass T6=pass | turns 1 req 2 prompt 4381 peak 2256 polls 0 6s | budget 802432 | fails  
+02:17:57 glm-4.5-flash    t6_h_gold_once             base r1: T5=pass T6=pass | turns 1 req 2 prompt 3949 peak 2045 polls 0 7s | budget 815891 | fails  
+02:18:02 nemotron-3-ultra t6_d_watch_gold_daily      base r1: T5=pass T6=fail | turns 1 req 8 prompt 24519 peak 3731 polls 0 27s | budget 823173 | fails created_chat_only_for_lasting_job,answer_contains 
+02:18:05 gemma4:31b       t6_d_watch_gold_daily      base r1: T5=pass T6=pass | turns 2 req 3 prompt 5800 peak 2044 polls 0 3s | budget 828973 | fails  
+02:18:07 nemotron-3-ultra t6_e_two_plus_two          rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2517 peak 2517 polls 0 3s | budget 831490 | fails  
+02:18:08 gemma4:31b       t6_e_two_plus_two          rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2060 peak 2060 polls 0 0s | budget 833550 | fails  
+02:18:10 nemotron-3-ultra t6_e_two_plus_two          base r1: T5=pass T6=pass | turns 1 req 1 prompt 2296 peak 2296 polls 0 2s | budget 837314 | fails  
+02:18:15 gemma4:31b       t6_e_two_plus_two          base r1: T5=pass T6=pass | turns 1 req 1 prompt 1821 peak 1821 polls 0 5s | budget 842519 | fails  
+02:18:18 nemotron-3-ultra t6_f_card_schedule         rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2519 peak 2519 polls 0 3s | budget 845038 | fails  
+02:18:18 gemma4:31b       t6_f_card_schedule         rule r1: T5=pass T6=pass | turns 1 req 1 prompt 2061 peak 2061 polls 0 1s | budget 847099 | fails  
+02:18:20 nemotron-3-ultra t6_f_card_schedule         base r1: T5=pass T6=pass | turns 1 req 1 prompt 2298 peak 2298 polls 0 2s | budget 853076 | fails  
+02:18:22 gemma4:31b       t6_f_card_schedule         base r1: T5=pass T6=pass | turns 1 req 2 prompt 3954 peak 2132 polls 0 2s | budget 857030 | fails  
+02:18:26 glm-4.5-flash    t12_a_moving_average_btc   rule r2: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 14378 peak 1988 polls 7 29s | budget 862877 | fails answer_contains 
+02:18:45 nemotron-3-ultra t6_g_schedule_and_review   rule r1: T5=pass T6=pass | turns 2 req 4 prompt 11537 peak 3240 polls 0 23s | budget 877397 | fails  
+02:18:51 gemma4:31b       t6_g_schedule_and_review   rule r1: T5=pass T6=pass | turns 2 req 3 prompt 6926 peak 2512 polls 0 6s | budget 888014 | fails  
+02:18:57 glm-4.5-flash    t12_a_moving_average_btc   base r2: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 14796 peak 2089 polls 7 31s | budget 896136 | fails mentions_running,answer_contains 
+02:19:17 nemotron-3-ultra t6_g_schedule_and_review   base r1: T5=pass T6=pass | turns 2 req 4 prompt 10654 peak 3010 polls 0 25s | budget 906790 | fails  
+02:19:19 gemma4:31b       t6_g_schedule_and_review   base r1: T5=pass T6=pass | turns 2 req 3 prompt 6208 peak 2272 polls 0 3s | budget 914702 | fails  
+02:19:25 nemotron-3-ultra t6_h_gold_once             rule r1: T5=pass T6=pass | turns 1 req 2 prompt 5236 peak 2711 polls 0 6s | budget 919938 | fails  
+02:19:32 gemma4:31b       t6_h_gold_once             rule r1: T5=pass T6=pass | turns 1 req 2 prompt 4228 peak 2161 polls 0 8s | budget 926413 | fails  
+02:19:36 glm-4.5-flash    t12_b_staking_pages_pow_pos rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 6528 peak 2577 polls 0 39s | budget 931294 | fails  
+02:19:45 nemotron-3-ultra t6_h_gold_once             base r1: T5=pass T6=pass | turns 1 req 3 prompt 7458 peak 2670 polls 0 13s | budget 936448 | fails  
+02:19:47 gemma4:31b       t6_h_gold_once             base r1: T5=pass T6=pass | turns 1 req 2 prompt 3804 peak 1976 polls 0 2s | budget 940252 | fails  
+02:20:10 glm-4.5-flash    t12_b_staking_pages_pow_pos base r2: T1=pass T2=fail T5=pass | turns 2 req 3 prompt 5978 peak 2334 polls 0 34s | budget 961063 | fails no_repeat 
+02:20:12 nemotron-3-ultra t12_a_moving_average_btc   rule r2: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 17213 peak 2380 polls 7 25s | budget 963443 | fails mentions_running,answer_contains 
+02:20:24 gemma4:31b       t12_a_moving_average_btc   rule r2: T1=pass T2=pass T5=pass | turns 2 req 4 prompt 6184 peak 1701 polls 1 12s | budget 971098 | fails  
+02:20:37 glm-4.5-flash    t12_c_eth_run_and_columns  rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4836 peak 1763 polls 0 27s | budget 976204 | fails  
+02:20:54 nemotron-3-ultra t12_a_moving_average_btc   base r2: T1=pass T2=fail T5=pass | turns 1 req 8 prompt 16529 peak 2309 polls 7 30s | budget 993965 | fails text_before_tool,answer_contains 
+02:20:56 glm-4.5-flash    t12_c_eth_run_and_columns  base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4690 peak 1717 polls 0 19s | budget 998482 | fails  
+02:20:57 gemma4:31b       t12_a_moving_average_btc   base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4410 peak 1610 polls 0 3s | budget 1000092 | fails  
+02:21:15 glm-4.5-flash    t12_d_backfill_ohlc        rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4769 peak 1737 polls 0 19s | budget 1009611 | fails  
+02:21:16 nemotron-3-ultra t12_b_staking_pages_pow_pos rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 7580 peak 2830 polls 0 19s | budget 1012441 | fails  
+02:21:21 gemma4:31b       t12_b_staking_pages_pow_pos rule r2: T1=pass T2=pass T5=pass | turns 2 req 4 prompt 8389 peak 2326 polls 1 5s | budget 1020830 | fails  
+02:21:48 glm-4.5-flash    t12_d_backfill_ohlc        base r2: T1=pass T2=fail T5=pass | turns 2 req 10 prompt 19368 peak 2421 polls 0 33s | budget 1042226 | fails answer_contains 
+02:22:14 glm-4.5-flash    t3_a_news_add_eth          rule r2: T3=pass T5=pass | turns 1 req 3 prompt 5031 peak 1869 polls 0 26s | budget 1049713 | fails  
+02:22:41 glm-4.5-flash    t3_a_news_add_eth          base r2: T3=pass T5=pass | turns 1 req 3 prompt 4880 peak 1818 polls 0 27s | budget 1054593 | fails  
+02:22:54 nemotron-3-ultra t12_b_staking_pages_pow_pos base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 7363 peak 2879 polls 0 93s | budget 1057472 | fails  
+02:22:58 gemma4:31b       t12_b_staking_pages_pow_pos base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5952 peak 2292 polls 0 4s | budget 1064892 | fails text_before_tool 
+02:23:03 glm-4.5-flash    t3_b_price_use_eur         rule r2: T3=pass T5=pass | turns 1 req 3 prompt 4658 peak 1629 polls 0 22s | budget 1069876 | fails  
+02:23:13 nemotron-3-ultra t12_c_eth_run_and_columns  rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5924 peak 2190 polls 0 15s | budget 1076942 | fails text_before_tool 
+02:23:16 gemma4:31b       t12_c_eth_run_and_columns  rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4543 peak 1660 polls 0 3s | budget 1081485 | fails text_before_tool 
+02:23:16 glm-4.5-flash    t3_b_price_use_eur         base r2: T3=pass T5=pass | turns 1 req 3 prompt 4529 peak 1593 polls 0 13s | budget 1083078 | fails  
+02:23:43 glm-4.5-flash    t3_c_run_then_add_eth      rule r2: T3=pass T5=pass | turns 4 req 6 prompt 9956 peak 1959 polls 0 27s | budget 1093034 | fails  
+02:24:10 glm-4.5-flash    t3_c_run_then_add_eth      base r2: T3=pass T5=pass | turns 4 req 6 prompt 9487 peak 1853 polls 0 27s | budget 1102521 | fails  
+02:25:16 glm-4.5-flash    t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 1 req 8 prompt 19326 peak 3137 polls 0 66s | budget 1121847 | fails  
+02:25:55 glm-4.5-flash    t3_d_range_7_days          base r2: T3=pass T5=pass | turns 1 req 4 prompt 7749 peak 2282 polls 0 40s | budget 1131340 | fails  
+02:26:02 glm-4.5-flash    t4_a_what_is_ma            rule r2: T4=pass T5=pass | turns 1 req 1 prompt 1458 peak 1458 polls 0 7s | budget 1134688 | fails  
+02:26:13 glm-4.5-flash    t4_a_what_is_ma            base r2: T4=pass T5=pass | turns 1 req 1 prompt 1408 peak 1408 polls 0 11s | budget 1136096 | fails  
+02:26:20 glm-4.5-flash    t4_b_yesterday_close       rule r2: T4=pass T5=pass | turns 1 req 2 prompt 2996 peak 1536 polls 0 7s | budget 1139092 | fails  
+02:26:27 glm-4.5-flash    t4_b_yesterday_close       base r2: T4=pass T5=pass | turns 1 req 2 prompt 2896 peak 1486 polls 0 7s | budget 1141988 | fails  
+02:26:30 nemotron-3-ultra t12_c_eth_run_and_columns  base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5760 peak 2126 polls 0 195s | budget 1144114 | fails text_before_tool 
+02:26:33 gemma4:31b       t12_c_eth_run_and_columns  base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4417 peak 1644 polls 0 3s | budget 1149997 | fails text_before_tool 
+02:26:42 glm-4.5-flash    t4_c_pipeline_schedule     rule r2: T4=pass T5=pass | turns 1 req 2 prompt 3227 peak 1761 polls 0 14s | budget 1153555 | fails  
+02:26:46 nemotron-3-ultra t12_d_backfill_ohlc        rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5752 peak 2073 polls 0 13s | budget 1157510 | fails text_before_tool 
+02:26:49 gemma4:31b       t12_d_backfill_ohlc        rule r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4393 peak 1552 polls 0 3s | budget 1163319 | fails  
+02:26:57 glm-4.5-flash    t4_c_pipeline_schedule     base r2: T4=pass T5=pass | turns 1 req 2 prompt 3121 peak 1705 polls 0 15s | budget 1166771 | fails  
+02:27:09 nemotron-3-ultra t12_d_backfill_ohlc        base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 5602 peak 2023 polls 0 20s | budget 1173680 | fails text_before_tool 
+02:27:13 glm-4.5-flash    t4_d_sma_ema_7day_high     rule r2: T4=pass T5=pass | turns 1 req 3 prompt 4776 peak 1722 polls 0 16s | budget 1175402 | fails  
+02:27:38 gemma4:31b       t12_d_backfill_ohlc        base r2: T1=pass T2=pass T5=pass | turns 2 req 3 prompt 4248 peak 1532 polls 0 29s | budget 1179650 | fails text_before_tool 
+02:28:01 glm-4.5-flash    t4_d_sma_ema_7day_high     base r2: T4=fail T5=pass | turns 1 req 8 prompt 17986 peak 2933 polls 0 48s | budget 1201482 | fails no_background,answer_contains 
+02:28:01 nemotron-3-ultra t3_a_news_add_eth          rule r2: T3=pass T5=pass | turns 1 req 3 prompt 6121 peak 2275 polls 0 23s | budget 1203757 | fails  
+02:28:04 gemma4:31b       t3_a_news_add_eth          rule r2: T3=pass T5=pass | turns 1 req 3 prompt 4787 peak 1796 polls 0 3s | budget 1208544 | fails  
+02:28:21 nemotron-3-ultra t3_a_news_add_eth          base r2: T3=pass T5=pass | turns 1 req 3 prompt 5974 peak 2227 polls 0 17s | budget 1218986 | fails  
+02:28:22 glm-4.5-flash    t6_a_review_new_pipeline   rule r2: T5=pass T6=fail | turns 1 req 3 prompt 6872 peak 2404 polls 0 21s | budget 1222713 | fails right_target 
+02:28:25 gemma4:31b       t3_a_news_add_eth          base r2: T3=pass T5=pass | turns 1 req 3 prompt 4622 peak 1741 polls 0 3s | budget 1226012 | fails  
+02:28:41 nemotron-3-ultra t3_b_price_use_eur         rule r2: T3=pass T5=pass | turns 1 req 3 prompt 5688 peak 1997 polls 0 16s | budget 1235718 | fails  
+02:28:43 glm-4.5-flash    t6_a_review_new_pipeline   base r2: T5=pass T6=fail | turns 1 req 3 prompt 6193 peak 2175 polls 0 21s | budget 1239272 | fails right_target 
+02:28:45 gemma4:31b       t3_b_price_use_eur         rule r2: T3=pass T5=pass | turns 1 req 3 prompt 4392 peak 1543 polls 0 4s | budget 1242285 | fails  
+02:29:15 nemotron-3-ultra t3_b_price_use_eur         base r2: T3=pass T5=pass | turns 1 req 3 prompt 5538 peak 1947 polls 0 30s | budget 1289372 | fails  
+02:29:18 gemma4:31b       t3_b_price_use_eur         base r2: T3=pass T5=pass | turns 1 req 3 prompt 4227 peak 1488 polls 0 3s | budget 1297445 | fails  
+02:29:19 glm-4.5-flash    t6_b_eth_this_week         rule r2: T5=pass T6=fail | turns 2 req 16 prompt 49297 peak 3902 polls 0 36s | budget 1301347 | fails right_target,answer_contains 
+02:29:57 glm-4.5-flash    t6_b_eth_this_week         base r2: T5=pass T6=fail | turns 2 req 16 prompt 62051 peak 7156 polls 3 38s | budget 1367026 | fails right_target,answer_contains 
+02:30:33 glm-4.5-flash    t6_c_summarise_20_pages    rule r2: T5=pass T6=pass | turns 2 req 3 prompt 7915 peak 2877 polls 0 35s | budget 1374941 | fails  
+02:31:03 glm-4.5-flash    t6_c_summarise_20_pages    base r2: T5=pass T6=pass | turns 2 req 3 prompt 7268 peak 2649 polls 0 30s | budget 1388209 | fails  
+02:31:05 nemotron-3-ultra t3_c_run_then_add_eth      rule r2: T3=pass T5=pass | turns 4 req 6 prompt 11987 peak 2359 polls 0 107s | budget 1390568 | fails  
+02:31:11 gemma4:31b       t3_c_run_then_add_eth      rule r2: T3=pass T5=pass | turns 4 req 6 prompt 9100 peak 1767 polls 0 6s | budget 1399668 | fails  
+02:31:27 glm-4.5-flash    t6_d_watch_gold_daily      rule r2: T5=pass T6=pass | turns 2 req 3 prompt 6854 peak 2426 polls 0 24s | budget 1408253 | fails  
+02:32:14 nemotron-3-ultra t3_c_run_then_add_eth      base r2: T3=pass T5=pass | turns 4 req 6 prompt 11556 peak 2213 polls 0 63s | budget 1454347 | fails  
+02:32:20 gemma4:31b       t3_c_run_then_add_eth      base r2: T3=pass T5=pass | turns 4 req 6 prompt 8756 peak 1707 polls 0 6s | budget 1463103 | fails  
+02:32:52 glm-4.5-flash    t6_d_watch_gold_daily      base r2: T5=pass T6=fail | turns 3 req 21 prompt 69472 peak 4610 polls 1 85s | budget 1506548 | fails no_resend_after_notice,tool_not_called 
+02:32:55 glm-4.5-flash    t6_e_two_plus_two          rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2119 peak 2119 polls 0 3s | budget 1511999 | fails  
+02:32:58 glm-4.5-flash    t6_e_two_plus_two          base r2: T5=pass T6=pass | turns 1 req 1 prompt 1898 peak 1898 polls 0 3s | budget 1513897 | fails  
+02:33:01 glm-4.5-flash    t6_f_card_schedule         rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2120 peak 2120 polls 0 3s | budget 1519612 | fails  
+02:33:06 glm-4.5-flash    t6_f_card_schedule         base r2: T5=pass T6=pass | turns 1 req 1 prompt 1899 peak 1899 polls 0 5s | budget 1521511 | fails  
+02:33:30 glm-4.5-flash    t6_g_schedule_and_review   rule r2: T5=pass T6=fail | turns 2 req 3 prompt 6763 peak 2386 polls 0 23s | budget 1528274 | fails no_repeat 
+02:33:46 nemotron-3-ultra t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 1 req 7 prompt 21114 peak 3945 polls 0 86s | budget 1538462 | fails  
+02:33:50 gemma4:31b       t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 2 req 4 prompt 6424 peak 1779 polls 0 4s | budget 1544886 | fails no_background 
+02:33:53 glm-4.5-flash    t6_g_schedule_and_review   base r2: T5=pass T6=pass | turns 2 req 4 prompt 8621 peak 2378 polls 0 23s | budget 1547264 | fails  
+02:34:00 glm-4.5-flash    t6_h_gold_once             rule r2: T5=pass T6=pass | turns 1 req 2 prompt 4373 peak 2248 polls 0 7s | budget 1555899 | fails  
+02:34:10 glm-4.5-flash    t6_h_gold_once             base r2: T5=pass T6=pass | turns 1 req 2 prompt 3949 peak 2045 polls 0 10s | budget 1562609 | fails  
+02:36:49 nemotron-3-ultra t3_d_range_7_days          base r2: T3=fail T5=pass | turns 1 req 8 prompt 24750 peak 4072 polls 0 180s | budget 1580336 | fails after_message 
+02:36:55 gemma4:31b       t3_d_range_7_days          base r2: T3=pass T5=pass | turns 1 req 4 prompt 6650 peak 2001 polls 0 5s | budget 1586986 | fails  
+02:37:03 nemotron-3-ultra t4_a_what_is_ma            rule r2: T4=pass T5=pass | turns 1 req 1 prompt 1780 peak 1780 polls 0 9s | budget 1588766 | fails  
+02:37:05 gemma4:31b       t4_a_what_is_ma            rule r2: T4=pass T5=pass | turns 1 req 1 prompt 1368 peak 1368 polls 0 1s | budget 1590134 | fails  
+02:37:11 nemotron-3-ultra t4_a_what_is_ma            base r2: T4=pass T5=pass | turns 1 req 1 prompt 1730 peak 1730 polls 0 6s | budget 1591864 | fails  
+02:37:13 gemma4:31b       t4_a_what_is_ma            base r2: T4=pass T5=pass | turns 1 req 1 prompt 1313 peak 1313 polls 0 2s | budget 1593177 | fails  
+02:37:22 nemotron-3-ultra t4_b_yesterday_close       rule r2: T4=pass T5=pass | turns 1 req 2 prompt 3645 peak 1862 polls 0 9s | budget 1596822 | fails  
+02:37:24 gemma4:31b       t4_b_yesterday_close       rule r2: T4=pass T5=pass | turns 1 req 2 prompt 2800 peak 1429 polls 0 2s | budget 1599622 | fails  
+02:37:31 nemotron-3-ultra t4_b_yesterday_close       base r2: T4=pass T5=pass | turns 1 req 2 prompt 3545 peak 1812 polls 0 7s | budget 1603167 | fails  
+02:37:33 gemma4:31b       t4_b_yesterday_close       base r2: T4=pass T5=pass | turns 1 req 2 prompt 2690 peak 1374 polls 0 2s | budget 1605857 | fails  
+02:37:38 nemotron-3-ultra t4_c_pipeline_schedule     rule r2: T4=pass T5=pass | turns 1 req 1 prompt 1789 peak 1789 polls 0 6s | budget 1607646 | fails  
+02:37:41 gemma4:31b       t4_c_pipeline_schedule     rule r2: T4=pass T5=pass | turns 1 req 2 prompt 3064 peak 1687 polls 0 3s | budget 1610710 | fails  
+02:38:04 nemotron-3-ultra t4_c_pipeline_schedule     base r2: T4=pass T5=pass | turns 1 req 2 prompt 3790 peak 2051 polls 0 23s | budget 1614500 | fails  
+02:38:06 gemma4:31b       t4_c_pipeline_schedule     base r2: T4=pass T5=pass | turns 1 req 2 prompt 2954 peak 1632 polls 0 2s | budget 1617454 | fails  
+02:38:26 nemotron-3-ultra t4_d_sma_ema_7day_high     rule r2: T4=pass T5=pass | turns 1 req 2 prompt 3715 peak 1914 polls 0 19s | budget 1621169 | fails  
+02:38:28 gemma4:31b       t4_d_sma_ema_7day_high     rule r2: T4=pass T5=pass | turns 1 req 2 prompt 2911 peak 1522 polls 0 2s | budget 1624080 | fails  
+02:38:50 nemotron-3-ultra t4_d_sma_ema_7day_high     base r2: T4=pass T5=pass | turns 1 req 2 prompt 3733 peak 1982 polls 0 22s | budget 1627813 | fails  
+02:38:51 gemma4:31b       t4_d_sma_ema_7day_high     base r2: T4=pass T5=pass | turns 1 req 2 prompt 2737 peak 1403 polls 0 2s | budget 1630550 | fails  
+02:39:49 nemotron-3-ultra t6_a_review_new_pipeline   rule r2: T5=pass T6=pass | turns 2 req 9 prompt 27666 peak 3515 polls 6 58s | budget 1658216 | fails  
+02:39:52 gemma4:31b       t6_a_review_new_pipeline   rule r2: T5=pass T6=pass | turns 2 req 3 prompt 6485 peak 2296 polls 0 3s | budget 1664701 | fails  
+02:40:09 nemotron-3-ultra t6_a_review_new_pipeline   base r2: T5=pass T6=fail | turns 1 req 2 prompt 4800 peak 2502 polls 0 16s | budget 1669501 | fails right_target 
+02:40:14 gemma4:31b       t6_a_review_new_pipeline   base r2: T5=pass T6=pass | turns 2 req 4 prompt 8548 peak 2440 polls 0 5s | budget 1678049 | fails  
+02:40:56 nemotron-3-ultra t6_b_eth_this_week         rule r2: T5=pass T6=pass | turns 2 req 9 prompt 25135 peak 3107 polls 7 42s | budget 1703184 | fails  
+02:40:59 gemma4:31b       t6_b_eth_this_week         rule r2: T5=pass T6=pass | turns 2 req 3 prompt 6443 peak 2257 polls 0 3s | budget 1709627 | fails  
+02:41:22 nemotron-3-ultra t6_b_eth_this_week         base r2: T5=pass T6=pass | turns 2 req 3 prompt 7177 peak 2502 polls 0 23s | budget 1716804 | fails  
+02:41:25 gemma4:31b       t6_b_eth_this_week         base r2: T5=pass T6=pass | turns 2 req 3 prompt 5671 peak 1975 polls 0 3s | budget 1722475 | fails  
+02:41:50 nemotron-3-ultra t6_c_summarise_20_pages    rule r2: T5=pass T6=pass | turns 2 req 3 prompt 9214 peak 3296 polls 0 25s | budget 1731689 | fails  
+02:41:54 gemma4:31b       t6_c_summarise_20_pages    rule r2: T5=pass T6=pass | turns 2 req 3 prompt 8020 peak 2899 polls 0 4s | budget 1739709 | fails  
+02:42:28 nemotron-3-ultra t6_c_summarise_20_pages    base r2: T5=pass T6=pass | turns 2 req 3 prompt 8531 peak 3061 polls 0 34s | budget 1748240 | fails  
+02:42:31 gemma4:31b       t6_c_summarise_20_pages    base r2: T5=pass T6=pass | turns 1 req 2 prompt 4720 peak 2580 polls 0 3s | budget 1752960 | fails background_started 
+02:42:47 nemotron-3-ultra t6_d_watch_gold_daily      rule r2: T5=pass T6=pass | turns 2 req 3 prompt 8178 peak 2904 polls 0 16s | budget 1761138 | fails  
+02:42:50 gemma4:31b       t6_d_watch_gold_daily      rule r2: T5=pass T6=pass | turns 2 req 3 prompt 6511 peak 2280 polls 0 3s | budget 1767649 | fails  
+02:43:27 nemotron-3-ultra t6_d_watch_gold_daily      base r2: T5=pass T6=fail | turns 1 req 8 prompt 22984 peak 3523 polls 0 36s | budget 1790633 | fails created_chat_only_for_lasting_job,answer_contains 
+02:43:29 gemma4:31b       t6_d_watch_gold_daily      base r2: T5=pass T6=pass | turns 2 req 3 prompt 5901 peak 2112 polls 0 3s | budget 1796534 | fails  
+02:43:35 nemotron-3-ultra t6_e_two_plus_two          rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2517 peak 2517 polls 0 5s | budget 1799051 | fails  
+02:43:35 gemma4:31b       t6_e_two_plus_two          rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2060 peak 2060 polls 0 1s | budget 1801111 | fails  
+02:43:37 nemotron-3-ultra t6_e_two_plus_two          base r2: T5=pass T6=pass | turns 1 req 1 prompt 2296 peak 2296 polls 0 1s | budget 1803407 | fails  
+02:43:37 gemma4:31b       t6_e_two_plus_two          base r2: T5=pass T6=pass | turns 1 req 1 prompt 1821 peak 1821 polls 0 1s | budget 1805228 | fails  
+02:43:42 nemotron-3-ultra t6_f_card_schedule         rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2519 peak 2519 polls 0 4s | budget 1807747 | fails  
+02:43:42 gemma4:31b       t6_f_card_schedule         rule r2: T5=pass T6=pass | turns 1 req 1 prompt 2061 peak 2061 polls 0 1s | budget 1809808 | fails  
+02:44:09 nemotron-3-ultra t6_f_card_schedule         base r2: T5=pass T6=pass | turns 1 req 2 prompt 4908 peak 2610 polls 0 26s | budget 1814716 | fails  
+02:44:11 gemma4:31b       t6_f_card_schedule         base r2: T5=pass T6=pass | turns 1 req 2 prompt 3954 peak 2132 polls 0 2s | budget 1818670 | fails  
+02:44:55 nemotron-3-ultra t6_g_schedule_and_review   rule r2: T5=pass T6=pass | turns 2 req 3 prompt 8117 peak 2877 polls 0 44s | budget 1826787 | fails  
+02:44:58 gemma4:31b       t6_g_schedule_and_review   rule r2: T5=pass T6=pass | turns 2 req 3 prompt 6620 peak 2369 polls 0 3s | budget 1833407 | fails  
+02:45:28 nemotron-3-ultra t6_g_schedule_and_review   base r2: T5=pass T6=pass | turns 2 req 4 prompt 10657 peak 3013 polls 0 29s | budget 1844064 | fails  
+02:45:31 gemma4:31b       t6_g_schedule_and_review   base r2: T5=pass T6=pass | turns 2 req 3 prompt 6208 peak 2272 polls 0 3s | budget 1850272 | fails  
+02:45:45 nemotron-3-ultra t6_h_gold_once             rule r2: T5=pass T6=pass | turns 1 req 2 prompt 5236 peak 2711 polls 0 14s | budget 1855508 | fails  
+02:45:47 gemma4:31b       t6_h_gold_once             rule r2: T5=pass T6=pass | turns 1 req 2 prompt 4276 peak 2209 polls 0 2s | budget 1859784 | fails  
+02:45:54 nemotron-3-ultra t6_h_gold_once             base r2: T5=pass T6=pass | turns 1 req 2 prompt 4788 peak 2484 polls 0 7s | budget 1864572 | fails  
+02:45:56 gemma4:31b       t6_h_gold_once             base r2: T5=pass T6=pass | turns 1 req 2 prompt 3798 peak 1970 polls 0 2s | budget 1868370 | fails  
+
+prompt tokens used in total: 1868370 of 2100000 (output 112162)
+rate/error log: ollama nemotron-3-ultra nemotron-3-ultra/t3_d_range_7_days/base/r2/t1/s6 attempt 1 status 0: Post "https://ollama.com/v1/chat/completions": unexpected EOF -> retry after 2s (no retry-after header, backoff)

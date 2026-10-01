@@ -1,0 +1,10 @@
+prompt tokens used before this invocation: 0 of 3500000
+note: glm-4.5-flash is not in zai /models
+12:51:12 glm-4.5-flash    tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8715 peak=3677 29s budget=14482 
+12:51:18 nemotron-3-ultra tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=9822 peak=4055 35s budget=18537 
+12:51:22 gemma4:31b       tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=5470 peak=3758 3s budget=24007 
+12:51:32 nemotron-3-ultra troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=3011 peak=3011 10s budget=27018 
+12:51:33 gemma4:31b       troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2530 peak=2530 1s budget=29548 
+12:51:35 glm-4.5-flash    troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2576 peak=2576 23s budget=32124 
+
+prompt tokens used in total: 32124 of 3500000 (output 2432)

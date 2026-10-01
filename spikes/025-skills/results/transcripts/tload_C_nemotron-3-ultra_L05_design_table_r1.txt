@@ -1,0 +1,35 @@
+===== nemotron-3-ultra L05_design_table guide v2 run 1 chained false
+----- user
+Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don't create it yet.
+----- assistant (finish tool_calls, prompt 2144, output 94, 5.3s)
+[reasoning 334 chars]
+
+
+> load_skill {"name":"database-design"}
+< load_skill
+Skill loaded: database-design
+
+Rules: every table has an explicit primary key. Tables filled by pipelines also get `_run_id TEXT` and `_fetched_at TEXT` (the runtime fills them). Names are lower_snake_case. When a goal widens (a second coin, a second city), migrate to one general table with a key column (`prices(coin, date, …)`) instead of parallel tables.
+
+----- assistant (finish stop, prompt 2273, output 494, 23.6s)
+[reasoning 771 chars]
+**Table design: `crypto_exchanges`**
+
+| Column | Type | Constraints | Notes |
+|--------|------|-------------|-------|
+| `id` | INTEGER | PRIMARY KEY, AUTOINCREMENT | Surrogate key; stable even if name changes |
+| `name` | TEXT | NOT NULL, UNIQUE | Exchange name (e.g., "Binance", "Coinbase") |
+| `country` | TEXT | NOT NULL | Country of incorporation / primary jurisdiction |
+| `website` | TEXT | NOT NULL | Homepage URL |
+| `trading_fee_percent` | REAL | NOT NULL | Maker/taker fee in percent (e.g., 0.10) |
+| `_run_id` | TEXT | | Added if a pipeline writes this table |
+| `_fetched_at` | TEXT | | ISO-8601 timestamp when the row was written |
+
+**Rationale**
+- `id` as primary key avoids issues if an exchange rebrands.
+- `name` is unique so lookups by name are safe.
+- `trading_fee_percent` stored as a plain number (0.10 = 0.10 %) keeps queries simple.
+- `_run_id` / `_fetched_at` follow the project convention for pipeline-managed tables.
+
+Let me know if you want to adjust anything (e.g., separate maker/taker fees, add a `notes` column, or make it pipeline-managed) and I’ll create it with `apply_migration`.
+----- result: stop answer, loaded [database-design:load_skill], events 2

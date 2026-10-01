@@ -1,0 +1,20 @@
+===== gemma4:31b | t6_h_gold_once | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:01:38, stop done
+[12:00:00 user] Check once whether gold is above 2,600 USD today.
+  (request: prompt 2067, output 42, 6.9s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] subagent {"task":"Check if the current price of gold is above 2,600 USD today (2026-09-29)."}
+[12:01:34 result subagent] Spot gold is 2,641 USD/oz today (markets.example.com, 2026-09-29), so it is above 2,600 USD.
+  (request: prompt 2161, output 32, 0.6s, finish stop, reasoning 0 chars)
+[12:01:38 assistant] Yes, gold is above 2,600 USD today; it is currently 2,641 USD/oz.
+
+----- background tasks
+
+----- assertions
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    tool_not_called                    
+pass  test 6    answer_contains                    Yes, gold is above 2,600 USD today; it is currently 2,641 USD/oz.
+skip  test 6    no_resend_after_notice             no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2161
+tests: map[5:pass 6:pass] | prompt 4228 output 74 requests 2 peak 2161 polls 0 | 8s real, 98s virtual

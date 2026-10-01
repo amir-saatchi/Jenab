@@ -1,0 +1,7 @@
+===== nemotron-3-ultra L11_what_tracked guide v2 run 2 chained false
+----- user
+In two or three sentences, what does this project track?
+----- assistant (finish stop, prompt 2122, output 173, 10.0s)
+[reasoning 468 chars]
+This project tracks **Bitcoin news articles and price data**, with a keyword-based filtering system for the news. It stores news items (URL, date, title, reason), daily BTC prices, and a watchlist of keywords—then provides table/chart views and a daily scheduled pipeline to refresh the data.
+----- result: stop answer, loaded [], events 1

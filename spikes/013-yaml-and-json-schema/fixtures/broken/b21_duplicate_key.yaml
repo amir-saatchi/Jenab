@@ -1,0 +1,11 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    id: price2
+    with:
+      url: https://api.example.com/btc
+# expect: 8 parse

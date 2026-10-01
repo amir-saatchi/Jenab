@@ -1,0 +1,6 @@
+===== gemma4:31b L09_moving_average guide v2 run 2 chained false
+----- user
+What is a moving average? Answer in two sentences.
+----- assistant (finish stop, prompt 1697, output 46, 1.1s)
+A moving average is a technical analysis tool that smooths out price data by creating a constantly updated average price over a specific time period. It helps traders identify trends by filtering out short-term noise and volatility from a dataset.
+----- result: stop answer, loaded [], events 1

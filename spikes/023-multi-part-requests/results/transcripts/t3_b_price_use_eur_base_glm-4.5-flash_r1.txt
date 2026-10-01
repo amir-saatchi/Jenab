@@ -1,0 +1,23 @@
+===== glm-4.5-flash | t3_b_price_use_eur | cond base | rep 1 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:16, stop done
+[12:00:00 user] What's the current BTC price in USD? Use the coingecko connection.
+  (request: prompt 1418, output 214, 6.0s, finish tool_calls, reasoning 592 chars)
+[12:00:04 assistant] 
+I'll fetch the current BTC price in USD using the coingecko connection.
+
+[12:00:04 call] call_api {"connection":"coingecko","path":"/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,eur&include_24hr_change=true"}
+[12:00:12 result call_api] 200 OK {"bitcoin":{"eur":55190.2,"eur_24h_change":1.8,"usd":64210.5,"usd_24h_change":1.8},"ethereum":{"eur":2224.1,"eur_24h_change":2.3,"usd":2587.4,"usd_24h_change":2.3}}
+[12:00:12 mid_user] stop, use EUR
+  (request: prompt 1579, output 81, 4.8s, finish stop, reasoning 208 chars)
+[12:00:16 assistant] 
+Based on the coingecko API response, the current BTC price in EUR is 55,190.20.
+
+----- background tasks
+
+----- assertions
+fail  test 3    after_message                      delivered mid_turn; no later tool call matches (?i)eur
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 1579
+tests: map[3:fail 5:pass] | prompt 2997 output 295 requests 2 peak 1579 polls 0 | 11s real, 16s virtual

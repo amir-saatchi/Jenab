@@ -1,0 +1,42 @@
+===== gemma4:31b | t3_d_range_7_days | cond rule | rep 1 | tests [3]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:15, stop done
+[12:00:00 user] What were BTC's highest and lowest closes over the last 30 days in our database? And check the web for what caused the biggest move.
+  (request: prompt 1393, output 103, 0.7s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] query {"sql":"SELECT MAX(close), MIN(close) FROM prices WHERE coin = 'BTC' AND date \u003e= date('2026-09-29', '-30 days')"}
+[12:00:04 call] subagent {"background":true,"task":"Find the biggest price move for Bitcoin between 2026-08-30 and 2026-09-29 and explain what caused it."}
+[12:00:05 result query] MAX(close) | MIN(close) 66120.00 | 58940.10 (1 rows)
+[12:00:05 result subagent] {"status":"started","task_id":"t_1"}
+[12:00:05 mid_user] make that the last 7 days instead
+  (request: prompt 1582, output 102, 0.7s, finish tool_calls, reasoning 0 chars)
+[12:00:09 call] query {"sql":"SELECT MAX(close), MIN(close) FROM prices WHERE coin = 'BTC' AND date \u003e= date('2026-09-29', '-7 days')"}
+[12:00:09 call] subagent {"background":true,"task":"Find the biggest price move for Bitcoin between 2026-09-22 and 2026-09-29 and explain what caused it."}
+[12:00:10 result query] MAX(close) | MIN(close) 65230.80 | 62980.10 (1 rows)
+[12:00:11 result subagent] {"status":"started","task_id":"t_2"}
+  (request: prompt 1748, output 64, 0.9s, finish stop, reasoning 0 chars)
+[12:00:15 assistant] Over the last 7 days, BTC's highest close was 65,230.80 and the lowest was 62,980.10.
+
+I've started a new background task to find what caused the biggest move in this shorter timeframe.
+
+----- turn 2 (system) 12:01:35-12:01:39, stop done
+[12:01:35 notice] [task t_1 finished 12:01:35: subagent result: Done. The sources agree with the project data; nothing new found.
+]
+  (request: prompt 1857, output 26, 0.7s, finish stop, reasoning 0 chars)
+[12:01:39 assistant] Acknowledged. I'm still waiting for the results of task `t_2` regarding the last 7 days.
+
+----- turn 3 (system) 12:01:40-12:01:44, stop done
+[12:01:40 notice] [task t_2 finished 12:01:40: subagent result: Done. The sources agree with the project data; nothing new found.
+]
+  (request: prompt 1928, output 31, 0.7s, finish stop, reasoning 0 chars)
+[12:01:44 assistant] The subagent found no specific external news events that explain the price movements for the last 7 days beyond what is already reflected in the project data.
+
+----- background tasks
+t_1 subagent  start 12:00:05 finish 12:01:35 delivered notice
+t_2 subagent  start 12:00:10 finish 12:01:40 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+fail  test info no_background                      started subagent t_1, subagent t_2
+pass  test 5    max_prompt_tokens                  peak prompt 1928
+tests: map[3:pass 5:pass] | prompt 8508 output 326 requests 5 peak 1928 polls 0 | 5s real, 104s virtual

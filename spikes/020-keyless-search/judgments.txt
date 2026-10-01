@@ -1,0 +1,34 @@
+# Hand relevance judgments: source query bits (top 5 in order, 1 = obviously on topic for the query).
+# Rule: 1 if a person tracking this topic would click it as an answer to the query. Topical reference
+# pages count (e.g. the "Go (programming language)" article for "Go 1.26 release"); pages that only
+# mention a query word in passing do not. Freshness is measured separately, so an old but on-topic
+# article is still 1. A source/query with no results has no bits and is not counted.
+
+wikipedia q01 10100
+wikipedia q02 1
+wikipedia q03 00000
+wikipedia q04 00110
+wikipedia q05 01010
+wikipedia q06 00000
+wikipedia q07 10000
+wikipedia q08 00000
+wikipedia q09 00010
+wikipedia q10 11000
+
+hn-algolia q02 11
+hn-algolia q03 11101
+hn-algolia q06 00000
+hn-algolia q07 11111
+hn-algolia q08 11100
+hn-algolia q09 00
+hn-algolia q10 1
+
+crypto-rss q01 11111
+
+# GDELT: results in other languages count as on topic (GDELT matches on its English translation).
+gdelt q02 00
+gdelt q06 000
+gdelt q10 11111
+gdelt-7d q01 11110
+gdelt-7d q03 00
+gdelt-7d-slow q02 0

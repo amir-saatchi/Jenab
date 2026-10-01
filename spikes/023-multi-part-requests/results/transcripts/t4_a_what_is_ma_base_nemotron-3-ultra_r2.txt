@@ -1,0 +1,29 @@
+===== nemotron-3-ultra | t4_a_what_is_ma | cond base | rep 2 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1730, output 294, 6.0s, finish stop, reasoning 189 chars)
+[12:00:04 assistant] A **moving average (MA)** is a statistical calculation used to smooth out price data by creating a constantly updated average price over a specific time period. It's one of the most common technical indicators in trading.
+
+**Key types:**
+- **Simple Moving Average (SMA)** — arithmetic mean of prices over N periods (e.g., 20-day SMA = sum of last 20 closes ÷ 20)
+- **Exponential Moving Average (EMA)** — gives more weight to recent prices, reacts faster to new data
+
+**Common uses:**
+- **Trend identification** — price above MA = uptrend, below = downtrend
+- **Support/resistance** — MAs often act as dynamic levels
+- **Crossovers** — e.g., 50-day crossing above 200-day ("golden cross") signals bullish momentum
+
+**In your project context:** You could compute MAs from the `prices` table (e.g., `AVG(close) OVER (PARTITION BY coin ORDER BY date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)` for a 20-day SMA) and add them to the `price_chart` view or a new pipeline.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A **moving average (MA)** is a statistical calculation used to smooth out price data by creating a constantly updated average price over a specific time period....
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1730
+tests: map[4:pass 5:pass] | prompt 1730 output 294 requests 1 peak 1730 polls 0 | 6s real, 4s virtual

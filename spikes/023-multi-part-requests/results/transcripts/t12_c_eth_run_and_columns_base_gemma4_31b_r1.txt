@@ -1,0 +1,42 @@
+===== gemma4:31b | t12_c_eth_run_and_columns | cond base | rep 1 | tests [1 2]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] Run the daily prices pipeline for ETH now, and tell me which columns the prices table has.
+  (request: prompt 1326, output 39, 0.7s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+[12:00:04 call] describe_table {"name":"prices"}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+[12:00:05 result describe_table] table prices - coin TEXT (primary key 1) - date TEXT (primary key 2) - open REAL - high REAL - low REAL - close REAL - currency TEXT rows: 60
+  (request: prompt 1447, output 97, 0.9s, finish stop, reasoning 0 chars)
+[12:00:09 assistant] The `daily_prices` pipeline for ETH has been started (run ID: `r_1`).
+
+The `prices` table has the following columns:
+- `coin` (TEXT, PK)
+- `date` (TEXT, PK)
+- `open` (REAL)
+- `high` (REAL)
+- `low` (REAL)
+- `close` (REAL)
+- `currency` (TEXT)
+
+----- turn 2 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 1644, output 50, 0.6s, finish stop, reasoning 0 chars)
+[12:00:38 assistant] The `daily_prices` pipeline for ETH finished successfully. It added one price record for 2026-09-29 (close: 2,587.40 USD) and three new news articles.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+
+----- assertions
+pass  test 1    quick_before_finish                quick part at 10 s, slow work (run_pipeline r_1 (background)) done at 34 s
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test 1    tool_called                        run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+fail  test info text_before_tool                   first run_pipeline call came before any text
+pass  test info background_started                 run_pipeline r_1
+pass  test info mentions_running                   The `daily_prices` pipeline for ETH has been started (run ID: `r_1`). The `prices` table has the following columns: - `c...
+pass  test 2    answer_contains                    The `daily_prices` pipeline for ETH finished successfully. It added one price record for 2026-09-29 (close: 2,587.40 USD) and three new news articles.
+pass  test 2    no_repeat                          5-gram overlap 0.09
+pass  test 2    no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 1644
+tests: map[1:pass 2:pass 5:pass] | prompt 4417 output 186 requests 3 peak 1644 polls 0 | 3s real, 38s virtual

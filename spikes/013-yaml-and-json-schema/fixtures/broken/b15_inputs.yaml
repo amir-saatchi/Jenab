@@ -1,0 +1,16 @@
+version: 1
+id: daily_btc
+inputs:
+  coin: { type: text, default: BTC }
+  Max-Days: { type: number }
+  days: { default: 90 }
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+# expect: 4 /inputs/coin/type enum
+# expect: 5 /inputs/Max-Days propertyNames
+# expect: 6 /inputs/days required

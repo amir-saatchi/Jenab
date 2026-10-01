@@ -1,0 +1,38 @@
+===== gemma4:31b T3 guide v2 run 1 chained false
+----- user
+Create these views:
+1. btc_price_table: a table of the BTC price, newest first, with a "From" date filter that defaults to 90 days ago, and a "Refresh now" button that runs daily_btc.
+2. btc_price_chart: a line chart of the price over time.
+3. btc_news_table: a table of the saved news (date, title, reason, link), newest first.
+4. keyword_list: a table of the watch keywords where each row can be deleted.
+5. add_keyword: a form to add a watch keyword.
+----- assistant (finish tool_calls, prompt 4430, output 644, 3.0s)
+> save_view {"yaml":"version: 1\nid: btc_price_table\ntitle: BTC Price\ntype: table\ndescription: BTC price history\nquery: |\n  SELECT date, price FROM btc_prices\n  WHERE date \u003e= :from\nfilters:\n  - { param: from, control: date, label: \"From\", default: \"today-90d\", required: true }\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: price, label: \"Price\", format: currency, format_options: { currency: USD } }\ndefault_sort: { field: date, direction: desc }\nactions:\n  - { label: \"Refresh now\", run_pipeline: daily_btc }\n"}
+> save_view {"yaml":"version: 1\nid: btc_price_chart\ntitle: BTC Price Chart\ntype: chart\ndescription: BTC price over time\nquery: |\n  SELECT date, price FROM btc_prices\ncolumns: []\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price\" }\nchart_type: line\n"}
+> save_view {"yaml":"version: 1\nid: btc_news_table\ntitle: BTC News\ntype: table\ndescription: Saved news items\nquery: |\n  SELECT date, title, reason, url FROM btc_news\ncolumns:\n  - { field: date, label: \"Date\", format: date }\n  - { field: title, label: \"Title\", format: text }\n  - { field: reason, label: \"Reason\", format: text }\n  - { field: url, label: \"Link\", format: url }\ndefault_sort: { field: date, direction: desc }\n"}
+> save_view {"yaml":"version: 1\nid: keyword_list\ntitle: Watch Keywords\ntype: table\ndescription: List of keywords to watch\nquery: |\n  SELECT id, keyword FROM watch_keywords\ncolumns:\n  - { field: id, label: \"ID\", format: number }\n  - { field: keyword, label: \"Keyword\", format: text }\ndefault_sort: { field: keyword, direction: asc }\nrows_from: { table: watch_keywords, key: id }\nrow_actions:\n  - { label: \"Delete\", delete: true, confirm: true }\n"}
+> save_form {"yaml":"version: 1\nid: add_keyword\ntitle: Add Keyword\ntype: form\nfields:\n  - { field: keyword, label: \"Keyword\", control: text, required: true }\nsubmit: { action: insert, table: watch_keywords }\n"}
+< save_view
+saved table view btc_price_table (revision 1).
+
+< save_view
+INVALID, nothing was saved. 1 error(s); fix all of them and call save_view again with the complete config:
+- line 8:1 columns: unknown field "columns"
+
+< save_view
+saved table view btc_news_table (revision 1).
+
+< save_view
+saved table view keyword_list (revision 1).
+
+< save_form
+saved form view add_keyword (revision 1).
+
+----- assistant (finish tool_calls, prompt 5313, output 104, 1.0s)
+> save_view {"yaml":"version: 1\nid: btc_price_chart\ntitle: BTC Price Chart\ntype: chart\ndescription: BTC price over time\nquery: |\n  SELECT date, price FROM btc_prices\nx: { field: date, label: \"Date\", format: date }\ny:\n  - { field: price, label: \"Price\" }\nchart_type: line\n"}
+< save_view
+saved chart view btc_price_chart (revision 1).
+
+----- assistant (finish stop, prompt 5466, output 41, 1.0s)
+Created five views: a price table with a date filter and refresh action, a price line chart, a news table, a keyword list with deletion, and a keyword entry form.
+----- result: stop done, valid true, first-try false, failed batches 1, checks 5/5

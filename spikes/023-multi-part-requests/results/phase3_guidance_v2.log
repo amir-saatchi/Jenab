@@ -1,0 +1,26 @@
+prompt tokens used before this invocation: 1988679 of 2100000
+note: glm-4.5-flash is not in zai /models
+02:51:15 nemotron-3-ultra t6_a_review_new_pipeline   rule2 r1: T5=pass T6=fail | turns 1 req 2 prompt 5282 peak 2743 polls 0 31s | budget 1998466 | fails right_target 
+02:51:18 gemma4:31b       t6_a_review_new_pipeline   rule2 r1: T5=pass T6=pass | turns 2 req 3 prompt 6532 peak 2303 polls 0 3s | budget 2004998 | fails  
+02:51:23 nemotron-3-ultra t6_e_two_plus_two          rule2 r1: T5=pass T6=pass | turns 1 req 1 prompt 2537 peak 2537 polls 0 5s | budget 2010282 | fails  
+02:51:23 gemma4:31b       t6_e_two_plus_two          rule2 r1: T5=pass T6=pass | turns 1 req 1 prompt 2080 peak 2080 polls 0 1s | budget 2012362 | fails  
+02:51:26 nemotron-3-ultra t6_f_card_schedule         rule2 r1: T5=pass T6=pass | turns 1 req 1 prompt 2539 peak 2539 polls 0 3s | budget 2014901 | fails  
+02:51:27 gemma4:31b       t6_f_card_schedule         rule2 r1: T5=pass T6=pass | turns 1 req 1 prompt 2081 peak 2081 polls 0 1s | budget 2019902 | fails  
+02:51:38 glm-4.5-flash    t6_a_review_new_pipeline   rule2 r1: T5=pass T6=pass | turns 2 req 5 prompt 13359 peak 3187 polls 0 55s | budget 2025634 | fails  
+02:51:41 glm-4.5-flash    t6_e_two_plus_two          rule2 r1: T5=pass T6=pass | turns 1 req 1 prompt 2139 peak 2139 polls 0 3s | budget 2030498 | fails  
+02:51:44 nemotron-3-ultra t6_h_gold_once             rule2 r1: T5=pass T6=pass | turns 1 req 3 prompt 8180 peak 2910 polls 0 17s | budget 2033408 | fails  
+02:51:46 gemma4:31b       t6_h_gold_once             rule2 r1: T5=pass T6=pass | turns 1 req 2 prompt 4316 peak 2229 polls 0 2s | budget 2039864 | fails  
+02:51:50 glm-4.5-flash    t6_f_card_schedule         rule2 r1: T5=pass T6=pass | turns 1 req 2 prompt 4558 peak 2418 polls 0 9s | budget 2044821 | fails  
+02:52:00 nemotron-3-ultra t6_a_review_new_pipeline   rule2 r2: T5=pass T6=fail | turns 1 req 2 prompt 5282 peak 2743 polls 0 13s | budget 2049709 | fails right_target 
+02:52:04 gemma4:31b       t6_a_review_new_pipeline   rule2 r2: T5=pass T6=pass | turns 2 req 3 prompt 6532 peak 2303 polls 0 4s | budget 2056241 | fails  
+02:52:06 glm-4.5-flash    t6_h_gold_once             rule2 r1: T5=pass T6=pass | turns 1 req 2 prompt 4421 peak 2276 polls 0 15s | budget 2058517 | fails  
+02:52:08 nemotron-3-ultra t6_e_two_plus_two          rule2 r2: T5=pass T6=pass | turns 1 req 1 prompt 2537 peak 2537 polls 0 4s | budget 2061054 | fails  
+02:52:08 gemma4:31b       t6_e_two_plus_two          rule2 r2: T5=pass T6=pass | turns 1 req 1 prompt 2080 peak 2080 polls 0 1s | budget 2063134 | fails  
+02:52:10 nemotron-3-ultra t6_f_card_schedule         rule2 r2: T5=pass T6=pass | turns 1 req 1 prompt 2539 peak 2539 polls 0 1s | budget 2065673 | fails  
+02:52:11 gemma4:31b       t6_f_card_schedule         rule2 r2: T5=pass T6=pass | turns 1 req 1 prompt 2081 peak 2081 polls 0 1s | budget 2067754 | fails  
+02:52:20 nemotron-3-ultra t6_h_gold_once             rule2 r2: T5=pass T6=pass | turns 1 req 2 prompt 5276 peak 2731 polls 0 10s | budget 2077536 | fails  
+02:52:23 gemma4:31b       t6_h_gold_once             rule2 r2: T5=pass T6=pass | turns 1 req 2 prompt 4316 peak 2229 polls 0 2s | budget 2081852 | fails  
+02:52:25 glm-4.5-flash    t6_a_review_new_pipeline   rule2 r2: T5=pass T6=fail | turns 1 req 3 prompt 6928 peak 2422 polls 0 19s | budget 2084274 | fails right_target 
+02:52:27 glm-4.5-flash    t6_e_two_plus_two          rule2 r2: T5=pass T6=pass | turns 1 req 1 prompt 2139 peak 2139 polls 0 2s | budget 2086413 | fails  
+
+prompt tokens used in total: 2086413 of 2100000 (output 128906) - BUDGET REACHED, stopped

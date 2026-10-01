@@ -1,0 +1,15 @@
+version: 1
+id: daily_btc
+timeout: 5 minutes
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    retry: { max: 3, backoff: 10 }
+    with:
+      url: https://api.example.com/btc
+      timeout: 2d
+# expect: 3 /timeout format
+# expect: 9 /steps/0/retry/backoff type
+# expect: 12 /steps/0/with/timeout format

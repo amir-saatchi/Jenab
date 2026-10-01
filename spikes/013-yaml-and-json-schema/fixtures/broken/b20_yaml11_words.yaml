@@ -1,0 +1,15 @@
+version: 1
+id: daily_btc
+on_error: no
+trigger:
+  manual: yes
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+      fail_on_status: off
+# expect: 3 /on_error enum
+# expect: 4 /trigger anyOf
+# expect: 5 /trigger/manual type
+# expect: 11 /steps/0/with/fail_on_status type

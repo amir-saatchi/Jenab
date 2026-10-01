@@ -1,0 +1,5 @@
+prompt tokens used before this invocation: 1850497 of 2000000
+calib nemotron-3-ultra v2: guide 3377 tokens (11519 chars), tools 967 tokens (2037 chars) 
+22:20:37 nemotron-3-ultra T4 run 1: stop=done valid=true first=true failedBatches=0 checks=12/13 req=3 prompt=18462 peak=7631 229s budget=1873384 
+
+prompt tokens used in total: 1873384 of 2000000 (output 154643)

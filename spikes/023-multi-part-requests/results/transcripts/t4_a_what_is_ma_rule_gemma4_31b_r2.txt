@@ -1,0 +1,25 @@
+===== gemma4:31b | t4_a_what_is_ma | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] What is a moving average?
+  (request: prompt 1368, output 164, 1.3s, finish stop, reasoning 0 chars)
+[12:00:04 assistant] A moving average is a technical analysis tool that smooths out price data by creating a constantly updated average price. It helps filter out short-term "noise" (random price fluctuations) to reveal the underlying trend of an asset.
+
+**How it works:**
+It calculates the average price over a specific number of periods (e.g., 20 days, 50 days, or 200 days). As a new price point is added, the oldest one is dropped, causing the average to "move" along the timeline.
+
+**Common types:**
+*   **Simple Moving Average (SMA):** The arithmetic mean of the prices over the period.
+*   **Exponential Moving Average (EMA):** Gives more weight to recent prices, making it more responsive to new information.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    A moving average is a technical analysis tool that smooths out price data by creating a constantly updated average price. It helps filter out short-term "noise"...
+pass  test info tool_not_called                    
+pass  test 5    max_prompt_tokens                  peak prompt 1368
+tests: map[4:pass 5:pass] | prompt 1368 output 164 requests 1 peak 1368 polls 0 | 1s real, 4s virtual

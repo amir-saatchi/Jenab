@@ -1,0 +1,19 @@
+===== glm-4.5-flash | t6_f_card_schedule | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 1899, output 68, 2.2s, finish tool_calls, reasoning 264 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 2177, output 166, 7.2s, finish stop, reasoning 518 chars)
+[12:00:09 assistant] 
+The daily_prices pipeline runs daily at 8:00 AM Berlin time (08:00 Europe/Berlin).
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    The daily_prices pipeline runs daily at 8:00 AM Berlin time (08:00 Europe/Berlin).
+pass  test 5    max_prompt_tokens                  peak prompt 2177
+tests: map[5:pass 6:pass] | prompt 4076 output 234 requests 2 peak 2177 polls 0 | 9s real, 9s virtual

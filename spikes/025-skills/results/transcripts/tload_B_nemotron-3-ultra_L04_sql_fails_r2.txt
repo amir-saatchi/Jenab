@@ -1,0 +1,18 @@
+===== nemotron-3-ultra L04_sql_fails guide v2 run 2 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 2134, output 197, 35.4s)
+[reasoning 676 chars]
+> query {"sql":"SELECT name FROM sqlite_master WHERE type='table' AND name='_burrow_runs'"}
+< query
+error: rejected by the SQL guard: reserved name sqlite_master
+----- assistant (finish tool_calls, prompt 2204, output 172, 8.5s)
+[reasoning 561 chars]
+> query {"sql":"SELECT * FROM _burrow_runs LIMIT 1"}
+< query
+error: rejected by the SQL guard: internal name _burrow_runs
+----- assistant (finish stop, prompt 2270, output 118, 5.4s)
+[reasoning 205 chars]
+The query fails because `_burrow_runs` is an **internal Burrow table** (prefix `_burrow_`), and the SQL guard rejects any query that references internal tables. This is by design—internal tables like `_burrow_runs`, `_burrow_views`, etc. are not queryable via the `query` tool.
+----- result: stop answer, loaded [], events 3

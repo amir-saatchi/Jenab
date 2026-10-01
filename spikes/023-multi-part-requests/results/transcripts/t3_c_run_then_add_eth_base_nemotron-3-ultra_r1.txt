@@ -1,0 +1,46 @@
+===== nemotron-3-ultra | t3_c_run_then_add_eth | cond base | rep 1 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Run the daily prices pipeline now.
+  (request: prompt 1731, output 66, 1.7s, finish tool_calls, reasoning 136 chars)
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1797, output 55, 4.0s, finish stop, reasoning 98 chars)
+[12:00:08 assistant] Started run `r_1` for the daily prices pipeline (BTC, USD). It runs in the background — you'll see a notice when it finishes.
+
+----- turn 2 (user) 12:00:12-12:00:20, stop done
+[12:00:12 user] also run it for ETH
+  (request: prompt 1849, output 88, 2.1s, finish tool_calls, reasoning 188 chars)
+[12:00:16 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+[12:00:16 result run_pipeline] {"run_id":"r_2","status":"started"}
+  (request: prompt 1920, output 55, 2.0s, finish stop, reasoning 131 chars)
+[12:00:20 assistant] Started run `r_2` for ETH (USD). Both runs are in progress.
+
+----- turn 3 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 2053, output 122, 21.5s, finish stop, reasoning 185 chars)
+[12:00:38 assistant] Run `r_1` (BTC) finished: added today's price (close **64,210.50 USD**, +1.8% vs yesterday) and 3 news items. Run `r_2` (ETH) is still running.
+
+----- turn 4 (system) 12:00:46-12:00:50, stop done
+[12:00:46 notice] [run r_2 finished 12:00:46: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 2216, output 123, 7.7s, finish stop, reasoning 186 chars)
+[12:00:50 assistant] Both runs completed:
+
+- **BTC** (r_1): close **64,210.50 USD** (+1.8%), 3 news items
+- **ETH** (r_2): close **2,587.40 USD** (+2.3%), 3 news items
+
+The prices and news tables now have today's data for both coins.
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+r_2 run_pipeline daily_prices start 12:00:16 finish 12:00:46 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered new_turn
+pass  test 3    max_calls                          1 calls
+pass  test 3    answer_contains                    Run `r_1` (BTC) finished: added today's price (close **64,210.50 USD**, +1.8% vs yesterday) and 3 news items. Run `r_2` (ETH) is still running. Both runs comple...
+pass  test 3    answer_contains                    Run `r_1` (BTC) finished: added today's price (close **64,210.50 USD**, +1.8% vs yesterday) and 3 news items. Run `r_2` (ETH) is still running. Both runs comple...
+pass  test info no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 2216
+tests: map[3:pass 5:pass] | prompt 11566 output 509 requests 6 peak 2216 polls 0 | 39s real, 50s virtual

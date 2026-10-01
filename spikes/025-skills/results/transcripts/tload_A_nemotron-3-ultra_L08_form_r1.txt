@@ -1,0 +1,10 @@
+===== nemotron-3-ultra L08_form guide v2 run 1 chained false
+----- user
+Add a form for adding a news item by hand: url, date, title and reason.
+----- assistant (finish tool_calls, prompt 4654, output 377, 10.0s)
+[reasoning 877 chars]
+> save_form {"yaml":"version: 1\nid: add_news_item\ntitle: Add news item\ntype: form\ndescription: Manually add a Bitcoin news item\nfields:\n  - field: url\n    label: \"URL\"\n    control: text\n    required: true\n  - field: date\n    label: \"Date\"\n    control: date\n    required: true\n  - field: title\n    label: \"Title\"\n    control: text\n    required: true\n  - field: reason\n    label: \"Reason\"\n    control: textarea\n    required: true\nsubmit:\n  action: insert\n  table: btc_news"}
+< save_form
+saved form view add_news_item (revision 1).
+
+----- result: stop write, loaded [], events 1

@@ -1,0 +1,29 @@
+{
+ "source": "ddg-instant-answer",
+ "query_id": "control",
+ "round": 0,
+ "time": "2026-09-28T16:42:33.8897111Z",
+ "http_code": 200,
+ "status": "ok",
+ "latency_ms": 600,
+ "results": [
+  {
+   "title": "Bitcoin (Wikipedia abstract)",
+   "url": "https://en.wikipedia.org/wiki/Bitcoin",
+   "snippet": "Bitcoin is the first decentralized cryptocurrency. Based on a free-market ideology, bitcoin was invented in 2008 when an unknown person published a white paper under the pseudonym of Satoshi Nakamoto. Use of bitcoin as a currency began in 2009, with the release of its open-source implementation. Fro..."
+  },
+  {
+   "title": "Official site",
+   "url": "https://bitcoin.org"
+  },
+  {
+   "title": "Bitcoin Category",
+   "url": "https://duckduckgo.com/c/Bitcoin"
+  },
+  {
+   "title": "Cryptocurrencies",
+   "url": "https://duckduckgo.com/c/Cryptocurrencies"
+  }
+ ],
+ "extra": "Type=\"A\" Heading=\"Bitcoin\" Answer="
+}

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 900" width="1640" height="900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker></defs>
+<rect width="1640" height="900" fill="#ffffff"/>
+<text x="20.0" y="30.0" font-size="20" fill="#2b2b2b" font-weight="600">03 · Anatomy of a turn</text>
+<text x="20.0" y="49.0" font-size="12" fill="#767676">A request with a quick part and a slow part, a finish turn, and a message written during a turn (SPEC 8.3).</text>
+<rect x="20.0" y="60.0" width="1280.0" height="800.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="20.8" y="60.8" width="1278.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="20.0" y1="88.0" x2="1300.0" y2="88.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="32.0" y="78.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1286.0" y="78.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<rect x="20.0" y="88.0" width="56.0" height="772.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="76.0" y1="88.0" x2="76.0" y2="860.0" stroke="#9a9a9a" stroke-width="1"/>
+<rect x="36.0" y="102.0" width="24.0" height="24.0" rx="4" fill="#2b2b2b" stroke="none" stroke-width="1"/>
+<text x="48.0" y="119.0" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">B</text>
+<text x="48.0" y="158.0" font-size="18" fill="#2b2b2b" text-anchor="middle">+</text>
+<text x="48.0" y="190.0" font-size="9.5" fill="#767676" text-anchor="middle">Srch</text>
+<line x1="32.0" y1="204.0" x2="64.0" y2="204.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="32.0" y="214.0" width="32.0" height="30.0" rx="5" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="48.0" y="234.0" font-size="13" fill="#2b2b2b" text-anchor="middle">◆</text>
+<circle cx="48.0" cy="272" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="276.0" font-size="11" fill="#2b2b2b" text-anchor="middle">R</text>
+<circle cx="48.0" cy="312" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="316.0" font-size="11" fill="#2b2b2b" text-anchor="middle">E</text>
+<circle cx="59.0" cy="302" r="4" fill="#2b2b2b"/>
+<circle cx="48.0" cy="352" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="356.0" font-size="11" fill="#2b2b2b" text-anchor="middle">F</text>
+<circle cx="59.0" cy="342" r="6" fill="#2b2b2b"/>
+<text x="59.0" y="345.5" font-size="9" fill="#ffffff" font-weight="600" text-anchor="middle">!</text>
+<circle cx="48.0" cy="392" r="13" fill="#fff" stroke="#9a9a9a"/>
+<text x="48.0" y="396.0" font-size="11" fill="#2b2b2b" text-anchor="middle">I</text>
+<text x="48.0" y="840.0" font-size="15" fill="#2b2b2b" text-anchor="middle">⚙</text>
+<text x="100.0" y="116.0" font-size="15" fill="#2b2b2b" font-weight="600">◆ Mother</text>
+<text x="100.0" y="134.0" font-size="11" fill="#767676">Project home · directs the other chats</text>
+<rect x="1255.5" y="104.0" width="28.5" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1269.8" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">⋯</text>
+<rect x="1180.2" y="104.0" width="67.4" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1213.8" y="120.3" font-size="12" fill="#2b2b2b" text-anchor="middle">▤ Pages</text>
+<line x1="76.0" y1="146.0" x2="1300.0" y2="146.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="675.9" y="162.0" width="324.1" height="31.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="688.9" y="183.0" font-size="12" fill="#2b2b2b">What is BTC now? And refresh this week's news.</text>
+<text x="330.0" y="217.0" font-size="12.5" fill="#2b2b2b">BTC is $64,210, up 2.1 % since yesterday.</text>
+<rect x="330.0" y="231.0" width="255.8" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="247.1" font-size="11.5" fill="#2b2b2b">✓  query · btc_prices · 1 row · 38 ms</text>
+<rect x="330.0" y="261.0" width="342.7" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="277.1" font-size="11.5" fill="#2b2b2b">●  run_pipeline daily_btc · run r_88 · running 0:24</text>
+<text x="684.7" y="277.0" font-size="11.5" fill="#767676">Stop run</text>
+<text x="330.0" y="305.0" font-size="12.5" fill="#2b2b2b">The news refresh runs in the background. I'll post the new items when it's done.</text>
+<text x="330.0" y="328.0" font-size="10.5" fill="#767676">Undo turn  ·  10:02</text>
+<line x1="330.0" y1="351.0" x2="524.6" y2="351.0" stroke="#d9d9d9" stroke-width="1"/>
+<line x1="805.4" y1="351.0" x2="1000.0" y2="351.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="665.0" y="355.0" font-size="10.5" fill="#767676" text-anchor="middle">Started by the app · run r_88 finished · 10:03</text>
+<text x="330.0" y="377.0" font-size="12.5" fill="#2b2b2b">5 new items this week. The biggest is the ETF options ruling on 12 Sep.</text>
+<rect x="330.0" y="391.0" width="560.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="330.0" y="404.0" width="308.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="330.0" y="421.0" width="423.4" height="24.0" rx="12.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="437.1" font-size="11.5" fill="#2b2b2b">Memory updated: preferences (English sources)      undo  ·  edit</text>
+<text x="330.0" y="466.0" font-size="10.5" fill="#767676">Undo turn  ·  10:03</text>
+<rect x="870.3" y="491.0" width="129.7" height="31.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="883.3" y="512.0" font-size="12" fill="#2b2b2b">Add ETH as well.</text>
+<rect x="330.0" y="536.0" width="355.1" height="24.0" rx="12.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="343.0" y="552.1" font-size="11.5" fill="#2b2b2b">●  Schema agent · designing prices(coin, …) · running</text>
+<rect x="330.0" y="574.0" width="480.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="330.0" y="587.0" width="264.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="596.0" y="585.0" width="2.0" height="12.0" rx="0" fill="#2b2b2b" stroke="none" stroke-width="1"/>
+<rect x="863.8" y="614.0" width="136.2" height="31.0" rx="10" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="876.8" y="635.0" font-size="12" fill="#2b2b2b">Use EUR for both.</text>
+<text x="1000.0" y="661.0" font-size="10.5" fill="#767676" text-anchor="end">joins at the next step</text>
+<rect x="310.0" y="764.0" width="710.0" height="80.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="324.0" y="788.0" font-size="12.5" fill="#767676">Write anytime. Your message joins the running turn.</text>
+<text x="324.0" y="828.0" font-size="16" fill="#2b2b2b">+</text>
+<rect x="344.0" y="810.0" width="121.0" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="357.0" y="825.0" font-size="11" fill="#2b2b2b">Model: default ▾</text>
+<rect x="473.0" y="810.0" width="150.7" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="486.0" y="825.0" font-size="11" fill="#2b2b2b">Approvals: Standard ▾</text>
+<rect x="936.0" y="810.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="972.0" y="826.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">■ Stop</text>
+<circle cx="318.0" cy="213.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="217.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<circle cx="318.0" cy="243.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="247.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<circle cx="318.0" cy="273.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="277.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<circle cx="318.0" cy="301.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="305.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<circle cx="318.0" cy="351.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="355.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<circle cx="318.0" cy="433.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="437.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<circle cx="318.0" cy="548.0" r="10" fill="#d9480f"/>
+<text x="318.0" y="552.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<circle cx="1016.0" cy="629.0" r="10" fill="#d9480f"/>
+<text x="1016.0" y="633.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<circle cx="1030.0" cy="818.0" r="10" fill="#d9480f"/>
+<text x="1030.0" y="822.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<text x="1325.0" y="72.0" font-size="14" fill="#2b2b2b" font-weight="600">Notes</text>
+<circle cx="1335.0" cy="92.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="96.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<text x="1353.0" y="96.0" font-size="12" fill="#2b2b2b">The quick part is answered first, before</text>
+<text x="1353.0" y="112.0" font-size="12" fill="#2b2b2b">any slow work (the SPEC 8.3 prompt rule).</text>
+<circle cx="1335.0" cy="131.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="135.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<text x="1353.0" y="135.0" font-size="12" fill="#2b2b2b">A finished tool call is a one-line chip.</text>
+<text x="1353.0" y="151.0" font-size="12" fill="#2b2b2b">Expanding it shows the query, a result</text>
+<text x="1353.0" y="167.0" font-size="12" fill="#2b2b2b">preview and the time.</text>
+<circle cx="1335.0" cy="186.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="190.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<text x="1353.0" y="190.0" font-size="12" fill="#2b2b2b">Background work: the chip keeps running</text>
+<text x="1353.0" y="206.0" font-size="12" fill="#2b2b2b">after the turn ends, with its own Stop.</text>
+<circle cx="1335.0" cy="225.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="229.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<text x="1353.0" y="229.0" font-size="12" fill="#2b2b2b">The agent says what is still running.</text>
+<circle cx="1335.0" cy="248.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="252.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<text x="1353.0" y="252.0" font-size="12" fill="#2b2b2b">A finish notice starts a new turn, marked</text>
+<text x="1353.0" y="268.0" font-size="12" fill="#2b2b2b">"Started by the app", with its own Undo</text>
+<text x="1353.0" y="284.0" font-size="12" fill="#2b2b2b">turn.</text>
+<circle cx="1335.0" cy="303.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="307.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<text x="1353.0" y="307.0" font-size="12" fill="#2b2b2b">Memory chip with undo and edit.</text>
+<circle cx="1335.0" cy="326.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="330.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="1353.0" y="330.0" font-size="12" fill="#2b2b2b">The schema agent works as a chip; a</text>
+<text x="1353.0" y="346.0" font-size="12" fill="#2b2b2b">migration shows its plan when expanded.</text>
+<circle cx="1335.0" cy="365.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="369.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<text x="1353.0" y="369.0" font-size="12" fill="#2b2b2b">A message written during a turn waits in</text>
+<text x="1353.0" y="385.0" font-size="12" fill="#2b2b2b">a dashed bubble, then joins at the next</text>
+<text x="1353.0" y="401.0" font-size="12" fill="#2b2b2b">step.</text>
+<circle cx="1335.0" cy="420.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="424.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<text x="1353.0" y="424.0" font-size="12" fill="#2b2b2b">Stop cancels the running turn.</text>
+<text x="1325.0" y="457.0" font-size="14" fill="#2b2b2b" font-weight="600">Open questions</text>
+<circle cx="1335" cy="477" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="481.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="481.0" font-size="12" fill="#2b2b2b">Show the finish-notice text itself, or</text>
+<text x="1353.0" y="497.0" font-size="12" fill="#2b2b2b">only the separator?</text>
+<circle cx="1335" cy="516" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="1335.0" y="520.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="1353.0" y="520.0" font-size="12" fill="#2b2b2b">Group tool chips ("3 steps ▸") by</text>
+<text x="1353.0" y="536.0" font-size="12" fill="#2b2b2b">default, or always show each one?</text>
+<text x="1325.0" y="569.0" font-size="14" fill="#2b2b2b" font-weight="600">Requirements</text>
+<text x="1325.0" y="589.0" font-size="12" fill="#767676">R-14, R-15, R-16, R-24</text>
+<rect x="1325.0" y="608.0" width="30.0" height="16.0" rx="3" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="1365.0" y="620.0" font-size="11" fill="#767676">= proposed here, not in the SPEC yet</text>
+</svg>

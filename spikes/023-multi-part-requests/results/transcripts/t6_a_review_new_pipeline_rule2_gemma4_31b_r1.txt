@@ -1,0 +1,30 @@
+===== gemma4:31b | t6_a_review_new_pipeline | cond rule2 | rep 1 | tests [6]
+system prompt: 4068 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 2081, output 44, 0.7s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] send_to_chat {"chat_id":"c_reviewer","message":"Please review the new 'fear_greed' pipeline for cost and missing error handling."}
+[12:00:04 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 2148, output 30, 1.0s, finish stop, reasoning 0 chars)
+[12:00:08 assistant] I've sent the `fear_greed` pipeline to the Reviewer for a check on cost and error handling.
+
+----- turn 2 (system) 12:00:49-12:00:53, stop done
+[12:00:49 notice] [task t_1 finished 12:00:49: reply from Reviewer (c_reviewer): fear_greed has 2 problems. 1) The http.get step has no on_error, so one failed fetch fails the whole run; add on_error with retry 3, then skip. 2) llm.summarize runs on every run although the index is a single number; drop it and write the number, which saves about 1,200 tokens a day. Otherwise it is fine.
+]
+  (request: prompt 2303, output 92, 1.0s, finish stop, reasoning 0 chars)
+[12:00:53 assistant] The Reviewer found two issues with the `fear_greed` pipeline:
+1. **Error Handling**: The `http.get` step lacks an `on_error` handler. It should be updated to retry 3 times and then skip.
+2. **Cost**: The `llm.summarize` step is unnecessary since the index is just a number; removing it would save about 1,200 tokens daily.
+
+----- background tasks
+t_1 send_to_chat c_reviewer start 12:00:04 finish 12:00:49 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    The Reviewer found two issues with the `fear_greed` pipeline: 1. **Error Handling**: The `http.get` step lacks an `on_error` handler. It should be updated to re...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 2303
+tests: map[5:pass 6:pass] | prompt 6532 output 166 requests 3 peak 2303 polls 0 | 3s real, 53s virtual

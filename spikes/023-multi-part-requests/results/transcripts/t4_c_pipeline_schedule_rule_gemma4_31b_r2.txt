@@ -1,0 +1,22 @@
+===== gemma4:31b | t4_c_pipeline_schedule | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1377, output 17, 0.6s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 1687, output 68, 1.6s, finish stop, reasoning 0 chars)
+[12:00:09 assistant] The `daily_prices` pipeline fetches the current price and the latest news for a specified coin (BTC or ETH) and currency (USD or EUR), then saves this data into the `prices` and `news` tables.
+
+It runs daily at **08:00 (Europe/Berlin)**.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    The `daily_prices` pipeline fetches the current price and the latest news for a specified coin (BTC or ETH) and currency (USD or EUR), then saves this data into...
+pass  test 5    max_prompt_tokens                  peak prompt 1687
+tests: map[4:pass 5:pass] | prompt 3064 output 85 requests 2 peak 1687 polls 0 | 3s real, 9s virtual

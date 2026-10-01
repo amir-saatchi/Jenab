@@ -1,0 +1,13 @@
+id: t4_d_sma_ema_7day_high
+title: Two quick parts (knowledge plus one query); nothing is slow, so nothing should be split
+tests: ["4"]
+context: main
+why: 'Explain SMA vs EMA and give the 7-day high close (65,230.80) in one turn; no background work.'
+messages:
+  - text: "What's the difference between an SMA and an EMA, and what was BTC's highest close in the last 7 days?"
+asserts:
+  - {type: no_background, test: "4"}
+  - {type: max_turns, test: "4", n: 1}
+  - {type: no_false_running, test: "4"}
+  - {type: answer_contains, test: "4", turn: any, match: '65[,.]?230'}
+  - {type: answer_contains, test: "4", turn: any, match: '(?i)weight|recent'}

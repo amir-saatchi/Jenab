@@ -1,0 +1,48 @@
+===== gemma4:31b | t6_c_summarise_20_pages | cond base | rep 1 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:01:38, stop done
+[12:00:00 user] Summarise these 20 pages about the new EU crypto rules for me:
+1. https://rules.example.eu/page-01
+2. https://rules.example.eu/page-02
+3. https://rules.example.eu/page-03
+4. https://rules.example.eu/page-04
+5. https://rules.example.eu/page-05
+6. https://rules.example.eu/page-06
+7. https://rules.example.eu/page-07
+8. https://rules.example.eu/page-08
+9. https://rules.example.eu/page-09
+10. https://rules.example.eu/page-10
+11. https://rules.example.eu/page-11
+12. https://rules.example.eu/page-12
+13. https://rules.example.eu/page-13
+14. https://rules.example.eu/page-14
+15. https://rules.example.eu/page-15
+16. https://rules.example.eu/page-16
+17. https://rules.example.eu/page-17
+18. https://rules.example.eu/page-18
+19. https://rules.example.eu/page-19
+20. https://rules.example.eu/page-20
+
+  (request: prompt 2140, output 342, 1.2s, finish tool_calls, reasoning 0 chars)
+[12:00:04 call] subagent {"task":"Summarize the new EU crypto rules based on the content of these 20 pages:\n1. https://rules.example.eu/page-01\n2. https://rules.example.eu/page-02\n3. https://rules.example.eu/page-03\n4. https://rules.example.eu/page-04\n5. https://rules.example.eu/page-05\n6. https://rules.example.eu/page-06\n7. https://rules.example.eu/page-07\n8. https://rules.example.eu/page-08\n9. https://rules.example.eu/page-09\n10. https://rules.example.eu/page-10\n11. https://rules.example.eu/page-11\n12. https://rules.example.eu/page-12\n13. https://rules.example.eu/page-13\n14. https://rules.example.eu/page-14\n15. https://rules.example.eu/page-15\n16. https://rules.example.eu/page-16\n17. https://rules.example.eu/page-17\n18. https://rules.example.eu/page-18\n19. https://rules.example.eu/page-19\n20. https://rules.example.eu/page-20"}
+[12:01:34 result subagent] Summary of 20 pages on the new EU crypto rules: 1) the MiCA transition period ends on 2026-07-01, after that providers need a licence; 2) stablecoin issuers must hold reserves in EU banks; 3) the travel rule applies to transfers above 1,000 EUR; 4) self-hosted wallets are not banned, but large trans...
+  (request: prompt 2580, output 119, 0.9s, finish stop, reasoning 0 chars)
+[12:01:38 assistant] The new EU crypto rules can be summarised as follows:
+
+*   **MiCA Transition:** The transition period ends on 2026-07-01, after which providers must hold a licence.
+*   **Stablecoins:** Issuers are required to hold their reserves in EU-based banks.
+*   **Travel Rule:** This rule applies to all transfers exceeding 1,000 EUR.
+*   **Self-hosted Wallets:** While not banned, large transfers involving self-hosted wallets will be subject to checks.
+
+----- background tasks
+
+----- assertions
+pass  test 6    used_subagent_for_one_off          
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+pass  test 6    answer_contains                    The new EU crypto rules can be summarised as follows: * **MiCA Transition:** The transition period ends on 2026-07-01, after which providers must hold a licence...
+skip  test 6    no_repeat                          no finish turn
+fail  test info background_started                 no background task
+pass  test 5    max_prompt_tokens                  peak prompt 2580
+tests: map[5:pass 6:pass] | prompt 4720 output 461 requests 2 peak 2580 polls 0 | 2s real, 98s virtual

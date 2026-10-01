@@ -1,0 +1,6 @@
+===== gemma4:31b L09_moving_average guide v2 run 1 chained false
+----- user
+What is a moving average? Answer in two sentences.
+----- assistant (finish stop, prompt 1697, output 47, 1.1s)
+A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of the full data set. It smooths out short-term fluctuations to highlight longer-term trends or cycles in the data.
+----- result: stop answer, loaded [], events 1

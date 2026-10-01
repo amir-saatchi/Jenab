@@ -1,0 +1,25 @@
+===== nemotron-3-ultra | t4_d_sma_ema_7day_high | cond base | rep 2 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What's the difference between an SMA and an EMA, and what was BTC's highest close in the last 7 days?
+  (request: prompt 1751, output 221, 11.1s, finish tool_calls, reasoning 518 chars)
+[12:00:04 call] query {"sql":"SELECT date, close FROM prices WHERE coin = 'BTC' AND date \u003e= date('2026-09-29', '-7 days') ORDER BY date DESC"}
+[12:00:05 result query] date | close 2026-09-28 | 64512.30 2026-09-27 | 63880.50 2026-09-26 | 65230.80 2026-09-25 | 64100.00 2026-09-24 | 64950.20 2026-09-23 | 63455.00 2026-09-22 | 62980.10 (7 rows)
+  (request: prompt 1982, output 236, 10.9s, finish stop, reasoning 455 chars)
+[12:00:09 assistant] **SMA vs EMA:**
+- **SMA (Simple Moving Average)** — equal weight to all prices in the window. A 7-day SMA is just the arithmetic mean of the last 7 closes.
+- **EMA (Exponential Moving Average)** — gives more weight to recent prices, so it reacts faster to new data. The weighting decays exponentially.
+
+**BTC's highest close in the last 7 days:** **$65,230.80** on **2026-09-26**.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    **SMA vs EMA:** - **SMA (Simple Moving Average)** — equal weight to all prices in the window. A 7-day SMA is just the arithmetic mean of the last 7 closes. - ...
+pass  test 4    answer_contains                    **SMA vs EMA:** - **SMA (Simple Moving Average)** — equal weight to all prices in the window. A 7-day SMA is just the arithmetic mean of the last 7 closes. - ...
+pass  test 5    max_prompt_tokens                  peak prompt 1982
+tests: map[4:pass 5:pass] | prompt 3733 output 457 requests 2 peak 1982 polls 0 | 22s real, 9s virtual

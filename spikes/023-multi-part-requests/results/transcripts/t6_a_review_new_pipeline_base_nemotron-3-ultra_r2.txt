@@ -1,0 +1,40 @@
+===== nemotron-3-ultra | t6_a_review_new_pipeline | cond base | rep 2 | tests [6]
+system prompt: 3054 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] Can you check the new pipeline for problems?
+  (request: prompt 2298, output 60, 1.9s, finish tool_calls, reasoning 134 chars)
+[12:00:04 call] read_config {"id":"fear_greed"}
+[12:00:05 result read_config] version: 1 id: fear_greed title: Fear and greed index trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin } steps: - id: index use: http.get with: { url: "https://api.alternative.example/fng/" } - id: summary use: llm.summarize with: { text: "{{ steps.index.body }}", max_tokens: 400 } - id: sa...
+  (request: prompt 2502, output 717, 14.3s, finish stop, reasoning 1447 chars)
+[12:00:09 assistant] The pipeline has several problems:
+
+**1. Fake API URL** — `https://api.alternative.example/fng/` uses the reserved `.example` TLD. The real Fear & Greed Index API is `https://api.alternative.me/fng/`.
+
+**2. No error handling** — No `on_error` on any step. The reviewer previously required this for `daily_prices`; same standard applies here.
+
+**3. Wrong table / schema mismatch** — It writes to `news` with `coin: BTC`, but the Fear & Greed Index is a market-wide sentiment indicator, not BTC-specific news. The `news` table expects a URL as primary key; `"fng-{{ run.date }}"` is a synthetic key that could collide if the pipeline runs twice in a day.
+
+**4. Hardcoded values** — `coin: BTC` and `source: alternative.example` are hardcoded; the source should be the real domain.
+
+**5. No validation of API response** — If the API returns an error or unexpected shape, the LLM step will summarize garbage and the insert will still run.
+
+**Suggested fixes:**
+- Change URL to `https://api.alternative.me/fng/`
+- Add `on_error` to each step (at least log and stop)
+- Consider a dedicated `fear_greed` table (date, value, classification) instead of stuffing into `news`
+- Make the coin configurable or use a sentinel like `"MARKET"`
+- Add a step to parse/validate the JSON response before summarizing
+
+Want me to send this to the Reviewer chat for a formal review, or would you like to edit the pipeline first?
+
+----- background tasks
+
+----- assertions
+fail  test 6    right_target                       no send_to_chat; tools used: read_config
+pass  test 6    created_chat_only_for_lasting_job  
+skip  test 6    no_resend_after_notice             no finish turn
+skip  test 6    answer_contains                    no finish turn; the rest was given in the first turn
+skip  test 6    no_repeat                          no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2502
+tests: map[5:pass 6:fail] | prompt 4800 output 777 requests 2 peak 2502 polls 0 | 16s real, 9s virtual

@@ -1,0 +1,6 @@
+===== gemma4:31b L12_two_plus_two guide v2 run 1 chained false
+----- user
+What is 2+2?
+----- assistant (finish stop, prompt 1693, output 8, 1.0s)
+2 + 2 = 4
+----- result: stop answer, loaded [], events 1

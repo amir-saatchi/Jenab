@@ -1,0 +1,14 @@
+===== nemotron-3-ultra T3 guide v1 run 1 chained false
+----- user
+Create these views:
+1. btc_price_table: a table of the BTC price, newest first, with a "From" date filter that defaults to 90 days ago, and a "Refresh now" button that runs daily_btc.
+2. btc_price_chart: a line chart of the price over time.
+3. btc_news_table: a table of the saved news (date, title, reason, link), newest first.
+4. keyword_list: a table of the watch keywords where each row can be deleted.
+5. add_keyword: a form to add a watch keyword.
+----- assistant (finish tool_calls, prompt 4091, output 713, 26.7s)
+[reasoning 1792 chars]
+> save_view {"yaml":"version: 1\nid: btc_price_table\ntitle: BTC Price History\ntype: table\ndescription: Bitcoin prices with date filter and refresh action\nquery: |\n  SELECT date, price\n  FROM btc_prices\n  WHERE date \u003e= :from\nfilters:\n  - param: from\n    control: date\n    label: \"From\"\n    default: \"today-90d\"\n    required: true\nactions:\n  - label: \"Refresh now\"\n    run_pipeline: daily_btc\ncolumns:\n  - field: date\n    label: Date\n    format: date\n  - field: price\n    label: Price (USD)\n    format: currency\n    format_options:\n      currency: USD\n      decimals: 2\ndefault_sort:\n  field: date\n  direction: desc\npage_size: 50"}
+< save_view
+saved table view btc_price_table (revision 1).
+

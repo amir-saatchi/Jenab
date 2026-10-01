@@ -1,0 +1,15 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+  - id: keywords
+    use: db.query
+    depends_on: [price]
+    with:
+      sql: SELECT keyword FROM watch_keywords
+# expect: 12 /steps/1/depends_on additionalProperties

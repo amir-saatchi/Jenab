@@ -1,0 +1,24 @@
+===== glm-4.5-flash | t4_b_yesterday_close | cond base | rep 1 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What was BTC's closing price yesterday?
+  (request: prompt 1410, output 195, 5.7s, finish tool_calls, reasoning 486 chars)
+[12:00:04 assistant] 
+I'll check BTC's closing price for yesterday (2026-09-28) from the prices table.
+
+[12:00:04 call] query {"sql":"SELECT close FROM prices WHERE coin = 'BTC' AND date = '2026-09-28'"}
+[12:00:05 result query] close 64512.30 (1 rows)
+  (request: prompt 1486, output 64, 2.2s, finish stop, reasoning 129 chars)
+[12:00:09 assistant] 
+BTC's closing price yesterday (2026-09-28) was $64,512.30.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    I'll check BTC's closing price for yesterday (2026-09-28) from the prices table. BTC's closing price yesterday (2026-09-28) was $64,512.30.
+pass  test 5    max_prompt_tokens                  peak prompt 1486
+tests: map[4:pass 5:pass] | prompt 2896 output 259 requests 2 peak 1486 polls 0 | 8s real, 9s virtual

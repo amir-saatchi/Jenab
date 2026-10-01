@@ -1,0 +1,17 @@
+version: 1
+id: daily_btc
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+  - id: news
+    use: web.search
+    with:
+      query: bitcoin news
+      limit: twenty
+      freshness: daily
+# expect: 14 /steps/1/with/limit anyOf
+# expect: 15 /steps/1/with/freshness enum

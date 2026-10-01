@@ -1,0 +1,10 @@
+version: 1
+id: daily_btc
+trigger:
+  catch_up: once
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+# expect: 3 /trigger anyOf

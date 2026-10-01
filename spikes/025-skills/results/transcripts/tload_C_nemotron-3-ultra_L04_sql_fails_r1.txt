@@ -1,0 +1,23 @@
+===== nemotron-3-ultra L04_sql_fails guide v2 run 1 chained false
+----- user
+This query fails in the query tool. Why?
+SELECT status, count(*) FROM _burrow_runs GROUP BY status
+----- assistant (finish tool_calls, prompt 2134, output 212, 7.4s)
+[reasoning 762 chars]
+> query {"sql":"SELECT name FROM sqlite_master WHERE type='table'"}
+< query
+error: rejected by the SQL guard: reserved name sqlite_master
+----- assistant (finish tool_calls, prompt 2195, output 55, 5.0s)
+[reasoning 110 chars]
+> query {"sql":"SELECT * FROM btc_news LIMIT 1"}
+< query
+columns: url, date, title, reason, _run_id, _fetched_at
+{"_fetched_at":"2026-09-28T08:00:09Z","_run_id":"run_seed_1","date":"2026-09-28","reason":"seed reason","title":"Seed story 1","url":"https://news.example.com/seed/1"}
+(1 rows total)
+
+----- assistant (finish stop, prompt 2341, output 199, 25.1s)
+[reasoning 425 chars]
+The query fails because `_burrow_runs` is an **internal Burrow system table** that tracks pipeline runs. The SQL guard in the query tool blocks access to reserved/internal tables (like `_burrow_runs`, `sqlite_master`, etc.) — you can only query your own project tables (`btc_news`, `btc_prices`, `watch_keywords`, etc.).
+
+If you need to see pipeline run history, that's typically shown in the Burrow UI, not via the query tool.
+----- result: stop answer, loaded [], events 3

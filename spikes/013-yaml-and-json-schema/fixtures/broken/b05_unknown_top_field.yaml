@@ -1,0 +1,11 @@
+version: 1
+id: daily_btc
+schedule: "0 8 * * *"
+trigger:
+  manual: true
+steps:
+  - id: price
+    use: http.get
+    with:
+      url: https://api.example.com/btc
+# expect: 3 /schedule additionalProperties

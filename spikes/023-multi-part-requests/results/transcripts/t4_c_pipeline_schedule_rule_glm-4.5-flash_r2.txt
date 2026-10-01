@@ -1,0 +1,35 @@
+===== glm-4.5-flash | t4_c_pipeline_schedule | cond rule | rep 2 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1466, output 172, 5.0s, finish tool_calls, reasoning 621 chars)
+[12:00:04 assistant] 
+I'll check the configuration of the daily_prices pipeline to give you the exact details.
+
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 1761, output 338, 9.1s, finish stop, reasoning 759 chars)
+[12:00:09 assistant] 
+The daily_prices pipeline:
+
+**What it does:**
+- Fetches current price data for a specified coin (BTC or ETH, default BTC) in a specified currency (USD or EUR, default USD)
+- Saves the price data to the "prices" table
+- Fetches news for the specified coin from an RSS feed
+- Saves the news items to the "news" table
+
+**When it runs:**
+- Daily at 8:00 AM (Europe/Berlin timezone) according to its schedule: "0 8 * * *"
+
+The pipeline takes about 30 seconds to run and includes error handling with retries for both the price fetching and news fetching steps.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    I'll check the configuration of the daily_prices pipeline to give you the exact details. The daily_prices pipeline: **What it does:** - Fetches current price da...
+pass  test 5    max_prompt_tokens                  peak prompt 1761
+tests: map[4:pass 5:pass] | prompt 3227 output 510 requests 2 peak 1761 polls 0 | 14s real, 9s virtual

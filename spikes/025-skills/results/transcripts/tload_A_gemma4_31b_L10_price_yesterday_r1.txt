@@ -1,0 +1,13 @@
+===== gemma4:31b L10_price_yesterday guide v2 run 1 chained false
+----- user
+What was the BTC price yesterday?
+----- assistant (finish tool_calls, prompt 4412, output 39, 1.0s)
+> query {"sql":"SELECT price FROM btc_prices WHERE date = date('2026-09-29', '-1 day')"}
+< query
+columns: price
+{"price":60100}
+(1 rows total)
+
+----- assistant (finish stop, prompt 4477, output 30, 1.0s)
+The BTC price yesterday (2026-09-28) was 60,100.
+----- result: stop answer, loaded [], events 2

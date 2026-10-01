@@ -1,0 +1,31 @@
+===== nemotron-3-ultra | t3_a_news_add_eth | cond base | rep 1 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:32, stop done
+[12:00:00 user] Search the web for the latest Bitcoin news and summarise the top 3 stories.
+  (request: prompt 1741, output 85, 2.9s, finish tool_calls, reasoning 156 chars)
+[12:00:04 call] web_search {"query":"Bitcoin latest news","source":"news","limit":10}
+[12:00:14 result web_search] 1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows. 2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28. 3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28. 4. "BTC jumped 4% on 2026-09-12 after low US inflation d...
+[12:00:14 mid_user] also add ETH
+  (request: prompt 2000, output 74, 2.1s, finish tool_calls, reasoning 88 chars)
+[12:00:18 call] web_search {"limit":10,"query":"Ethereum latest news","source":"news"}
+[12:00:28 result web_search] 1. "ETH gas fees fall to a two-year low" - theblock.example, 2026-09-29: average fee 0.8 gwei. 2. "Ethereum staking queue shortens after the upgrade" - coindesk.example, 2026-09-28. 3. "ETH ETFs see first inflows in three weeks" - decrypt.example, 2026-09-27: 62M USD. 4. "ETH trades at 2,587 USD, up...
+  (request: prompt 2215, output 267, 3.8s, finish stop, reasoning 140 chars)
+[12:00:32 assistant] **Bitcoin – top 3 (29 Sep 2026)**
+1. **Spot BTC ETFs add $410M in a day** (CoinDesk) – fourth consecutive day of inflows.
+2. **Bitcoin hashrate hits new all-time high** (The Block, 28 Sep) – network security at record levels.
+3. **SEC delays decision on staking ETFs** (Reuters, 28 Sep) – regulatory uncertainty continues for yield products.
+
+**Ethereum – top 3 (29 Sep 2026)**
+1. **ETH gas fees drop to two-year low** (The Block) – average fee ~0.8 gwei.
+2. **Staking queue shortens post-upgrade** (CoinDesk, 28 Sep) – validator activation wait times improving.
+3. **ETH ETFs see first inflows in three weeks** (Decrypt, 27 Sep) – $62M net inflows; ETH trading ~$2,587, up ~4% on the week.
+
+----- background tasks
+
+----- assertions
+pass  test 3    after_message                      delivered mid_turn
+pass  test 3    answer_contains                    **Bitcoin – top 3 (29 Sep 2026)** 1. **Spot BTC ETFs add $410M in a day** (CoinDesk) – fourth consecutive day of inflows. 2. **Bitcoin hashrate hits new all...
+pass  test info no_background                      
+pass  test 5    max_prompt_tokens                  peak prompt 2215
+tests: map[3:pass 5:pass] | prompt 5956 output 426 requests 3 peak 2215 polls 0 | 9s real, 32s virtual

@@ -1,0 +1,32 @@
+===== glm-4.5-flash | t4_c_pipeline_schedule | cond base | rep 1 | tests [4]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What does the daily_prices pipeline do, and when does it run?
+  (request: prompt 1416, output 81, 2.7s, finish tool_calls, reasoning 330 chars)
+[12:00:04 call] read_config {"id":"daily_prices"}
+[12:00:05 result read_config] version: 1 id: daily_prices title: Daily price and news inputs: coin: { type: string, enum: [BTC, ETH], default: BTC } currency: { type: string, enum: [USD, EUR], default: USD } trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin } steps: - id: price use: http.get with: { url: "https://api.coi...
+  (request: prompt 1694, output 336, 9.6s, finish stop, reasoning 743 chars)
+[12:00:09 assistant] 
+The daily_prices pipeline:
+
+1. **What it does:**
+   - Fetches current price data for a specified cryptocurrency (BTC or ETH, default BTC) in a specified currency (USD or EUR, default USD)
+   - Fetches the latest news for that cryptocurrency
+   - Saves both the price data and news to the respective tables (prices and news)
+
+2. **When it runs:**
+   - Daily at 08:00 (8 AM) in Europe/Berlin timezone
+   - It takes about 30 seconds to complete a run
+
+The pipeline has error handling with retries - 3 retries for price fetching and 2 retries for news fetching before failing or skipping respectively.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    The daily_prices pipeline: 1. **What it does:** - Fetches current price data for a specified cryptocurrency (BTC or ETH, default BTC) in a specified currency (U...
+pass  test 5    max_prompt_tokens                  peak prompt 1694
+tests: map[4:pass 5:pass] | prompt 3110 output 417 requests 2 peak 1694 polls 0 | 12s real, 9s virtual

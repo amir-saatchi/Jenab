@@ -1,0 +1,47 @@
+===== nemotron-3-ultra | t12_c_eth_run_and_columns | cond base | rep 1 | tests [1 2]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:37, stop step cap
+[12:00:00 user] Run the daily prices pipeline for ETH now, and tell me which columns the prices table has.
+  (request: prompt 1744, output 114, 2.4s, finish tool_calls, reasoning 193 chars)
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+[12:00:04 call] describe_table {"name":"prices"}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+[12:00:05 result describe_table] table prices - coin TEXT (primary key 1) - date TEXT (primary key 2) - open REAL - high REAL - low REAL - close REAL - currency TEXT rows: 60
+  (request: prompt 1890, output 125, 1.9s, finish tool_calls, reasoning 335 chars)
+[12:00:09 call] run_status {"run_id":"r_1"}
+[12:00:10 result run_status] running for 6 s (typical length 30 s)
+  (request: prompt 1948, output 95, 3.2s, finish tool_calls, reasoning 321 chars)
+[12:00:14 call] run_status {"run_id":"r_1"}
+[12:00:14 result run_status] running for 10 s (typical length 30 s)
+  (request: prompt 2007, output 42, 1.5s, finish tool_calls, reasoning 54 chars)
+[12:00:18 call] run_status {"run_id":"r_1"}
+[12:00:19 result run_status] running for 15 s (typical length 30 s)
+  (request: prompt 2066, output 42, 5.9s, finish tool_calls, reasoning 54 chars)
+[12:00:23 call] run_status {"run_id":"r_1"}
+[12:00:23 result run_status] running for 20 s (typical length 30 s)
+  (request: prompt 2125, output 42, 1.3s, finish tool_calls, reasoning 54 chars)
+[12:00:27 call] run_status {"run_id":"r_1"}
+[12:00:28 result run_status] running for 24 s (typical length 30 s)
+  (request: prompt 2184, output 42, 1.3s, finish tool_calls, reasoning 54 chars)
+[12:00:32 call] run_status {"run_id":"r_1"}
+[12:00:32 result run_status] running for 28 s (typical length 30 s)
+  (request: prompt 2243, output 42, 2.3s, finish tool_calls, reasoning 54 chars)
+[12:00:36 call] run_status {"run_id":"r_1"}
+[12:00:37 result run_status] finished 12:00:34: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered poll
+
+----- assertions
+fail  test 1    quick_before_finish                quick part never answered
+pass  test 1    slow_started                       run_pipeline background r_1
+pass  test 1    tool_called                        run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+fail  test info text_before_tool                   first run_pipeline call came before any text
+pass  test info background_started                 run_pipeline r_1
+fail  test info mentions_running                   
+fail  test 2    answer_contains                    no finish turn and the rest was never given
+skip  test 2    no_repeat                          no finish turn
+skip  test 2    no_restart                         no finish turn
+pass  test 5    max_prompt_tokens                  peak prompt 2243
+tests: map[1:fail 2:fail 5:pass] | prompt 16207 output 544 requests 8 peak 2243 polls 7 | 20s real, 37s virtual

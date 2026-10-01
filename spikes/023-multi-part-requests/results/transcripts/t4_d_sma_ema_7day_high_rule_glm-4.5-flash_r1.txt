@@ -1,0 +1,36 @@
+===== glm-4.5-flash | t4_d_sma_ema_7day_high | cond rule | rep 1 | tests [4]
+system prompt: 2333 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:09, stop done
+[12:00:00 user] What's the difference between an SMA and an EMA, and what was BTC's highest close in the last 7 days?
+  (request: prompt 1478, output 258, 8.4s, finish tool_calls, reasoning 433 chars)
+[12:00:04 assistant] 
+I'll answer both questions for you.
+
+**SMA vs EMA:**
+- **SMA (Simple Moving Average)**: Calculates the average of a set of values over a specific period, giving equal weight to all data points. For example, a 10-day SMA adds the last 10 closing prices and divides by 10.
+- **EMA (Exponential Moving Average)**: Gives more weight to recent data points, making it more responsive to new information. It uses a smoothing factor that exponentially decreases the weight of older data points.
+
+Now let me check BTC's highest close in the last 7 days:
+
+[12:00:04 call] query {"sql":"SELECT date, close FROM prices WHERE coin = 'BTC' ORDER BY date DESC LIMIT 7"}
+[12:00:05 result query] date | close 2026-09-28 | 64512.30 2026-09-27 | 63880.50 2026-09-26 | 65230.80 2026-09-25 | 64100.00 2026-09-24 | 64950.20 2026-09-23 | 63455.00 2026-09-22 | 62980.10 (7 rows)
+  (request: prompt 1748, output 290, 8.9s, finish stop, reasoning 366 chars)
+[12:00:09 assistant] 
+**SMA vs EMA:**
+- **SMA (Simple Moving Average)**: Calculates the average of a set of values over a specific period, giving equal weight to all data points. For example, a 10-day SMA adds the last 10 closing prices and divides by 10.
+- **EMA (Exponential Moving Average)**: Gives more weight to recent data points, making it more responsive to new information. It uses a smoothing factor that exponentially decreases the weight of older data points.
+
+**BTC's highest close in the last 7 days:**
+$65,230.80 on September 26, 2026.
+
+----- background tasks
+
+----- assertions
+pass  test 4    no_background                      
+pass  test 4    max_turns                          1 turns
+pass  test 4    no_false_running                   
+pass  test 4    answer_contains                    I'll answer both questions for you. **SMA vs EMA:** - **SMA (Simple Moving Average)**: Calculates the average of a set of values over a specific period, giving ...
+pass  test 4    answer_contains                    I'll answer both questions for you. **SMA vs EMA:** - **SMA (Simple Moving Average)**: Calculates the average of a set of values over a specific period, giving ...
+pass  test 5    max_prompt_tokens                  peak prompt 1748
+tests: map[4:pass 5:pass] | prompt 3226 output 548 requests 2 peak 1748 polls 0 | 17s real, 9s virtual

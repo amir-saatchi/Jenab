@@ -1,0 +1,16 @@
+prompt tokens used before this invocation: 1868370 of 2100000
+note: glm-4.5-flash is not in zai /models
+02:47:10 nemotron-3-ultra t3_d_range_7_days          rule r1: T3=pass T5=pass | turns 1 req 4 prompt 10359 peak 3138 polls 0 35s | budget 1884575 | fails  
+02:47:12 glm-4.5-flash    t3_d_range_7_days          rule r1: T3=pass T5=pass | turns 1 req 4 prompt 8348 peak 2502 polls 0 37s | budget 1890156 | fails  
+02:47:13 gemma4:31b       t3_d_range_7_days          rule r1: T3=pass T5=pass | turns 1 req 3 prompt 5033 peak 1954 polls 0 3s | budget 1892110 | fails  
+02:48:05 glm-4.5-flash    t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 4 prompt 7753 peak 2306 polls 0 54s | budget 1913134 | fails  
+02:48:13 nemotron-3-ultra t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 6 prompt 16828 peak 3557 polls 0 61s | budget 1918172 | fails  
+02:48:23 gemma4:31b       t3_d_range_7_days          base r1: T3=pass T5=pass | turns 1 req 4 prompt 6683 peak 2034 polls 0 10s | budget 1929204 | fails  
+02:48:26 glm-4.5-flash    t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 1 req 4 prompt 8316 peak 2486 polls 0 21s | budget 1933495 | fails  
+02:48:53 glm-4.5-flash    t3_d_range_7_days          base r2: T3=pass T5=pass | turns 1 req 4 prompt 7754 peak 2309 polls 0 26s | budget 1953106 | fails  
+02:49:06 nemotron-3-ultra t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 1 req 6 prompt 17358 peak 3696 polls 0 42s | budget 1956802 | fails  
+02:49:09 gemma4:31b       t3_d_range_7_days          rule r2: T3=pass T5=pass | turns 1 req 3 prompt 5033 peak 1954 polls 0 3s | budget 1961835 | fails  
+02:50:18 nemotron-3-ultra t3_d_range_7_days          base r2: T3=pass T5=pass | turns 1 req 7 prompt 20161 peak 3633 polls 0 69s | budget 1981996 | fails  
+02:50:23 gemma4:31b       t3_d_range_7_days          base r2: T3=pass T5=pass | turns 1 req 4 prompt 6683 peak 2034 polls 0 6s | budget 1988679 | fails  
+
+prompt tokens used in total: 1988679 of 2100000 (output 123063)

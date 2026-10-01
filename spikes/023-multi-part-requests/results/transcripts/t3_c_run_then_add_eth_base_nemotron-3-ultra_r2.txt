@@ -1,0 +1,43 @@
+===== nemotron-3-ultra | t3_c_run_then_add_eth | cond base | rep 2 | tests [3]
+system prompt: 2107 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:08, stop done
+[12:00:00 user] Run the daily prices pipeline now.
+  (request: prompt 1731, output 66, 5.7s, finish tool_calls, reasoning 136 chars)
+[12:00:04 call] run_pipeline {"id":"daily_prices","inputs":{}}
+[12:00:04 result run_pipeline] {"run_id":"r_1","status":"started"}
+  (request: prompt 1797, output 56, 32.7s, finish stop, reasoning 127 chars)
+[12:00:08 assistant] Started run `r_1` (daily_prices). It runs in the background — a notice will appear when it finishes.
+
+----- turn 2 (user) 12:00:12-12:00:20, stop done
+[12:00:12 user] also run it for ETH
+  (request: prompt 1843, output 78, 5.8s, finish tool_calls, reasoning 129 chars)
+[12:00:16 call] run_pipeline {"id":"daily_prices","inputs":{"coin":"ETH"}}
+[12:00:16 result run_pipeline] {"run_id":"r_2","status":"started"}
+  (request: prompt 1914, output 67, 3.3s, finish stop, reasoning 131 chars)
+[12:00:20 assistant] Started run `r_2` (daily_prices for ETH). It runs in the background — a notice will appear when it finishes.
+
+----- turn 3 (system) 12:00:34-12:00:38, stop done
+[12:00:34 notice] [run r_1 finished 12:00:34: daily_prices: success. prices +1 row: BTC 2026-09-29 close 64,210.50 USD (+1.8% vs yesterday). news +3 rows: "Spot bitcoin ETFs add 410M USD in a day"; "SEC delays decision on staking ETFs"; "Miner reserves keep falling".]
+  (request: prompt 2058, output 114, 11.1s, finish stop, reasoning 183 chars)
+[12:00:38 assistant] Run `r_1` finished: BTC price for 2026-09-29 added (close 64,210.50 USD, +1.8%), plus 3 news items.
+
+----- turn 4 (system) 12:00:46-12:00:50, stop done
+[12:00:46 notice] [run r_2 finished 12:00:46: daily_prices: success. prices +1 row: ETH 2026-09-29 close 2,587.40 USD (+2.3% vs yesterday). news +3 rows: "ETH gas fees at a two-year low"; "Staking queue shortens after upgrade"; "ETH ETF inflows turn positive".]
+  (request: prompt 2213, output 142, 4.0s, finish stop, reasoning 197 chars)
+[12:00:50 assistant] Run `r_2` finished: ETH price for 2026-09-29 added (close 2,587.40 USD, +2.3%), plus 3 news items.
+
+Both daily price runs completed successfully. The `prices` table now has today's data for both BTC and ETH, and the `news` table has 6 new articles (3 per coin).
+
+----- background tasks
+r_1 run_pipeline daily_prices start 12:00:04 finish 12:00:34 delivered notice
+r_2 run_pipeline daily_prices start 12:00:16 finish 12:00:46 delivered notice
+
+----- assertions
+pass  test 3    after_message                      delivered new_turn
+pass  test 3    max_calls                          1 calls
+pass  test 3    answer_contains                    Run `r_1` finished: BTC price for 2026-09-29 added (close 64,210.50 USD, +1.8%), plus 3 news items. Run `r_2` finished: ETH price for 2026-09-29 added (close 2,...
+pass  test 3    answer_contains                    Run `r_1` finished: BTC price for 2026-09-29 added (close 64,210.50 USD, +1.8%), plus 3 news items. Run `r_2` finished: ETH price for 2026-09-29 added (close 2,...
+pass  test info no_restart                         
+pass  test 5    max_prompt_tokens                  peak prompt 2213
+tests: map[3:pass 5:pass] | prompt 11556 output 523 requests 6 peak 2213 polls 0 | 63s real, 50s virtual

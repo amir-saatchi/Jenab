@@ -1,0 +1,15 @@
+===== gemma4:31b | t6_f_card_schedule | cond rule | rep 2 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:04, stop done
+[12:00:00 user] When does the daily_prices pipeline run?
+  (request: prompt 2061, output 18, 0.8s, finish stop, reasoning 0 chars)
+[12:00:04 assistant] The `daily_prices` pipeline runs daily at 08:00.
+
+----- background tasks
+
+----- assertions
+pass  test 6    no_delegation_when_simple          
+pass  test 6    answer_contains                    The `daily_prices` pipeline runs daily at 08:00.
+pass  test 5    max_prompt_tokens                  peak prompt 2061
+tests: map[5:pass 6:pass] | prompt 2061 output 18 requests 1 peak 2061 polls 0 | 1s real, 4s virtual

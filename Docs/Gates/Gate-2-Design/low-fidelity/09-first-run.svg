@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 1010" width="1640" height="1010" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker></defs>
+<rect width="1640" height="1010" fill="#ffffff"/>
+<text x="20.0" y="30.0" font-size="20" fill="#2b2b2b" font-weight="600">09 · First run</text>
+<text x="20.0" y="49.0" font-size="12" fill="#767676">No setup wizard: the app opens, the user creates a project, and a provider is asked for in the chat.</text>
+<rect x="20.0" y="70.0" width="480.0" height="600.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="20.8" y="70.8" width="478.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="20.0" y1="98.0" x2="500.0" y2="98.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="32.0" y="88.5" font-size="12" fill="#2b2b2b">Jenab</text>
+<text x="486.0" y="88.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<line x1="510.0" y1="370.0" x2="570.0" y2="370.0" stroke="#2b2b2b" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="580.0" y="70.0" width="480.0" height="600.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="580.8" y="70.8" width="478.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="580.0" y1="98.0" x2="1060.0" y2="98.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="592.0" y="88.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1046.0" y="88.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<line x1="1070.0" y1="370.0" x2="1130.0" y2="370.0" stroke="#2b2b2b" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="1140.0" y="70.0" width="480.0" height="600.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="1140.8" y="70.8" width="478.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="1140.0" y1="98.0" x2="1620.0" y2="98.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="1152.0" y="88.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1606.0" y="88.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<rect x="20.0" y="98.0" width="150.0" height="572.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<line x1="170.0" y1="98.0" x2="170.0" y2="670.0" stroke="#9a9a9a" stroke-width="1"/>
+<text x="34.0" y="128.0" font-size="10" fill="#767676" font-weight="600">PROJECTS</text>
+<text x="34.0" y="150.0" font-size="11.5" fill="#767676">No projects yet</text>
+<line x1="32.0" y1="618.0" x2="158.0" y2="618.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="36.0" y="646.0" font-size="12" fill="#2b2b2b">⚙  Settings</text>
+<text x="335.0" y="248.0" font-size="20" fill="#2b2b2b" font-weight="600" text-anchor="middle">Welcome to Jenab</text>
+<text x="335.0" y="276.0" font-size="12" fill="#767676" text-anchor="middle">Each project is one folder with its</text>
+<text x="335.0" y="293.0" font-size="12" fill="#767676" text-anchor="middle">data, chats and files.</text>
+<rect x="260.0" y="312.0" width="150.0" height="30.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="335.0" y="331.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">+ Create project</text>
+<text x="335.0" y="366.0" font-size="11" fill="#767676" text-anchor="middle">Saved in C:\Users\you\Jenab</text>
+<text x="335.0" y="382.0" font-size="11" fill="#767676" text-anchor="middle">Change in Settings</text>
+<rect x="196.0" y="428.0" width="278.0" height="132.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="212.0" y="454.0" font-size="13" fill="#2b2b2b" font-weight="600">New project</text>
+<text x="212.0" y="478.0" font-size="11.5" fill="#2b2b2b" font-weight="600">Name</text>
+<rect x="212.0" y="486.0" width="246.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="220.0" y="503.3" font-size="12" fill="#2b2b2b">Bitcoin</text>
+<rect x="314.0" y="524.0" width="64.0" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="346.0" y="540.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Cancel</text>
+<rect x="386.0" y="524.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="422.0" y="540.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Create</text>
+<line x1="335.0" y1="344.0" x2="335.0" y2="424.0" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+<text x="604.0" y="126.0" font-size="15" fill="#2b2b2b" font-weight="600">◆ Mother</text>
+<text x="604.0" y="144.0" font-size="11" fill="#767676">Project home</text>
+<line x1="580.0" y1="156.0" x2="1060.0" y2="156.0" stroke="#d9d9d9" stroke-width="1"/>
+<text x="604.0" y="188.0" font-size="12" fill="#2b2b2b">Hi, I'm Mother, the home of this project. Tell me what to track,</text>
+<text x="604.0" y="205.0" font-size="12" fill="#2b2b2b">and I'll set up the tables, a pipeline and a page.</text>
+<rect x="604.0" y="220.0" width="168.8" height="24.0" rx="12.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="617.0" y="236.1" font-size="11.5" fill="#2b2b2b">Track a price every day</text>
+<rect x="780.8" y="220.0" width="156.4" height="24.0" rx="12.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="793.8" y="236.1" font-size="11.5" fill="#2b2b2b">Summarise a news feed</text>
+<rect x="737.8" y="260.0" width="298.2" height="48.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="750.8" y="281.0" font-size="12" fill="#2b2b2b">Track Bitcoin every day: the price and the</text>
+<text x="750.8" y="298.0" font-size="12" fill="#2b2b2b">news.</text>
+<rect x="604.0" y="322.0" width="432.0" height="214.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="620.0" y="348.0" font-size="13" fill="#2b2b2b" font-weight="600">Mother needs an AI model to answer</text>
+<text x="620.0" y="370.0" font-size="11.5" fill="#767676">Add a provider with your own key. Your message is kept and sent</text>
+<text x="620.0" y="386.0" font-size="11.5" fill="#767676">once it is connected.</text>
+<rect x="620.0" y="408.0" width="59.3" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="649.6" y="424.1" font-size="11.5" fill="#ffffff" font-weight="600" text-anchor="middle">OpenAI</text>
+<rect x="685.3" y="408.0" width="77.9" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="724.2" y="424.1" font-size="11.5" fill="#2b2b2b" text-anchor="middle">Anthropic</text>
+<rect x="769.1" y="408.0" width="59.3" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="798.8" y="424.1" font-size="11.5" fill="#2b2b2b" text-anchor="middle">Gemini</text>
+<rect x="834.4" y="408.0" width="59.3" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="864.0" y="424.1" font-size="11.5" fill="#2b2b2b" text-anchor="middle">Ollama</text>
+<rect x="899.7" y="408.0" width="59.3" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="929.3" y="424.1" font-size="11.5" fill="#2b2b2b" text-anchor="middle">Other…</text>
+<text x="620.0" y="456.0" font-size="11.5" fill="#2b2b2b" font-weight="600">API key</text>
+<rect x="620.0" y="464.0" width="290.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="628.0" y="481.3" font-size="12" fill="#2b2b2b">••••••••••••••</text>
+<rect x="918.0" y="465.0" width="86.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="961.0" y="481.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Connect</text>
+<text x="620.0" y="518.0" font-size="11" fill="#767676">Stored in the OS keychain · also in Settings → Models</text>
+<rect x="592.0" y="578.0" width="456.0" height="76.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="606.0" y="602.0" font-size="12.5" fill="#767676">Message Mother…</text>
+<text x="606.0" y="638.0" font-size="16" fill="#2b2b2b">+</text>
+<rect x="626.0" y="620.0" width="103.2" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="639.0" y="635.0" font-size="11" fill="#2b2b2b">Model: none ▾</text>
+<rect x="964.0" y="620.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="1000.0" y="636.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Send ↑</text>
+<text x="1164.0" y="126.0" font-size="15" fill="#2b2b2b" font-weight="600">◆ Mother</text>
+<text x="1164.0" y="144.0" font-size="11" fill="#767676">Project home</text>
+<line x1="1140.0" y1="156.0" x2="1620.0" y2="156.0" stroke="#d9d9d9" stroke-width="1"/>
+<rect x="1297.8" y="176.0" width="298.2" height="48.0" rx="10" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<text x="1310.8" y="197.0" font-size="12" fill="#2b2b2b">Track Bitcoin every day: the price and the</text>
+<text x="1310.8" y="214.0" font-size="12" fill="#2b2b2b">news.</text>
+<rect x="1164.0" y="238.0" width="237.1" height="24.0" rx="12.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1177.0" y="254.1" font-size="11.5" fill="#2b2b2b">✓  OpenAI connected · 12 models on</text>
+<text x="1164.0" y="288.0" font-size="12.5" fill="#2b2b2b">I'll set it up: a table for prices and news, a pipeline every</text>
+<text x="1164.0" y="306.0" font-size="12.5" fill="#2b2b2b">day at 08:00, and a page.</text>
+<rect x="1164.0" y="324.0" width="372.0" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="1164.0" y="337.0" width="204.6" height="6.0" rx="3" fill="#d9d9d9" stroke="none" stroke-width="1"/>
+<rect x="1180.0" y="372.0" width="270.0" height="200.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="1194.0" y="394.0" font-size="11" fill="#2b2b2b" font-weight="600">OpenAI</text>
+<text x="1194.0" y="420.0" font-size="11.5" fill="#2b2b2b">✓ model-a · default</text>
+<text x="1194.0" y="446.0" font-size="11.5" fill="#2b2b2b">   model-b · fast</text>
+<text x="1194.0" y="472.0" font-size="11.5" fill="#2b2b2b">   model-c</text>
+<text x="1194.0" y="498.0" font-size="11" fill="#767676" font-weight="600">Anthropic · Add key</text>
+<text x="1194.0" y="524.0" font-size="11" fill="#767676" font-weight="600">Gemini · Add key</text>
+<text x="1194.0" y="550.0" font-size="11" fill="#767676" font-weight="600">Ollama · not running</text>
+<rect x="1152.0" y="578.0" width="456.0" height="76.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="1166.0" y="602.0" font-size="12.5" fill="#767676">Message Mother…</text>
+<text x="1166.0" y="638.0" font-size="16" fill="#2b2b2b">+</text>
+<rect x="1186.0" y="620.0" width="121.0" height="22.0" rx="11.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1199.0" y="635.0" font-size="11" fill="#2b2b2b">Model: model-a ▾</text>
+<rect x="1524.0" y="620.0" width="72.0" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="1560.0" y="636.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Send ↑</text>
+<circle cx="246.0" cy="327.0" r="10" fill="#d9480f"/>
+<text x="246.0" y="331.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<circle cx="196.0" cy="442.0" r="10" fill="#d9480f"/>
+<text x="196.0" y="446.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<circle cx="594.0" cy="248.0" r="10" fill="#d9480f"/>
+<text x="594.0" y="252.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<circle cx="594.0" cy="360.0" r="10" fill="#d9480f"/>
+<text x="594.0" y="364.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<circle cx="594.0" cy="538.0" r="10" fill="#d9480f"/>
+<text x="594.0" y="542.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<circle cx="1154.0" cy="232.0" r="10" fill="#d9480f"/>
+<text x="1154.0" y="236.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<circle cx="1170.0" cy="386.0" r="10" fill="#d9480f"/>
+<text x="1170.0" y="390.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="20.0" y="720.0" font-size="14" fill="#2b2b2b" font-weight="600">Notes</text>
+<circle cx="30.0" cy="740.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="744.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<text x="48.0" y="744.0" font-size="12" fill="#2b2b2b">The app opens straight into the main window. The data folder defaults to ~/Jenab; it can be changed in Settings,</text>
+<text x="48.0" y="760.0" font-size="12" fill="#2b2b2b">with the cloud-sync warning if needed.</text>
+<circle cx="30.0" cy="779.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="783.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<text x="48.0" y="783.0" font-size="12" fill="#2b2b2b">Creating a project asks only for a name, then opens its Mother chat.</text>
+<circle cx="30.0" cy="802.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="806.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<text x="48.0" y="806.0" font-size="12" fill="#2b2b2b">Starter prompts fill the composer; nothing is sent until the user sends it.</text>
+<circle cx="30.0" cy="825.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="829.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<text x="48.0" y="829.0" font-size="12" fill="#2b2b2b">Sending a message without a provider keeps the message and shows this card in the chat.</text>
+<circle cx="30.0" cy="848.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="852.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<text x="48.0" y="852.0" font-size="12" fill="#2b2b2b">Connect stores the key in the keychain and checks which catalog models it can use.</text>
+<circle cx="30.0" cy="871.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="875.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<text x="48.0" y="875.0" font-size="12" fill="#2b2b2b">Those models turn on in the model picker, and the kept message is sent.</text>
+<circle cx="30.0" cy="894.0" r="10" fill="#d9480f"/>
+<text x="30.0" y="898.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="48.0" y="898.0" font-size="12" fill="#2b2b2b">Model picker: models from the built-in catalog, grouped by provider. New models arrive with app updates.</text>
+<text x="30.0" y="921.0" font-size="12" fill="#2b2b2b" text-anchor="middle">•</text>
+<text x="48.0" y="921.0" font-size="12" fill="#2b2b2b">Asked later, when needed: web search when a search is first needed; start at login when the first scheduled</text>
+<text x="48.0" y="937.0" font-size="12" fill="#2b2b2b">pipeline is saved.</text>
+<text x="840.0" y="720.0" font-size="14" fill="#2b2b2b" font-weight="600">Open questions</text>
+<circle cx="850" cy="740" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="850.0" y="744.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="868.0" y="744.0" font-size="12" fill="#2b2b2b">Offer Ollama first when it is running on this machine?</text>
+<circle cx="850" cy="763" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="850.0" y="767.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="868.0" y="767.0" font-size="12" fill="#2b2b2b">Offer the Bitcoin example as a ready project next to Create project (the Phase 5 "done when")?</text>
+<circle cx="850" cy="786" r="10" fill="#fff" stroke="#d9480f" stroke-width="1.5"/>
+<text x="850.0" y="790.0" font-size="11" fill="#d9480f" font-weight="600" text-anchor="middle">?</text>
+<text x="868.0" y="790.0" font-size="12" fill="#2b2b2b">Show models the provider lists but the catalog doesn't know yet, under "Other models"?</text>
+<text x="840.0" y="827.0" font-size="14" fill="#2b2b2b" font-weight="600">Requirements</text>
+<text x="840.0" y="847.0" font-size="12" fill="#767676">R-02, R-04, R-90, R-91, R-118, R-119</text>
+<rect x="840.0" y="863.0" width="30.0" height="16.0" rx="3" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="880.0" y="875.0" font-size="11" fill="#767676">= proposed here, not in the SPEC yet</text>
+</svg>

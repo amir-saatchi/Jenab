@@ -1,0 +1,10 @@
+===== gemma4:31b L03_add_column guide v2 run 1 chained false
+----- user
+Add an optional column volume (a number) to btc_prices for the daily trading volume.
+----- assistant (finish tool_calls, prompt 4425, output 43, 0.9s)
+> apply_migration {"steps":[{"column":{"name":"volume","type":"REAL"},"op":"add_column","table":"btc_prices"}]}
+< apply_migration
+applied: migration committed, schema version 2.
+- added column btc_prices.volume
+
+----- result: stop write, loaded [], events 1

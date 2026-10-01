@@ -1,0 +1,575 @@
+[
+ {
+  "source": "gdelt",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:42:15.8769266Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 13050,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:42:32.3489384Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 16472,
+  "results": [
+   {
+    "title": "Ethereum Maps Priorities for Upcoming Hegotá Upgrade",
+    "url": "https://cointelegraph.com/news/ethereum-foundation-names-2-must-ship-eips-for-hegot-upgrade",
+    "date": "2026-09-07T21:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "What the cryptographic world computer means for Ethereum",
+    "url": "https://insidebitcoins.com/news/cryptographic-world-computer-ethereum",
+    "date": "2026-09-28T15:00:00Z",
+    "lang": "English"
+   }
+  ]
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:43:10.7001722Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11546,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:43:58.0055058Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 20390,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:44:46.1804093Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 20892,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:45:29.8941011Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 17074,
+  "retries": 1,
+  "results": [
+   {
+    "title": "Rewriting Bun in Rust",
+    "url": "https://bun.com/blog/bun-in-rust",
+    "date": "2026-07-09T01:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "JFrog Artifactory Hacked in 24 - Day Campaign ; Rust Backdoors Survive Patching",
+    "url": "https://www.techtimes.com/articles/327383/20260912/jfrog-artifactory-hacked-24-day-campaign-rust-backdoors-survive-patching.htm",
+    "date": "2026-09-12T16:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Mặt trái của camera AI và khóa thông minh : Gia chủ đang được bảo vệ hay tự đẩy mình vào rủi ro ?",
+    "url": "https://kenh14.vn/mat-trai-cua-camera-ai-va-khoa-thong-minh-gia-chu-dang-duoc-bao-ve-hay-tu-day-minh-vao-rui-ro-215260730084232938.chn",
+    "date": "2026-07-30T03:30:00Z",
+    "lang": "Vietnamese"
+   }
+  ]
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:46:12.671739Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 14674,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:46:52.4993387Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11915,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:47:06.4581332Z",
+  "http_code": 200,
+  "status": "error",
+  "detail": "non-JSON answer: Your search contained a keyword that was too short.",
+  "latency_ms": 13958,
+  "results": null
+ },
+ {
+  "source": "gdelt",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:47:23.0823428Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 16624,
+  "results": [
+   {
+    "title": "ECB faiz kararını açıkladı",
+    "url": "https://uzmanpara.milliyet.com.tr/uzmanpara/ecb-faiz-kararini-acikladi-7657798",
+    "date": "2026-09-10T14:00:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Rūta Ežerskienė . ECB rudenį gali vėl kelti palūkanų normas",
+    "url": "https://www.lrt.lt/naujienos/verslo-pozicija/692/3006094/ruta-ezerskiene-ecb-rudeni-gali-vel-kelti-palukanu-normas",
+    "date": "2026-07-30T13:00:00Z",
+    "lang": "Lithuanian"
+   },
+   {
+    "title": "Avrupa Merkez Bankası faiz kararını açıkladı | Dünya Ekonomisi Haberleri",
+    "url": "https://www.yenisafak.com/ekonomi/avrupa-merkez-bankasi-faiz-kararini-acikladi-4854771",
+    "date": "2026-09-10T13:00:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Paranın rotasını bu ay merkez belirleyecek",
+    "url": "https://www.dunya.com/kose-yazisi/paranin-rotasini-bu-ay-uc-merkez-belirleyecek/838531",
+    "date": "2026-09-02T22:30:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "ЕЦБ ќе ги зголеми каматните стапки за да спречи пораст на инфлацијата предизвикана од цената на нафтата",
+    "url": "https://time.mk/c/ccc5e10b5b/mk/ecb-ke-gi-zgolemi-kamatnite-stapki-za-da-spreci-porast-na-inflacijata-predizvikana-od-cenata-na-naftata.html",
+    "date": "2026-09-10T10:15:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "Повисоки камати во Европа , поскапи пари и за Македонија",
+    "url": "https://time.mk/c/fe2cbaa86a/mk/povisoki-kamati-vo-evropa-poskapi-pari-i-za-makedonija.html",
+    "date": "2026-09-10T10:00:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "Повисоки камати во Европа , поскапи пари и за Македонија",
+    "url": "https://time.mk/c/fe2cbaa86a/povisoki-kamati-vo-evropa-poskapi-pari-i-za-makedonija.html",
+    "date": "2026-09-10T10:00:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "Економистите очекуваат зголемување на каматните стапки во САД",
+    "url": "https://time.mk/c/86b9c64fc9/mk/ekonomistite-ocekuvaat-zgolemuvanje-na-kamatnite-stapki-od-federalnite-rezervi-na-sad.html",
+    "date": "2026-09-10T09:45:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "ЕЦБ повторно ги крева каматите : Инвеститорите стравуваат дека ова е само почеток",
+    "url": "https://time.mk/c/d24fc17a4a/mk/ecb-povtorno-gi-kreva-kamatite-investitorite-stravuvaat-deka-ova-e-samo-pocetok.html",
+    "date": "2026-09-10T08:15:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "Европската централна банка ги зголеми каматите – ќе плаќаат ли граѓаните повисоки рати за кредитите ?!",
+    "url": "https://time.mk/c/1c4b0deb7e/mk/evropskata-centralna-banka-gi-zgolemi-kamatite-ke-plakaat-li-gragjanite-povisoki-rati-za-kreditite.html",
+    "date": "2026-09-12T18:30:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "ЕЦБ најверојатно ќе ги зголеми каматните стапки , инвеститорите поделени околу следните чекори",
+    "url": "https://time.mk/c/9c39d30183/mk/ecb-najverojatno-ke-gi-zgolemi-kamatnite-stapki-investitorite-podeleni-okolu-slednite-cekori.html",
+    "date": "2026-09-10T07:15:00Z",
+    "lang": "Macedonian"
+   },
+   {
+    "title": "ECB faizi yüzde 2 , 25 te sabit tuttu , ikinci artış gündemde kaldı",
+    "url": "https://tr.euronews.com/business/2026/07/23/ecb-faizi-yuzde-225te-sabit-tuttu-ikinci-artis-gundemde-kaldi",
+    "date": "2026-07-23T12:45:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Piyasaların kritik haftası : ABD enflasyonu ve ECBnin faiz kararı bekleniyor",
+    "url": "https://finans.sabah.com.tr/ekonomi/piyasalarin-kritik-haftasi-abd-enflasyonu-ve-ecbnin-faiz-karari-bekleniyor-7654948",
+    "date": "2026-09-05T11:00:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Küresel Piyasalar Petrol ve Faizle Karışık Seyretti",
+    "url": "https://www.haberler.com/ekonomi/kuresel-piyasalar-gelecek-hafta-abd-de-aciklanacak-20209335-haberi/",
+    "date": "2026-09-05T08:45:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Mutui e Bce , cosa cambia con i tassi fermi : fisso o variabile ?",
+    "url": "https://quifinanza.it/mercato-immobiliare/mutui-e-prestiti/mutui-bce-tassi-fisso-variabile-luglio-2026/1009984/",
+    "date": "2026-07-27T09:15:00Z",
+    "lang": "Italian"
+   },
+   {
+    "title": "ECB padidino bazinę palūkanų normą",
+    "url": "https://diena.lt/naujienos/pasaulis/ekonomika-ir-politika/ecb-padidino-bazine-palukanu-norma-1774151",
+    "date": "2026-09-10T13:00:00Z",
+    "lang": "Lithuanian"
+   },
+   {
+    "title": "Piyasaların kaderini değiştirecek 7 gün : Enflasyon ve faiz kararları öncesi son durum",
+    "url": "https://www.sozcu.com.tr/piyasalarin-kaderini-degistirecek-7-gun-enflasyon-ve-faiz-kararlari-oncesi-son-durum-p355560",
+    "date": "2026-09-05T11:00:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "ECB Eylülde Faiz Artırımına Hazırlanıyor",
+    "url": "https://www.haberler.com/ekonomi/ekonomideki-direnc-ecb-yi-eylulde-sigorta-amacli-20187024-haberi/",
+    "date": "2026-08-29T08:45:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "ECB tutanaklarında yeni faiz artışı olasılığı vurgulandı",
+    "url": "https://www.kibrispostasi.com/c50-EKONOMI/n612025-ecb-tutanaklarinda-yeni-faiz-artisi-olasiligi-vurgulandi",
+    "date": "2026-08-27T17:45:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "ECB paliko palūkanas nepakeistas - Verslo žinios",
+    "url": "https://www.vz.lt/rinkos/2026/07/23/ecb-paliko-palukanas-nepakeistas-587848",
+    "date": "2026-07-23T13:30:00Z",
+    "lang": "Lithuanian"
+   },
+   {
+    "title": "Küresel piyasalarda yön arayışı : Gözler ABD enflasyonu ve ECBde",
+    "url": "https://www.birgun.net/haber/kuresel-piyasalarda-yon-arayisi-gozler-abd-enflasyonu-ve-ecbde-733104%20target=_blank%20class=stretched-link",
+    "date": "2026-09-05T09:30:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Küresel piyasalar , ABDde açıklanacak enflasyon rakamlarına odaklandı",
+    "url": "https://www.ensonhaber.com/kuresel-piyasalar-abdde-aciklanacak-enflasyon-rakamlarina-odaklandi-h1563163",
+    "date": "2026-09-05T09:30:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "ECB Leaves Rates Unchanged Amid High Uncertainty , September Hike Likely",
+    "url": "https://www.finanzen.ch/nachrichten/zinsen/ecb-leaves-rates-unchanged-amid-high-uncertainty-september-hike-likely-1036357587",
+    "date": "2026-07-23T15:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Indėlių palūkanos auga : kaip įveikti infliaciją ?",
+    "url": "https://www.delfi.lt/verslas/mano-eurai/kokiu-indeliu-palukanu-tiketis-kai-kur-jau-padidejo-120279625",
+    "date": "2026-08-03T05:15:00Z",
+    "lang": "Lithuanian"
+   },
+   {
+    "title": "Inflation im Euroraum : Teuerungsrate sinkt vor EZB - Zinsentscheidung auf 2 , 8 Prozent",
+    "url": "https://www.n-tv.de/ticker/Teuerungsrate-sinkt-vor-EZB-Zinsentscheidung-auf-2-8-Prozent-id31096850.html",
+    "date": "2026-07-17T10:15:00Z",
+    "lang": "German"
+   }
+  ]
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q01",
+  "round": 0,
+  "time": "2026-09-28T16:48:06.912677Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 15630,
+  "retries": 1,
+  "results": [
+   {
+    "title": "BTC price : Bitcoin price today : Why are BTC , Ethereum - ETC rates down after recent highs ? Donald Trump whose administration is known as crypto - friendly may be responsible",
+    "url": "https://economictimes.indiatimes.com/news/international/us/bitcoin-price-today-why-are-btc-ethereum-etc-rates-down-after-recent-highs-donald-trump-whose-administration-are-known-as-crypto-friendly-may-be-responsible/articleshow/134546636.cms",
+    "date": "2026-09-28T16:15:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Bitcoin Hits Nearly 8 - Month High as FOMO Peaks , But 2 Signals Still Flash Caution",
+    "url": "https://finance.yahoo.com/markets/crypto/articles/bitcoin-hits-7-month-high-102309619.html",
+    "date": "2026-09-23T19:45:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Bitcoin 87 bin dolara çıktı : Sırada ne var ?",
+    "url": "https://www.haberler.com/kripto-para/bitcoin-87-bin-dolara-cikti-sirada-ne-var-20259368-haberi/",
+    "date": "2026-09-22T07:15:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Биткоин : рост с новой силой",
+    "url": "https://1prime.ru/20260922/analitik-873541937.html",
+    "date": "2026-09-22T08:45:00Z",
+    "lang": "Russian"
+   },
+   {
+    "title": "Bitcoin Cash Rallies 30 % Following CME Futures Announcement",
+    "url": "https://247wallst.com/investing/cryptocurrency/2026/09/23/bitcoin-cash-rallies-30-following-cme-futures-announcement/",
+    "date": "2026-09-23T21:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Bitcoin rallisinde kritik sınav",
+    "url": "https://www.haberler.com/kripto-para/bitcoin-rallisinde-kritik-sinav-20265037-haberi/",
+    "date": "2026-09-23T16:45:00Z",
+    "lang": "Turkish"
+   },
+   {
+    "title": "Bitcoin Cash Rallies 30 % Following CME Futures Announcement",
+    "url": "https://www.aol.com/articles/bitcoin-cash-rallies-30-following-205441000.html",
+    "date": "2026-09-23T21:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "บิตคอยน์พุ่งทะลุ $86 , 000 กูรูฟันธงไปต่อแตะ",
+    "url": "https://www.ryt9.com/s/iq/12845408",
+    "date": "2026-09-21T18:15:00Z",
+    "lang": "Thai"
+   },
+   {
+    "title": "Bitcoin Just Hit an Eight - Month High But XRP Is Still 38 % Below Its January Peak . What Holding It Back ?",
+    "url": "https://www.aol.com/articles/bitcoin-just-hit-eight-month-190920000.html",
+    "date": "2026-09-21T20:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Bitcoin ( BTC ) Price Today : BTC Breaks $85K Resistance as Bulls Defend $80K Support",
+    "url": "https://bravenewcoin.com/insights/bitcoin-btc-price-today-btc-breaks-85k-resistance-as-bulls-defend-80k-support",
+    "date": "2026-09-21T19:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Chipmakers Lead the Way as Wall Street Rallies",
+    "url": "https://www.newser.com/story/396799/chipmakers-lead-the-way-as-wall-street-rallies.html",
+    "date": "2026-09-21T21:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Strategy Buys 950 BTC With Cash , Holdings Hit 846 , 000",
+    "url": "https://insidebitcoins.com/news/strategy-buys-950-btc-cash-reserve-not-stock",
+    "date": "2026-09-23T03:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Will XRP or Avalanche Keep Their Gains in October ?",
+    "url": "https://www.aol.com/articles/xrp-avalanche-keep-gains-october-214700000.html",
+    "date": "2026-09-23T22:15:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Elon Musk X Sues Bitcoin Account Network It Says Farmed £207 , 000 Via Fake Engagement",
+    "url": "https://gizmodo.com/elon-musks-x-sues-bitcoin-account-network-it-says-farmed-207000-via-fake-engagement-2000814900",
+    "date": "2026-09-22T00:00:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Kraken Parent Company Plans U . S . Hyperliquid Perpetuals . Can HYPE Reach $100 ?",
+    "url": "https://finance.yahoo.com/markets/crypto/articles/kraken-parent-company-plans-u-183356277.html",
+    "date": "2026-09-23T06:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "US stocks : US market ends sharply higher as AI optimism reignites and Treasury yields retreat",
+    "url": "https://economictimes.indiatimes.com/markets/us-stocks/news/us-stocks-us-market-ends-sharply-higher-as-ai-optimism-reignites-and-treasury-yields-retreat/articleshow/134397491.cms",
+    "date": "2026-09-21T21:15:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Insider Selling : Strategy ( NASDAQ : MSTR ) Director Sells $81 , 225 . 00 in Stock",
+    "url": "https://www.dailypolitical.com/2026/09/23/insider-selling-strategy-nasdaqmstr-director-sells-81225-00-in-stock.html",
+    "date": "2026-09-23T21:45:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Wall Street cierra en verde y el Nasdaq marca récord con el repunte de las empresas de IA",
+    "url": "https://acento.com.do/economia/wall-street-cierra-en-verde-y-el-nasdaq-marca-record-con-el-repunte-de-las-empresas-de-ia-9756909.html",
+    "date": "2026-09-21T23:00:00Z",
+    "lang": "Spanish"
+   },
+   {
+    "title": "Crypto Hurdle Solved : SoFi Is First Bank Deploying Stablecoin Settlement Across Mastercard Network",
+    "url": "https://finance.yahoo.com/markets/crypto/articles/crypto-hurdle-solved-sofi-first-152012538.html",
+    "date": "2026-09-23T23:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "MARKETS LIVE : Nasdaq reaches record high as AI stocks fuel Wall Street rally",
+    "url": "https://www.proactiveinvestors.com/companies/news/1098793/markets-live-nasdaq-reaches-record-high-as-ai-stocks-fuel-wall-street-rally-1098793.html",
+    "date": "2026-09-21T22:15:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Will XRP or Avalanche Keep Their Gains in October ?",
+    "url": "https://247wallst.com/investing/cryptocurrency/2026/09/23/will-xrp-or-avalanche-keep-their-gains-in-october/",
+    "date": "2026-09-23T22:15:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Kraken Parent Company Plans U . S . Hyperliquid Perpetuals . Can HYPE Reach $100 ?",
+    "url": "https://247wallst.com/investing/cryptocurrency/2026/09/21/krakens-parent-company-plans-u-s-hyperliquid-perpetuals-can-hype-reach-100/",
+    "date": "2026-09-21T19:45:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Crypto Hurdle Solved : SoFi Is First Bank Deploying Stablecoin Settlement Across Mastercard Network",
+    "url": "https://www.aol.com/articles/crypto-hurdle-solved-sofi-first-152012000.html",
+    "date": "2026-09-22T16:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "Coinbase Global ( NASDAQ : COIN ) CFO Alesia Haas Sells 39 , 030 Shares of Stock",
+    "url": "https://www.themarketsdaily.com/2026/09/23/coinbase-global-nasdaqcoin-cfo-alesia-haas-sells-39030-shares-of-stock.html",
+    "date": "2026-09-23T21:30:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "U . S . Stock Futures Climb as Oil Falls , Optimism Builds Ahead of Trump - Xi Summit",
+    "url": "https://finance.yahoo.com/markets/stocks/articles/u-stock-futures-climb-oil-103605406.html",
+    "date": "2026-09-22T19:30:00Z",
+    "lang": "English"
+   }
+  ]
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q02",
+  "round": 0,
+  "time": "2026-09-28T16:48:46.7965728Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 12146,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q03",
+  "round": 0,
+  "time": "2026-09-28T16:49:37.2758433Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 23191,
+  "retries": 1,
+  "results": [
+   {
+    "title": "Bitcoin Rally Has Taken Crypto Back Above $3 Trillion . Traders Are Adding More Risk .",
+    "url": "https://www.ibtimes.com/bitcoins-rally-has-taken-crypto-back-above-3-trillion-traders-are-adding-more-risk-3807723",
+    "date": "2026-09-22T14:45:00Z",
+    "lang": "English"
+   },
+   {
+    "title": "THORChain Under Fire Over Bitget , ETH Evolves Beyond Blockchain : Hodler Digest",
+    "url": "https://cointelegraph.com/magazine/thorchain-under-fire-over-bitget-hack-eth-is-beyond-blockchain-now",
+    "date": "2026-09-28T04:15:00Z",
+    "lang": "English"
+   }
+  ]
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q04",
+  "round": 0,
+  "time": "2026-09-28T16:50:21.2405479Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 15660,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q05",
+  "round": 0,
+  "time": "2026-09-28T16:51:08.3217513Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 19990,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q06",
+  "round": 0,
+  "time": "2026-09-28T16:51:24.4121804Z",
+  "http_code": 200,
+  "status": "ok",
+  "latency_ms": 16090,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q07",
+  "round": 0,
+  "time": "2026-09-28T16:51:38.6837788Z",
+  "http_code": 200,
+  "status": "error",
+  "detail": "non-JSON answer: Your search contained a keyword that was too short.",
+  "latency_ms": 14271,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q08",
+  "round": 0,
+  "time": "2026-09-28T16:51:49.6810859Z",
+  "http_code": 200,
+  "status": "error",
+  "detail": "non-JSON answer: Your search contained a keyword that was too short.",
+  "latency_ms": 10997,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q09",
+  "round": 0,
+  "time": "2026-09-28T16:52:30.4794579Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 13953,
+  "retries": 1,
+  "results": null
+ },
+ {
+  "source": "gdelt-7d",
+  "query_id": "q10",
+  "round": 0,
+  "time": "2026-09-28T16:53:08.518741Z",
+  "http_code": 429,
+  "status": "blocked",
+  "detail": "HTTP 429: Please limit requests to one every 5 seconds or contact kalev.leetaru5@gmail.com for larger queries. All high-traffic users should switch to our ngrams dataset:",
+  "latency_ms": 11890,
+  "retries": 1,
+  "results": null
+ }
+]

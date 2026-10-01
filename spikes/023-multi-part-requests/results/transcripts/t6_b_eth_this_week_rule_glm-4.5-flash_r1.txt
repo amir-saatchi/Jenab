@@ -1,0 +1,42 @@
+===== glm-4.5-flash | t6_b_eth_this_week | cond rule | rep 1 | tests [6]
+system prompt: 3985 chars (see prompts/)
+
+----- turn 1 (user) 12:00:00-12:00:23, stop done
+[12:00:00 user] How did ETH do this week?
+  (request: prompt 2119, output 148, 5.5s, finish tool_calls, reasoning 332 chars)
+[12:00:04 assistant] 
+I'll check the ETH price data and news from this week for you.
+
+[12:00:04 call] query {"sql":"SELECT * FROM prices WHERE coin = 'ETH' AND date >= '2026-09-23' ORDER BY date DESC"}
+[12:00:05 result query] coin | date | open | high | low | close | currency (0 rows)
+  (request: prompt 2198, output 76, 2.8s, finish tool_calls, reasoning 142 chars)
+[12:00:09 call] query {"sql":"SELECT * FROM prices WHERE coin = 'ETH' ORDER BY date DESC LIMIT 10"}
+[12:00:10 result query] coin | date | open | high | low | close | currency (0 rows)
+  (request: prompt 2254, output 20, 1.1s, finish tool_calls, reasoning 1 chars)
+[12:00:14 call] query {"sql":"SELECT * FROM prices"}
+[12:00:15 result query] coin | date | open | high | low | close | currency BTC | 2026-07-31 | 61000.00 | 62899.20 | 60512.00 | 62400.00 | USD BTC | 2026-08-01 | 62400.00 | 64054.02 | 61900.80 | 63545.65 | USD BTC | 2026-08-02 | 63545.65 | 64759.75 | 63037.28 | 64245.78 | USD BTC | 2026-08-03 | 64245.78 | 65094.86 | 63731.8...
+  (request: prompt 4686, output 187, 6.2s, finish tool_calls, reasoning 566 chars)
+[12:00:19 call] send_to_chat {"chat_id":"c_eth","message":"How did ETH do this week (September 23-29, 2026)? Please provide a summary of its price performance and any relevant news."}
+[12:00:19 result send_to_chat] {"status":"started","task_id":"t_1"}
+  (request: prompt 4761, output 120, 3.9s, finish stop, reasoning 312 chars)
+[12:00:23 assistant] 
+I've asked the ETH tracker chat to provide a summary of ETH's performance this week (September 23-29, 2026). It will analyze both the price data and any relevant news to give you a comprehensive overview.
+
+----- turn 2 (system) 12:01:04-12:01:08, stop done
+[12:01:04 notice] [task t_1 finished 12:01:04: reply from ETH tracker (c_eth): ETH rose 4.2% this week, from 2,483 to 2,587 USD. Main news: gas fees at a two-year low, and the first ETF inflows in three weeks (62M USD). My weekly log is updated.
+]
+  (request: prompt 4891, output 191, 5.3s, finish stop, reasoning 510 chars)
+[12:01:08 assistant] 
+ETH had a positive week, rising 4.2% from $2,483 to $2,587 USD. The main news driving this performance was gas fees reaching a two-year low and the first ETF inflows in three weeks totaling $62M USD.
+
+----- background tasks
+t_1 send_to_chat c_eth start 12:00:19 finish 12:01:04 delivered notice
+
+----- assertions
+pass  test 6    right_target                       
+pass  test 6    created_chat_only_for_lasting_job  
+pass  test 6    no_resend_after_notice             
+pass  test 6    answer_contains                    ETH had a positive week, rising 4.2% from $2,483 to $2,587 USD. The main news driving this performance was gas fees reaching a two-year low and the first ETF in...
+pass  test 6    no_repeat                          5-gram overlap 0.00
+pass  test 5    max_prompt_tokens                  peak prompt 4891
+tests: map[5:pass 6:pass] | prompt 20909 output 742 requests 6 peak 4891 polls 0 | 26s real, 68s virtual

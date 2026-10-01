@@ -1,0 +1,294 @@
+prompt tokens used before this invocation: 32124 of 3500000
+note: glm-4.5-flash is not in zai /models
+calib nemotron-3-ultra: baseline 27, map[guide_v2:3129 intro:195 skill:config-guide:795 skill:database-design:86 skill:delegation:176 skill:migrations:550 skill:pipelines:1451 skill:sql-queries:81 skill:web-research:290 skill_list:325 tools_A:1137 tools_BC:1221] 
+calib gemma4:31b: baseline 29, map[guide_v2:3319 intro:197 skill:config-guide:834 skill:database-design:91 skill:delegation:189 skill:migrations:578 skill:pipelines:1568 skill:sql-queries:83 skill:web-research:287 skill_list:338 tools_A:702 tools_BC:767] 
+calib glm-4.5-flash: baseline 18, map[guide_v2:3089 intro:188 skill:config-guide:783 skill:database-design:85 skill:delegation:176 skill:migrations:533 skill:pipelines:1450 skill:sql-queries:79 skill:web-research:280 skill_list:316 tools_A:858 tools_BC:930] 
+12:55:01 nemotron-3-ultra tload   B    L01_news_view        r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8183 peak=3069 39s budget=70191 
+12:55:03 gemma4:31b       tload   B    L01_news_view        r1: stop=write loaded=[config-guide:load_skill sql-queries:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4403 peak=2687 2s budget=74594 
+12:55:07 glm-4.5-flash    tload   B    L01_news_view        r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4372 peak=2606 23s budget=79338 
+12:55:31 nemotron-3-ultra tload   C    L01_news_view        r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8183 peak=3069 27s budget=87149 
+12:55:33 gemma4:31b       tload   C    L01_news_view        r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4291 peak=2575 2s budget=91440 
+12:56:04 nemotron-3-ultra tload   B    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=9822 peak=4055 31s budget=101262 
+12:56:06 glm-4.5-flash    tload   C    L01_news_view        r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4372 peak=2606 59s budget=105580 
+12:56:07 gemma4:31b       tload   B    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=5470 peak=3758 4s budget=109338 
+12:56:51 nemotron-3-ultra tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=9822 peak=4055 44s budget=119160 
+12:56:56 gemma4:31b       tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=5470 peak=3758 4s budget=124630 
+12:57:11 nemotron-3-ultra tload   B    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4853 peak=2723 15s budget=129483 
+12:57:16 gemma4:31b       tload   B    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7105 peak=3092 5s budget=138348 
+12:57:45 nemotron-3-ultra tload   C    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7662 peak=2809 29s budget=146010 
+12:57:50 gemma4:31b       tload   C    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7105 peak=3092 6s budget=153115 
+12:58:42 glm-4.5-flash    tload   B    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8715 peak=3677 156s budget=162204 
+12:59:45 nemotron-3-ultra tload   B    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=3 prompt=6590 peak=2261 114s budget=168420 
+12:59:47 gemma4:31b       tload   B    L04_sql_fails        r1: stop=answer loaded=[sql-queries:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3530 peak=1819 2s budget=171950 
+13:00:24 nemotron-3-ultra tload   C    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=3 prompt=6670 peak=2341 38s budget=181898 
+13:00:26 gemma4:31b       tload   C    L04_sql_fails        r1: stop=answer loaded=[sql-queries:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3530 peak=1819 2s budget=185428 
+13:01:19 nemotron-3-ultra tload   B    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=4417 peak=2273 53s budget=189845 
+13:01:22 gemma4:31b       tload   B    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3558 peak=1837 3s budget=193403 
+13:01:25 glm-4.5-flash    tload   C    L02_schedule         r1: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8715 peak=3677 163s budget=197080 
+13:01:51 nemotron-3-ultra tload   C    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=4417 peak=2273 29s budget=201497 
+13:01:54 gemma4:31b       tload   C    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3558 peak=1837 3s budget=205055 
+13:03:08 nemotron-3-ultra tload   B    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=5 prompt=13101 peak=3114 74s budget=219912 
+13:03:10 gemma4:31b       tload   B    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=3616 peak=1909 2s budget=225879 
+13:03:44 nemotron-3-ultra tload   C    L06_etf_news         r1: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=2 prompt=4794 peak=2662 34s budget=233087 
+13:03:46 gemma4:31b       tload   C    L06_etf_news         r1: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=2 prompt=3903 peak=2196 2s budget=236990 
+13:04:08 nemotron-3-ultra tload   B    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8141 peak=3055 22s budget=245131 
+13:04:10 gemma4:31b       tload   B    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4259 peak=2559 2s budget=249390 
+13:05:09 nemotron-3-ultra tload   C    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8141 peak=3055 58s budget=262743 
+13:05:11 gemma4:31b       tload   C    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4259 peak=2559 2s budget=267002 
+13:05:29 glm-4.5-flash    tload   B    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=6 prompt=14827 peak=3094 244s budget=275192 
+13:05:40 nemotron-3-ultra tload   B    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8156 peak=3060 29s budget=280008 
+13:05:46 gemma4:31b       tload   B    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4269 peak=2564 6s budget=286628 
+13:06:03 nemotron-3-ultra tload   C    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8156 peak=3060 17s budget=302410 
+13:06:07 gemma4:31b       tload   C    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4269 peak=2564 3s budget=306679 
+13:06:14 nemotron-3-ultra tload   B    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2121 peak=2121 8s budget=308800 
+13:06:15 gemma4:31b       tload   B    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1697 peak=1697 1s budget=310497 
+13:06:19 glm-4.5-flash    tload   C    L03_add_column       r1: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=6 prompt=14827 peak=3094 50s budget=313591 
+13:06:27 nemotron-3-ultra tload   C    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2121 peak=2121 12s budget=317473 
+13:06:29 gemma4:31b       tload   C    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1697 peak=1697 1s budget=319170 
+13:06:41 glm-4.5-flash    tload   B    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=2 prompt=3588 peak=1827 22s budget=323115 
+13:06:45 nemotron-3-ultra tload   B    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=4342 peak=2224 16s budget=325339 
+13:06:48 gemma4:31b       tload   B    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=3442 peak=1749 3s budget=328781 
+13:06:55 nemotron-3-ultra tload   C    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=4331 peak=2213 7s budget=334873 
+13:06:57 gemma4:31b       tload   C    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=3442 peak=1749 2s budget=340142 
+13:07:06 nemotron-3-ultra tload   B    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2122 peak=2122 9s budget=348025 
+13:07:07 gemma4:31b       tload   B    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1698 peak=1698 1s budget=349723 
+13:07:12 glm-4.5-flash    tload   C    L04_sql_fails        r1: stop=request cap loaded=[] gate=none rightBefore=false unneeded=[] req=6 prompt=11383 peak=2034 31s budget=351757 
+13:07:49 glm-4.5-flash    tload   B    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3678 peak=1906 36s budget=355435 
+13:08:21 nemotron-3-ultra tload   C    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2122 peak=2122 74s budget=359329 
+13:08:21 gemma4:31b       tload   C    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1698 peak=1698 1s budget=361027 
+13:08:29 nemotron-3-ultra tload   B    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2117 peak=2117 8s budget=363144 
+13:08:31 gemma4:31b       tload   B    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1693 peak=1693 1s budget=364837 
+13:08:35 nemotron-3-ultra tload   C    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2117 peak=2117 4s budget=366954 
+13:08:36 gemma4:31b       tload   C    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1693 peak=1693 1s budget=368647 
+13:09:18 glm-4.5-flash    tload   C    L05_design_table     r1: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3678 peak=1906 89s budget=379925 
+13:09:25 nemotron-3-ultra troles  M    R1_redesign_tables   r1: stop=delegated loaded=[delegation:role database-design:load_skill] route=create_chat skills=[database-design migrations pipelines config-guide] score=acceptable req=4 prompt=12717 peak=3345 50s budget=383270 
+13:09:28 gemma4:31b       troles  M    R1_redesign_tables   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design migrations sql-queries] score=acceptable req=1 prompt=2534 peak=2534 2s budget=385804 
+13:09:49 nemotron-3-ultra troles  M    R2_dashboards        r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide sql-queries] score=acceptable req=1 prompt=3016 peak=3016 22s budget=388820 
+13:09:50 gemma4:31b       troles  M    R2_dashboards        r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide sql-queries] score=acceptable req=1 prompt=2534 peak=2534 1s budget=391354 
+13:09:57 nemotron-3-ultra troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=3011 peak=3011 7s budget=396124 
+13:09:59 gemma4:31b       troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2530 peak=2530 2s budget=398654 
+13:10:10 nemotron-3-ultra troles  M    R4_sql_questions     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=3018 peak=3018 10s budget=401672 
+13:10:12 gemma4:31b       troles  M    R4_sql_questions     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=2538 peak=2538 2s budget=404210 
+13:10:23 nemotron-3-ultra troles  M    R5_pipeline_care     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines] score=exact req=1 prompt=3021 peak=3021 11s budget=407231 
+13:10:25 gemma4:31b       troles  M    R5_pipeline_care     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines] score=exact req=1 prompt=2540 peak=2540 2s budget=409771 
+13:10:26 glm-4.5-flash    tload   B    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=3706 peak=1947 68s budget=411718 
+13:10:41 nemotron-3-ultra troles  M    R6_exchange_trades   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines config-guide] score=wrong req=1 prompt=3028 peak=3028 16s budget=416505 
+13:10:43 gemma4:31b       troles  M    R6_exchange_trades   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines config-guide sql-queries] score=wrong req=1 prompt=2548 peak=2548 2s budget=419053 
+13:10:49 glm-4.5-flash    tload   C    L06_etf_news         r1: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=2 prompt=3986 peak=2227 23s budget=421280 
+13:11:06 glm-4.5-flash    tload   B    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7015 peak=2667 17s budget=432942 
+13:11:46 glm-4.5-flash    tload   C    L07_chart            r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=4 prompt=9035 peak=2766 40s budget=446861 
+13:12:38 glm-4.5-flash    tload   B    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4347 peak=2590 52s budget=456679 
+13:13:53 nemotron-3-ultra tconfig A    T2                   r1: stop=done loaded=[] valid=true first=false failed=2 checks=9/10 req=5 prompt=27624 peak=6602 190s budget=473648 
+13:14:01 gemma4:31b       tconfig A    T2                   r1: stop=done loaded=[] valid=true first=false failed=1 checks=10/10 req=3 prompt=15231 peak=5709 8s budget=488879 
+13:14:02 glm-4.5-flash    tload   C    L08_form             r1: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7008 peak=2661 84s budget=491540 
+13:14:19 glm-4.5-flash    tload   B    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1749 peak=1749 17s budget=493289 
+13:14:32 glm-4.5-flash    tload   C    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1749 peak=1749 13s budget=497160 
+13:15:07 glm-4.5-flash    tload   B    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=3 prompt=5479 peak=1900 34s budget=506256 
+13:15:49 glm-4.5-flash    tload   C    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=3 prompt=5479 peak=1900 42s budget=515438 
+13:16:05 glm-4.5-flash    tload   B    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1750 peak=1750 16s budget=521401 
+13:16:08 nemotron-3-ultra tconfig B    T2                   r1: stop=done loaded=[pipelines:load_skill] valid=true first=false failed=1 checks=10/10 req=5 prompt=18412 peak=4757 127s budget=526158 
+13:16:14 gemma4:31b       tconfig B    T2                   r1: stop=done loaded=[pipelines:load_skill sql-queries:load_skill] valid=true first=true failed=0 checks=10/10 req=3 prompt=9070 peak=3975 6s budget=535228 
+13:16:31 glm-4.5-flash    tload   C    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1750 peak=1750 26s budget=536978 
+13:16:49 glm-4.5-flash    tload   B    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1745 peak=1745 18s budget=540845 
+13:17:35 glm-4.5-flash    tload   C    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1745 peak=1745 46s budget=542590 
+13:17:53 nemotron-3-ultra tconfig C    T2                   r1: stop=done loaded=[pipelines:load_skill] valid=true first=true failed=0 checks=10/10 req=3 prompt=9906 peak=4167 99s budget=550374 
+13:18:01 gemma4:31b       tconfig C    T2                   r1: stop=done loaded=[pipelines:load_skill sql-queries:load_skill] valid=true first=false failed=1 checks=10/10 req=4 prompt=13589 peak=4538 8s budget=563963 
+13:18:11 glm-4.5-flash    troles  M    R1_redesign_tables   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design migrations] score=exact req=1 prompt=2580 peak=2580 36s budget=571201 
+13:18:37 glm-4.5-flash    troles  M    R2_dashboards        r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide] score=exact req=1 prompt=2581 peak=2581 25s budget=584634 
+13:19:10 glm-4.5-flash    troles  M    R3_gold_news_daily   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2576 peak=2576 33s budget=611495 
+13:19:10 nemotron-3-ultra tconfig A    T3                   r1: stop=done loaded=[] valid=true first=true failed=0 checks=5/5 req=7 prompt=39795 peak=6337 69s budget=611495 
+13:19:15 gemma4:31b       tconfig A    T3                   r1: stop=done loaded=[] valid=true first=false failed=1 checks=5/5 req=3 prompt=15209 peak=5466 5s budget=626704 
+13:19:29 glm-4.5-flash    troles  M    R4_sql_questions     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=2583 peak=2583 19s budget=629287 
+13:19:44 glm-4.5-flash    troles  M    R5_pipeline_care     r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines] score=exact req=1 prompt=2586 peak=2586 15s budget=631873 
+13:20:07 glm-4.5-flash    troles  M    R6_exchange_trades   r1: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines] score=wrong req=1 prompt=2593 peak=2593 22s budget=636599 
+13:21:39 nemotron-3-ultra tconfig B    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=8 prompt=27910 peak=4314 144s budget=671015 
+13:21:47 gemma4:31b       tconfig B    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=4/5 req=3 prompt=7725 peak=3444 7s budget=683175 
+13:23:01 nemotron-3-ultra tconfig C    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=9 prompt=31296 peak=4235 75s budget=723942 
+13:23:09 gemma4:31b       tconfig C    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=3 prompt=7712 peak=3431 8s budget=737128 
+13:24:13 glm-4.5-flash    tconfig A    T2                   r1: stop=done loaded=[] valid=true first=false failed=4 checks=9/10 req=9 prompt=47460 peak=6981 246s budget=761356 
+13:26:27 nemotron-3-ultra tconfig A    T4                   r1: stop=done loaded=[] valid=true first=true failed=0 checks=11/13 req=6 prompt=43795 peak=8946 198s budget=812112 
+13:26:54 gemma4:31b       tconfig A    T4                   r1: stop=done loaded=[] valid=true first=false failed=2 checks=10/13 req=5 prompt=34997 peak=9641 26s budget=850570 
+13:27:59 glm-4.5-flash    tconfig B    T2                   r1: stop=done loaded=[pipelines:load_skill] valid=true first=false failed=3 checks=10/10 req=9 prompt=35282 peak=5964 226s budget=878180 
+13:31:12 nemotron-3-ultra tconfig B    T4                   r1: stop=done loaded=[migrations:load_skill database-design:load_skill pipelines:load_skill config-guide:load_skill] valid=true first=true failed=0 checks=13/13 req=8 prompt=57407 peak=9691 259s budget=947462 
+13:31:46 gemma4:31b       tconfig B    T4                   r1: stop=repair limit loaded=[migrations:load_skill database-design:load_skill config-guide:load_skill pipelines:load_skill] valid=false first=false failed=5 checks=2/13 req=6 prompt=45997 peak=11627 34s budget=998203 
+13:32:24 glm-4.5-flash    tconfig C    T2                   r1: stop=done loaded=[pipelines:load_skill] valid=true first=false failed=2 checks=10/10 req=9 prompt=35602 peak=6005 265s budget=1017186 
+13:35:37 glm-4.5-flash    tconfig A    T3                   r1: stop=done loaded=[] valid=true first=false failed=2 checks=5/5 req=11 prompt=55196 peak=5904 193s budget=1130979 
+13:36:17 nemotron-3-ultra tconfig C    T4                   r1: stop=done loaded=[migrations:load_skill database-design:load_skill pipelines:load_skill config-guide:load_skill] valid=true first=false failed=1 checks=13/13 req=10 prompt=91622 peak=12963 271s budget=1166270 
+13:37:02 gemma4:31b       tconfig C    T4                   r1: stop=repair limit loaded=[migrations:load_skill database-design:load_skill pipelines:load_skill config-guide:load_skill sql-queries:load_skill] valid=false first=false failed=5 checks=2/13 req=7 prompt=51533 peak=11809 44s budget=1223691 
+13:37:23 nemotron-3-ultra tload   A    L01_news_view        r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4663 peak=4663 21s budget=1235060 
+13:37:25 gemma4:31b       tload   A    L01_news_view        r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4435 peak=4435 2s budget=1239495 
+13:37:45 nemotron-3-ultra tload   A    L02_schedule         r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=9746 peak=5085 20s budget=1260881 
+13:37:48 gemma4:31b       tload   A    L02_schedule         r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=9313 peak=4882 3s budget=1274518 
+13:37:52 glm-4.5-flash    tconfig B    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=false failed=3 checks=5/5 req=13 prompt=42800 peak=4439 135s budget=1278957 
+13:39:21 nemotron-3-ultra tload   A    L03_add_column       r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4655 peak=4655 93s budget=1306281 
+13:39:22 gemma4:31b       tload   A    L03_add_column       r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4425 peak=4425 1s budget=1310706 
+13:39:37 nemotron-3-ultra tload   A    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=1 prompt=4659 peak=4659 15s budget=1315365 
+13:39:45 gemma4:31b       tload   A    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=1 prompt=4430 peak=4430 8s budget=1319795 
+13:39:59 nemotron-3-ultra tload   A    L05_design_table     r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=1 prompt=4669 peak=4669 14s budget=1328255 
+13:40:01 gemma4:31b       tload   A    L05_design_table     r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=1 prompt=4440 peak=4440 1s budget=1332695 
+13:40:19 glm-4.5-flash    tconfig C    T3                   r1: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=10 prompt=30376 peak=3916 146s budget=1341268 
+13:40:51 nemotron-3-ultra tload   A    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=9556 peak=4899 50s budget=1355047 
+13:40:58 gemma4:31b       tload   A    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=9059 peak=4633 7s budget=1368660 
+13:41:14 nemotron-3-ultra tload   A    L07_chart            r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=9438 peak=4789 16s budget=1387733 
+13:41:15 gemma4:31b       tload   A    L07_chart            r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4419 peak=4419 1s budget=1397347 
+13:41:25 nemotron-3-ultra tload   A    L08_form             r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4654 peak=4654 10s budget=1418266 
+13:41:27 gemma4:31b       tload   A    L08_form             r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4424 peak=4424 2s budget=1422690 
+13:41:34 nemotron-3-ultra tload   A    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4646 peak=4646 7s budget=1427336 
+13:41:35 gemma4:31b       tload   A    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4416 peak=4416 1s budget=1431752 
+13:41:48 nemotron-3-ultra tload   A    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=9381 peak=4738 13s budget=1441133 
+13:41:50 gemma4:31b       tload   A    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=8889 peak=4477 2s budget=1450022 
+13:42:11 nemotron-3-ultra tload   A    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4647 peak=4647 20s budget=1460319 
+13:42:13 gemma4:31b       tload   A    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4417 peak=4417 2s budget=1464736 
+13:42:15 nemotron-3-ultra tload   A    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4642 peak=4642 2s budget=1469378 
+13:42:15 gemma4:31b       tload   A    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4412 peak=4412 1s budget=1473790 
+13:44:18 nemotron-3-ultra tconfig A    T2                   r2: stop=done loaded=[] valid=true first=false failed=2 checks=10/10 req=5 prompt=27735 peak=6659 123s budget=1518246 
+13:44:25 gemma4:31b       tconfig A    T2                   r2: stop=done loaded=[] valid=true first=false failed=1 checks=10/10 req=3 prompt=14939 peak=5554 7s budget=1544468 
+13:44:28 glm-4.5-flash    tconfig A    T4                   r1: stop=done loaded=[] valid=true first=false failed=2 checks=8/13 req=14 prompt=89633 peak=11450 249s budget=1555918 
+13:45:43 nemotron-3-ultra tconfig B    T2                   r2: stop=done loaded=[pipelines:load_skill] valid=true first=true failed=0 checks=10/10 req=5 prompt=18946 peak=4927 78s budget=1597472 
+13:45:49 gemma4:31b       tconfig B    T2                   r2: stop=done loaded=[pipelines:load_skill sql-queries:load_skill] valid=true first=true failed=0 checks=10/10 req=3 prompt=9071 peak=3976 6s budget=1606543 
+13:48:24 glm-4.5-flash    tconfig B    T4                   r1: stop=request cap loaded=[migrations:load_skill pipelines:load_skill] valid=false first=false failed=3 checks=2/13 req=16 prompt=76143 peak=9993 236s budget=1669563 
+13:50:01 glm-4.5-flash    tconfig C    T4                   r1: stop=request cap loaded=[migrations:load_skill pipelines:load_skill] valid=true first=true failed=0 checks=7/13 req=16 prompt=62111 peak=7295 97s budget=1735657 
+13:50:28 glm-4.5-flash    tload   A    L01_news_view        r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=8664 peak=4385 26s budget=1744321 
+13:51:10 nemotron-3-ultra tconfig C    T2                   r2: stop=done loaded=[pipelines:load_skill database-design:load_skill] valid=true first=true failed=0 checks=10/10 req=5 prompt=17967 peak=4499 321s budget=1753093 
+13:51:15 glm-4.5-flash    tload   A    L02_schedule         r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=8972 peak=4699 47s budget=1766343 
+13:51:20 gemma4:31b       tconfig C    T2                   r2: stop=done loaded=[pipelines:load_skill sql-queries:load_skill] valid=true first=false failed=1 checks=10/10 req=5 prompt=17165 peak=4599 10s budget=1774957 
+13:52:23 glm-4.5-flash    tload   A    L03_add_column       r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=3 prompt=13659 peak=5030 68s budget=1808812 
+13:52:44 nemotron-3-ultra tconfig A    T3                   r2: stop=done loaded=[] valid=true first=true failed=0 checks=5/5 req=7 prompt=37691 peak=5993 84s budget=1830581 
+13:52:53 glm-4.5-flash    tload   A    L04_sql_fails        r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=2 prompt=8608 peak=4334 30s budget=1839345 
+13:52:55 gemma4:31b       tconfig A    T3                   r2: stop=done loaded=[] valid=true first=true failed=0 checks=5/5 req=2 prompt=9738 peak=5308 11s budget=1844653 
+13:53:16 glm-4.5-flash    tload   A    L05_design_table     r1: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=1 prompt=4285 peak=4285 23s budget=1851071 
+13:53:57 glm-4.5-flash    tload   A    L06_etf_news         r1: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=8732 peak=4460 40s budget=1866043 
+13:54:15 glm-4.5-flash    tload   A    L07_chart            r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=2 prompt=8633 peak=4368 18s budget=1881890 
+13:54:29 glm-4.5-flash    tload   A    L08_form             r1: stop=write loaded=[] gate=write rightBefore=false unneeded=[] req=1 prompt=4270 peak=4270 14s budget=1890134 
+13:54:34 glm-4.5-flash    tload   A    L09_moving_average   r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4262 peak=4262 5s budget=1894396 
+13:54:45 glm-4.5-flash    tload   A    L10_price_yesterday  r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=3 prompt=13018 peak=4413 11s budget=1911620 
+13:54:48 nemotron-3-ultra tconfig B    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=8 prompt=28118 peak=4351 113s budget=1915971 
+13:54:53 glm-4.5-flash    tload   A    L11_what_tracked     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4263 peak=4263 8s budget=1924515 
+13:54:54 gemma4:31b       tconfig B    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=4/5 req=3 prompt=7694 peak=3413 6s budget=1927928 
+13:55:04 glm-4.5-flash    tload   A    L12_two_plus_two     r1: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=4258 peak=4258 11s budget=1937290 
+13:55:59 nemotron-3-ultra tconfig C    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=5/5 req=8 prompt=27768 peak=4267 65s budget=1982573 
+13:56:06 gemma4:31b       tconfig C    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=true failed=0 checks=4/5 req=3 prompt=7711 peak=3430 7s budget=1995811 
+13:56:36 glm-4.5-flash    tconfig A    T2                   r2: stop=repair limit loaded=[] valid=false first=false failed=5 checks=0/1 req=8 prompt=40658 peak=6499 92s budget=2013110 
+13:58:04 glm-4.5-flash    tconfig B    T2                   r2: stop=done loaded=[pipelines:load_skill] valid=true first=true failed=0 checks=5/10 req=6 prompt=19291 peak=4011 88s budget=2038289 
+13:59:21 glm-4.5-flash    tconfig C    T2                   r2: stop=done loaded=[pipelines:load_skill] valid=true first=false failed=1 checks=10/10 req=7 prompt=23789 peak=4502 77s budget=2069618 
+14:01:42 nemotron-3-ultra tconfig A    T4                   r2: stop=done loaded=[] valid=true first=false failed=2 checks=11/13 req=11 prompt=110335 peak=12774 336s budget=2194341 
+14:01:53 gemma4:31b       tconfig A    T4                   r2: stop=done loaded=[] valid=true first=false failed=1 checks=9/13 req=4 prompt=25202 peak=8229 11s budget=2230522 
+14:02:10 glm-4.5-flash    tconfig A    T3                   r2: stop=done loaded=[] valid=true first=false failed=2 checks=5/5 req=11 prompt=55355 peak=5947 169s budget=2249717 
+14:03:51 glm-4.5-flash    tconfig B    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=false failed=2 checks=5/5 req=13 prompt=44232 peak=4602 100s budget=2293949 
+14:04:23 nemotron-3-ultra tconfig B    T4                   r2: stop=done loaded=[migrations:load_skill pipelines:load_skill config-guide:load_skill] valid=true first=true failed=0 checks=13/13 req=8 prompt=56598 peak=9579 150s budget=2352928 
+14:04:53 gemma4:31b       tconfig B    T4                   r2: stop=repair limit loaded=[migrations:load_skill database-design:load_skill config-guide:load_skill pipelines:load_skill] valid=false first=false failed=5 checks=2/13 req=6 prompt=46106 peak=11744 30s budget=2408530 
+14:05:59 glm-4.5-flash    tconfig C    T3                   r2: stop=done loaded=[config-guide:load_skill] valid=true first=false failed=2 checks=5/5 req=13 prompt=44228 peak=4601 129s budget=2440996 
+14:12:39 nemotron-3-ultra tconfig C    T4                   r2: stop=done loaded=[migrations:load_skill database-design:load_skill pipelines:load_skill config-guide:load_skill] valid=true first=false failed=2 checks=13/13 req=9 prompt=78818 peak=13378 466s budget=2578686 
+14:13:00 gemma4:31b       tconfig C    T4                   r2: stop=done loaded=[migrations:load_skill database-design:load_skill config-guide:load_skill pipelines:load_skill sql-queries:load_skill] valid=true first=false failed=3 checks=11/13 req=7 prompt=53018 peak=12018 21s budget=2631704 
+14:13:52 nemotron-3-ultra tload   B    L01_news_view        r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8183 peak=3069 52s budget=2639887 
+14:13:54 gemma4:31b       tload   B    L01_news_view        r2: stop=write loaded=[config-guide:load_skill sql-queries:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4403 peak=2687 3s budget=2644290 
+14:14:31 nemotron-3-ultra tload   C    L01_news_view        r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8183 peak=3069 37s budget=2652473 
+14:14:34 gemma4:31b       tload   C    L01_news_view        r2: stop=write loaded=[config-guide:load_skill sql-queries:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4403 peak=2687 3s budget=2656876 
+14:14:53 nemotron-3-ultra tload   B    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=6177 peak=4041 18s budget=2663053 
+14:14:56 gemma4:31b       tload   B    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=5470 peak=3758 4s budget=2668523 
+14:16:47 nemotron-3-ultra tload   C    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=9822 peak=4055 110s budget=2678345 
+14:16:49 gemma4:31b       tload   C    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=5470 peak=3758 3s budget=2683815 
+14:17:09 nemotron-3-ultra tload   B    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4853 peak=2723 19s budget=2688668 
+14:17:14 gemma4:31b       tload   B    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7105 peak=3092 5s budget=2695773 
+14:17:27 nemotron-3-ultra tload   C    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7662 peak=2809 13s budget=2703435 
+14:17:31 gemma4:31b       tload   C    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7105 peak=3092 4s budget=2710540 
+14:18:21 nemotron-3-ultra tload   B    L04_sql_fails        r2: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=3 prompt=6608 peak=2270 49s budget=2717148 
+14:18:23 gemma4:31b       tload   B    L04_sql_fails        r2: stop=answer loaded=[sql-queries:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3530 peak=1819 2s budget=2720678 
+14:19:03 nemotron-3-ultra tload   C    L04_sql_fails        r2: stop=answer loaded=[sql-queries:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=4393 peak=2259 40s budget=2735910 
+14:19:06 gemma4:31b       tload   C    L04_sql_fails        r2: stop=answer loaded=[sql-queries:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3530 peak=1819 3s budget=2739440 
+14:20:44 nemotron-3-ultra tload   B    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=4417 peak=2273 99s budget=2743857 
+14:20:48 gemma4:31b       tload   B    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3558 peak=1837 4s budget=2747415 
+14:21:46 nemotron-3-ultra tload   C    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=4417 peak=2273 58s budget=2751832 
+14:21:48 gemma4:31b       tload   C    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3558 peak=1837 2s budget=2755390 
+14:22:07 nemotron-3-ultra tload   B    L06_etf_news         r2: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=4504 peak=2372 19s budget=2759894 
+14:22:09 gemma4:31b       tload   B    L06_etf_news         r2: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=3616 peak=1909 2s budget=2763510 
+14:22:55 nemotron-3-ultra tload   C    L06_etf_news         r2: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=6 prompt=17862 peak=3630 46s budget=2781372 
+14:22:57 gemma4:31b       tload   C    L06_etf_news         r2: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=2 prompt=3903 peak=2196 2s budget=2785275 
+14:23:13 nemotron-3-ultra tload   B    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8141 peak=3055 15s budget=2793416 
+14:23:15 gemma4:31b       tload   B    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4259 peak=2559 2s budget=2797675 
+14:23:47 nemotron-3-ultra tload   C    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8141 peak=3055 32s budget=2805816 
+14:23:49 gemma4:31b       tload   C    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4259 peak=2559 2s budget=2810075 
+14:24:52 glm-4.5-flash    tconfig A    T4                   r2: stop=repair limit loaded=[] valid=false first=false failed=5 checks=2/13 req=14 prompt=90263 peak=13015 1133s budget=2828186 
+14:25:03 nemotron-3-ultra tload   B    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8156 peak=3060 74s budget=2831246 
+14:25:05 gemma4:31b       tload   B    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4269 peak=2564 2s budget=2837399 
+14:25:49 nemotron-3-ultra tload   C    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8156 peak=3060 45s budget=2890399 
+14:25:52 gemma4:31b       tload   C    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=2 prompt=4269 peak=2564 3s budget=2894668 
+14:26:06 nemotron-3-ultra tload   B    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2121 peak=2121 14s budget=2896789 
+14:26:06 gemma4:31b       tload   B    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1697 peak=1697 1s budget=2898486 
+14:26:11 nemotron-3-ultra tload   C    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2121 peak=2121 4s budget=2900607 
+14:26:12 gemma4:31b       tload   C    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1697 peak=1697 1s budget=2902304 
+14:26:18 nemotron-3-ultra tload   B    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=4339 peak=2221 6s budget=2906643 
+14:26:19 gemma4:31b       tload   B    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=3446 peak=1753 2s budget=2910089 
+14:26:30 nemotron-3-ultra tload   C    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=4331 peak=2213 10s budget=2914420 
+14:26:34 gemma4:31b       tload   C    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=2 prompt=3446 peak=1753 4s budget=2917866 
+14:26:38 nemotron-3-ultra tload   B    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2122 peak=2122 4s budget=2919988 
+14:26:39 gemma4:31b       tload   B    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1698 peak=1698 1s budget=2921686 
+14:26:49 nemotron-3-ultra tload   C    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2122 peak=2122 10s budget=2929012 
+14:26:49 gemma4:31b       tload   C    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1698 peak=1698 1s budget=2930710 
+14:26:53 nemotron-3-ultra tload   B    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2117 peak=2117 4s budget=2932827 
+14:26:54 gemma4:31b       tload   B    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1693 peak=1693 1s budget=2934520 
+14:26:58 nemotron-3-ultra tload   C    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=2117 peak=2117 4s budget=2936637 
+14:26:59 gemma4:31b       tload   C    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1693 peak=1693 1s budget=2938330 
+14:27:40 nemotron-3-ultra troles  M    R1_redesign_tables   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design migrations] score=exact req=1 prompt=3015 peak=3015 41s budget=2941345 
+14:27:41 gemma4:31b       troles  M    R1_redesign_tables   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design migrations sql-queries] score=acceptable req=1 prompt=2534 peak=2534 1s budget=2943879 
+14:28:11 nemotron-3-ultra troles  M    R2_dashboards        r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide sql-queries database-design] score=wrong req=1 prompt=3016 peak=3016 30s budget=2953612 
+14:28:12 gemma4:31b       troles  M    R2_dashboards        r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide sql-queries] score=acceptable req=1 prompt=2534 peak=2534 1s budget=2956146 
+14:28:31 nemotron-3-ultra troles  M    R3_gold_news_daily   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=3011 peak=3011 19s budget=2967541 
+14:28:32 gemma4:31b       troles  M    R3_gold_news_daily   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2530 peak=2530 1s budget=2970071 
+14:28:56 nemotron-3-ultra troles  M    R4_sql_questions     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=3018 peak=3018 24s budget=2973089 
+14:28:57 gemma4:31b       troles  M    R4_sql_questions     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=2538 peak=2538 1s budget=2975627 
+14:29:30 nemotron-3-ultra troles  M    R5_pipeline_care     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines sql-queries] score=acceptable req=1 prompt=3021 peak=3021 33s budget=2978648 
+14:29:31 gemma4:31b       troles  M    R5_pipeline_care     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines] score=exact req=1 prompt=2540 peak=2540 1s budget=2981188 
+14:30:10 nemotron-3-ultra troles  M    R6_exchange_trades   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines config-guide] score=wrong req=1 prompt=3028 peak=3028 39s budget=2994161 
+14:30:11 gemma4:31b       troles  M    R6_exchange_trades   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines config-guide sql-queries] score=wrong req=1 prompt=2548 peak=2548 1s budget=2996709 
+14:30:26 glm-4.5-flash    tconfig B    T4                   r2: stop=request cap loaded=[migrations:load_skill pipelines:load_skill] valid=true first=false failed=3 checks=4/13 req=16 prompt=88996 peak=12018 334s budget=3008727 
+14:36:59 glm-4.5-flash    tconfig C    T4                   r2: stop=request cap loaded=[migrations:load_skill pipelines:load_skill config-guide:load_skill] valid=false first=false failed=4 checks=2/13 req=16 prompt=84582 peak=8898 393s budget=3093309 
+14:38:53 glm-4.5-flash    tload   B    L01_news_view        r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7049 peak=2677 114s budget=3100358 
+14:40:22 glm-4.5-flash    tload   C    L01_news_view        r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7051 peak=2678 89s budget=3107409 
+14:41:04 glm-4.5-flash    tload   B    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8715 peak=3677 42s budget=3116124 
+14:41:59 glm-4.5-flash    tload   C    L02_schedule         r2: stop=write loaded=[pipelines:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=8715 peak=3677 55s budget=3124839 
+14:43:15 glm-4.5-flash    tload   B    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=6 prompt=14827 peak=3094 76s budget=3139666 
+14:45:05 glm-4.5-flash    tload   C    L03_add_column       r2: stop=write loaded=[migrations:load_skill] gate=write rightBefore=true unneeded=[] req=6 prompt=14772 peak=3083 109s budget=3154438 
+14:45:19 glm-4.5-flash    tload   B    L04_sql_fails        r2: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=2 prompt=3593 peak=1832 14s budget=3158031 
+14:45:40 glm-4.5-flash    tload   C    L04_sql_fails        r2: stop=answer loaded=[] gate=answer rightBefore=false unneeded=[] req=2 prompt=3586 peak=1825 21s budget=3161617 
+14:46:53 glm-4.5-flash    tload   B    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3678 peak=1906 73s budget=3165295 
+14:47:22 glm-4.5-flash    tload   C    L05_design_table     r2: stop=answer loaded=[database-design:load_skill] gate=answer rightBefore=true unneeded=[] req=2 prompt=3680 peak=1908 29s budget=3168975 
+14:47:44 glm-4.5-flash    tload   B    L06_etf_news         r2: stop=answer loaded=[] gate=search rightBefore=false unneeded=[] req=2 prompt=3706 peak=1947 22s budget=3172681 
+14:48:06 glm-4.5-flash    tload   C    L06_etf_news         r2: stop=answer loaded=[web-research:load_with] gate=search rightBefore=false unneeded=[] req=2 prompt=3986 peak=2227 21s budget=3176667 
+14:50:04 glm-4.5-flash    tload   B    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7015 peak=2667 119s budget=3183682 
+14:50:35 glm-4.5-flash    tload   C    L07_chart            r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7007 peak=2663 30s budget=3190689 
+14:51:01 glm-4.5-flash    tload   B    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7008 peak=2661 26s budget=3197697 
+14:51:36 glm-4.5-flash    tload   C    L08_form             r2: stop=write loaded=[config-guide:load_skill] gate=write rightBefore=true unneeded=[] req=3 prompt=7010 peak=2662 35s budget=3204707 
+14:51:51 glm-4.5-flash    tload   B    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1749 peak=1749 15s budget=3206456 
+14:52:07 glm-4.5-flash    tload   C    L09_moving_average   r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1749 peak=1749 16s budget=3208205 
+14:52:27 glm-4.5-flash    tload   B    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=3 prompt=5479 peak=1900 19s budget=3213684 
+14:52:39 glm-4.5-flash    tload   C    L10_price_yesterday  r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=3 prompt=5479 peak=1900 13s budget=3219163 
+14:52:46 glm-4.5-flash    tload   B    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1750 peak=1750 7s budget=3220913 
+14:52:56 glm-4.5-flash    tload   C    L11_what_tracked     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1750 peak=1750 10s budget=3222663 
+14:52:59 glm-4.5-flash    tload   B    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1745 peak=1745 3s budget=3224408 
+14:53:02 glm-4.5-flash    tload   C    L12_two_plus_two     r2: stop=answer loaded=[] gate=answer rightBefore=true unneeded=[] req=1 prompt=1745 peak=1745 3s budget=3226153 
+14:53:18 glm-4.5-flash    troles  M    R1_redesign_tables   r2: stop=delegated loaded=[delegation:role database-design:load_skill] route=create_chat skills=[database-design] score=wrong req=2 prompt=5305 peak=2725 16s budget=3231458 
+14:53:30 glm-4.5-flash    troles  M    R2_dashboards        r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[config-guide sql-queries] score=acceptable req=1 prompt=2581 peak=2581 12s budget=3234039 
+14:53:39 glm-4.5-flash    troles  M    R3_gold_news_daily   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[web-research] score=wrong req=1 prompt=2576 peak=2576 9s budget=3236615 
+14:53:52 glm-4.5-flash    troles  M    R4_sql_questions     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[sql-queries] score=exact req=1 prompt=2583 peak=2583 13s budget=3239198 
+14:54:12 glm-4.5-flash    troles  M    R5_pipeline_care     r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[pipelines] score=exact req=1 prompt=2586 peak=2586 20s budget=3241784 
+14:54:41 glm-4.5-flash    troles  M    R6_exchange_trades   r2: stop=delegated loaded=[delegation:role] route=create_chat skills=[database-design pipelines config-guide] score=wrong req=1 prompt=2593 peak=2593 29s budget=3244377 
+
+prompt tokens used in total: 3244377 of 3500000 (output 226989)
+rate/error log: zai glm-4.5-flash L02_schedule/r1/q2 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash L08_form/r1/q1 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r1/q11 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r1/q11 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q11 attempt 1 status 0: unexpected EOF -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q13 attempt 1 status 0: context deadline exceeded -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q14 attempt 1 status 0: context deadline exceeded -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q1 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q2 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q2 attempt 2 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 4s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q3 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q5 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q5 attempt 2 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 4s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q9 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q11 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q11 attempt 2 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 4s (no retry-after header, backoff)
+rate/error log: zai glm-4.5-flash T4/r2/q13 attempt 1 status 429: 429 {"code":"1305","message":"The service may be temporarily overloaded, please try again later"} -> retry after 2s (no retry-after header, backoff)

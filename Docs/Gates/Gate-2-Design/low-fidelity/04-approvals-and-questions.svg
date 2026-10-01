@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 900" width="1640" height="900" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2b2b2b"/></marker></defs>
+<rect width="1640" height="900" fill="#ffffff"/>
+<text x="20.0" y="30.0" font-size="20" fill="#2b2b2b" font-weight="600">04 · Approval card and question form</text>
+<text x="20.0" y="49.0" font-size="12" fill="#767676">Parts inside the chat that make the turn wait (SPEC 8.8). Shown here without the rest of the chat.</text>
+<rect x="20.0" y="60.0" width="1280.0" height="800.0" rx="6" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.5"/>
+<rect x="20.8" y="60.8" width="1278.5" height="27.0" rx="5" fill="#e6e6e6" stroke="none" stroke-width="1"/>
+<line x1="20.0" y1="88.0" x2="1300.0" y2="88.0" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="32.0" y="78.5" font-size="12" fill="#2b2b2b">Jenab — Bitcoin</text>
+<text x="1286.0" y="78.5" font-size="12" fill="#2b2b2b" text-anchor="end">—     ▢     ✕</text>
+<rect x="21.0" y="89.0" width="1278.0" height="770.0" rx="0" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<rect x="60.0" y="110.0" width="580.0" height="176.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="76.0" y="132.0" font-size="10" fill="#767676" font-weight="600">APPROVAL · NEW HOST</text>
+<text x="76.0" y="154.0" font-size="14" fill="#2b2b2b" font-weight="600">Allow api.coingecko.com?</text>
+<text x="76.0" y="176.0" font-size="12" fill="#2b2b2b">Pipeline daily_btc gets the price from this host.</text>
+<text x="76.0" y="196.0" font-size="11.5" fill="#767676">Jenab blocks hosts until you allow them. Private addresses stay blocked.</text>
+<text x="76.0" y="218.0" font-size="11.5" fill="#2b2b2b">▸ Details</text>
+<rect x="76.0" y="234.0" width="164.6" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="158.3" y="250.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Allow for this project</text>
+<rect x="246.0" y="234.0" width="47.9" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="270.0" y="250.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Deny</text>
+<rect x="308.0" y="233.0" width="300.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="316.0" y="250.3" font-size="12" fill="#767676">Note for the agent (optional)</text>
+<rect x="60.0" y="306.0" width="580.0" height="250.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="76.0" y="328.0" font-size="10" fill="#767676" font-weight="600">APPROVAL · SCHEMA CHANGE</text>
+<text x="76.0" y="350.0" font-size="14" fill="#2b2b2b" font-weight="600">Merge btc_prices into prices(coin, …)?</text>
+<text x="76.0" y="372.0" font-size="12" fill="#2b2b2b">You asked to track ETH too. One table for all coins keeps the views simple.</text>
+<text x="76.0" y="394.0" font-size="11.5" fill="#2b2b2b">▾ Details</text>
+<rect x="76.0" y="402.0" width="548.0" height="104.0" rx="6" fill="#f4f4f4" stroke="none" stroke-width="1"/>
+<text x="88.0" y="422.0" font-size="11.5" fill="#2b2b2b" font-weight="600">Plan</text>
+<text x="180.0" y="422.0" font-size="11.5" fill="#2b2b2b">Create prices, copy 92 rows with coin = BTC, drop btc_prices</text>
+<text x="88.0" y="444.0" font-size="11.5" fill="#2b2b2b" font-weight="600">Destructive</text>
+<text x="180.0" y="444.0" font-size="11.5" fill="#2b2b2b">Drop table btc_prices</text>
+<text x="88.0" y="466.0" font-size="11.5" fill="#2b2b2b" font-weight="600">Updates</text>
+<text x="180.0" y="466.0" font-size="11.5" fill="#2b2b2b">3 views, 1 pipeline, 1 page filter</text>
+<text x="88.0" y="488.0" font-size="11.5" fill="#2b2b2b" font-weight="600">Safety</text>
+<text x="180.0" y="488.0" font-size="11.5" fill="#2b2b2b">A snapshot is taken first · about 1 s</text>
+<rect x="76.0" y="518.0" width="67.4" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="109.7" y="534.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Approve</text>
+<rect x="160.0" y="518.0" width="47.9" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="184.0" y="534.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Deny</text>
+<rect x="60.0" y="576.0" width="580.0" height="40.0" rx="8" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="76.0" y="601.0" font-size="12" fill="#767676">✓  Allowed api.coingecko.com for this project · 10:14</text>
+<rect x="680.0" y="110.0" width="580.0" height="246.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="696.0" y="132.0" font-size="10" fill="#767676" font-weight="600">CONNECTION</text>
+<text x="696.0" y="154.0" font-size="14" fill="#2b2b2b" font-weight="600">Save the CoinGecko connection?</text>
+<text x="696.0" y="180.0" font-size="11.5" fill="#767676">Title</text>
+<text x="800.0" y="180.0" font-size="12" fill="#2b2b2b">CoinGecko</text>
+<text x="696.0" y="202.0" font-size="11.5" fill="#767676">Host</text>
+<text x="800.0" y="202.0" font-size="12" fill="#2b2b2b">api.coingecko.com</text>
+<text x="696.0" y="224.0" font-size="11.5" fill="#767676">Key goes in</text>
+<text x="800.0" y="224.0" font-size="12" fill="#2b2b2b">header x-cg-demo-api-key</text>
+<text x="696.0" y="258.0" font-size="11.5" fill="#767676">API key</text>
+<rect x="800.0" y="242.0" width="300.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="808.0" y="259.3" font-size="12" fill="#2b2b2b">••••••••••••••••</text>
+<rect x="1108.0" y="242.0" width="54.4" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1135.2" y="259.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Paste</text>
+<text x="800.0" y="286.0" font-size="11.5" fill="#767676">Stored in the OS keychain. The agent never sees it.</text>
+<rect x="696.0" y="304.0" width="47.9" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="720.0" y="320.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Save</text>
+<rect x="760.0" y="304.0" width="60.9" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="790.4" y="320.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Cancel</text>
+<rect x="680.0" y="376.0" width="580.0" height="240.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1.2"/>
+<text x="696.0" y="398.0" font-size="10" fill="#767676" font-weight="600">QUESTION</text>
+<text x="696.0" y="420.0" font-size="14" fill="#2b2b2b" font-weight="600">Which currency should prices use?</text>
+<rect x="696.0" y="432.0" width="71.4" height="20.0" rx="10.0" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="709.0" y="445.8" font-size="10.5" fill="#2b2b2b">Currency</text>
+<rect x="696.0" y="460.0" width="548.0" height="30.0" rx="5" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="708.0" y="479.0" font-size="12.5" fill="#2b2b2b" font-weight="600">◉  EUR</text>
+<text x="790.0" y="479.0" font-size="11.5" fill="#767676">Converted from USD every day</text>
+<rect x="1128.0" y="465.0" width="85.4" height="20.0" rx="10.0" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1141.0" y="478.6" font-size="10" fill="#2b2b2b">Recommended</text>
+<rect x="696.0" y="498.0" width="548.0" height="30.0" rx="5" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="708.0" y="517.0" font-size="12.5" fill="#2b2b2b">○  USD</text>
+<text x="790.0" y="517.0" font-size="11.5" fill="#767676">As the price API returns them</text>
+<text x="708.0" y="555.0" font-size="12.5" fill="#2b2b2b">○  Other</text>
+<rect x="790.0" y="538.0" width="300.0" height="26.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="798.0" y="555.3" font-size="12" fill="#767676">Your answer</text>
+<rect x="696.0" y="580.0" width="60.9" height="24.0" rx="4" fill="#2b2b2b" stroke="#2b2b2b" stroke-width="1"/>
+<text x="726.4" y="596.3" font-size="12" fill="#ffffff" font-weight="600" text-anchor="middle">Submit</text>
+<text x="776.0" y="596.0" font-size="11.5" fill="#767676">Or type your answer in the chat.</text>
+<text x="60.0" y="660.0" font-size="13" fill="#2b2b2b" font-weight="600">When the chat isn't on screen</text>
+<rect x="60.0" y="676.0" width="240.0" height="46.0" rx="6" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="78.0" y="696.0" font-size="12" fill="#2b2b2b">◆</text>
+<text x="94.0" y="696.0" font-size="12.5" fill="#2b2b2b" font-weight="600">Mother</text>
+<text x="94.0" y="712.0" font-size="10.5" fill="#767676">Waiting for you</text>
+<circle cx="280" cy="699" r="8" fill="#2b2b2b"/>
+<text x="280.0" y="703.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">!</text>
+<rect x="340.0" y="670.0" width="340.0" height="74.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="356.0" y="692.0" font-size="12" fill="#2b2b2b" font-weight="600">Jenab · Bitcoin</text>
+<text x="356.0" y="712.0" font-size="12" fill="#2b2b2b">Mother is waiting for your approval.</text>
+<text x="356.0" y="732.0" font-size="10.5" fill="#767676">Desktop notification</text>
+<rect x="720.0" y="660.0" width="540.0" height="150.0" rx="8" fill="#ffffff" stroke="#2b2b2b" stroke-width="1"/>
+<text x="736.0" y="684.0" font-size="12" fill="#2b2b2b" font-weight="600">Scrolled away: bar above the composer</text>
+<rect x="736.0" y="700.0" width="508.0" height="34.0" rx="6" fill="#f4f4f4" stroke="#9a9a9a" stroke-width="1"/>
+<text x="750.0" y="722.0" font-size="12" fill="#2b2b2b">Waiting for your approval: Allow api.coingecko.com?</text>
+<rect x="1170.0" y="705.0" width="60.0" height="24.0" rx="4" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="1200.0" y="721.3" font-size="12" fill="#2b2b2b" text-anchor="middle">Show</text>
+<rect x="736.0" y="742.0" width="508.0" height="52.0" rx="8" fill="#ffffff" stroke="#9a9a9a" stroke-width="1"/>
+<text x="750.0" y="766.0" font-size="12.5" fill="#767676">Message Mother…</text>
+<circle cx="52.0" cy="124.0" r="10" fill="#d9480f"/>
+<text x="52.0" y="128.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<circle cx="52.0" cy="222.0" r="10" fill="#d9480f"/>
+<text x="52.0" y="226.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<circle cx="262.0" cy="276.0" r="10" fill="#d9480f"/>
+<text x="262.0" y="280.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<circle cx="52.0" cy="420.0" r="10" fill="#d9480f"/>
+<text x="52.0" y="424.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<circle cx="52.0" cy="596.0" r="10" fill="#d9480f"/>
+<text x="52.0" y="600.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<circle cx="672.0" cy="294.0" r="10" fill="#d9480f"/>
+<text x="672.0" y="298.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<circle cx="672.0" cy="452.0" r="10" fill="#d9480f"/>
+<text x="672.0" y="456.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<circle cx="672.0" cy="564.0" r="10" fill="#d9480f"/>
+<text x="672.0" y="568.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<circle cx="52.0" cy="700.0" r="10" fill="#d9480f"/>
+<text x="52.0" y="704.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<circle cx="332.0" cy="684.0" r="10" fill="#d9480f"/>
+<text x="332.0" y="688.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<circle cx="712.0" cy="674.0" r="10" fill="#d9480f"/>
+<text x="712.0" y="678.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">11</text>
+<text x="1325.0" y="72.0" font-size="14" fill="#2b2b2b" font-weight="600">Notes</text>
+<circle cx="1335.0" cy="92.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="96.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">1</text>
+<text x="1353.0" y="96.0" font-size="12" fill="#2b2b2b">Every approval uses one card: what, why</text>
+<text x="1353.0" y="112.0" font-size="12" fill="#2b2b2b">(one line from the agent) and the risk.</text>
+<circle cx="1335.0" cy="131.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="135.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">2</text>
+<text x="1353.0" y="135.0" font-size="12" fill="#2b2b2b">Details expand.</text>
+<circle cx="1335.0" cy="154.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="158.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">3</text>
+<text x="1353.0" y="158.0" font-size="12" fill="#2b2b2b">Deny can carry a note, which goes back to</text>
+<text x="1353.0" y="174.0" font-size="12" fill="#2b2b2b">the agent.</text>
+<circle cx="1335.0" cy="193.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="197.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">4</text>
+<text x="1353.0" y="197.0" font-size="12" fill="#2b2b2b">Migration details: plan, destructive</text>
+<text x="1353.0" y="213.0" font-size="12" fill="#2b2b2b">steps, dependents, rows and time.</text>
+<circle cx="1335.0" cy="232.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="236.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">5</text>
+<text x="1353.0" y="236.0" font-size="12" fill="#2b2b2b">After the answer, the card shrinks to its</text>
+<text x="1353.0" y="252.0" font-size="12" fill="#2b2b2b">record.</text>
+<circle cx="1335.0" cy="271.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="275.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">6</text>
+<text x="1353.0" y="275.0" font-size="12" fill="#2b2b2b">The key field is part of the card. The</text>
+<text x="1353.0" y="291.0" font-size="12" fill="#2b2b2b">key goes to the keychain, never into the</text>
+<text x="1353.0" y="307.0" font-size="12" fill="#2b2b2b">chat.</text>
+<circle cx="1335.0" cy="326.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="330.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">7</text>
+<text x="1353.0" y="330.0" font-size="12" fill="#2b2b2b">Question form: 1–4 questions, 2–4</text>
+<text x="1353.0" y="346.0" font-size="12" fill="#2b2b2b">options, a recommended mark.</text>
+<circle cx="1335.0" cy="365.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="369.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">8</text>
+<text x="1353.0" y="369.0" font-size="12" fill="#2b2b2b">Other is always there. A message typed</text>
+<text x="1353.0" y="385.0" font-size="12" fill="#2b2b2b">instead is the answer, or a Deny for a</text>
+<text x="1353.0" y="401.0" font-size="12" fill="#2b2b2b">card.</text>
+<circle cx="1335.0" cy="420.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="424.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">9</text>
+<text x="1353.0" y="424.0" font-size="12" fill="#2b2b2b">A waiting chat gets a badge in the chat</text>
+<text x="1353.0" y="440.0" font-size="12" fill="#2b2b2b">list …</text>
+<circle cx="1335.0" cy="459.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="463.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">10</text>
+<text x="1353.0" y="463.0" font-size="12" fill="#2b2b2b">… and a desktop notification.</text>
+<circle cx="1335.0" cy="482.0" r="10" fill="#d9480f"/>
+<text x="1335.0" y="486.0" font-size="11" fill="#ffffff" font-weight="600" text-anchor="middle">11</text>
+<text x="1353.0" y="486.0" font-size="12" fill="#2b2b2b">A bar above the composer when the card is</text>
+<text x="1353.0" y="502.0" font-size="12" fill="#2b2b2b">scrolled out of view (SPEC 8.8).</text>
+<text x="1325.0" y="535.0" font-size="14" fill="#2b2b2b" font-weight="600">Requirements</text>
+<text x="1325.0" y="555.0" font-size="12" fill="#767676">R-18, R-19, R-60, R-62, R-32</text>
+<rect x="1325.0" y="574.0" width="30.0" height="16.0" rx="3" fill="#ffffff" stroke="#2b2b2b" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="1365.0" y="586.0" font-size="11" fill="#767676">= proposed here, not in the SPEC yet</text>
+</svg>
