@@ -33,7 +33,7 @@ The technical decisions and libraries, each with a short reason, and the UI desi
 | Frontend load | Tokens drawn once per frame with memoised Markdown blocks; chart size rules; column + array-row pages; lazy loading | 60 fps at 1,000 tokens/s and on 10k-row tables; tuned charts draw in 126–333 ms | [SPIKE-022](../Tickets/SPIKE-022-frontend-under-load.md) |
 | Agent instructions | Skills: a skill list in the prompt, `load_skill`, and `load_with` as a safety net, instead of the whole guide | Right skill before 60/60 first writes, no unneeded loads; first request 4.5k → 2k tokens; configs as valid on nemotron and glm | [SPIKE-025](../Tickets/SPIKE-025-skills.md) |
 
-**Deferred:** the macOS parts of SPIKE-004 (sleep and wake) and SPIKE-006 (keychain in signed and unsigned builds), and the Linux and macOS memory-cap test of SPIKE-016. They are needed before Phase 5 (public release). No Mac is available now.
+**Deferred:** the macOS parts of SPIKE-004 (sleep and wake) and SPIKE-006 (keychain in signed and unsigned builds), and the Linux and macOS memory-cap test of SPIKE-016. For the Linux beta: the keyring through Secret Service (SPIKE-006), sleep and wake through systemd-logind (SPIKE-004), the updater with an AppImage (SPIKE-019), and the frontend load on WebKitGTK (SPIKE-022); these can run in WSL. They are needed before Phase 5 (public release). No Mac is available now.
 
 **Later checks** (they don't change the decisions):
 - Local SearXNG and its engine block rates, once Docker works (SPIKE-020).
@@ -43,7 +43,7 @@ The technical decisions and libraries, each with a short reason, and the UI desi
 - Mother's routing to existing role chats, on a frontier model and with each chat's full role in the chat list, before Phase 5 (SPIKE-023, SPEC 8.6).
 - Chat history rendering, plus the 1,000-point chart animation limit, in the Phase 1 perf tests (SPIKE-022).
 - A full page (6 blocks, including the 10,000-row table and a chart) paints in under 1.5 s, in the Phase 3 perf tests (SPEC 5.9).
-- A spike on running commands (approvals, process-tree kill on Windows and macOS, prompt injection) before Phase 6 (SPEC 8.5).
+- A spike on running commands (approvals, process-tree kill on Windows, macOS and Linux, prompt injection) before Phase 6 (SPEC 8.5).
 - The MCP client: SDK, tool style, approvals and real servers, before Phase 5 ([SPIKE-024](../Tickets/SPIKE-024-mcp-client.md), SPEC 8.7).
 
 ## Design

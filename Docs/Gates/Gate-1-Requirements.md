@@ -145,7 +145,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-92 | Self-update with signed releases, a user choice of automatic, notify only or off | Must | 5 | SPEC 2.8 |
 | R-93 | Scenario runner: the same agent scenarios on every test model, with a report | Must | 1 | SPEC 8.4, TASK-001 |
 | R-94 | Turn inspector behind *Settings → Developer* | Should | 1 | SPEC 8.4 |
-| R-95 | Installer builds for Windows and macOS | Must | 5 | PROPOSAL 9 |
+| R-95 | Installer builds for Windows and macOS; an AppImage for Linux (beta) | Must | 5 | PROPOSAL 9, SPEC 2.8 |
 
 **Later (not v1)**
 
@@ -213,7 +213,7 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 
 | ID | Requirement | Source |
 |---|---|---|
-| N-50 | Windows 11 and macOS; per-user install without admin rights | SPEC 2.8 |
+| N-50 | Windows 11 and macOS; Linux x64 as a beta; per-user install without admin rights | SPEC 2.8 |
 | N-51 | No cgo in the build | Gate-2 |
 | N-52 | Idle memory under 300 MB (*proposed*; measured 245 MB) | SPIKE-022 |
 | N-53 | Text meets WCAG AA contrast (4.5:1) in both themes, including every tone | SPEC 5.11 |
