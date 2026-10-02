@@ -159,6 +159,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-105 | Kanban block, gallery view, remote bucket backends, Jenab as an MCP server | Later | – | SPEC 11 |
 | R-106 | More block types (e.g. tabs, lists); accent colours and custom themes | Later | – | SPEC 5.10, 5.11 |
 | R-122 | Split view: two pages side by side | Later | – | SPEC 5.12 |
+| R-123 | `llm.decide`: typed questions about short items, with a confidence, on a decision model or any LLM | Later | – | SPEC 6.5 |
 
 ## Non-functional requirements
 

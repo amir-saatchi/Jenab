@@ -1,0 +1,9 @@
+17:24:30 == main
+17:24:40 main clef: 25 calls
+17:24:40 main clef-flash: 25 calls
+17:24:42 main clef-flash: lane done (30 calls)
+17:24:42 main clef: lane done (30 calls)
+17:25:06 main gemma4:31b: 25 calls
+17:25:30 main gemma4:31b: lane done (30 calls)
+17:30:41 main glm-4.5-flash: 25 calls
+17:32:26 main glm-4.5-flash: lane done (30 calls)

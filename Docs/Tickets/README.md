@@ -32,6 +32,7 @@
 | [SPIKE-024](SPIKE-024-mcp-client.md) | MCP client | Spike | Open (before Phase 5) | 2 |
 | [SPIKE-025](SPIKE-025-skills.md) | Do models load the right skills? | Spike | Done | 2 |
 | [SPIKE-026](SPIKE-026-command-limits.md) | How many commands can run at once? | Spike | Done on Windows | 3 |
+| [SPIKE-027](SPIKE-027-decision-models.md) | Can a decision model make Jenab's small decisions? | Spike | Done | 3 |
 
 ## Phase 1
 

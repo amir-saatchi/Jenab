@@ -1,0 +1,118 @@
+15:26:08 == main
+15:26:14 main clef-flash: lane done (15 calls)
+15:26:15 main clef: lane done (15 calls)
+15:26:28 main gemma4:31b: lane done (15 calls)
+15:28:35 main glm-4.5-flash: lane done (15 calls)
+15:28:58 == main
+15:29:15 main gemma4:31b: lane done (15 calls)
+15:29:28 == main
+15:29:31 main clef-flash: 25 calls
+15:29:37 main clef: 25 calls
+15:29:38 main clef-flash: 50 calls
+15:29:41 main clef-flash: 75 calls
+15:29:44 main clef: 50 calls
+15:29:46 main clef-flash: 100 calls
+15:29:50 main clef-flash: 125 calls
+15:29:53 main clef: 75 calls
+15:30:05 main clef-flash: 150 calls
+15:30:07 main clef: 100 calls
+15:30:13 main clef-flash: 175 calls
+15:30:18 main clef: 125 calls
+15:30:19 main gemma4:31b: 25 calls
+15:30:21 main clef-flash: 200 calls
+15:30:26 main clef-flash: 225 calls
+15:30:28 main clef: 150 calls
+15:30:29 main clef-flash: lane done (241 calls)
+15:30:34 main clef: 175 calls
+15:30:40 main clef: 200 calls
+15:30:44 main clef: 225 calls
+15:30:51 main gemma4:31b: 50 calls
+15:30:51 main clef: lane done (241 calls)
+15:31:16 main gemma4:31b: 75 calls
+15:31:45 main gemma4:31b: 100 calls
+15:32:12 main gemma4:31b: 125 calls
+15:32:44 main gemma4:31b: 150 calls
+15:33:25 main gemma4:31b: 175 calls
+15:33:58 main gemma4:31b: 200 calls
+15:34:28 main gemma4:31b: 225 calls
+15:34:48 main gemma4:31b: lane done (241 calls)
+15:40:27 main glm-4.5-flash: 25 calls
+15:47:56 zai: HTTP 0 transport: Post "https://api.z.ai/api/paas/v4/chat/completions": unexpected EOF, retry in 5s
+15:53:04 main glm-4.5-flash: 50 calls
+16:05:19 main glm-4.5-flash: 75 calls
+16:07:04 zai: HTTP 0 transport: Post "https://api.z.ai/api/paas/v4/chat/completions": unexpected EOF, retry in 5s
+16:16:53 zai: HTTP 0 transport: Post "https://api.z.ai/api/paas/v4/chat/completions": context deadlin…, retry in 5s
+16:20:27 main glm-4.5-flash: 100 calls
+16:31:05 zai: HTTP 0 transport: Post "https://api.z.ai/api/paas/v4/chat/completions": unexpected EOF, retry in 5s
+16:32:06 main glm-4.5-flash: 125 calls
+16:34:49 zai: HTTP 0 transport: Post "https://api.z.ai/api/paas/v4/chat/completions": context deadlin…, retry in 5s
+16:47:44 main glm-4.5-flash: 150 calls
+16:57:12 main glm-4.5-flash: 175 calls
+17:04:12 main glm-4.5-flash: 200 calls
+17:12:25 main glm-4.5-flash: 225 calls
+17:14:55 main glm-4.5-flash: lane done (241 calls)
+17:14:55 == repeat
+17:14:59 main clef-flash: 25 calls
+17:15:00 main clef: 25 calls
+17:15:03 main clef-flash: 50 calls
+17:15:05 main clef: 50 calls
+17:15:07 main clef-flash: 75 calls
+17:15:09 main clef: 75 calls
+17:15:10 main clef-flash: 100 calls
+17:15:13 main clef-flash: lane done (120 calls)
+17:15:14 main clef: 100 calls
+17:15:17 main clef: lane done (120 calls)
+17:15:17 == size
+17:16:32 size clef size_90k_start: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90744) exceeded this model context window limit (65536). (9b1b183d-002c-420f-8e08-c5c2f895f2b9)","code":502…
+17:16:37 size clef-flash size_90k_start: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90745) exceeded this model context window limit (65536). (8bafa75e-cafc-4e11-a7b7-e38aee411e9e)","code":502…
+17:16:47 size clef size_90k_middle: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90744) exceeded this model context window limit (65536). (f87d2d53-c12a-472f-854c-8c56fb3a9fe5)","code":502…
+17:16:51 size clef-flash size_90k_middle: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90745) exceeded this model context window limit (65536). (29c2e2db-18c1-4284-bd2b-b7d00a0790af)","code":502…
+17:17:01 size clef size_90k_end: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90744) exceeded this model context window limit (65536). (0ee0ea17-0ad8-4519-9ff7-9df8c7a478cb)","code":502…
+17:17:01 size clef: lane done (15 calls)
+17:17:05 size clef-flash size_90k_end: HTTP 413 {"errors":[{"message":"AiError: Ai: The estimated number of input and maximum output tokens (90745) exceeded this model context window limit (65536). (b3802802-10e9-47dd-ab12-f918324f0979)","code":502…
+17:17:05 size clef-flash: lane done (15 calls)
+17:17:05 == counts
+17:17:23 counts clef-flash: 25 calls
+17:17:28 counts clef: 25 calls
+17:17:32 counts clef-flash: lane done (36 calls)
+17:17:39 counts clef: lane done (36 calls)
+17:17:39 == errors
+17:17:39 error questions_65: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Request body failed validation\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"questions\":[\"Dictionary should have at most 64 items after validation, not 65\"]}}}} (71190d97-ac72-4726-9c09-f36e483b1…
+17:17:39 error options_256: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Request body failed validation\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"questions\":[\"Dictionary should have at most 255 items after validation, not 256\"]}}}} (92d3190c-0946-4785-a740-ce9a693…
+17:17:40 error score_11_levels: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Request body failed validation\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"questions\":[\"List should have at most 10 items after validation, not 11\"]}}}} (ae652440-7488-4e60-838e-e105551d7f0f)",…
+17:17:40 error choice_1_option: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Request body failed validation\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"questions\":[\"Dictionary should have at least 2 items after validation, not 1\"]}}}} (2a6ec02e-5735-4356-bb9c-279693230f…
+17:17:40 error choice_no_criteria: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: required properties at '/' are 'model,state,questions' (df3b2b85-9cee-4ad7-bdb0-c0f6182e01f9)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:40 error bad_type: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: required properties at '/' are 'model,state,questions' (0f0543a0-1af4-48ab-99f0-d231d701900e)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:40 error bad_question_id: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: required properties at '/' are 'model,state,questions' (5f923b1b-3371-4d50-977a-779c1bf30577)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:41 error no_questions: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: required properties at '/' are 'model,state,questions' (4177ab8e-5c57-40b7-9d73-315abf1bf63d)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:41 error no_state: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: required properties at '/' are 'model,state,questions' (0e826310-f532-4a5e-9011-3802eb936fd9)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:41 error empty_state: HTTP 200 
+17:17:41 error wrong_model_in_body: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Unsupported model 'clef'. Use 'clef-flash'.\"}} (381ab046-90e8-4cd8-a815-c8ac95aa6b09)","code":5012}],"success":false,"result":{},"messages":[]}
+17:17:42 error unknown_model_in_body: HTTP 400 {"errors":[{"message":"AiError: Bad input: Error: '/model' failed test ^\\s*(clef|clef-flash)\\s*$ patttern (fee6fc63-c66d-45e7-8e0e-964021bc769d)","code":5006}],"success":false,"result":{},"messages":[]}
+17:17:42 error remote_image_url: HTTP 422 {"errors":[{"message":"AiError: AiError: {\"error\":{\"type\":\"invalid_request\",\"message\":\"Request body failed validation\",\"details\":{\"formErrors\":[],\"fieldErrors\":{\"images\":[\"image must be an embedded base64 data URI\"]}}}} (9a487519-932d-45b2-970d-2c41b37faf47)","code":5012}],"succe…
+17:17:42 error bad_token: HTTP 401 {"result":null,"success":false,"errors":[{"code":10000,"message":"Authentication error"}],"messages":[]}
+17:17:42 == images
+17:17:51 image clef: lane done (15 calls)
+17:17:51 image clef-flash: lane done (15 calls)
+17:17:51 == burst
+17:17:55 burst clef-flash c=1 n=10 took 3.749s
+17:17:58 burst clef-flash c=8 n=40 took 3.064s
+17:18:01 burst clef-flash c=32 n=96 took 3.43s
+17:18:08 burst clef c=1 n=10 took 6.642s
+17:18:11 burst clef c=8 n=40 took 3.199s
+17:18:16 burst clef c=32 n=96 took 4.902s
+17:23:15 == cutoff
+17:23:24 cutoff clef-flash: lane done (11 calls)
+17:23:28 cutoff clef: lane done (11 calls)
+17:24:14 == cutoff
+17:24:20 cutoff clef-flash: lane done (4 calls)
+17:24:21 cutoff clef: lane done (4 calls)
+17:24:30 == main
+17:24:40 main clef: 25 calls
+17:24:40 main clef-flash: 25 calls
+17:24:42 main clef-flash: lane done (30 calls)
+17:24:42 main clef: lane done (30 calls)
+17:25:06 main gemma4:31b: 25 calls
+17:25:30 main gemma4:31b: lane done (30 calls)
+17:30:41 main glm-4.5-flash: 25 calls
+17:32:26 main glm-4.5-flash: lane done (30 calls)
