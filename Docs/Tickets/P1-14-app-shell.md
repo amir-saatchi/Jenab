@@ -13,8 +13,9 @@ The real frontend, starting from the high-fidelity mockups (TASK-002, SPEC 5.11,
 - **State:** Zustand stores fed by snapshots and events.
 - **Shell (5.12):**
   - the chat list with Mother pinned and its gradient
-  - the folding sidebar, and overlays below 900 px
-  - the project switcher and project settings
+  - the rail with projects, *Waiting*, schedules and Settings; the sidebar that hides while a page is open; overlays below 900 px
+  - project settings from the project's menu
+  - the bottom bar, and *Ctrl+Tab* and back and forward
   - Settings as a full view
 - **First run (3.9):**
   - *Create project*, which opens the Mother chat

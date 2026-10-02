@@ -9,7 +9,7 @@ Grayscale wireframes, one SVG per screen, in `low-fidelity/`.
 
 | # | Screen | Covers |
 |---|---|---|
-| 01 | [App shell, full chat](low-fidelity/01-app-shell.svg) | Sidebars, chat list with statuses, tool chips, composer |
+| 01 | [App shell, full chat](low-fidelity/01-app-shell.svg) | Rail, sidebars, chat list with statuses, tool chips, composer, bottom bar |
 | 02 | [Page open, chat docked](low-fidelity/02-page-docked.svg) | Page header, grid rows, `stat`, `card`, bulk row action, dock |
 | 03 | [Anatomy of a turn](low-fidelity/03-turn-anatomy.svg) | Quick part first, background work, finish turn, message during a turn |
 | 04 | [Approval card and question form](low-fidelity/04-approvals-and-questions.svg) | Host, migration and connection approvals, `ask_user`, badge, notification |
@@ -31,6 +31,7 @@ Grayscale wireframes, one SVG per screen, in `low-fidelity/`.
 - Project settings opened from the project switcher (08; SPEC 5.12).
 - A bar above the composer while an approval waits out of view (04; SPEC 8.8).
 - A minimum window size of 640 × 480, and overlays in narrow windows (11; SPEC 5.12).
+- Later, on 2026-10-02: a rail separate from the left sidebar, a bottom bar, and no tabs (01, 02; SPEC 5.12). The high-fidelity mockups don't show these yet.
 
 Nothing proposed is left to review.
 

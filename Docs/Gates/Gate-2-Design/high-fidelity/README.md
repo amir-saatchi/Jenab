@@ -140,7 +140,7 @@ Every component in the `@shadcn` registry (read with `shadcn search`, 2026-09-29
 ## Decisions
 Agreed on 2026-09-29 and written into the SPEC.
 - **Mother's colour:** a gradient of the purple, blue and green tones. It's a border on Mother's row and composer, and a filled tile in the folded rail. It turns while Mother works and stays still with reduced motion (8.6, 5.12).
-- **Folded sidebar:** its own rail, as above (5.12).
+- **Folded sidebar:** its own rail, as above (5.12). Since 2026-10-02 the rail is always shown and the left sidebar hides instead; the bottom bar is new. These mockups don't show that yet (Gate-2 README).
 - **Markdown:** `remark-gfm` for tables, strikethrough and task lists; lists and tables get an explicit direction (5.8).
 - **Persian font:** Vazirmatn bundled after Geist (5.8). The Segoe UI fallback is gone.
 - **Settings:** a full view, like the project settings (5.12).

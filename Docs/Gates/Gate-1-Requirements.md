@@ -140,7 +140,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-90 | Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama in Phase 1 (decided 2026-09-29) | Must | 1 | SPEC 3.8, 3.9 |
 | R-118 | No setup wizard: the app opens with *Create project*; a new Mother chat has starter prompts; a provider is asked for in the chat when a message is sent without one, and the message is kept | Must | 1 | SPEC 3.9 |
 | R-119 | A built-in model catalog (limits and prices, no prompts), updated with app releases; adding a provider key turns on its models in the model picker | Must | 1 | SPEC 3.9 |
-| R-121 | App shell: the left sidebar folds to icons while a page is open; project settings from the project switcher; a minimum window of 640 × 480; below 900 px, sidebars and the chat become overlays | Must | 1, 3 | SPEC 5.12 |
+| R-121 | App shell: a rail with the projects, *Waiting*, schedules and Settings; the left sidebar with the chat list hides while a page is open, and its chats move into the rail; project settings from the project's menu; a bottom bar with work, commands, pipelines, context use, memory and provider problems; no tabs, with *Ctrl+Tab* and back and forward; a minimum window of 640 × 480; below 900 px, the rail, sidebars and the chat become overlays | Must | 1, 3 | SPEC 5.12 |
 | R-91 | Settings in `config.yaml`; all keys in the OS keychain | Must | 1 | SPEC 2.1, 6.7 |
 | R-92 | Self-update with signed releases, a user choice of automatic, notify only or off | Must | 5 | SPEC 2.8 |
 | R-93 | Scenario runner: the same agent scenarios on every test model, with a report | Must | 1 | SPEC 8.4, TASK-001 |
@@ -158,6 +158,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-104 | `http.post`, paging and OAuth in connections | Later | – | SPEC 6.9, 11 |
 | R-105 | Kanban block, gallery view, remote bucket backends, Jenab as an MCP server | Later | – | SPEC 11 |
 | R-106 | More block types (e.g. tabs, lists); accent colours and custom themes | Later | – | SPEC 5.10, 5.11 |
+| R-122 | Split view: two pages side by side | Later | – | SPEC 5.12 |
 
 ## Non-functional requirements
 
