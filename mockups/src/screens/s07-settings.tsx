@@ -38,8 +38,10 @@ const providers: {
 ]
 
 const limits: [string, string, string][] = [
-  ["Parallel LLM calls", "4", "Across chats, subagents and pipelines"],
+  ["Parallel background LLM calls", "8", "Chats count but never wait"],
+  ["Parallel pipeline runs", "4", ""],
   ["Background tasks per chat", "3", ""],
+  ["Subagents at once per chat", "5", ""],
   ["Requests per turn", "25", ""],
   ["Requests per app-started turn", "8", ""],
   ["Tokens per app-started turn", "20,000", ""],
@@ -232,7 +234,7 @@ export function Screen07() {
         </FieldGroup>
       </SettingsSection>
       <SettingsDivider />
-      <SettingsSection title="Limits" description="Starting values, tuned with the benchmark.">
+      <SettingsSection title="Limits" description="Starting values, tuned with the benchmark. Changes apply at once.">
         <FieldGroup className="grid max-w-md gap-y-2">
           {limits.map(([label, value]) => (
             <Field key={label} orientation="horizontal" className="justify-between">

@@ -7,7 +7,7 @@ The high-level code: packages, main types, interfaces and functions, built from 
 
 Writing the code out, and checking it against later phases, added these to the map:
 
-1. **`internal/id`:** all typed IDs (`id.Project`, `id.Chat`, `id.Message`, `id.Run`, `id.Task`, `id.Change`), the ULID generator, and `id.Source`, the one format for who did something (SPEC 2.5). `ProjectID` must sit below `store`, and chat events need it, so the IDs can't live in `chat` as Q5 said. The generator is our own (about 40 lines), so no dependency.
+1. **`internal/id`:** all typed IDs (`id.Project`, `id.Chat`, `id.Message`, `id.Run`, `id.Task`, `id.Change`), the ULID generator, and `id.Source`, the one format for who did something (SPEC 2.5). `ProjectID` must sit below `store`, and chat events need it, so the IDs can't live in `chat` as Q5 said. IDs come from `oklog/ulid/v2` with `crypto/rand` as the random source.
 2. **`internal/logfile`:** the rotating log writer and the `slog` setup (Q36).
 3. **Publisher seams:** `agent`, `pipeline` and `project` each define a small `Publisher` interface for their events; `app` implements it with Wails events. This is the Q13 rule (the seam lives with its user), and it's how lower packages send events without importing `app`.
 4. **`internal/workspace`:** the linked folder and its rules (8.5): paths stay inside, no links out, `.gitignore`, blocked credential files. The v1 read tools use it, and Phase 6's `edit_file` and `write_file` reuse the same checks.
@@ -55,14 +55,16 @@ func run(args []string) error {
     if slices.Contains(args, "--script-worker") {
         return script.Serve(os.Stdin, os.Stdout) // child process (Q4)
     }
-    paths, err := config.DefaultPaths(appDir)            // <user data dir>/<app>/
-    settings, err := config.LoadSettings(paths.Settings) // config.yaml
-    log, closeLog, err := logfile.Open(paths.Logs, settings.Debug)
+    paths, err := config.DefaultPaths(appDir)                   // <user data dir>/<app>/
+    settings, problems, err := config.LoadSettings(paths.Settings) // config.yaml
+    paths = paths.WithDataFolder(settings.DataFolder)           // projects/ (2.1)
+    log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
     defer closeLog()
+    for _, p := range problems { log.Warn("setting ignored", "problem", p) }
     ctx, cancel := context.WithCancel(context.Background()) // the app context (Q20)
     defer cancel()
 
-    secrets := secret.New(secret.OSKeyring())
+    secrets := secret.New(secret.OSKeyring("jenab"))
     registry, err := store.OpenRegistry(ctx, paths.Registry)
     calls := limit.NewGate(settings.LLM.MaxParallelCalls)
     runs  := limit.NewGate(settings.Scheduler.MaxParallelRuns)
@@ -159,11 +161,14 @@ type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State;
 ### `config`: settings and configs (1, 10)
 
 ```go
-type Paths struct { Root, Settings, Registry, Projects, Logs string }
+type Paths struct { Root, Settings, Registry, Logs, DataFolder, Projects string }
 func DefaultPaths(appDir string) (Paths, error)
+func (p Paths) WithDataFolder(dir string) Paths
 
-type Settings struct { Scheduler SchedulerSettings; LLM LLMSettings; Approvals ApprovalSettings; Updates UpdateSettings; DevTools, Debug bool }
-func LoadSettings(path string) (Settings, error)
+type Settings struct { DataFolder string; Context ContextSettings; LLM LLMSettings; Scheduler SchedulerSettings; Approvals ApprovalSettings; UI UISettings; Updates UpdateSettings; DevTools bool }
+func Defaults() Settings                                       // from the embedded default.yaml
+func LoadSettings(path string) (Settings, []Problem, error)    // problems: ignored keys and values, with lines
+func SaveSettings(path string, s Settings) error               // keeps comments and unknown keys
 
 type View struct { … }     // also Page, Form, Pipeline, Step, Connection, MCPServer
 func ParseView(src []byte) (View, error) // YAML or JSON with the strict rules of 1; errors are Errors
@@ -185,14 +190,16 @@ func (e Errors) Error() string
 type Priority int
 const (Interactive Priority = iota; Background)
 
-// Fair is the 10:1 rule, used by both the writer and the Gate.
+// Fair is the 10:1 rule for the writer queues (7.3).
 type Fair struct { streak int }
 func (f *Fair) Next(interactive, background bool) Priority
 
+// Gate: Interactive never waits but counts as in use; Background waits FIFO (7.6).
 type Gate struct { … }
 func NewGate(n int) *Gate
-func (g *Gate) Acquire(ctx context.Context, p Priority) (release func(), err error) // FIFO per priority
-func (g *Gate) Stats() GateStats                                                   // slots in use, waiters
+func (g *Gate) Acquire(ctx context.Context, p Priority) (release func(), err error)
+func (g *Gate) SetSize(n int)    // a changed setting applies at once
+func (g *Gate) Stats() GateStats // size, slots in use, waiters
 ```
 
 ### `secret`: keychain and redaction (6.7, Q36)
@@ -203,7 +210,7 @@ func (s Value) Reveal() string          // only for the auth header
 func (s Value) String() string          // "[secret:NAME]"; also GoString, LogValue, MarshalJSON
 
 type Keyring interface { Get(name string) (string, error); Set(name, v string) error; Delete(name string) error }
-func OSKeyring() Keyring                // zalando/go-keyring, service name from one constant
+func OSKeyring(service string) Keyring  // zalando/go-keyring; the app passes "jenab"
 
 type Store struct { kr Keyring }
 func New(kr Keyring) *Store
@@ -362,10 +369,12 @@ type Request struct {
 type Event struct { Kind EventKind; Text string; Call *chat.ToolCall; Usage *chat.Usage; Stop StopReason }
 
 type Error struct { Kind ErrorKind; Status int; RetryAfter time.Duration; Provider string; Err error }
-// Kinds: RateLimited, Transport, Server, CutOff (retried); Auth, Quota, Stalled (block); TooLarge (shrink); BadRequest.
+// Kinds (3.8): RateLimited, Overloaded, Transport (cut-off and stalled streams too) are retried with the
+// waits; Quota and Request (auth included) never are; TooLarge shrinks the context.
 
-// Registry picks the backend for a model and adds the shared rules in one place:
-// a Gate slot, the stall timeouts, retries with capped waits, secret redaction in errors.
+// Registry picks the backend for a model and adds the shared rules in one place: the global Gate
+// and one Gate per provider (background calls take the provider's slot first), the pause per
+// provider and its halved limit (3.8), the stall timeouts, secret redaction in errors.
 type Registry struct { … }
 func NewRegistry(d Deps) *Registry
 func (r *Registry) Stream(ctx context.Context, p limit.Priority, req Request) iter.Seq2[Event, error]

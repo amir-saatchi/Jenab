@@ -1,0 +1,40 @@
+tscx2                    normal wall   17.2s  cpu    45.8s  peak    824 MB  free≥   228 MB  commit≥  1826 MB  late p50   0.4 p99    4.4 max   20.2 ms  aborted=false
+    tsc      #0    17.1s  cpu   22.8s  peak    414 MB  procs   3  exit 0
+    tsc      #1    17.1s  cpu   23.0s  peak    410 MB  procs   3  exit 0
+tscx3                    normal wall   16.1s  cpu    69.0s  peak   1213 MB  free≥   244 MB  commit≥  1612 MB  late p50   0.3 p99    4.1 max   24.9 ms  aborted=false
+    tsc      #0    16.0s  cpu   23.6s  peak    415 MB  procs   3  exit 0
+    tsc      #1    16.0s  cpu   23.3s  peak    394 MB  procs   3  exit 0
+    tsc      #2    16.0s  cpu   22.1s  peak    407 MB  procs   3  exit 0
+commit headroom 1475 MB: level killed
+go-testx2                normal wall   18.1s  cpu    56.9s  peak   1011 MB  free≥   679 MB  commit≥  1475 MB  late p50   0.7 p99   13.0 max   35.3 ms  aborted=true
+    go-test  #0    10.1s  cpu    5.6s  peak    786 MB  procs  16  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1485 MB: level killed
+vitex2                   normal wall    1.6s  cpu     4.2s  peak   1092 MB  free≥   973 MB  commit≥  1485 MB  late p50   0.3 p99   10.9 max  132.6 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1515 MB: level killed
+go-coldx2                normal wall   13.5s  cpu    44.3s  peak   1179 MB  free≥  1019 MB  commit≥  1515 MB  late p50   0.5 p99   12.3 max   27.0 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1499 MB: level killed
+go-coldx2                below  wall    1.2s  cpu     4.3s  peak   1118 MB  free≥  1155 MB  commit≥  1499 MB  late p50   0.4 p99    1.3 max    3.2 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1407 MB: level killed
+go-cold+go-testx1        normal wall    2.8s  cpu    13.9s  peak   1203 MB  free≥   804 MB  commit≥  1407 MB  late p50   0.7 p99   14.7 max   21.0 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1471 MB: level killed
+go-cold+tscx1            normal wall    8.9s  cpu    41.4s  peak   1104 MB  free≥   749 MB  commit≥  1471 MB  late p50   0.5 p99   19.7 max   86.4 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+commit headroom 1519 MB: level killed
+go-cold+go-testx1        below  wall   20.6s  cpu    84.0s  peak   1222 MB  free≥   677 MB  commit≥  1519 MB  late p50   0.3 p99    3.0 max   15.5 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+    go-test  #1    12.6s  cpu   29.2s  peak   1056 MB  procs  70  exit 0
+commit headroom 1517 MB: level killed
+go-coldx3                normal wall    1.7s  cpu     6.9s  peak    985 MB  free≥  1080 MB  commit≥  1517 MB  late p50   0.8 p99   13.0 max   13.4 ms  aborted=true
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0
+             #0     0.0s  cpu    0.0s  peak      0 MB  procs   0  exit 0

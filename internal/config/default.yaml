@@ -1,0 +1,40 @@
+# Jenab settings. Most of them can be changed in Settings; edits here are
+# kept, and so are your comments. Keys are never stored here: they are in
+# the OS keychain.
+
+# Where projects are kept. Empty means ~/Jenab. Use a local disk, not a
+# network drive or a synced folder (OneDrive, Dropbox, iCloud Drive, Google Drive).
+data_folder: ""
+
+context:
+  history_min_turns: 3        # turns kept after a cut
+  history_max_turns: 8        # a cut happens when the window grows past this
+  history_max_tokens: 24000   # ...or when the history block grows past this
+  tool_preview_tokens: 1500   # maximum size of a tool result preview
+  turn_trim_ratio: 0.5        # in-turn trimming starts at this share of the model's window
+
+llm:
+  max_parallel_calls: 8               # background LLM calls; chats count but never wait
+  provider_max_parallel_calls:        # per provider, for background calls
+    ollama: 1                         # local models answer one request at a time
+  max_background_tasks_per_chat: 3
+  max_subagents_per_chat: 5           # subagents running at once in one chat
+  turn_max_requests: 25               # model requests per user turn
+  system_turn_max_requests: 8         # model requests per turn the app starts
+  system_turn_max_tokens: 20000       # token cap for turns started by a finish notice
+  models: {}                          # aliases such as default and fast; set when a provider is connected
+
+scheduler:
+  max_parallel_runs: 4                # pipeline runs across all projects
+
+approvals:
+  default_level: standard             # strict, standard or auto, for new projects
+
+ui:
+  theme: system                       # light, dark or system
+
+updates:
+  mode: notify                        # automatic, notify or off
+  channel: stable                     # stable or beta
+
+dev_tools: false                      # the turn inspector, runtime panel and debug logging

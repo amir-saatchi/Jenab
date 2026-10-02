@@ -1,6 +1,6 @@
 # Spec v0.6 — Project Storage, Context, Views and Pipelines
 
-> **v0.6:** API connections: saved APIs with the user's key, `connect_api`, `call_api` and `api.get`; secrets are used only through connections (6.5, 6.7, 6.9, 8.1); read-only workspace with `list_files`, `read_file` and `search_code`, and the plan for code tools later (8.5); connections and workspace in the project card (3.2) and `registry.db` (2.4); Mother chat, chat titles and roles, `list_chats`, `create_chat` and `send_to_chat` (2.3, 3.1, 8.1, 8.3, 8.6); MCP servers, draft (8.7); layout per chat, the open-page notice and `open_page` (5.9); page header and the `card`, `filter`, `button` and `image` blocks (5.9, 5.10); `set` and `bulk` row actions and the `badge` format (5.3); theme and tones (5.11); approval card, question form and `ask_user`, approval levels (8.8); skills (3.1, 8.1, 8.9), decided in SPIKE-025; *Refresh memory* replaces *Recheck memory*: it applies edits, writes a summary to the session notes and ends with a cut (3.1, 3.3–3.6); model catalog and first run without a wizard (3.9); pipeline page with Flow and Steps views, and *Pause schedule* (6.10); model picker per chat (3.9); app shell, project settings and window sizes (5.12); the waiting bar above the composer (8.8); starter prompts (3.9); Markdown styling with shadcn Typeset (5.8); right-to-left text (5.8); SPIKE-023 decisions: the prompt rule, status polling, `turn_max_requests`, messages during a turn and batched notices (7.6, 8.3), and Mother's delegation guidance (8.6); Gate-2 high-fidelity decisions: Mother's gradient colour (8.6), the folded sidebar rail, a resizable dock and Settings as a full view (5.12), `remark-gfm`, explicit list and table directions and the Vazirmatn font (5.8), *Settings → Usage*, *Other models*, *Open the example* and Ollama first when it runs (3.9), and *Inspect* in the turn footer (8.4); Phase 1 providers: Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama (3.9); web search with Tavily or SearXNG, Brave later (6.5); `thinking` message parts, stored with their signature so they can be sent back unchanged (2.3, 3.8); running background tasks in Mother's chat list (8.6); the Runtime panel in the developer tools (8.4); what *Stop* cancels, open tool calls closed as cancelled, and kept partial text (8.3); cancelled writes never commit (7.3); LLM stall timeouts (3.8); one source format for who did something, in the change log, chats, objects, links and approvals, with `app` for the Mother chat (2.3, 2.5, 4.2, 4.6, 8.8); subagents: one level, transcripts in the bucket, changes undone with the parent turn (8.1, 8.6); the app is named Jenab, so internal tables start with `_jenab_` and the lock file is `jenab.lock` (was the working name Burrow); Linux as a beta, shipped as an AppImage (2.8); user settings in `config.yaml` instead of `config.toml`, so one YAML library reads every config and comments survive saves (2.1).
+> **v0.6:** API connections: saved APIs with the user's key, `connect_api`, `call_api` and `api.get`; secrets are used only through connections (6.5, 6.7, 6.9, 8.1); read-only workspace with `list_files`, `read_file` and `search_code`, and the plan for code tools later (8.5); connections and workspace in the project card (3.2) and `registry.db` (2.4); Mother chat, chat titles and roles, `list_chats`, `create_chat` and `send_to_chat` (2.3, 3.1, 8.1, 8.3, 8.6); MCP servers, draft (8.7); layout per chat, the open-page notice and `open_page` (5.9); page header and the `card`, `filter`, `button` and `image` blocks (5.9, 5.10); `set` and `bulk` row actions and the `badge` format (5.3); theme and tones (5.11); approval card, question form and `ask_user`, approval levels (8.8); skills (3.1, 8.1, 8.9), decided in SPIKE-025; *Refresh memory* replaces *Recheck memory*: it applies edits, writes a summary to the session notes and ends with a cut (3.1, 3.3–3.6); model catalog and first run without a wizard (3.9); pipeline page with Flow and Steps views, and *Pause schedule* (6.10); model picker per chat (3.9); app shell, project settings and window sizes (5.12); the waiting bar above the composer (8.8); starter prompts (3.9); Markdown styling with shadcn Typeset (5.8); right-to-left text (5.8); SPIKE-023 decisions: the prompt rule, status polling, `turn_max_requests`, messages during a turn and batched notices (7.6, 8.3), and Mother's delegation guidance (8.6); Gate-2 high-fidelity decisions: Mother's gradient colour (8.6), the folded sidebar rail, a resizable dock and Settings as a full view (5.12), `remark-gfm`, explicit list and table directions and the Vazirmatn font (5.8), *Settings → Usage*, *Other models*, *Open the example* and Ollama first when it runs (3.9), and *Inspect* in the turn footer (8.4); Phase 1 providers: Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama (3.9); web search with Tavily or SearXNG, Brave later (6.5); `thinking` message parts, stored with their signature so they can be sent back unchanged (2.3, 3.8); running background tasks in Mother's chat list (8.6); the Runtime panel in the developer tools (8.4); what *Stop* cancels, open tool calls closed as cancelled, and kept partial text (8.3); cancelled writes never commit (7.3); LLM stall timeouts (3.8); one source format for who did something, in the change log, chats, objects, links and approvals, with `app` for the Mother chat (2.3, 2.5, 4.2, 4.6, 8.8); subagents: one level, transcripts in the bucket, changes undone with the parent turn (8.1, 8.6); the app is named Jenab, so internal tables start with `_jenab_` and the lock file is `jenab.lock` (was the working name Burrow); Linux as a beta, shipped as an AppImage (2.8); user settings in `config.yaml` instead of `config.toml`, so one YAML library reads every config and comments survive saves (2.1); app files stay in `<user data dir>/Jenab` and only projects move with the data folder (2.1); limits split from provider pressure: chat calls never wait for a slot, `max_parallel_calls` 8 for background calls, a limit per provider, `max_subagents_per_chat` 5, limits change without a restart (7.6), provider error kinds, waits and one pause per provider (3.8), and who retries what (6.5, 8.3); planned limits for `run_command`: the agent states each command's memory need and the app checks it at the start, a hard stop at 500 MB, high count limits as a safety net, and below-normal priority (8.5, SPIKE-026).
 >
 > **v0.5:** model-neutral rule (1, 3.8); dependents in the project card (3.2); query options for view filters (5.2); page format and virtual rows for tables (5.3); chart size rules (5.4); frontend rules (5.8); exact `for_each` rules (6.3) and `flatten` (6.4); `feed.read`, search sources and search providers, no keyless web search (6.5, 8.1); `read_feed` and `read_config` tools (8.1); `op` field for migration steps and full dependent configs for the schema agent (8.2); turns and background work, draft (8.3); scenario runner and turn inspector (8.4); pages built from blocks, a block registry and where pages open (5.9, 5.10), pie charts (5.4) and `stat` views (5.10); corrected Bitcoin example with news from feeds, a news view and a new news key (9); repair loop (10).
 >
@@ -59,9 +59,11 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 ### 2.1 Layout
 
 ```
-<user data dir>/Jenab/
+<user data dir>/Jenab/        app files, always here
   config.yaml                 user settings; secrets stay in the OS keychain
   registry.db                 project list and user memory
+  logs/                       jenab.log, rotated (Q36)
+<data folder>/                ~/Jenab unless changed in Settings → General (3.9)
   projects/
     <project_id>/             stable ULID; the display name is stored separately
       project.db              the project's state
@@ -71,7 +73,8 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
       tmp/                    dry-run copies and partial downloads
 ```
 
-- `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote.
+- `<user data dir>` is `%LOCALAPPDATA%` on Windows, `~/Library/Application Support` on macOS and `$XDG_DATA_HOME` or `~/.local/share` on Linux. Moving the data folder moves only the projects; the settings, registry and logs stay, so the app can always find them.
+- `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote. An unknown key, a wrong type or a value out of range is logged with its line and replaced by the default, so the app still starts.
 - A project folder is self-contained. Backup, export and delete work on the folder.
 - A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. Every `VACUUM INTO` follows the safe-copy rule in 7.5.
 - If `registry.db` is lost, it is rebuilt by scanning `projects/`. The project's name is also stored in `_jenab_meta`.
@@ -409,7 +412,20 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
   - OpenAI streams set `include_usage`.
 - **Errors and retries:**
   - Jenab sets the SDK retry count itself and caps `retry-after`, which the SDKs do not cap.
-  - Errors map to a `ProviderError` with status, type and `retry-after`.
+  - Errors map to a `ProviderError` with status, kind and `retry-after`. The kind decides what happens:
+
+    | Kind | Examples | What happens |
+    |---|---|---|
+    | `rate_limited` | 429 "too many requests" | Wait, then retry |
+    | `overloaded` | 503, Anthropic's 529 | Wait, then retry |
+    | `transport` | lost connection, a cut-off or stalled stream | Wait, then retry |
+    | `quota` | daily quota or credit used up, often sent as a 429 | No retry: the model stops until the user acts |
+    | `too_large` | 413 | No retry as is: the context is shrunk |
+    | `request` | 400, 401, 403, 404 | No retry: the error is shown |
+
+  - **Waits:** the provider's own wait when it sends one (`retry-after`, or Gemini's `retryDelay` in the body). Otherwise 10 s, 20 s, 40 s, 80 s, then every 100 s. Up to 20 % is added at random, so calls don't all retry at the same moment.
+  - **One pause per provider:** when a call is `rate_limited` or `overloaded`, every call to that provider waits until the pause ends, instead of each call trying again on its own. The provider's limit for background calls is also halved (at least 1), then raised by one after every 20 calls in a row that succeed, up to its setting (7.6). A key that another app also uses is handled this way, with nothing to set.
+  - How long a caller keeps trying is up to the caller: chat turns and subagents (8.3), pipeline steps (6.5). Starting values, tuned with the benchmark.
 - **Silent truncation:**
   - Jenab compares the reported `prompt_tokens` with its own estimate for the request.
   - A large shortfall is a truncation error, not a normal reply. Ollama drops old messages without an error (SPIKE-017).
@@ -417,19 +433,15 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
   - `/v1` ignores `num_ctx` and uses a small default context (4,096 tokens without a GPU). Jenab uses a derived model with `num_ctx` and `num_thread` set, or the native `/api/chat`.
   - Send `max_tokens`, not `max_completion_tokens`.
   - Turn thinking off with `reasoning_effort: "none"`.
-  - Send one request at a time, with timeouts in minutes.
+  - Background calls go one at a time (`provider_max_parallel_calls`, 7.6). Chat calls never wait (7.6), so Ollama queues them itself; the 10-minute first-event timeout covers that queue.
   - Set keep-alive through the native API.
 - **OpenAI-compatible providers** (SPIKE-018):
   - The stream is read to its end. Usage comes either in its own chunk after `finish_reason` or in the same chunk.
-  - Errors:
-    - **413** means the request is too big for the provider's limit. It is not retried, and the context is shrunk.
-    - Daily or quota errors stop that model until the user acts. Examples: Gemini `PerDay`, and Z.ai codes 1113, 1308 and 1310.
-    - Transport errors and cut-off streams are retried with backoff.
-  - Waits:
-    - Use `retry-after` when it is sent.
-    - Otherwise read the wait from the error body (Gemini `retryDelay`).
-    - Otherwise back off.
-    - Ollama Cloud and Z.ai send no rate-limit headers, so Jenab paces its own requests to them.
+  - Errors, mapped to the kinds above:
+    - **413** means the request is too big for the provider's limit (`too_large`).
+    - Daily or quota errors are `quota`. Examples: Gemini `PerDay`, and Z.ai codes 1113, 1308 and 1310. They often come as a 429, so the body decides the kind, not the status.
+    - Transport errors and cut-off streams are `transport`.
+  - Waits follow the rules above. Ollama Cloud and Z.ai send no rate-limit headers, so the pause per provider is their only pacing.
   - Clients are built with explicit options and an allow-list of outgoing headers. The SDK's `OPENAI_*` environment variables are ignored, so they never reach another host.
   - Gemini:
     - Tool calls carry `extra_content` (a thought signature), which is sent back unchanged. Without it, Gemini returns a 400.
@@ -1021,6 +1033,7 @@ Per-item expressions (`transform.map` fields and `transform.filter` conditions) 
 - `llm.select` asks the LLM only for the indexes of the chosen items and the `add` fields. The runtime returns the **original** items with the added fields, in ranked order, so the LLM cannot change URLs or titles. If there are fewer items than `count`, all are returned, ranked. Items beyond `max_input_tokens` are dropped, with a warning in the run log.
 - `model` is an alias from `config.yaml` (`llm.models`, e.g. `default`, `fast`). Pipeline steps default to `fast`.
 - LLM output is validated against its schema. Invalid output is retried once, then the step fails. Token usage is recorded per step.
+- A call that fails with `rate_limited`, `overloaded` or `transport` waits as in 3.8, and the step's `retry` decides how often it tries again. Time spent waiting for an LLM slot or a provider pause doesn't count toward the step's `timeout`; the pipeline's `timeout` still does. `quota` and `request` errors fail the step at once.
 
 **Bucket**
 
@@ -1255,21 +1268,30 @@ Large writes are split into chunks (500 rows per transaction) so one big import 
 
 ### 7.6 Global limits
 
-Set in the user config file, so parallel work cannot exhaust API rate limits or the machine:
+Two things are limited, separately:
+1. **How much Jenab starts at once.** The user sets this, so parallel work can't overload the machine or spend too much. These are the limits below.
+2. **How much a provider accepts.** Jenab can't know this ahead of time: plans differ, limits change, and another app may use the same key. So it reacts to the provider's answers instead, with the error kinds, waits and the pause per provider in 3.8.
 
 ```yaml
 scheduler:
   max_parallel_runs: 4                # pipeline runs across all projects
 
 llm:
-  max_parallel_calls: 4               # LLM calls across chats, subagents and pipelines
+  max_parallel_calls: 8               # background LLM calls; chat calls count but never wait
+  provider_max_parallel_calls:        # per provider, for background calls (3.8)
+    ollama: 1                         # local models answer one request at a time
   max_background_tasks_per_chat: 3    # 8.3
+  max_subagents_per_chat: 5           # subagents running at once in one chat (8.3)
   turn_max_requests: 25               # model requests per user turn (8.3)
   system_turn_max_requests: 8         # model requests per turn the app starts (8.3)
   system_turn_max_tokens: 20000       # token cap for turns started by a finish notice (8.3)
 ```
 
-LLM calls use the same two priorities as writes. Chat turns are interactive; pipeline steps and *Refresh memory* are background. After 10 interactive calls in a row, one background call goes first.
+- **Chat calls never wait for a slot.** A turn the user started, including its foreground subagents, sends its calls at once, so a busy app never freezes a chat. These calls count as in use, so background work gets fewer slots while chats are busy. There are few of them, since each turn starts with a message the user sends.
+- **Background calls wait** in one first-come queue, for `max_parallel_calls` and for their provider's limit: pipeline steps, background tasks and subagents, *Refresh memory* (3.5), turns the app starts and Mother's delegations (8.6). Time in the queue doesn't count toward step timeouts (6.5).
+- **Pipeline runs** wait for `max_parallel_runs` in their own first-come queue (6.2). This limit also bounds memory: each run can start a script process of up to 256 MB (6.5), and the project it writes to holds a 64 MB write cache (7.2).
+- **Changing a limit:** in *Settings → Models → Limits* or in `config.yaml`. A change applies at once. More slots start waiting work right away; fewer slots let running work finish and start nothing new until the count is below the limit.
+- The 10:1 rule (7.3) is for writes only, since chat calls never queue.
 
 ### 7.7 Scope
 
@@ -1417,6 +1439,11 @@ Decided in SPIKE-023.
 - **Background tasks:**
   - `subagent(task, inputs, background: true)`, `run_pipeline`, `create_chat` and `send_to_chat` (8.6) return an ID right away. `task_status(id)` and `run_status(run_id)` report progress.
   - At most 3 background tasks run per chat. They share `max_parallel_calls` (7.6).
+- **Subagents:** at most `max_subagents_per_chat` (5) run at once in one chat, foreground and background together. A `subagent` call beyond that waits until one ends. The `subagent` tool's description states the limit, filled in from the setting, so the agent can plan around it. The text is the same for every model (1).
+- **When a provider fails** (3.8):
+  - **Turns** retry `rate_limited`, `overloaded` and `transport` errors by themselves. The chat shows the wait, e.g. "Gemini is rate limited, retrying in 42 s", with *Retry now* and *Cancel*, so it never looks frozen. After 10 minutes of failed tries, the turn stops with an error card and *Retry*. A retry is safe: tools run only after a complete answer (3.8), and text from a cut-off try is replaced.
+  - **Subagents** try up to 3 times within 2 minutes, then fail. The parent agent gets the error with its kind and wait, e.g. `rate_limited, retry after 60 s`, and decides whether to wait, try again or do the work itself.
+  - `quota` and `request` errors are never retried. The chat says what the user can do, e.g. add credit or pick another model.
 - **Finish notice:**
   - When a background task the agent started finishes or fails, the orchestrator starts a new turn in that chat with a notice part: `[task t_12 finished: …]`.
   - If the chat is in a turn, the notice waits until that turn ends.
@@ -1467,7 +1494,7 @@ The scenario runner and the turn inspector use the real orchestrator, context bu
 - **Runtime panel** (in the app, behind *Settings → Developer*): everything running now, per project.
   - Chats in a turn, background tasks and subagents with their state and progress, pipeline runs (running and waiting for a slot).
   - Each database writer: queue length per priority, the current request and how long it has run, the last error.
-  - The LLM-call and run limits (7.6): slots in use and callers waiting.
+  - The LLM-call and run limits (7.6): slots in use and callers waiting, and each provider's pause and current limit (3.8).
   - Anything that hasn't moved for longer than its limit is flagged. Read-only.
 
 ### 8.5 Workspace
@@ -1493,6 +1520,15 @@ A project can link one folder on disk, for example a git repository. In v1 the a
   - after a turn has read web content, every command needs approval
   - no secrets in the command's environment
   - timeouts, killing the whole process tree (Job Objects on Windows), output to the bucket as preview and ref
+  - **memory, decided by the agent:** commands use the machine itself, and in SPIKE-026 one build took about 1 GB, half of what a busy 16 GB laptop had left. Most commands (`git`, `docker ps`) need almost nothing. So the agent says what a command needs, `run_command(cmd, needs_memory_mb)` (default 256), and the tool's description gives rough sizes
+    - the app checks free memory when the command starts, not when the agent wrote it. If too little is free, it checks again after 5, 15 and 30 s by itself, with no LLM calls; the chat shows "Waiting for memory: 1.4 of 1.5 GB free" with *Run now* and *Cancel*
+    - after the third check the agent gets `low_memory` with `needs_memory_mb`, `free_memory_mb`, `total_memory_mb` and `waited_s`. It can ask the user, try again with a lower need, or try again with `wait_for_memory_s` (at most 600) to wait for another command to finish
+    - every result has `peak_memory_mb`, `free_memory_mb` and `total_memory_mb`, so the agent learns what its commands really use. The numbers go in the result, not the system prompt, which must not change from turn to turn (3.1)
+    - free memory is what the OS can still hand out: the commit headroom on Windows, `MemAvailable` on Linux, the memory pressure level on macOS
+  - **one hard stop the agent can't change:** the check covers only the start, and a build keeps growing after it. Below 500 MB free while commands run, the newest command using at least 256 MB is stopped with its process tree, and the agent gets `out_of_memory` with the numbers. Small commands are never stopped
+  - **count limits as a safety net** against a runaway agent: `max_parallel_commands` (100) across the app and `max_commands_per_chat` (20), editable and stated in the tool's description. Each command is a real process tree (one build started 344 processes), so the limits are lower than for goroutines. At the limit a chat waits for a slot and shows it
+  - commands run at below-normal priority, so the app stays smooth: in SPIKE-026 the UI stand-in woke at most 16 ms late, against up to 133 ms at normal priority
+  - N-54's minimum system doesn't cover builds, which need about 1 GB each on top
   - pipelines never run commands
 - **Not planned:** parity with dedicated coding agents (language servers, worktrees, hooks).
 

@@ -31,6 +31,7 @@
 | [TASK-002](TASK-002-high-fidelity-design.md) | High-fidelity design with shadcn/ui | Task | Done | 2 |
 | [SPIKE-024](SPIKE-024-mcp-client.md) | MCP client | Spike | Open (before Phase 5) | 2 |
 | [SPIKE-025](SPIKE-025-skills.md) | Do models load the right skills? | Spike | Done | 2 |
+| [SPIKE-026](SPIKE-026-command-limits.md) | How many commands can run at once? | Spike | Done on Windows | 3 |
 
 ## Phase 1
 
@@ -39,7 +40,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | ID | Title | Needs | Status |
 |---|---|---|---|
 | [P1-01](P1-01-repository-and-ci.md) | Repository skeleton and CI | – | In progress |
-| [P1-02](P1-02-shared-packages.md) | Shared packages: id, config, secret, limit, logfile | P1-01 | Open |
+| [P1-02](P1-02-shared-packages.md) | Shared packages: id, config, secret, limit, logfile | P1-01 | Done |
 | [P1-03](P1-03-store.md) | Store: writers, readers and migrations | P1-02 | Open |
 | [P1-04](P1-04-projects.md) | Projects: folders, lock and recovery | P1-03 | Open |
 | [P1-05](P1-05-bucket.md) | Bucket | P1-04 | Open |

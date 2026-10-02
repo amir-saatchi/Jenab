@@ -14,4 +14,4 @@ To be written.
 - [ ] Tests run in CI
 
 ## Open items
-- None yet
+- Memory under load with 4 pipeline runs and their scripts (N-54), once pipelines exist. Phase 1 measures LLM calls and chats only (P1-18).

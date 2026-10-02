@@ -15,6 +15,8 @@ Today's agent apps keep what they learn in the chat. Long chats waste tokens, ge
 
 It works with Anthropic, OpenAI, Gemini, OpenAI-compatible APIs and Ollama, with your own keys.
 
+**Needs:** 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. Local models need their own memory on top.
+
 ## Read more
 
 - [Proposal](Docs/PROPOSAL.md): the idea, scope and roadmap

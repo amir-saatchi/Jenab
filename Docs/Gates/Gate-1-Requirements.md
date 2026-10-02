@@ -207,7 +207,8 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 | N-40 | Model-neutral: prompts, tools, schemas and the repair loop are the same for every model | SPEC 1 |
 | N-41 | At least 80 % of configs are valid within the repair limit on the test models (*proposed*; measured 81 %) | SPIKE-021 |
 | N-42 | Fewer tokens per turn and more accurate answers than a plain chat harness in the benchmark | PROPOSAL 11 |
-| N-43 | Parallel LLM calls, pipeline runs and background tasks stay within the global limits | SPEC 7.6 |
+| N-43 | Background LLM calls, pipeline runs, background tasks and subagents stay within the limits; chat calls never wait for a slot; a changed limit applies without a restart | SPEC 7.6, 8.3 |
+| N-44 | Rate limits and overloads are retried with the provider's wait and one pause per provider; quota and request errors are never retried; a waiting chat shows the wait | SPEC 3.8, 8.3 |
 
 **Platform**
 
@@ -217,6 +218,7 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 | N-51 | No cgo in our code or dependencies; Windows builds need no C compiler. Wails itself uses cgo on macOS and Linux | Gate-2, P1-01 |
 | N-52 | Idle memory under 300 MB (*proposed*; measured 245 MB) | SPIKE-022 |
 | N-53 | Text meets WCAG AA contrast (4.5:1) in both themes, including every tone | SPEC 5.11 |
+| N-54 | Minimum system: 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. With every limit in use, Jenab stays under 1.5 GB (*proposed*). Local models need their own memory on top | SPEC 7.6, P1-18 |
 
 ## Coverage of PROPOSAL §8
 
