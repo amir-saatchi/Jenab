@@ -2,7 +2,7 @@
 **Type:** Feature
 **Status:** Open
 **Gate:** 3 (Phase 1)
-**Needs:** P1-02
+**Needs:** P1-02, P1-19
 **Requirements:** R-90, R-119, N-21, N-40, N-43, N-44
 
 ## Goal

@@ -36,7 +36,7 @@
 
 ## Phase 1
 
-Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done first. The frontend tickets (P1-14 to P1-16) can start earlier against fake services, and P1-08 can run alongside the store work.
+Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done first. The frontend tickets (P1-14 to P1-16) can start earlier against fake services, and P1-19 and then P1-08 can run alongside the store work. P1-19 was added later, so its number doesn't follow the build order.
 
 | ID | Title | Needs | Status |
 |---|---|---|---|
@@ -45,9 +45,9 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-03](P1-03-store.md) | Store: writers, readers and migrations | P1-02 | Done |
 | [P1-04](P1-04-projects.md) | Projects: folders, lock and recovery | P1-03 | Open |
 | [P1-05](P1-05-bucket.md) | Bucket | P1-04 | Open |
-| [P1-06](P1-06-chats.md) | Chats: storage, Mother chat, titles and roles | P1-04 | Open |
+| [P1-06](P1-06-chats.md) | Chats: storage, Mother chat, titles and roles | P1-04, P1-19 | Open |
 | [P1-07](P1-07-history-search.md) | History search | P1-06 | Open |
-| [P1-08](P1-08-providers.md) | Providers and the model catalog | P1-02 | Open |
+| [P1-08](P1-08-providers.md) | Providers and the model catalog | P1-02, P1-19 | Open |
 | [P1-09](P1-09-tools.md) | Tools, web pages and refs | P1-05, P1-07 | Open |
 | [P1-10](P1-10-agent-loop.md) | Agent loop | P1-06, P1-08, P1-09 | Open |
 | [P1-11](P1-11-approvals.md) | Approvals and questions | P1-10 | Open |
@@ -58,6 +58,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-16](P1-16-settings.md) | Settings: models, keys and usage | P1-14, P1-08 | Open |
 | [P1-17](P1-17-developer-tools.md) | Turn inspector and runtime panel | P1-15 | Open |
 | [P1-18](P1-18-phase-1-acceptance.md) | Phase 1 acceptance | P1-15, P1-16, TASK-001 | Open |
+| [P1-19](P1-19-chat-types.md) | Chat types | P1-02 | Open |
 
 ## Notes
 
