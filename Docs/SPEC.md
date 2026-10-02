@@ -63,6 +63,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
   config.yaml                 user settings; secrets stay in the OS keychain
   registry.db                 project list and user memory
   logs/                       jenab.log, rotated (Q36)
+  snapshots/                  registry.db backups before a format update (2.8)
 <data folder>/                ~/Jenab unless changed in Settings → General (3.9)
   projects/
     <project_id>/             stable ULID; the display name is stored separately

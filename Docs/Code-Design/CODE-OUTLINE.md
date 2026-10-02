@@ -262,8 +262,12 @@ The index tables and the write order (4.3) are in `store`, which calls `bucket`.
 ```go
 // DB is one database file: a writer goroutine and a reader pool (7.2).
 type DB struct { … }
+type Options struct { Format Format; Snapshots string; Readers int; WriterPragmas []string }
+type Format struct { Name string; Steps []func(*sql.Tx) error }     // version = len(Steps), in user_version (2.8)
 func Open(ctx context.Context, path string, o Options) (*DB, error) // pragmas, format version (2.8), starts the writer
 func (db *DB) Close(ctx context.Context) error                     // drain, checkpoint(TRUNCATE) with 100 ms, close
+func (db *DB) Checkpoint(ctx context.Context) (bool, error)         // at idle; false if a reader held it up
+func (db *DB) Snapshot(ctx context.Context, target string) error    // VACUUM INTO with the safe-copy rule (7.5)
 func (db *DB) Stats() WriterStats                                   // queue per priority, current request and age, last error
 
 func Do[T any](ctx context.Context, db *DB, p limit.Priority, fn func(*sql.Tx) (T, error)) (T, error) // Q27
@@ -308,7 +312,7 @@ type Registry struct { … }
 func OpenRegistry(ctx context.Context, path string) (*Registry, error)
 // Projects, UserMemory, Connections, MCPServers: list, get, save with revision.
 
-var (ErrNotFound = errors.New("not found"); ErrConflict = errors.New("revision conflict"))
+var (ErrNotFound, ErrConflict, ErrClosed, ErrNewerFormat error) // ErrNewerFormat: the file is from a newer app
 
 // Restorer undoes a change outside the database, such as a workspace file (Phase 6),
 // so store never writes into the user's folder itself. Keyed by target prefix ("file:").
