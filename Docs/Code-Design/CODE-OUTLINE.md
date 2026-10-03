@@ -263,13 +263,14 @@ The index tables and the write order (4.3) are in `store`, which calls `bucket`.
 ```go
 // DB is one database file: a writer goroutine and a reader pool (7.2).
 type DB struct { … }
-type Options struct { Format Format; Snapshots string; Readers int; WriterPragmas []string }
+type Options struct { Format Format; Snapshots string; Readers int; WriterPragmas []string; ReadOnly bool } // ReadOnly: readers only, for a damaged file (2.7)
 type Format struct { Name string; Steps []func(*sql.Tx) error }     // version = len(Steps), in user_version (2.8)
 func Open(ctx context.Context, path string, o Options) (*DB, error) // pragmas, format version (2.8), starts the writer
 func (db *DB) Close(ctx context.Context) error                     // drain, checkpoint(TRUNCATE) with 100 ms, close
 func (db *DB) Checkpoint(ctx context.Context) (bool, error)         // at idle; false if a reader held it up
 func (db *DB) Snapshot(ctx context.Context, target string) error    // VACUUM INTO with the safe-copy rule (7.5)
 func (db *DB) Stats() WriterStats                                   // queue per priority, current request and age, last error
+func QuickCheck(ctx context.Context, path string) (problem string, err error) // before open, after a crash (2.7); "" when sound
 
 func Do[T any](ctx context.Context, db *DB, p limit.Priority, fn func(*sql.Tx) (T, error)) (T, error) // Q27
 func Query[T any](ctx context.Context, db *DB, q string, args []any, scan func(*sql.Rows) (T, error)) ([]T, error)
@@ -313,7 +314,7 @@ type Registry struct { … }
 func OpenRegistry(ctx context.Context, path string) (*Registry, error)
 // Projects, UserMemory, Connections, MCPServers: list, get, save with revision.
 
-var (ErrNotFound, ErrConflict, ErrClosed, ErrNewerFormat error) // ErrNewerFormat: the file is from a newer app
+var (ErrNotFound, ErrConflict, ErrClosed, ErrNewerFormat, ErrReadOnly error) // ErrNewerFormat: the file is from a newer app
 
 // Restorer undoes a change outside the database, such as a workspace file (Phase 6),
 // so store never writes into the user's folder itself. Keyed by target prefix ("file:").
@@ -333,15 +334,21 @@ type Manager struct { … }
 func NewManager(d Deps) *Manager
 func (m *Manager) Open(ctx context.Context, p id.Project) (*Project, error) // takes a lease; opens and recovers if needed
 func (m *Manager) Create(ctx context.Context, name string) (id.Project, error)
+func (m *Manager) List(ctx context.Context) ([]store.ProjectEntry, error)  // adds folders the registry lost (2.1)
 func (m *Manager) Busy() bool                                              // for the update restart
 func (m *Manager) CloseAll(ctx context.Context) error                      // Q30 steps 3–4
+func (m *Manager) FolderWarning() *FolderWarning                           // network drive or synced folder (2.1)
 
 type Project struct {
     ID     id.Project
+    Name   string
+    Dir    string
     DB     *store.ProjectDB
-    Chats  *store.ChatsDB
+    Chats  *store.ChatsDB // P1-06
+    Damage *Damage        // set when a quick_check failed; the project is then read-only (2.7)
     // unexported: lease count, idle timer, reporters
 }
+func (p *Project) Context() context.Context                  // cancelled at close; for background tasks and runs (Q22)
 func (p *Project) Release()                                  // the last release starts the 10-minute idle timer
 func (p *Project) Report(r Reporter) (unregister func())     // chat runners and runs register (Q19a)
 func (p *Project) Activity() Activity                        // one snapshot of every Reporter plus writer Stats
@@ -350,6 +357,8 @@ func (p *Project) OnClose(fn func()) (remove func())         // for work that li
 type Reporter interface { Status() []Status }
 type Status struct { ID string; Kind, State string; Started, LastActivity time.Time; Progress string; Err string }
 type Publisher interface { Notice(Notice); Activity(Activity) }
+type Notice struct { Project id.Project; Kind NoticeKind; Text string; Damage *Damage } // recovered, damaged
+type Activity struct { Project id.Project; Open bool; Leases int; Work []Status; Writer store.WriterStats }
 ```
 
 Recovery on open (2.7) is unexported in `project`: `quick_check`, mark runs `interrupted`, empty `tmp/`, sweep `objects/`.

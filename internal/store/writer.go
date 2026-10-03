@@ -264,6 +264,10 @@ func inTx[T any](ctx context.Context, c *sql.Conn, fn func(*sql.Tx) (T, error)) 
 // database work (SPEC 7.4). Code outside store uses the typed requests, not
 // Do.
 func Do[T any](ctx context.Context, db *DB, p limit.Priority, fn func(*sql.Tx) (T, error)) (T, error) {
+	if db.w == nil {
+		var zero T
+		return zero, ErrReadOnly
+	}
 	j := &txJob[T]{fn: fn, reply: make(chan result[T], 1)}
 	return await(ctx, db.w, p, j, j.reply)
 }
@@ -315,6 +319,10 @@ func (j *connJob[T]) run(ctx context.Context, c *sql.Conn) {
 }
 
 func doConn[T any](ctx context.Context, db *DB, p limit.Priority, fn func(context.Context, *sql.Conn) (T, error)) (T, error) {
+	if db.w == nil {
+		var zero T
+		return zero, ErrReadOnly
+	}
 	j := &connJob[T]{fn: fn, reply: make(chan result[T], 1)}
 	return await(ctx, db.w, p, j, j.reply)
 }

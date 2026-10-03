@@ -363,3 +363,51 @@ func TestCheckpointBusyReader(t *testing.T) {
 		t.Errorf("Checkpoint after the reader left = %v, %v", ok, err)
 	}
 }
+
+func TestQuickCheckAndReadOnly(t *testing.T) {
+	ctx := context.Background()
+	p, dir := openTestProject(t)
+	if err := p.SetMeta(ctx, map[string]string{"name": "BTC"}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "project.db")
+	for _, f := range []string{path, filepath.Join(dir, "missing.db")} {
+		if problem, err := QuickCheck(ctx, f); problem != "" || err != nil {
+			t.Errorf("QuickCheck(%s) = %q, %v", filepath.Base(f), problem, err)
+		}
+	}
+	p.Close(ctx)
+
+	if meta, err := ReadProjectMeta(ctx, dir); err != nil || meta["name"] != "BTC" {
+		t.Errorf("ReadProjectMeta = %v, %v", meta, err)
+	}
+	ro, err := OpenProjectReadOnly(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ro.ReadOnly() || ro.Stats() != (WriterStats{}) {
+		t.Errorf("read-only %v, stats %+v", ro.ReadOnly(), ro.Stats())
+	}
+	if meta, err := ro.Meta(ctx); err != nil || meta["name"] != "BTC" {
+		t.Errorf("read: %v, %v", meta, err)
+	}
+	if err := ro.SetMeta(ctx, map[string]string{"name": "x"}); !errors.Is(err, ErrReadOnly) {
+		t.Errorf("write: err = %v, want ErrReadOnly", err)
+	}
+	if _, err := ro.Checkpoint(ctx); !errors.Is(err, ErrReadOnly) {
+		t.Errorf("checkpoint: err = %v, want ErrReadOnly", err)
+	}
+	if err := ro.Close(ctx); err != nil {
+		t.Error(err)
+	}
+
+	// A file that isn't a database is reported, not returned as an error.
+	junk := filepath.Join(dir, "junk.db")
+	os.WriteFile(junk, []byte(strings.Repeat("not a database ", 500)), 0o644)
+	if problem, err := QuickCheck(ctx, junk); problem == "" || err != nil {
+		t.Errorf("QuickCheck(junk) = %q, %v", problem, err)
+	}
+	if _, err := OpenProjectReadOnly(ctx, t.TempDir()); err == nil {
+		t.Error("read-only open of a missing file passed")
+	}
+}

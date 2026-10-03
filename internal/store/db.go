@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"modernc.org/sqlite"
@@ -20,6 +22,7 @@ var (
 	ErrConflict    = errors.New("revision conflict")
 	ErrClosed      = errors.New("store: database is closed")
 	ErrNewerFormat = errors.New("store: the file was written by a newer version of the app")
+	ErrReadOnly    = errors.New("store: the database is open read-only")
 )
 
 // SQLite limit IDs (sqlite3.h); modernc doesn't export names for them.
@@ -40,6 +43,10 @@ type Options struct {
 	// WriterPragmas run on the write connection after the common ones,
 	// e.g. the cache size for project.db (SPEC 7.2).
 	WriterPragmas []string
+	// ReadOnly opens only the reader pool, for a file that failed its
+	// quick_check (SPEC 2.7). The format is not checked or updated, and
+	// every write fails with ErrReadOnly.
+	ReadOnly bool
 }
 
 // DB is one database file: a writer goroutine and a reader pool (SPEC 7.2).
@@ -76,6 +83,9 @@ var common = []string{"busy_timeout(5000)", "foreign_keys(1)", "synchronous(NORM
 // older file, and starts the writer. A file from a newer app is refused
 // without being touched (ErrNewerFormat).
 func Open(ctx context.Context, path string, o Options) (*DB, error) {
+	if o.ReadOnly {
+		return openReadOnly(path, o)
+	}
 	if err := prepareFormat(ctx, path, o.Format, o.Snapshots); err != nil {
 		return nil, err
 	}
@@ -107,6 +117,26 @@ func Open(ctx context.Context, path string, o Options) (*DB, error) {
 	go db.w.loop()
 	return db, nil
 }
+
+func openReadOnly(path string, o Options) (*DB, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	r, err := sql.Open("sqlite", dsn(path, false, append(common, "query_only(1)")...))
+	if err != nil {
+		return nil, err
+	}
+	n := o.Readers
+	if n <= 0 {
+		n = 4
+	}
+	r.SetMaxOpenConns(n)
+	r.SetMaxIdleConns(n)
+	return &DB{path: path, readers: r}, nil
+}
+
+// ReadOnly reports whether the file was opened read-only.
+func (db *DB) ReadOnly() bool { return db.w == nil }
 
 func (db *DB) openWriteConn(ctx context.Context) error {
 	c, err := db.wdb.Conn(ctx)
@@ -156,13 +186,22 @@ func (db *DB) Path() string { return db.path }
 
 // Stats is the writer's queue per priority, the current request and its
 // age, and the last error.
-func (db *DB) Stats() WriterStats { return db.w.stats() }
+func (db *DB) Stats() WriterStats {
+	if db.w == nil {
+		return WriterStats{}
+	}
+	return db.w.stats()
+}
 
 // Close drains the writer (queued requests still run unless ctx ends
 // first), checkpoints the WAL with a 100 ms busy timeout, and closes every
 // connection.
 func (db *DB) Close(ctx context.Context) error {
 	db.closeOnce.Do(func() {
+		if db.w == nil {
+			db.closeErr = db.readers.Close()
+			return
+		}
 		db.w.close(ctx)
 		c := db.writeConn()
 		var errs []error
@@ -253,4 +292,57 @@ func (db *DB) reader(ctx context.Context) (*sql.Conn, error) {
 func isBusy(err error) bool {
 	var se *sqlite.Error
 	return errors.As(err, &se) && se.Code()&0xff == 5 // SQLITE_BUSY and its extended codes
+}
+
+// QuickCheck runs PRAGMA quick_check on the file at path, on its own
+// connection, before the file is opened for use (SPEC 2.7). It returns ""
+// for a sound file and SQLite's first problems otherwise. A missing file
+// has nothing to check. Opening the file lets SQLite finish its own
+// recovery of a crashed WAL, which is safe; nothing else is written.
+func QuickCheck(ctx context.Context, path string) (string, error) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	db, err := sql.Open("sqlite", dsn(path, false, "busy_timeout(5000)"))
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+	rows, err := db.QueryContext(ctx, "PRAGMA quick_check(5)")
+	if err != nil {
+		if isCorrupt(err) {
+			return err.Error(), nil
+		}
+		return "", fmt.Errorf("store: quick_check %s: %w", filepath.Base(path), err)
+	}
+	defer rows.Close()
+	var lines []string
+	for rows.Next() {
+		var l string
+		if err := rows.Scan(&l); err != nil {
+			return "", err
+		}
+		lines = append(lines, l)
+	}
+	if err := rows.Err(); err != nil {
+		if isCorrupt(err) {
+			return err.Error(), nil
+		}
+		return "", err
+	}
+	if len(lines) == 1 && lines[0] == "ok" {
+		return "", nil
+	}
+	return strings.Join(lines, "; "), nil
+}
+
+// isCorrupt reports SQLITE_CORRUPT and SQLITE_NOTADB, which mean the file
+// is damaged rather than that the check could not run.
+func isCorrupt(err error) bool {
+	var se *sqlite.Error
+	if !errors.As(err, &se) {
+		return false
+	}
+	c := se.Code() & 0xff
+	return c == 11 || c == 26
 }

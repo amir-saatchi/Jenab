@@ -44,7 +44,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-01](P1-01-repository-and-ci.md) | Repository skeleton and CI | – | In progress |
 | [P1-02](P1-02-shared-packages.md) | Shared packages: id, config, secret, limit, logfile | P1-01 | Done |
 | [P1-03](P1-03-store.md) | Store: writers, readers and migrations | P1-02 | Done |
-| [P1-04](P1-04-projects.md) | Projects: folders, lock and recovery | P1-03 | Open |
+| [P1-04](P1-04-projects.md) | Projects: folders, lock and recovery | P1-03 | Done |
 | [P1-05](P1-05-bucket.md) | Bucket | P1-04 | Open |
 | [P1-06](P1-06-chats.md) | Chats: storage, Mother chat, titles and roles | P1-04, P1-19 | Open |
 | [P1-07](P1-07-history-search.md) | History search | P1-06 | Open |

@@ -56,6 +56,28 @@ func OpenProject(ctx context.Context, dir string) (*ProjectDB, error) {
 	return &ProjectDB{DB: db}, nil
 }
 
+// OpenProjectReadOnly opens dir/project.db for reading only, for a file that
+// failed its quick_check (SPEC 2.7).
+func OpenProjectReadOnly(ctx context.Context, dir string) (*ProjectDB, error) {
+	db, err := Open(ctx, filepath.Join(dir, "project.db"), Options{ReadOnly: true})
+	if err != nil {
+		return nil, err
+	}
+	return &ProjectDB{DB: db}, nil
+}
+
+// ReadProjectMeta reads _jenab_meta of a project that is not open, without
+// starting a writer or updating the format, for rebuilding the registry
+// (SPEC 2.1).
+func ReadProjectMeta(ctx context.Context, dir string) (map[string]string, error) {
+	p, err := OpenProjectReadOnly(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+	defer p.Close(ctx)
+	return p.Meta(ctx)
+}
+
 // Meta returns every _jenab_meta entry.
 func (p *ProjectDB) Meta(ctx context.Context) (map[string]string, error) {
 	type kv struct{ k, v string }
