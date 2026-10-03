@@ -33,6 +33,7 @@
 | [SPIKE-025](SPIKE-025-skills.md) | Do models load the right skills? | Spike | Done | 2 |
 | [SPIKE-026](SPIKE-026-command-limits.md) | How many commands can run at once? | Spike | Done on Windows | 3 |
 | [SPIKE-027](SPIKE-027-decision-models.md) | Can a decision model make Jenab's small decisions? | Spike | Done | 3 |
+| [SPIKE-028](SPIKE-028-request-list.md) | A request list, and loading tools and history when needed | Spike | Open (before Phase 2) | 3 |
 
 ## Phase 1
 
