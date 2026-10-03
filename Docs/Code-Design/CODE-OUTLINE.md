@@ -148,13 +148,14 @@ type Part struct {
     Approval   *Approval
     Question   *Question
 }
-func (p Part) Validate() error // exactly one field set, and it matches Kind
+func (p Part) Validate() error // exactly one field set, it matches Kind, and the kind's own rules
+// JSON names are snake_case (2.3). ToolCall.Extra and Thinking.Signature are strings, so they come back byte for byte.
 
 type SessionNote struct { Chat id.Chat; Content string; Revision int; UpdatedAt time.Time }
 
 // Event payloads (Q32); every one carries its IDs and the chat's sequence number.
 type Delta   struct { Project id.Project; Chat id.Chat; Message id.Message; Seq uint64; Part int; Kind PartKind; Text string }
-type PartDone struct { Project id.Project; Chat id.Chat; Seq uint64; Message id.Message; Part Part }
+type PartDone struct { Project id.Project; Chat id.Chat; Seq uint64; Message id.Message; Index int; Part Part }
 type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State; Tasks int; Waiting *Waiting }
 ```
 

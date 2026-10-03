@@ -59,7 +59,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-16](P1-16-settings.md) | Settings: models, keys and usage | P1-14, P1-08 | Open |
 | [P1-17](P1-17-developer-tools.md) | Turn inspector and runtime panel | P1-15 | Open |
 | [P1-18](P1-18-phase-1-acceptance.md) | Phase 1 acceptance | P1-15, P1-16, TASK-001 | Open |
-| [P1-19](P1-19-chat-types.md) | Chat types | P1-02 | Open |
+| [P1-19](P1-19-chat-types.md) | Chat types | P1-02 | Done |
 
 ## Notes
 
