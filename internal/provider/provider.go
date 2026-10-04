@@ -75,8 +75,10 @@ const (
 	EventPart EventKind = "part"
 	// EventDone: Usage and Stop. Always the last event of a complete stream.
 	EventDone EventKind = "done"
-	// EventWait: the provider is paused after a rate limit; Wait is how
-	// long until the request is sent. Only the Registry sends it.
+	// EventWait: the provider is paused after a rate limit or an
+	// overload (Paused says which); Wait is how long until the request is
+	// sent. Wait 0 means the wait is over and the request is sent now.
+	// Only the Registry sends it.
 	EventWait EventKind = "wait"
 )
 
@@ -89,6 +91,7 @@ type Event struct {
 	Usage    *chat.Usage
 	Stop     StopReason
 	Wait     time.Duration
+	Paused   ErrorKind // EventWait: why the provider is paused
 }
 
 // StopReason is why the model stopped.

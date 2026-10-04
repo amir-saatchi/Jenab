@@ -396,7 +396,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 					}
 					t := p.Thinking.Text
 					bs = append(bs, block{Type: "thinking", Thinking: &t, Signature: p.Thinking.Signature})
-				case p.Text != nil && p.Text.Text != "":
+				case p.Text != nil && strings.TrimSpace(p.Text.Text) != "": // the API refuses blank text
 					bs = append(bs, block{Type: "text", Text: p.Text.Text})
 				case p.ToolCall != nil:
 					bs = append(bs, block{Type: "tool_use", ID: p.ToolCall.ID, Name: p.ToolCall.Name, Input: p.ToolCall.Args})
@@ -408,7 +408,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 				switch {
 				case p.ToolResult != nil:
 					res := block{Type: "tool_result", ToolUseID: p.ToolResult.CallID, IsError: p.ToolResult.IsError}
-					if p.ToolResult.Text != "" {
+					if strings.TrimSpace(p.ToolResult.Text) != "" {
 						res.Content = []block{{Type: "text", Text: p.ToolResult.Text}}
 					}
 					bs = append(bs, res)
@@ -439,7 +439,7 @@ func ownSignature(sig string) bool {
 
 func userBlock(ctx context.Context, req provider.Request, p chat.Part) (*block, error) {
 	switch {
-	case p.Text != nil && p.Text.Text != "":
+	case p.Text != nil && strings.TrimSpace(p.Text.Text) != "":
 		return &block{Type: "text", Text: p.Text.Text}, nil
 	case p.Notice != nil:
 		return &block{Type: "text", Text: p.Notice.Text}, nil

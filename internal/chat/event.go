@@ -1,11 +1,22 @@
 package chat
 
-import "github.com/amir-saatchi/jenab/internal/id"
+import (
+	"time"
+
+	"github.com/amir-saatchi/jenab/internal/id"
+)
 
 // Event payloads (Q32): chat:delta, chat:part and chat:status. Each carries
 // its IDs and the chat's sequence number, which goes up with every change.
 // The frontend drops events older than its snapshot and asks for a new
 // snapshot when it sees a gap.
+//
+// An answer is written once it is complete, so while it streams the
+// frontend builds a temporary message from its deltas. The first PartDone
+// for that message replaces the temporary copy whole: after Stop the
+// stored parts can differ from the streamed ones. Deltas for a message
+// that is neither stored nor Status.Streaming are dropped; a failed try
+// clears Streaming, and the next try streams a new message.
 
 // Delta is streamed text for a part still in progress. At most one per 16 ms
 // per chat (Q17).
@@ -46,6 +57,19 @@ type Status struct {
 	State   State      `json:"state"`
 	Tasks   int        `json:"tasks"`             // background tasks still running (8.3)
 	Waiting *Waiting   `json:"waiting,omitempty"` // set when State is waiting
+	Retry   *Retry     `json:"retry,omitempty"`   // set while a turn waits to retry a request (8.3)
+	// Streaming is the answer being streamed now, not yet stored.
+	Streaming id.Message `json:"streaming,omitempty"`
+}
+
+// Retry is a turn's wait before it tries a failed request again, so the
+// chat can show "gemini is rate limited, retrying in 42 s" with *Retry now*
+// and *Cancel* (8.3). The failed try's streamed text is dropped (see
+// Status.Streaming).
+type Retry struct {
+	Provider string    `json:"provider"` // the connection's name
+	Kind     string    `json:"kind"`     // rate_limited, overloaded or transport
+	At       time.Time `json:"at"`       // when the next try starts, in UTC
 }
 
 // Waiting points at the card or form a turn waits for, for the bar above the

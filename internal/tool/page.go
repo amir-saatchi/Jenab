@@ -146,15 +146,12 @@ func quoted(s string) string { return `"` + strings.ReplaceAll(s, `"`, "'") + `"
 // Deps are what the Phase 1 tools need.
 type Deps struct {
 	Web *web.Client
-	// ChatStatus gives a chat's status for list_chats, such as "in a
-	// turn"; nil or "" leaves it out. The agent gives it (P1-10).
-	ChatStatus func(id.Chat) string
 }
 
 // Builtin returns the Phase 1 tools of this package.
 func Builtin(d Deps) []Tool {
 	return []Tool{
-		searchHistory(), readMessages(), listChats(d.ChatStatus),
+		searchHistory(), readMessages(), listChats(),
 		readRef(), searchRef(), newFetchPage(d.Web),
 		bucketList(), bucketRead(), bucketPut(), bucketDelete(),
 	}

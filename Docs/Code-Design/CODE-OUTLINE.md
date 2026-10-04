@@ -156,7 +156,9 @@ type SessionNote struct { Chat id.Chat; Content string; Revision int; UpdatedAt 
 // Event payloads (Q32); every one carries its IDs and the chat's sequence number.
 type Delta   struct { Project id.Project; Chat id.Chat; Message id.Message; Seq uint64; Part int; Kind PartKind; Text string }
 type PartDone struct { Project id.Project; Chat id.Chat; Seq uint64; Message id.Message; Index int; Part Part }
-type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State; Tasks int; Waiting *Waiting }
+type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State; Tasks int; Waiting *Waiting; Retry *Retry; Streaming id.Message }
+// Streaming is the answer being streamed. The first PartDone of a message replaces the copy built from its deltas;
+// deltas for a message neither stored nor Streaming are dropped (a failed try).
 ```
 
 ### `config`: settings and configs (1, 10)
@@ -540,7 +542,7 @@ type Needs struct { Effects Effects; Approvals []chat.Approval }
 
 // Call carries the arguments and where the call runs.
 type Call struct { ID string; Args json.RawMessage; Env *Env }
-type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck }
+type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck; ChatStatus func(id.Chat) string }
 // Workspace *workspace.Root joins Env with the workspace package.
 
 type Result struct { Text string; Ref string; Images []chat.Image; Denied bool }
@@ -555,7 +557,7 @@ func Stub(r chat.ToolResult) string // a result's header without its size, for p
 func HostApproval(host, by string) chat.Approval // the card for a new host (6.7, 8.8)
 func Host(u *url.URL) string // lower case and punycode, as approvals name hosts
 
-type Deps struct { Web *web.Client; ChatStatus func(id.Chat) string }
+type Deps struct { Web *web.Client }
 func Builtin(d Deps) []Tool // the Phase 1 tools of this package
 
 type Registry struct { … }
@@ -579,38 +581,72 @@ Where each tool is written:
 type Orchestrator struct { … }
 func New(d Deps) *Orchestrator
 
+type Deps struct {
+    Context  context.Context // the app's; cancelling it ends every turn
+    Projects *project.Manager
+    Models   *provider.Registry
+    Tools    *tool.Registry
+    Settings func() config.Settings // read at the start of each turn
+    Events   Publisher
+    Skills   Skills // nil until P1-12
+    Log      *slog.Logger
+}
+
 // Called by app.ChatService; each returns at once.
-func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m UserMessage) (id.Message, error)
-func (o *Orchestrator) Stop(p id.Project, c id.Chat)
-func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // approval card or question form (8.8)
-func (o *Orchestrator) Refuse()                                        // shutdown step 1
+func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m UserMessage) (id.Message, error) // stores the message, then joins the running turn or queues one; after Stop, a new turn
+func (o *Orchestrator) Retry(ctx context.Context, p id.Project, c id.Chat) error // Retry now while waiting, or continue a failed turn (after a restart too); ErrNoRetry otherwise
+func (o *Orchestrator) Stop(p id.Project, c id.Chat)                   // the running turn and a queued one
+func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error  // ErrInTurn during a turn; resets the turn count and window
+func (o *Orchestrator) Delete(ctx context.Context, p id.Project, c id.Chat) error // ErrInTurn during a turn; not Mother
+func (o *Orchestrator) Wrote(p id.Project, c id.Chat, seq uint64)      // a chat write made elsewhere (title, role), so events carry its seq
+func (o *Orchestrator) Live(p id.Project, c id.Chat) Live              // for a chat opened mid-turn: the streaming answer's parts and text so far
+func (o *Orchestrator) ChatStatus(c id.Chat) string                    // "in a turn" or "", for list_chats and Mother's chat list
+func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // later (P1-11): approval card or question form (8.8)
+func (o *Orchestrator) Refuse()                                        // shutdown step 1: Send, Retry, Clear and Delete fail
 func (o *Orchestrator) Wait(ctx context.Context) error
 
 type Publisher interface {
     Delta(chat.Delta)
     Part(chat.PartDone)
-    Status(chat.Status)
-    OpenPage(OpenPage)
+    Status(chat.Status) // Retry while a request waits to be tried again; Streaming during a try
+    // Called under the chat's lock, so it must not block; a panic is logged, not passed on.
+    // OpenPage(OpenPage) comes with the pages (Phase 2)
+}
+
+type Skills interface { // block 1's skills (P1-12)
+    Block(ctx context.Context, p *project.Project, c chat.Chat) (string, error)
 }
 ```
 
 Inside `agent` (unexported):
 
 ```go
-type runner struct { inbox chan item; … } // one per chat with work; holds a project lease
-func (r *runner) loop(ctx context.Context)          // runs turns one at a time; exits when the inbox is empty
-func (r *runner) turn(ctx context.Context, in []item) error // a turn: steps until the model stops, the cap is hit, or Stop
-func (r *runner) step(ctx context.Context, t *turn) (done bool, err error)
-    // 1. buildContext → provider.Request (3.1)
-    // 2. models.Stream: deltas to the coalescer, finished parts to chats.db
-    // 3. write the assistant message and its tool calls (2.3), then run the calls in order
-    // 4. take new user messages from the inbox (8.3)
-func (r *runner) runTool(ctx context.Context, t *turn, c chat.ToolCall) chat.ToolResult // approval, timeout, recover, error mapping
-func (r *runner) Status() []project.Status
+type chatState struct { … }  // per chat, kept by the Orchestrator: turn number, seq, the newest user message,
+                             // the queued and running turn, the retry wait, the streaming answer and the history window;
+                             // its pub lock keeps a store write and its events in seq order
+type runner struct { … }     // at most one goroutine per chat: runs the queued turn, then the next one a message queued
+                             // meanwhile, and ends when none is left; holds a project lease and reports its Status;
+                             // the project's close cancels it and waits up to 5 s for its last writes
+func (r *runner) turn(ctx context.Context, n int) (*turn, bool) // steps until the model stops, the cap is hit, or Stop;
+                                                                // at the end, a user message the last request didn't see means another step
+func (r *runner) step(ctx context.Context, t *turn, last bool) (more bool, err error)
+    // 1. request: shape the window (stubs, results for calls a crash left open), trim, tools (none on the last request)
+    // 2. ask: stream into memory, deltas to the coalescer; retry with the wait shown, up to 10 minutes;
+    //    a message sent during the wait goes into the next try
+    // An answer without calls that hit the output limit, was refused or has no text adds an answer_cut notice
+    // 3. write the answer in one AppendMessage, then run its calls and write their results in one tool message
+func (r *runner) runTool(ctx context.Context, t *turn, msg id.Message, n int, c chat.ToolCall) []chat.Part // recover, error mapping, cancelled on Stop
+func (r *runner) startTitle(ctx context.Context, wg *sync.WaitGroup, t *turn) // after the first turn, with the fast model, beside
+    // the next turn; one at a time, dropped if the chat was cleared meanwhile; the runner waits for it
 
-type coalescer struct { … }             // ≤ 1 Delta per 16 ms per chat (Q17)
-func buildContext(t *turn) provider.Request
-type task struct { … }                  // a background subagent or a Mother chat task; sends its finish notice to the inbox
+type window struct { start, stubBelow int; stubbed map[string]bool; chatList string; system []provider.Block; last time.Time } // 3.6;
+    // the system blocks are built at a cut and kept until the next, so a role change waits for it
+func (r *runner) cutIfDue(ctx context.Context, t *turn) error // past the max turns or tokens, idle over 5 min, or a new process
+func shape(ms []chat.Message, w *window) []chat.Message
+type coalescer struct { … }             // ≤ 1 Delta per 16 ms per chat (Q17); a new message, part or kind is sent at once
+
+// Later:
+type task struct { … }                  // a background subagent or a Mother chat task; its finish notice starts a turn
 type subagent struct { … }              // not a chat: in-memory messages, no subagent tool of its own (one level);
                                         // writes use the parent's Source; at the end its transcript goes to the bucket
                                         // and the parent's tool_result gets the ref (8.6)
@@ -618,13 +654,17 @@ type schemaAgent struct { … }           // 8.2: steps, try, needs_approval
 func approve(t *turn, s tool.Spec, n tool.Needs) []chat.Approval // 8.8 levels, the turn's Untrusted mark, in one place
 ```
 
+IDs: each try makes its answer's ID and its tool message's ID when it starts, under the chat's lock like Send, and messages sort by (turn, ID). So a user message sent during the try sorts after the answer and its results, and a retried try leaves nothing behind.
+
 A turn in one picture:
 
 ```
-Send → inbox → runner.loop → turn → step ─┬─ models.Stream ──► coalescer ──► Publisher.Delta
-                                          ├─ ChatsDB.AppendMessage / AppendPart ──► Publisher.Part
-                                          └─ runTool ──► tool.Run ──► ProjectDB (writer)
+Send → AppendMessage → runner.turn → step ─┬─ models.Stream ──► coalescer ──► Publisher.Delta
+                                           ├─ ChatsDB.AppendMessage ──► Publisher.Part
+                                           └─ runTool ──► tool.Run ──► ProjectDB (writer)
 ```
+
+Store and provider additions (P1-10): `ChatsDB.LastTurn`, `ChatsDB.LastActivity` (with the `messages_activity` index), `provider.Registry.Resume` (ends a provider's pause and wakes the calls waiting on it), `Event.Paused` and the `EventWait` with `Wait` 0 when the wait is over, `fake.Provider.Replace`.
 
 ## 8. `pipeline` and `view`
 
@@ -695,5 +735,5 @@ Every service method starts with `defer s.recover(&err)` (Q26) and ends with `re
 
 ## 10. Open points
 
-1. **Retry after text was shown.** 3.8 retries a cut-off stream, but if deltas already reached the screen, a retry would show the text twice. *Lean:* retry only before the first event is passed on; after that, end the turn with the partial text kept, as for *Stop*.
+1. **Retry after text was shown.** Decided in P1-10: each try streams a new message (`Status.Streaming`), and the frontend drops the deltas of a try that failed, so a retry never shows text twice.
 2. **The frontend folder.** `frontend/src` starts from `mockups/src`; which parts carry over is decided when Phase 1 starts.

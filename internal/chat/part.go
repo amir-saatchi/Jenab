@@ -90,6 +90,8 @@ const (
 	NoticeMemoryChanged NoticeKind = "memory_changed" // between cuts (3.6)
 	NoticeApprovalLevel NoticeKind = "approval_level" // 8.8
 	NoticeEarlyStop     NoticeKind = "early_stop"     // a turn ended after a failed save (10)
+	NoticeTurnFailed    NoticeKind = "turn_failed"    // a provider error stopped the turn; the card offers Retry (8.3)
+	NoticeAnswerCut     NoticeKind = "answer_cut"     // the answer hit the output limit, was refused or was empty (8.3)
 )
 
 // Notice is a short note from the app to the agent, shown in the chat.

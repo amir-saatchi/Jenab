@@ -79,8 +79,10 @@ type conn struct {
 	limit   int // the configured background limit
 	current int // the limit now, halved after a rate limit
 	until   time.Time
-	fails   int // rate limits in a row, for the waits
-	streak  int // calls in a row that succeeded
+	why     ErrorKind     // the kind of error that started the pause
+	wake    chan struct{} // closed by Resume, for the calls waiting out the pause
+	fails   int           // rate limits in a row, for the waits
+	streak  int           // calls in a row that succeeded
 	last    *Error
 	reports map[string]ModelInfo // from the last Models call, by ID
 }
@@ -285,14 +287,18 @@ var errStopped = errors.New("the caller stopped reading")
 // admit waits out the provider's pause and takes the slots. A pause that
 // starts while the call waits for a slot is waited out too.
 func (r *Registry) admit(ctx context.Context, c *conn, p limit.Priority, yield func(Event, error) bool) (func(), error) {
+	waited := false
 	for {
-		if wait := c.pause(); wait > 0 {
-			if !yield(Event{Kind: EventWait, Wait: wait}, nil) {
+		if wait, why, wake := c.pause(); wait > 0 {
+			waited = true
+			if !yield(Event{Kind: EventWait, Wait: wait, Paused: why}, nil) {
 				return nil, errStopped
 			}
 			t := time.NewTimer(wait)
 			select {
 			case <-t.C:
+			case <-wake:
+				t.Stop()
 			case <-ctx.Done():
 				t.Stop()
 				return nil, ctx.Err()
@@ -312,7 +318,11 @@ func (r *Registry) admit(ctx context.Context, c *conn, p limit.Priority, yield f
 			}
 		}
 		release := func() { relG(); relP() }
-		if c.pause() <= 0 {
+		if wait, _, _ := c.pause(); wait <= 0 {
+			if waited && !yield(Event{Kind: EventWait}, nil) { // the wait is over
+				release()
+				return nil, errStopped
+			}
 			return release, nil
 		}
 		release()
@@ -403,7 +413,7 @@ func (r *Registry) failed(c *conn, err error) error {
 	}
 	switch pe.Kind {
 	case RateLimited, Overloaded:
-		pe.RetryAfter = c.paused(pe.RetryAfter)
+		pe.RetryAfter = c.paused(pe.Kind, pe.RetryAfter)
 	}
 	c.mu.Lock()
 	c.streak = 0
@@ -416,7 +426,7 @@ func (r *Registry) failed(c *conn, err error) error {
 // paused starts or extends the provider's pause after a rate limit or an
 // overload, and halves its background limit (at least 1). It returns the
 // pause left.
-func (c *conn) paused(wait time.Duration) time.Duration {
+func (c *conn) paused(why ErrorKind, wait time.Duration) time.Duration {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if wait <= 0 {
@@ -431,17 +441,40 @@ func (c *conn) paused(wait time.Duration) time.Duration {
 		c.gate.SetSize(c.current)
 	}
 	if until := now.Add(wait); until.After(c.until) {
-		c.until = until
+		c.until, c.why = until, why
 	}
 	c.streak = 0
 	return time.Until(c.until)
 }
 
-// pause is the pause left, 0 if none.
-func (c *conn) pause() time.Duration {
+// Resume ends a provider's pause, for *Retry now* (SPEC 8.3): the user
+// chose to try at once. Every call waiting out the pause goes now, from
+// any chat or pipeline. Another rate limit starts a new pause.
+func (r *Registry) Resume(provider string) {
+	if c := r.conn(provider); c != nil {
+		c.mu.Lock()
+		c.until = time.Time{}
+		if c.wake != nil {
+			close(c.wake)
+			c.wake = nil
+		}
+		c.mu.Unlock()
+	}
+}
+
+// pause is the pause left (0 if none), why it started, and a channel
+// Resume closes.
+func (c *conn) pause() (time.Duration, ErrorKind, <-chan struct{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return max(time.Until(c.until), 0)
+	wait := max(time.Until(c.until), 0)
+	if wait == 0 {
+		return 0, "", nil
+	}
+	if c.wake == nil {
+		c.wake = make(chan struct{})
+	}
+	return wait, c.why, c.wake
 }
 
 // succeeded counts a complete answer; after raiseAfter in a row a halved

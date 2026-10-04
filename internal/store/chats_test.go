@@ -537,3 +537,50 @@ func TestChatsReadOnly(t *testing.T) {
 		t.Errorf("read-only Clear = %v", err)
 	}
 }
+
+func TestChatsLastTurnAndActivity(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	a, b, empty := newChat(t, c, chat.Chat{}), newChat(t, c, chat.Chat{}), newChat(t, c, chat.Chat{})
+	if n, err := c.LastTurn(ctx, a.ID); err != nil || n != 0 {
+		t.Fatalf("LastTurn of a new chat = %d, %v", n, err)
+	}
+	// Times out of order, a second apart: the newest is not the last
+	// written, so neither the write order nor the clock decides.
+	at := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	add := func(ch id.Chat, turn int, sec int) chat.Message {
+		m, _, err := c.AppendMessage(ctx, chat.Message{Chat: ch, Turn: turn, Role: chat.RoleUser, CreatedAt: at.Add(time.Duration(sec) * time.Second),
+			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	add(a.ID, 1, 1)
+	last := add(a.ID, 3, 3)
+	add(a.ID, 2, 2) // written last, but older and turn 2
+	add(b.ID, 1, 0)
+	if n, err := c.LastTurn(ctx, a.ID); err != nil || n != 3 {
+		t.Errorf("LastTurn = %d, %v; want 3", n, err)
+	}
+	act, err := c.LastActivity(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(act) != 2 || !act[a.ID].Equal(last.CreatedAt) || act[b.ID].IsZero() {
+		t.Errorf("LastActivity = %v, want a at %v", act, last.CreatedAt)
+	}
+	if _, ok := act[empty.ID]; ok {
+		t.Error("a chat without messages has an activity time")
+	}
+	// A cleared chat starts again.
+	if _, err := c.Clear(ctx, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := c.LastTurn(ctx, a.ID); err != nil || n != 0 {
+		t.Errorf("LastTurn after Clear = %d, %v", n, err)
+	}
+	if act, err := c.LastActivity(ctx); err != nil || len(act) != 1 {
+		t.Errorf("LastActivity after Clear = %v, %v; want only b", act, err)
+	}
+}

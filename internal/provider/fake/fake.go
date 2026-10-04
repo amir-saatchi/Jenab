@@ -43,6 +43,13 @@ func (p *Provider) Push(r ...Reply) {
 	p.mu.Unlock()
 }
 
+// Replace drops the replies not played yet and adds r.
+func (p *Provider) Replace(r ...Reply) {
+	p.mu.Lock()
+	p.replies = append([]Reply(nil), r...)
+	p.mu.Unlock()
+}
+
 // Calls returns the requests received so far.
 func (p *Provider) Calls() []provider.Request {
 	p.mu.Lock()

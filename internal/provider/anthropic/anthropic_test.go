@@ -238,6 +238,26 @@ func TestOtherProvidersThinkingSkipped(t *testing.T) {
 	}
 }
 
+// A stopped answer can end in blank text; the API refuses blank text
+// blocks (8.3).
+func TestBlankTextSkipped(t *testing.T) {
+	req := hello
+	req.Messages = append(append([]chat.Message(nil), hello.Messages...),
+		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{
+			{Kind: chat.PartText, Text: &chat.Text{Text: "Looking."}},
+			{Kind: chat.PartText, Text: &chat.Text{Text: "\n\n ", Stopped: true}},
+		}},
+		chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: " "}}, {Kind: chat.PartText, Text: &chat.Text{Text: "go on"}}}},
+	)
+	body, err := (&backend{}).body(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(body), `"type":"text"`) != 5 { // two system blocks, the question, "Looking." and "go on"
+		t.Errorf("body = %s", body)
+	}
+}
+
 func TestEnds(t *testing.T) {
 	tests := []struct {
 		name string

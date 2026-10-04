@@ -96,6 +96,8 @@ var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 		`CREATE INDEX role_changes_chat ON role_changes (chat_id, id)`,
 	),
 	ftsTables, // P1-07
+	// Each chat's newest message for Mother's chat list (P1-10).
+	execAll(`CREATE INDEX messages_activity ON messages (chat_id, created_at)`),
 }}
 
 // Limits from SPEC 3.4 and 8.6. Tokens are estimated at 4 bytes each, as
@@ -735,6 +737,43 @@ func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]cha
 		return o, err
 	})
 	return r.ms, r.seq, err
+}
+
+// LastTurn is the chat's last turn, 0 if it has no messages.
+func (c *ChatsDB) LastTurn(ctx context.Context, ch id.Chat) (int, error) {
+	rows, err := Query(ctx, c.DB, `SELECT COALESCE(MAX(turn), 0) FROM messages WHERE chat_id = ?`, []any{ch}, func(r *sql.Rows) (int, error) {
+		var t int
+		return t, r.Scan(&t)
+	})
+	if err != nil || len(rows) == 0 {
+		return 0, err
+	}
+	return rows[0], nil
+}
+
+// LastActivity is the time of each chat's newest message, for Mother's
+// chat list (SPEC 8.6). Chats without messages are left out.
+func (c *ChatsDB) LastActivity(ctx context.Context) (map[id.Chat]time.Time, error) {
+	type row struct {
+		ch id.Chat
+		at time.Time
+	}
+	// One index lookup per chat, not a scan of every message.
+	rows, err := Query(ctx, c.DB, `SELECT id, at FROM (SELECT id, (SELECT MAX(created_at) FROM messages WHERE chat_id = chats.id) AS at FROM chats) WHERE at IS NOT NULL`, nil, func(r *sql.Rows) (row, error) {
+		var x row
+		var at string
+		if err := r.Scan(&x.ch, &at); err != nil {
+			return x, err
+		}
+		var err error
+		x.at, err = parseTime(at)
+		return x, err
+	})
+	out := make(map[id.Chat]time.Time, len(rows))
+	for _, x := range rows {
+		out[x.ch] = x.at
+	}
+	return out, err
 }
 
 // Notes returns a chat's session notes; revision 0 when it has none yet.

@@ -284,3 +284,16 @@ func TestPaths(t *testing.T) {
 		t.Errorf("an empty folder changed the paths: %+v", r)
 	}
 }
+
+func TestHistoryMaxAboveMin(t *testing.T) {
+	s, probs, err := LoadSettings(writeConfig(t, `context:
+  history_min_turns: 5
+  history_max_turns: 5
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Context.HistoryMinTurns != 5 || s.Context.HistoryMaxTurns != Defaults().Context.HistoryMaxTurns || len(probs) != 1 {
+		t.Errorf("min %d, max %d, problems %v; want max back at the default", s.Context.HistoryMinTurns, s.Context.HistoryMaxTurns, probs)
+	}
+}

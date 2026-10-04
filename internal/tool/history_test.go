@@ -130,7 +130,9 @@ func TestListChats(t *testing.T) {
 		}
 		return ""
 	}
-	r, err := callWith(t, Deps{ChatStatus: status}, env, "list_chats", `{}`)
+	withStatus := *env
+	withStatus.ChatStatus = status
+	r, err := callWith(t, Deps{}, &withStatus, "list_chats", `{}`)
 	if err != nil {
 		t.Fatal(err)
 	}

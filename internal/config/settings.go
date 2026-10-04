@@ -221,7 +221,8 @@ func (s *Settings) check(root *yaml.Node) []Problem {
 
 	c, dc := &s.Context, d.Context
 	atLeast("context.history_min_turns", &c.HistoryMinTurns, 1, dc.HistoryMinTurns)
-	atLeast("context.history_max_turns", &c.HistoryMaxTurns, c.HistoryMinTurns, max(dc.HistoryMaxTurns, c.HistoryMinTurns))
+	// Max at min would cut at every turn, so the prompt cache never holds.
+	atLeast("context.history_max_turns", &c.HistoryMaxTurns, c.HistoryMinTurns+1, max(dc.HistoryMaxTurns, c.HistoryMinTurns+1))
 	atLeast("context.history_max_tokens", &c.HistoryMaxTokens, 1000, dc.HistoryMaxTokens)
 	atLeast("context.tool_preview_tokens", &c.ToolPreviewTokens, 100, dc.ToolPreviewTokens)
 	if c.TurnTrimRatio <= 0 || c.TurnTrimRatio > 1 {

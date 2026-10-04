@@ -171,8 +171,11 @@ func TestRateLimitPausesProvider(t *testing.T) {
 					t.Errorf("after the pause: %v", err)
 					return
 				}
-				if evs[0].Kind != provider.EventWait || evs[0].Wait != 30*time.Second {
-					t.Errorf("first event = %+v, want a 30 s wait", evs[0])
+				if len(evs) < 2 || evs[0].Kind != provider.EventWait || evs[0].Wait != 30*time.Second || evs[0].Paused != provider.RateLimited {
+					t.Fatalf("events %+v, want a 30 s wait for a rate limit first", evs)
+				}
+				if evs[1].Kind != provider.EventWait || evs[1].Wait != 0 {
+					t.Errorf("second event = %+v, want the end of the wait", evs[1])
 				}
 				if d := time.Since(start); d < 30*time.Second {
 					t.Errorf("sent after %s, before the pause ended", d)
@@ -186,6 +189,45 @@ func TestRateLimitPausesProvider(t *testing.T) {
 		wg.Wait()
 		if n := len(s.fp.Calls()); n != 3 {
 			t.Errorf("%d calls, want 3", n)
+		}
+	})
+}
+
+func TestResumeEndsThePause(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := newSetup(t, provider.KindCompatible, 4, fake.Fail(rateLimited(30*time.Second)))
+		start := time.Now()
+		collect(s.reg, limit.Interactive, provider.Request{Model: "p/m1"})
+		s.reg.Resume("p")
+		s.reg.Resume("unknown") // no such provider: nothing happens
+		if got := status(t, s.reg).PausedFor; got != 0 {
+			t.Errorf("PausedFor = %s after Resume", got)
+		}
+		evs, err := collect(s.reg, limit.Interactive, provider.Request{Model: "p/m1"})
+		if err != nil || len(evs) == 0 || evs[0].Kind == provider.EventWait || time.Since(start) != 0 {
+			t.Errorf("after Resume: %+v, %v, %s later; want sent at once", evs, err, time.Since(start))
+		}
+	})
+}
+
+func TestResumeWakesWaitingCalls(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := newSetup(t, provider.KindCompatible, 4, fake.Fail(&provider.Error{Kind: provider.Overloaded, Status: 529, RetryAfter: time.Minute}))
+		collect(s.reg, limit.Interactive, provider.Request{Model: "p/m1"})
+		start := time.Now()
+		done := make(chan []provider.Event)
+		go func() {
+			evs, _ := collect(s.reg, limit.Background, provider.Request{Model: "p/m1"})
+			done <- evs
+		}()
+		synctest.Wait() // the call waits out the pause
+		s.reg.Resume("p")
+		evs := <-done
+		if time.Since(start) != 0 {
+			t.Errorf("the waiting call went after %s, want at once", time.Since(start))
+		}
+		if len(evs) < 2 || evs[0].Paused != provider.Overloaded || evs[1].Kind != provider.EventWait || evs[1].Wait != 0 {
+			t.Errorf("events %+v, want a wait for an overload, then its end", evs)
 		}
 	})
 }

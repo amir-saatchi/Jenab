@@ -111,6 +111,9 @@ type Env struct {
 	// PrivateHosts are the hosts that may reach private addresses: the
 	// project's exceptions (6.7). Nil allows none.
 	PrivateHosts web.HostCheck
+	// ChatStatus gives a chat's status for list_chats, such as "in a
+	// turn"; nil or "" leaves it out. The agent sets it.
+	ChatStatus func(id.Chat) string
 }
 
 // Result is what a tool returns. A tool that stores its own output, such

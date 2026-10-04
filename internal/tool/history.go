@@ -222,7 +222,7 @@ func answerOr(a string) string {
 	return a
 }
 
-func listChats(status func(id.Chat) string) Tool {
+func listChats() Tool {
 	return Func(Spec{
 		Name:        "list_chats",
 		Description: "List the project's chats: ID, title, role and status. The Mother chat is first.",
@@ -246,8 +246,8 @@ func listChats(status func(id.Chat) string) Tool {
 			if role, _, _ := strings.Cut(strings.TrimSpace(c.Role), "\n"); role != "" {
 				fmt.Fprintf(&b, " · role: %s", role)
 			}
-			if status != nil {
-				if s := status(c.ID); s != "" {
+			if env.ChatStatus != nil {
+				if s := env.ChatStatus(c.ID); s != "" {
 					b.WriteString(" · " + s)
 				}
 			}
