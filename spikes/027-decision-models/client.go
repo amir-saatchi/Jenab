@@ -218,12 +218,47 @@ func askClefWith(ctx context.Context, model, keyName string, body any, retries b
 
 type llmProv struct {
 	Name, Host, URL, Key string
+	Model                string        // the API's model ID when it differs from the label
 	Gap                  time.Duration // pause between calls (the lane runs one call at a time)
+	In, Out              float64       // USD per million tokens, for the spending cap; 0 = free
 }
 
+// Workers AI LLMs, through its OpenAI-compatible endpoint. Prices are Cloudflare's (2026-10-04).
 var llmProvs = map[string]llmProv{
 	"gemma4:31b":    {Name: "ollama", Host: "ollama.com", URL: "https://ollama.com/v1/chat/completions", Key: "OLLAMA_API_KEY", Gap: time.Second},
 	"glm-4.5-flash": {Name: "zai", Host: "api.z.ai", URL: "https://api.z.ai/api/paas/v4/chat/completions", Key: "Z_API_KEY", Gap: 2 * time.Second},
+	"gemma-4-26b":   {Name: "workers-ai", Host: cfHost, Key: "CLOUDFLARE_TOKEN", Model: "@cf/google/gemma-4-26b-a4b-it", In: 0.1, Out: 0.3},
+	"gpt-oss-120b":  {Name: "workers-ai", Host: cfHost, Key: "CLOUDFLARE_TOKEN", Model: "@cf/openai/gpt-oss-120b", In: 0.35, Out: 0.75},
+	"qwen3-30b-a3b": {Name: "workers-ai", Host: cfHost, Key: "CLOUDFLARE_TOKEN", Model: "@cf/qwen/qwen3-30b-a3b-fp8", In: 0.0509, Out: 0.335},
+}
+
+func (p llmProv) url() string {
+	if p.URL != "" {
+		return p.URL
+	}
+	return "https://" + cfHost + "/client/v4/accounts/" + secrets["CLOUDFLARE_ID"] + "/ai/v1/chat/completions"
+}
+
+// The spending cap: Workers AI gives 10,000 free neurons a day ($0.011 per 1,000). Spend is
+// counted from each reply's usage; past the cap, the provider stops.
+var (
+	spendMu   sync.Mutex
+	spent     = map[string]float64{}
+	budgetUSD = 0.088 // 8,000 neurons
+	llmEffort string  // reasoning_effort for every LLM, "" = not sent
+)
+
+func charge(p llmProv, in, out int) {
+	if p.In == 0 && p.Out == 0 {
+		return
+	}
+	spendMu.Lock()
+	spent[p.Name] += (p.In*float64(in) + p.Out*float64(out)) / 1e6
+	s := spent[p.Name]
+	spendMu.Unlock()
+	if s > budgetUSD {
+		stopProvider(p.Name, fmt.Sprintf("spending cap: $%.4f of $%.4f", s, budgetUSD))
+	}
 }
 
 const llmSystem = `You answer typed questions about a state. The user message is a JSON object with "state" and "questions". Each question has an id, a type, instructions and criteria.
@@ -235,8 +270,12 @@ Reply with one JSON object only, mapping every question id to its answer, e.g. {
 func askLLM(ctx context.Context, model string, it *Item) (Rec, map[string]Ans) {
 	p := llmProvs[model]
 	user, _ := json.Marshal(map[string]any{"state": it.State, "questions": it.Qs})
+	id := model
+	if p.Model != "" {
+		id = p.Model
+	}
 	body := map[string]any{
-		"model": model,
+		"model": id,
 		"messages": []map[string]string{
 			{"role": "system", "content": llmSystem},
 			{"role": "user", "content": string(user)},
@@ -245,7 +284,10 @@ func askLLM(ctx context.Context, model string, it *Item) (Rec, map[string]Ans) {
 		"max_tokens":      4000,
 		"response_format": map[string]string{"type": "json_object"},
 	}
-	r, tries := withRetries(ctx, p.Name, func() reply { return send(ctx, p.Host, p.URL, p.Key, body) })
+	if llmEffort != "" {
+		body["reasoning_effort"] = llmEffort
+	}
+	r, tries := withRetries(ctx, p.Name, func() reply { return send(ctx, p.Host, p.url(), p.Key, body) })
 	rec := Rec{Model: model, Status: r.Status, Ms: r.Ms, Tries: tries, Err: r.Err, Headers: r.Headers}
 	if r.Status != 200 {
 		rec.Body = short(redact(string(r.Body)), 1000)
@@ -271,6 +313,7 @@ func askLLM(ctx context.Context, model string, it *Item) (Rec, map[string]Ans) {
 		return rec, nil
 	}
 	rec.In, rec.Out = out.Usage.Prompt, out.Usage.Completion
+	charge(p, rec.In, rec.Out)
 	text := out.Choices[0].Message.Content
 	ans := parseLLM(text, it.Qs)
 	for _, a := range ans {

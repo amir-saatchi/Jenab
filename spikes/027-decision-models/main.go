@@ -15,7 +15,7 @@ import (
 )
 
 var clefModels = []string{"clef-flash", "clef"}
-var llmModels = []string{"gemma4:31b", "glm-4.5-flash"}
+var llmModels = []string{"gemma4:31b", "glm-4.5-flash", "gemma-4-26b", "gpt-oss-120b", "qwen3-30b-a3b"}
 
 var (
 	outMu   sync.Mutex
@@ -163,6 +163,8 @@ func main() {
 	sets := flag.String("sets", "", "only these sets (main run)")
 	models := flag.String("models", "", "only these models")
 	report := flag.Bool("report", false, "rewrite results.md from results/runs.jsonl")
+	flag.Float64Var(&budgetUSD, "budget", budgetUSD, "Workers AI LLM spending cap in USD per run (8,000 neurons)")
+	flag.StringVar(&llmEffort, "effort", "", "reasoning_effort for every LLM; empty = not sent")
 	flag.Parse()
 
 	if *report {

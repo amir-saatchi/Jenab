@@ -116,3 +116,27 @@
 17:25:30 main gemma4:31b: lane done (30 calls)
 17:30:41 main glm-4.5-flash: 25 calls
 17:32:26 main glm-4.5-flash: lane done (30 calls)
+10:13:35 == main
+10:14:03 main gpt-oss-120b: lane done (16 calls)
+10:14:18 main qwen3-30b-a3b: lane done (16 calls)
+10:15:50 main gemma-4-26b: lane done (16 calls)
+10:16:11 == main
+10:17:55 main gpt-oss-120b: 25 calls
+10:19:11 main gpt-oss-120b: 50 calls
+10:20:45 main gpt-oss-120b: 75 calls
+10:22:25 main gpt-oss-120b: 100 calls
+10:23:59 main gpt-oss-120b: 125 calls
+10:25:00 main gpt-oss-120b: 150 calls
+10:26:57 main gpt-oss-120b: 175 calls
+10:27:55 STOP workers-ai: spending cap: $0.0751 of $0.0750
+10:27:55 main gpt-oss-120b: provider stopped, skipping the rest
+10:27:55 main gpt-oss-120b K06_de: provider stopped: spending cap: $0.0751 of $0.0750 
+10:27:55 provider workers-ai stopped: spending cap: $0.0751 of $0.0750
+17:48:51 == main
+17:49:46 main qwen3-30b-a3b: 25 calls
+17:50:54 main qwen3-30b-a3b: 50 calls
+17:52:13 main qwen3-30b-a3b: 75 calls
+17:52:42 STOP workers-ai: spending cap: $0.0121 of $0.0120
+17:52:42 main qwen3-30b-a3b c07_fa: provider stopped: spending cap: $0.0121 of $0.0120 
+17:52:42 main qwen3-30b-a3b: provider stopped, skipping the rest
+17:52:42 provider workers-ai stopped: spending cap: $0.0121 of $0.0120
