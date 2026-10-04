@@ -325,6 +325,7 @@ func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.S
 func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error)  // messages, notes, review results; any chat
 func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error) // revision rule as memory (3.3); ErrConflict
 func (c *ChatsDB) Search(ctx context.Context, s SearchReq) (SearchResult, error) // whole words by FTS, or a 500 ms scan inside words (2.3)
+func SearchText(text, query string, max int) ([]TextHit, int, error) // lines whose words start with the query's, as Search compares; search_ref
 type SearchReq struct { Query string; Chat id.Chat; Substring bool; Limit int } // Chat "" is the whole project; Limit 20, at most 100
 type Hit struct { Chat id.Chat; Message id.Message; Turn int; Role chat.Role; CreatedAt time.Time; Snippet string }
 type SearchResult struct { Hits []Hit; Stopped bool }                     // Stopped: the scan ran out of time
@@ -442,12 +443,18 @@ func (r *Registry) Status() []Status                               // pauses, li
 
 ```go
 type Searcher interface { Search(ctx context.Context, q SearchReq) ([]SearchResult, error) }
-type Client struct { … }  // one http.Client with the host allow-list and size caps
-func (c *Client) Search(ctx context.Context, q SearchReq) ([]SearchResult, error)
-func (c *Client) Fetch(ctx context.Context, url string, allow HostCheck) (Page, error) // readable text (3.7)
+type Client struct { … }  // the address checks in the dialer, so they cover DNS answers and every redirect; no proxy
+func NewClient(o Options) *Client // Options{Resolver, UserAgent}; tests give a fake resolver
+func (c *Client) Search(ctx context.Context, q SearchReq) ([]SearchResult, error)          // Phase 4
+func (c *Client) Fetch(ctx context.Context, url string, allow HostCheck) (Page, error) // readable text (3.7); 5 MB, 10 redirects
+type Page struct { URL, Title, Text, MIME string; Truncated, NeedsJavaScript bool } // URL after redirects; plain text and JSON as they are
+func CheckURL(raw string) (*url.URL, error) // http and https, a host, no user name
+type BlockedError struct { URL, Reason string } // loopback, private, link-local, unspecified, multicast; a scheme
+type StatusError struct { URL, Status string }
+var ErrNotPage error // a PDF, an image, other binary
 func (c *Client) Feed(ctx context.Context, urls []string, f FeedFilter) ([]FeedItem, error)
 func (c *Client) CallAPI(ctx context.Context, conn config.Connection, key secret.Value, r APIReq) (Response, error) // 6.9
-type HostCheck func(host string) bool
+type HostCheck func(host string) bool // hosts allowed to be private (a NAS at home)
 ```
 
 ### `workspace` (8.5)
@@ -519,7 +526,7 @@ type Tool interface {
     Spec() Spec
     Run(ctx context.Context, call Call) (Result, error)
 }
-type Spec struct { Name, Description string; Schema json.RawMessage; Effects Effects; Timeout time.Duration }
+type Spec struct { Name, Description string; Schema json.RawMessage; Effects Effects; Timeout time.Duration; Mother bool } // Timeout 0 is 1 min; Mother: Mother chat only
 type Effects uint // ReadsDB, WritesDB, Network, Bucket, Workspace, Memory, Schema, AsksUser, Untrusted, NoUndo
 // Untrusted: the result is outside data (web pages, files, MCP results); after one, the turn is marked (8.5, 8.7).
 // NoUndo: the change is outside the app (MCP), so *Undo turn* skips it and the chip says so.
@@ -533,27 +540,38 @@ type Needs struct { Effects Effects; Approvals []chat.Approval }
 
 // Call carries the arguments and where the call runs.
 type Call struct { ID string; Args json.RawMessage; Env *Env }
-type Env struct { Project *project.Project; Workspace *workspace.Root; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority }
+type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck }
+// Workspace *workspace.Root joins Env with the workspace package.
 
 type Result struct { Text string; Ref string; Images []chat.Image; Denied bool }
 type Error struct { Msg string; Err error } // the model can fix it (Q24)
 
-func Func[A any](s Spec, fn func(ctx context.Context, env *Env, args A) (Result, error)) Tool // Q27
+func Func[A any](s Spec, fn func(ctx context.Context, env *Env, args A) (Result, error)) Tool // Q27; args checked by JSON Schema, then decoded
+func Run(ctx context.Context, t Tool, c Call) (Result, error) // with the tool's timeout; running over it is an *Error, a cancel stays a cancel
+
+// Previews and refs (3.7)
+func Output(ctx context.Context, c Call, name string, n int, r Result, err error) (chat.ToolResult, error) // stores a large result under cache/tool/
+func Stub(r chat.ToolResult) string // a result's header without its size, for previous turns
+func HostApproval(host, by string) chat.Approval // the card for a new host (6.7, 8.8)
+func Host(u *url.URL) string // lower case and punycode, as approvals name hosts
+
+type Deps struct { Web *web.Client; ChatStatus func(id.Chat) string }
+func Builtin(d Deps) []Tool // the Phase 1 tools of this package
 
 type Registry struct { … }
 func NewRegistry() *Registry
 func (r *Registry) Add(ts ...Tool)
 func (r *Registry) Get(name string) (Tool, bool)
-func (r *Registry) For(k chat.Kind, loaded []string) []Tool // Mother gets create_chat and send_to_chat
+func (r *Registry) For(k chat.Kind) []Tool // by name; tools with Spec.Mother only for the Mother chat. Skill tools wait for SPIKE-028
 ```
 
 Where each tool is written:
 
 | Package | Tools |
 |---|---|
-| `tool` | `query`, `describe_table`, `insert`, `save_view`, `save_page`, `save_pipeline`, `read_config`, `validate`, `update_memory`, `update_session_notes`, `search_history`, `read_messages`, `read_ref`, `search_ref`, `web_search`, `read_feed`, `fetch_page`, `connect_api`, `call_api`, `list_files`, `read_file`, `search_code`, `bucket_*`, `save_link`; later `mcp_describe`, `mcp_call` (Phase 5), `edit_file`, `write_file`, `run_command` (Phase 6) |
+| `tool` | `query`, `describe_table`, `insert`, `save_view`, `save_page`, `save_pipeline`, `read_config`, `validate`, `update_memory`, `update_session_notes`, `search_history`, `read_messages`, `read_ref`, `search_ref`, `web_search`, `read_feed`, `fetch_page`, `connect_api`, `call_api`, `list_files`, `read_file`, `search_code`, `bucket_*`, `save_link`, `list_chats` (the agent gives each chat's status); later `mcp_describe`, `mcp_call` (Phase 5), `edit_file`, `write_file`, `run_command` (Phase 6) |
 | `pipeline` | `dry_run`, `run_pipeline`, `run_status` |
-| `agent` | `subagent`, `task_status`, `ask_user`, `list_chats`, `create_chat`, `send_to_chat`, `load_skill`, `request_schema_change`, `open_page` |
+| `agent` | `subagent`, `task_status`, `ask_user`, `create_chat`, `send_to_chat`, `load_skill`, `request_schema_change`, `open_page` |
 
 ## 7. `agent`: the orchestrator (8.3, Q16)
 

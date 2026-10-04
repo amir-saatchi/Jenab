@@ -319,13 +319,7 @@ func (c *ChatsDB) scanParts(ctx context.Context, s SearchReq, terms []queryTerm)
 		return hits, err
 	}
 	defer rows.Close()
-	want := make([][][]byte, len(terms)) // per term: its forms, folded
-	for i, t := range terms {
-		want[i] = [][]byte{foldBytes(nil, t.joined)}
-		if t.split != nil {
-			want[i] = append(want[i], foldBytes(nil, strings.Join(t.split, " ")))
-		}
-	}
+	want := foldedTerms(terms)
 	var folded []byte
 	seen := map[id.Message]bool{}
 	for rows.Next() {
@@ -397,6 +391,18 @@ func (c *ChatsDB) addDetails(ctx context.Context, hits []Hit) ([]Hit, error) {
 		}
 	}
 	return out, nil
+}
+
+// foldedTerms is each term's forms, folded.
+func foldedTerms(terms []queryTerm) [][][]byte {
+	want := make([][][]byte, len(terms))
+	for i, t := range terms {
+		want[i] = [][]byte{foldBytes(nil, t.joined)}
+		if t.split != nil {
+			want[i] = append(want[i], foldBytes(nil, strings.Join(t.split, " ")))
+		}
+	}
+	return want
 }
 
 func containsAll(text []byte, want [][][]byte) bool {
@@ -608,4 +614,58 @@ func find(text, term []rune, inside bool) int {
 
 func isWord(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.Is(unicode.Mn, r)
+}
+
+// TextHit is one line of a text that has every word of a query.
+type TextHit struct {
+	Offset  int // the line's byte offset in the text
+	Line    int // from 1
+	Snippet string
+}
+
+// SearchText finds the lines of text with a word that starts with each
+// word of query, compared as history search compares (SPEC 2.3). It
+// returns the first max hits and how many lines match in all. search_ref
+// uses it on stored pages and tool outputs.
+func SearchText(text, query string, max int) ([]TextHit, int, error) {
+	terms, err := queryTerms(query)
+	if err != nil || len(terms) == 0 {
+		return nil, 0, err
+	}
+	want := foldedTerms(terms)
+	forms := make([][][]rune, len(terms))
+	for i, w := range want {
+		for _, f := range w {
+			forms[i] = append(forms[i], []rune(string(f)))
+		}
+	}
+	var hits []TextHit
+	total, off, n := 0, 0, 0
+	var folded []byte
+	for line := range strings.Lines(text) {
+		n++
+		start := off
+		off += len(line)
+		// The byte check is fast and finds every match; the word check
+		// then drops matches inside words.
+		if folded = foldBytes(folded[:0], line); !containsAll(folded, want) || !startsWords(fold(line, nil), forms) {
+			continue
+		}
+		total++
+		if len(hits) < max {
+			hits = append(hits, TextHit{Offset: start, Line: n, Snippet: snippet(line, terms)})
+		}
+	}
+	return hits, total, nil
+}
+
+// startsWords reports whether every term has a form that starts a word in
+// text.
+func startsWords(text []rune, forms [][][]rune) bool {
+	for _, fs := range forms {
+		if !slices.ContainsFunc(fs, func(f []rune) bool { return find(text, f, false) >= 0 }) {
+			return false
+		}
+	}
+	return true
 }

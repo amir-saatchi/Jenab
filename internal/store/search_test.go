@@ -816,3 +816,54 @@ func (g *textGenerator) queries(rng *rand.Rand, n int) []string {
 	}
 	return qs[:n]
 }
+
+func TestSearchText(t *testing.T) {
+	zwnj := string(rune(0x200C))
+	lines := []string{
+		"Bitcoin price today\n",
+		"The Bitcoinpreis is high\n",
+		"قیمت بیت" + zwnj + "کوین امروز\n",
+		"PRICE of bitcoin, again\n",
+		"Straße and ۱۲۳ coins",
+	}
+	text := strings.Join(lines, "")
+	offset := func(i int) int { return len(strings.Join(lines[:i], "")) }
+	for _, tc := range []struct {
+		query string
+		lines []int // from 0
+	}{
+		{"bitcoin price", []int{0, 3}},
+		{"preis", nil},              // inside a word
+		{"Bitcoin", []int{0, 1, 3}}, // the start of Bitcoinpreis
+		{"بيت", []int{2}},           // Arabic yeh
+		{"بیت" + zwnj + "کوین", []int{2}},
+		{"strasse 123", []int{4}},
+		{"again today", nil},
+	} {
+		hits, total, err := SearchText(text, tc.query, 10)
+		if err != nil {
+			t.Fatalf("%q: %v", tc.query, err)
+		}
+		var got []int
+		for _, h := range hits {
+			got = append(got, h.Line-1)
+			if h.Offset != offset(h.Line-1) || h.Snippet == "" {
+				t.Errorf("%q: hit %+v, want offset %d", tc.query, h, offset(h.Line-1))
+			}
+		}
+		if !slices.Equal(got, tc.lines) || total != len(tc.lines) {
+			t.Errorf("%q: lines %v (total %d), want %v", tc.query, got, total, tc.lines)
+		}
+	}
+	// max bounds the hits, not the total.
+	hits, total, _ := SearchText(text, "bitcoin", 1)
+	if len(hits) != 1 || hits[0].Line != 1 || total != 3 {
+		t.Errorf("max 1: %+v, total %d", hits, total)
+	}
+	if hits, total, err := SearchText(text, "  ", 10); hits != nil || total != 0 || err != nil {
+		t.Errorf("blank query: %v %d %v", hits, total, err)
+	}
+	if _, _, err := SearchText(text, strings.Repeat("w ", 33), 10); !errors.Is(err, ErrBadQuery) {
+		t.Errorf("33 words: %v", err)
+	}
+}
