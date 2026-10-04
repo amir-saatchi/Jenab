@@ -17,8 +17,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
 
-// ChatsFormat is chats.db's storage format (SPEC 2.3). messages_fts comes
-// with P1-07.
+// ChatsFormat is chats.db's storage format (SPEC 2.3).
 var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 	execAll(
 		// seq goes up with every change to the chat, for snapshot plus
@@ -96,6 +95,7 @@ var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 		)`,
 		`CREATE INDEX role_changes_chat ON role_changes (chat_id, id)`,
 	),
+	ftsTables, // P1-07
 }}
 
 // Limits from SPEC 3.4 and 8.6. Tokens are estimated at 4 bytes each, as
@@ -582,6 +582,7 @@ func (c *ChatsDB) SetUsage(ctx context.Context, m id.Message, u chat.Usage) (uin
 type partRow struct {
 	kind                  chat.PartKind
 	content, ref, preview string
+	index                 string // the normalized text for messages_fts; "" for parts that aren't indexed
 }
 
 func encodeParts(ps []chat.Part) ([]partRow, error) {
@@ -591,7 +592,7 @@ func encodeParts(ps []chat.Part) ([]partRow, error) {
 		r := partRow{kind: p.Kind}
 		switch p.Kind {
 		case chat.PartText:
-			v = p.Text
+			v, r.index = p.Text, Normalize(p.Text.Text)
 		case chat.PartThinking:
 			v = p.Thinking
 		case chat.PartToolCall:
@@ -620,9 +621,18 @@ func encodeParts(ps []chat.Part) ([]partRow, error) {
 	return out, nil
 }
 
+// insertPart writes a part, and indexes a text part in the same
+// transaction.
 func insertPart(tx *sql.Tx, m id.Message, i int, r partRow) error {
-	_, err := tx.Exec(`INSERT INTO message_parts (message_id, seq, type, content, ref, preview) VALUES (?, ?, ?, ?, ?, ?)`,
-		m, i, r.kind, r.content, r.ref, r.preview)
+	var rowid int64
+	if err := tx.QueryRow(`INSERT INTO message_parts (message_id, seq, type, content, ref, preview) VALUES (?, ?, ?, ?, ?, ?) RETURNING rowid`,
+		m, i, r.kind, r.content, r.ref, r.preview).Scan(&rowid); err != nil {
+		return err
+	}
+	if r.index == "" {
+		return nil
+	}
+	_, err := tx.Exec(`INSERT INTO messages_fts (rowid, text, chat) SELECT ?, ?, chat_id FROM messages WHERE id = ?`, rowid, r.index, m)
 	return err
 }
 

@@ -10,6 +10,7 @@ require (
 	github.com/wailsapp/wails/v3 v3.0.0-beta.26
 	github.com/zalando/go-keyring v0.2.8
 	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/text v0.41.0
 	modernc.org/sqlite v1.59.0
 )
 

@@ -324,7 +324,11 @@ func (c *ChatsDB) SetTitle(ctx context.Context, ch id.Chat, title string, fixed 
 func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.Source) (uint64, error) // ≤ 500 tokens; recorded in role_changes
 func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error)  // messages, notes, review results; any chat
 func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error) // revision rule as memory (3.3); ErrConflict
-func (c *ChatsDB) Search(ctx context.Context, s SearchReq) ([]Hit, error)   // P1-07: FTS query builder, normalization (2.3)
+func (c *ChatsDB) Search(ctx context.Context, s SearchReq) (SearchResult, error) // whole words by FTS, or a 500 ms scan inside words (2.3)
+type SearchReq struct { Query string; Chat id.Chat; Substring bool; Limit int } // Chat "" is the whole project; Limit 20, at most 100
+type Hit struct { Chat id.Chat; Message id.Message; Turn int; Role chat.Role; CreatedAt time.Time; Snippet string }
+type SearchResult struct { Hits []Hit; Stopped bool }                     // Stopped: the scan ran out of time
+func Normalize(s string) string                                            // for indexed text and queries (2.3)
 // Also: Chat, Seq, SetModel, SetUsage, Archive and DeleteChat (not for Mother: ErrMother), Notes, RoleChanges.
 
 // Registry is registry.db: one connection, no writer goroutine (2.4).

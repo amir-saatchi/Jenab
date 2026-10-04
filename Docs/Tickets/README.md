@@ -47,7 +47,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-04](P1-04-projects.md) | Projects: folders, lock and recovery | P1-03 | Done |
 | [P1-05](P1-05-bucket.md) | Bucket | P1-04 | Done |
 | [P1-06](P1-06-chats.md) | Chats: storage, Mother chat, titles and roles | P1-04, P1-19 | Done |
-| [P1-07](P1-07-history-search.md) | History search | P1-06 | Open |
+| [P1-07](P1-07-history-search.md) | History search | P1-06 | Done |
 | [P1-08](P1-08-providers.md) | Providers and the model catalog | P1-02, P1-19 | Done |
 | [P1-09](P1-09-tools.md) | Tools, web pages and refs | P1-05, P1-07 | Open |
 | [P1-10](P1-10-agent-loop.md) | Agent loop | P1-06, P1-08, P1-09 | Open |
