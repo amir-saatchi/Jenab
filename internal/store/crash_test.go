@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -19,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
@@ -27,8 +29,7 @@ import (
 // process (this test binary) does real work, gets killed at a random moment
 // (TerminateProcess on Windows, SIGKILL elsewhere), and the test then opens
 // the files and checks them. A kill is not a power cut: the OS still writes
-// what it has buffered. The recovery scenario is in project; chats belong
-// to P1-06.
+// what it has buffered. The recovery scenario is in project.
 //
 // go test -run Crash ./internal/store; JENAB_CRASH_KILLS sets the kills per
 // scenario (default 5). -short skips them.
@@ -59,13 +60,16 @@ func TestCrashWorker(t *testing.T) {
 		workFormat(ctx, dir)
 	case "objects":
 		workObjects(ctx, dir)
+	case "parts":
+		workParts(ctx, dir)
 	}
 	t.Fatal("the worker returned instead of being killed")
 }
 
 // killDuring starts the worker for scenario and kills it a random time
-// after it reports READY.
-func killDuring(t *testing.T, scenario, dir string, maxDelay time.Duration) {
+// after it reports READY. It returns the lines the worker printed after
+// READY. The output is read to its end before Wait, which closes the pipe.
+func killDuring(t *testing.T, scenario, dir string, maxDelay time.Duration) []string {
 	t.Helper()
 	cmd := exec.Command(os.Args[0], "-test.run=^TestCrashWorker$", "-test.v")
 	cmd.Env = append(os.Environ(), crashEnv+"="+scenario+"|"+dir)
@@ -78,28 +82,49 @@ func killDuring(t *testing.T, scenario, dir string, maxDelay time.Duration) {
 		t.Fatal(err)
 	}
 	ready := make(chan bool, 1)
+	var scanErr error
+	lines := make(chan []string, 1)
 	go func() {
+		var got []string
+		started := false
 		sc := bufio.NewScanner(out)
 		for sc.Scan() {
-			if sc.Text() == "READY" {
+			switch {
+			case sc.Text() == "READY":
+				started = true
 				ready <- true
+			case started:
+				got = append(got, sc.Text())
 			}
 		}
-		ready <- false
+		scanErr = sc.Err()
+		if !started {
+			ready <- false
+		}
+		lines <- got
 	}()
 	select {
 	case ok := <-ready:
 		if !ok {
+			cmd.Process.Kill() // in case only the reading stopped
+			<-lines
 			cmd.Wait()
-			t.Fatal("the worker exited before READY")
+			t.Fatalf("the worker's output ended before READY (read error: %v)", scanErr)
 		}
 	case <-time.After(30 * time.Second):
 		cmd.Process.Kill()
+		<-lines
+		cmd.Wait()
 		t.Fatal("the worker never got READY")
 	}
 	time.Sleep(time.Duration(rand.Int64N(int64(maxDelay))))
 	cmd.Process.Kill()
+	got := <-lines // the pipe ends when the worker dies
 	cmd.Wait()
+	if scanErr != nil {
+		t.Fatalf("reading the worker's output: %v", scanErr)
+	}
+	return got
 }
 
 func quickCheck(t *testing.T, db *DB) {
@@ -425,5 +450,114 @@ func TestCrashObjects(t *testing.T) {
 		}
 		t.Logf("kill %d: %d hashes in use, %d files, the sweep removed %d", k+1, len(used), files, rep.Files)
 		p.Close(ctx)
+	}
+}
+
+// ---- streamed parts: a kill loses only the part in progress (P1-06) ----
+
+// partText is the text of part i of message m, so the test can tell a
+// whole part from a cut one.
+func partText(m id.Message, i, n int) string {
+	return strings.Repeat(fmt.Sprintf("%s/%d;", m, i), n)
+}
+
+func workParts(ctx context.Context, dir string) {
+	c, err := OpenChats(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	mother, err := c.EnsureMother(ctx)
+	if err != nil {
+		panic(err)
+	}
+	ms, _, err := c.Messages(ctx, mother.ID, 0, 0)
+	if err != nil {
+		panic(err)
+	}
+	turn := 1
+	if len(ms) > 0 {
+		turn = ms[len(ms)-1].Turn + 1
+	}
+	fmt.Println("READY")
+	for ; ; turn++ {
+		// The message and its tool call first, as before a tool runs.
+		m, _, err := c.AppendMessage(ctx, chat.Message{Chat: mother.ID, Turn: turn, Role: chat.RoleAssistant,
+			Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "c", Name: "t", Args: json.RawMessage("{}")}}}})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("PART %s 0\n", m.ID)
+		for i := 1; i <= 5; i++ {
+			// Stream the text into memory, as the chat runner does.
+			var b strings.Builder
+			n := 1 + rand.IntN(300)
+			for range n {
+				b.WriteString(fmt.Sprintf("%s/%d;", m.ID, i))
+				if rand.IntN(50) == 0 {
+					time.Sleep(time.Millisecond)
+				}
+			}
+			idx, _, err := c.AppendPart(ctx, m.ID, chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: b.String()}})
+			if err != nil || idx != i {
+				panic(fmt.Sprint(idx, err))
+			}
+			fmt.Printf("PART %s %d\n", m.ID, i)
+		}
+	}
+}
+
+func TestCrashStreamedParts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("crash test")
+	}
+	dir := t.TempDir()
+	ctx := context.Background()
+	reported := map[string]bool{}
+	for k := range kills() {
+		for _, l := range killDuring(t, "parts", dir, 400*time.Millisecond) {
+			reported[strings.TrimPrefix(l, "PART ")] = true
+		}
+		c, err := OpenChats(ctx, dir)
+		if err != nil {
+			t.Fatalf("kill %d: open: %v", k+1, err)
+		}
+		quickCheck(t, c.DB)
+		m, err := c.EnsureMother(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ms, seq, err := c.Messages(ctx, m.ID, 0, 0)
+		if err != nil {
+			t.Fatalf("kill %d: %v", k+1, err)
+		}
+		stored, parts := map[string]bool{}, 0
+		for _, msg := range ms {
+			for i, p := range msg.Parts {
+				parts++
+				stored[fmt.Sprintf("%s %d", msg.ID, i)] = true
+				if i == 0 {
+					if p.ToolCall == nil {
+						t.Errorf("kill %d: message %s starts with %s, not its tool call", k+1, msg.ID, p.Kind)
+					}
+					continue
+				}
+				// Whole parts only: the text is its unit repeated.
+				unit := fmt.Sprintf("%s/%d;", msg.ID, i)
+				if p.Text == nil || len(p.Text.Text) == 0 || len(p.Text.Text)%len(unit) != 0 || p.Text.Text != partText(msg.ID, i, len(p.Text.Text)/len(unit)) {
+					t.Errorf("kill %d: part %s %d is not whole", k+1, msg.ID, i)
+				}
+			}
+		}
+		for r := range reported {
+			if !stored[r] {
+				t.Errorf("kill %d: part %s was written and is gone", k+1, r)
+			}
+		}
+		// Every write bumps the sequence once, and each one wrote one part.
+		if seq != uint64(parts) {
+			t.Errorf("kill %d: seq %d, %d parts", k+1, seq, parts)
+		}
+		t.Logf("kill %d: %d messages, %d parts, %d reported", k+1, len(ms), parts, len(reported))
+		c.Close(ctx)
 	}
 }

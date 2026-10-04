@@ -66,7 +66,8 @@ type Activity struct {
 	Open    bool              `json:"open"`
 	Leases  int               `json:"leases"`
 	Work    []Status          `json:"work"`
-	Writer  store.WriterStats `json:"writer"` // project.db; chats.db joins with P1-06
+	Writer  store.WriterStats `json:"writer"`       // project.db
+	Chats   store.WriterStats `json:"chats_writer"` // chats.db
 }
 
 type noPublisher struct{}

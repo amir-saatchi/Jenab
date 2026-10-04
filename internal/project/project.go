@@ -20,10 +20,11 @@ import (
 // Project is an open project. Get one with Manager.Open and give it back
 // with Release.
 type Project struct {
-	ID   id.Project
-	Name string
-	Dir  string
-	DB   *store.ProjectDB
+	ID    id.Project
+	Name  string
+	Dir   string
+	DB    *store.ProjectDB
+	Chats *store.ChatsDB
 	// Damage is set when a database failed its quick_check after a crash.
 	// The project is then open read-only (SPEC 2.7).
 	Damage *Damage
@@ -94,7 +95,7 @@ func (p *Project) Activity() Activity {
 		rs = append(rs, p.reporters[k])
 	}
 	p.mu.Unlock()
-	a := Activity{Project: p.ID, Open: true, Work: []Status{}, Writer: p.DB.Stats()}
+	a := Activity{Project: p.ID, Open: true, Work: []Status{}, Writer: p.DB.Stats(), Chats: p.Chats.Stats()}
 	for _, r := range rs {
 		a.Work = append(a.Work, r.Status()...)
 	}
@@ -130,7 +131,7 @@ func (p *Project) close(ctx context.Context) error {
 		p.m.safely("OnClose", p.ID, fn)
 	}
 	p.cancel()
-	err := p.DB.Close(ctx)
+	err := errors.Join(p.Chats.Close(ctx), p.DB.Close(ctx))
 	if err == nil {
 		if rmErr := os.Remove(lockPath(p.Dir)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
 			err = rmErr

@@ -12,6 +12,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
@@ -109,13 +110,23 @@ func TestCreateMakesTheLayout(t *testing.T) {
 	defer e.stop(t)
 	pid := create(t, e.m, "  بیت‌کوین  ")
 	dir := filepath.Join(e.paths.Projects, string(pid))
-	for _, f := range []string{"project.db", "objects", "snapshots", "tmp"} {
+	for _, f := range []string{"project.db", "chats.db", "objects", "snapshots", "tmp"} {
 		if !exists(filepath.Join(dir, f)) {
 			t.Errorf("%s is missing", f)
 		}
 	}
 	if exists(lockPath(dir)) {
 		t.Error("Create left a lock file")
+	}
+	// The Mother chat is made by Create, before the first open.
+	chats, err := store.OpenChatsReadOnly(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := chats.Chats(context.Background())
+	chats.Close(context.Background())
+	if err != nil || len(cs) != 1 || cs[0].Kind != chat.KindMother {
+		t.Errorf("chats after Create = %+v, %v", cs, err)
 	}
 	got, err := e.reg.Project(context.Background(), pid)
 	if err != nil {
@@ -138,6 +149,59 @@ func TestCreateMakesTheLayout(t *testing.T) {
 	}
 	if _, err := e.m.Create(context.Background(), " "); !errors.Is(err, ErrNoName) {
 		t.Errorf("empty name: err = %v", err)
+	}
+}
+
+// TestMotherChat: every project has its Mother chat (SPEC 8.6), from
+// Create on, and it survives Clear and a restart.
+func TestMotherChat(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	ctx := context.Background()
+	pid := create(t, e.m, "BTC")
+	p := open(t, e.m, pid)
+	cs, err := p.Chats.Chats(ctx)
+	if err != nil || len(cs) != 1 || cs[0].Kind != chat.KindMother || cs[0].CreatedBy != id.SourceApp {
+		t.Fatalf("chats of a new project = %+v, %v", cs, err)
+	}
+	mother := cs[0]
+	if _, _, err := p.Chats.AppendMessage(ctx, chat.Message{Chat: mother.ID, Turn: 1, Role: chat.RoleUser,
+		Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Chats.Clear(ctx, mother.ID); err != nil {
+		t.Fatal(err)
+	}
+	if a := p.Activity(); a.Chats.Done < 2 {
+		t.Errorf("Activity's chats writer = %+v, want its writes counted", a.Chats)
+	}
+	p.Release()
+	e.stop(t)
+
+	e = newEnv(t, filepath.Dir(e.paths.DataFolder))
+	p = open(t, e.m, pid)
+	cs, err = p.Chats.Chats(ctx)
+	if err != nil || len(cs) != 1 || cs[0].ID != mother.ID {
+		t.Fatalf("after Clear and a restart: %+v, %v", cs, err)
+	}
+	if ms, _, _ := p.Chats.Messages(ctx, mother.ID, 0, 0); len(ms) != 0 {
+		t.Errorf("Clear kept %d messages", len(ms))
+	}
+	dir := p.Dir
+	p.Release()
+	e.stop(t)
+
+	// A project whose chats.db is gone, e.g. one made before it existed,
+	// gets a new Mother chat when it opens.
+	if err := os.Remove(filepath.Join(dir, "chats.db")); err != nil {
+		t.Fatal(err)
+	}
+	e = newEnv(t, filepath.Dir(e.paths.DataFolder))
+	defer e.stop(t)
+	p = open(t, e.m, pid)
+	defer p.Release()
+	cs, err = p.Chats.Chats(ctx)
+	if err != nil || len(cs) != 1 || cs[0].Kind != chat.KindMother {
+		t.Fatalf("chats after chats.db was removed = %+v, %v", cs, err)
 	}
 }
 
@@ -369,6 +433,10 @@ func TestDamagedProjectOpensReadOnly(t *testing.T) {
 	e.stop(t)
 
 	// Garbage over the table's pages, and a lock file as after a crash.
+	// chats.db is gone too: a new one is made, since it holds nothing.
+	if err := os.Remove(filepath.Join(dir, "chats.db")); err != nil {
+		t.Fatal(err)
+	}
 	f, err := os.OpenFile(filepath.Join(dir, "project.db"), os.O_RDWR, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -389,8 +457,11 @@ func TestDamagedProjectOpensReadOnly(t *testing.T) {
 	defer e.stop(t)
 	p = open(t, e.m, pid)
 	defer p.Release()
-	if p.Damage == nil || !p.ReadOnly() || !p.DB.ReadOnly() {
-		t.Fatalf("damage = %+v, read-only %v", p.Damage, p.DB.ReadOnly())
+	if p.Damage == nil || !p.ReadOnly() || !p.DB.ReadOnly() || !p.Chats.ReadOnly() {
+		t.Fatalf("damage = %+v, read-only %v and %v", p.Damage, p.DB.ReadOnly(), p.Chats.ReadOnly())
+	}
+	if cs, err := p.Chats.Chats(ctx); err != nil || len(cs) != 1 {
+		t.Errorf("chats of a damaged project: %d, %v", len(cs), err)
 	}
 	if p.Damage.File != "project.db" || p.Damage.Snapshot != snap || p.Damage.Problem == "" {
 		t.Errorf("damage = %+v", p.Damage)

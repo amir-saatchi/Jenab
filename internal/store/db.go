@@ -266,6 +266,41 @@ func Query[T any](ctx context.Context, db *DB, q string, args []any, scan func(*
 	return out, rows.Err()
 }
 
+// readTx runs fn in one transaction on a reader connection, so its queries
+// see the same state of the file.
+func readTx[T any](ctx context.Context, db *DB, fn func(*sql.Tx) (T, error)) (T, error) {
+	var zero T
+	c, err := db.reader(ctx)
+	if err != nil {
+		return zero, err
+	}
+	defer c.Close()
+	tx, err := c.BeginTx(ctx, nil)
+	if err != nil {
+		return zero, err
+	}
+	defer tx.Rollback()
+	return fn(tx)
+}
+
+// queryTx is Query inside a transaction.
+func queryTx[T any](tx *sql.Tx, q string, args []any, scan func(*sql.Rows) (T, error)) ([]T, error) {
+	rows, err := tx.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []T
+	for rows.Next() {
+		v, err := scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
 // reader takes a connection from the pool and sets the guards again, so a
 // connection that something changed can't be used without them (SPEC 2.2).
 func (db *DB) reader(ctx context.Context) (*sql.Conn, error) {
@@ -287,6 +322,16 @@ func (db *DB) reader(ctx context.Context) (*sql.Conn, error) {
 		}
 	}
 	return c, nil
+}
+
+// isUnique and isForeignKey report a failed UNIQUE or FOREIGN KEY
+// constraint.
+func isUnique(err error) bool     { return constraint(err, 2067) || constraint(err, 1555) }
+func isForeignKey(err error) bool { return constraint(err, 787) }
+
+func constraint(err error, code int) bool {
+	var se *sqlite.Error
+	return errors.As(err, &se) && se.Code() == code
 }
 
 func isBusy(err error) bool {

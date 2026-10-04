@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -23,7 +24,8 @@ import (
 // The P1-04 crash test, in the style of SPIKE-008 and store's crash tests: a
 // worker process (this test binary) opens a project and writes until it is
 // killed (TerminateProcess on Windows, SIGKILL elsewhere). The next open must
-// find the lock, recover, and give a project that works.
+// find the lock, recover, and give a project that works. Streamed chat parts
+// are checked in store's crash tests.
 //
 // go test -run Crash ./internal/project; JENAB_CRASH_KILLS sets the kills
 // (default 5). -short skips it.
@@ -64,6 +66,22 @@ func TestCrashWorker(t *testing.T) {
 		for i := 0; ; i++ {
 			body := strings.NewReader(fmt.Sprintf("object %d %s", i, strings.Repeat("x", i%5000)))
 			if _, err := p.DB.PutObject(ctx, limit.Background, id.SourceApp, fmt.Sprintf("o/%d", i%20), body, store.PutOptions{Source: "tool"}); err != nil {
+				panic(err)
+			}
+		}
+	}()
+	go func() { // and chat messages, so a kill can land in a chats.db write
+		cs, err := p.Chats.Chats(ctx)
+		if err != nil {
+			panic(err)
+		}
+		for turn := 1; ; turn++ {
+			m, _, err := p.Chats.AppendMessage(ctx, chat.Message{Chat: cs[0].ID, Turn: turn, Role: chat.RoleUser,
+				Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}})
+			if err == nil {
+				_, _, err = p.Chats.AppendPart(ctx, m.ID, chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: strings.Repeat("و", turn%3000)}})
+			}
+			if err != nil {
 				panic(err)
 			}
 		}
@@ -162,6 +180,14 @@ func TestCrashRecovery(t *testing.T) {
 				r.Close()
 			}
 		}
+		// One Mother chat, and chats.db takes writes.
+		cs, err := p.Chats.Chats(ctx)
+		if err != nil || len(cs) != 1 || cs[0].Kind != chat.KindMother {
+			t.Fatalf("kill %d: chats = %+v, %v", k, cs, err)
+		}
+		if _, err := p.Chats.Clear(ctx, cs[0].ID); err != nil {
+			t.Fatalf("kill %d: chats.db write after recovery: %v", k, err)
+		}
 		// Whole batches or nothing, and the project takes writes.
 		var rows, partial int
 		qctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -219,7 +245,8 @@ func killWorker(t *testing.T, spec string, maxDelay time.Duration) {
 		t.Fatal(err)
 	}
 	ready := make(chan bool, 1)
-	gone := make(chan struct{}) // closed when the worker's output ends
+	var scanErr error
+	gone := make(chan struct{}) // closed when the worker's output ends; Wait only after it
 	go func() {
 		defer close(gone)
 		sc := bufio.NewScanner(out)
@@ -228,16 +255,20 @@ func killWorker(t *testing.T, spec string, maxDelay time.Duration) {
 				ready <- true
 			}
 		}
+		scanErr = sc.Err()
 		ready <- false
 	}()
 	select {
 	case ok := <-ready:
 		if !ok {
+			cmd.Process.Kill() // in case only the reading stopped
+			<-gone
 			cmd.Wait()
-			t.Fatal("the worker exited before READY")
+			t.Fatalf("the worker's output ended before READY (read error: %v)", scanErr)
 		}
 	case <-time.After(30 * time.Second):
 		cmd.Process.Kill()
+		<-gone
 		cmd.Wait()
 		t.Fatal("the worker never got READY")
 	}
@@ -248,7 +279,11 @@ func killWorker(t *testing.T, spec string, maxDelay time.Duration) {
 	case <-time.After(50*time.Millisecond + time.Duration(rand.Int64N(int64(maxDelay)))):
 	}
 	cmd.Process.Kill()
+	<-gone
 	cmd.Wait()
+	if scanErr != nil {
+		t.Fatalf("reading the worker's output: %v", scanErr)
+	}
 }
 
 func fileExists(p string) bool { return exists(p) }

@@ -77,8 +77,9 @@ func (m *Manager) FolderWarning() *FolderWarning {
 	return m.warning
 }
 
-// Create makes a project folder with the 2.1 layout and an empty project.db,
-// and adds it to the registry. It does not open the project.
+// Create makes a project folder with the 2.1 layout, project.db and
+// chats.db with the Mother chat, and adds it to the registry. It does not
+// open the project.
 func (m *Manager) Create(ctx context.Context, name string) (id.Project, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -106,6 +107,9 @@ func (m *Manager) create(ctx context.Context, pid id.Project, name, dir string) 
 	now := time.Now().UTC()
 	err = db.SetMeta(ctx, map[string]string{metaID: string(pid), metaName: name, metaCreated: now.Format(time.RFC3339Nano)})
 	if err = errors.Join(err, db.Close(ctx)); err != nil {
+		return err
+	}
+	if err := newChats(ctx, dir); err != nil {
 		return err
 	}
 	return m.d.Registry.SaveProject(ctx, store.ProjectEntry{ID: pid, Name: name, Folder: dir, CreatedAt: now})
@@ -236,14 +240,9 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 	if err := writeLock(p.Dir); err != nil {
 		return fmt.Errorf("project %s: %w", p.ID, err)
 	}
-	if p.Damage != nil {
-		p.DB, err = store.OpenProjectReadOnly(ctx, p.Dir)
-	} else {
-		p.DB, err = store.OpenProject(ctx, p.Dir)
-	}
-	if err != nil {
+	if err := p.openFiles(ctx); err != nil {
 		if !crashed {
-			os.Remove(lockPath(p.Dir)) // nothing was opened; the files are as they were
+			os.Remove(lockPath(p.Dir)) // the files were closed again, cleanly
 		}
 		return fmt.Errorf("project %s: %w", p.ID, err)
 	}
@@ -270,6 +269,52 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 			Text: "The last session did not end cleanly. The project was checked and works."})
 	}
 	return nil
+}
+
+// openFiles opens project.db and chats.db, both read-only after damage. A
+// project without a Mother chat, for example after a crash while it was
+// created, gets one. A missing chats.db holds nothing to protect, so it is
+// made new even when project.db is damaged.
+func (p *Project) openFiles(ctx context.Context) error {
+	var err error
+	if p.Damage != nil {
+		p.DB, err = store.OpenProjectReadOnly(ctx, p.Dir)
+	} else {
+		p.DB, err = store.OpenProject(ctx, p.Dir)
+	}
+	if err != nil {
+		return err
+	}
+	if p.Damage != nil {
+		if _, statErr := os.Stat(filepath.Join(p.Dir, "chats.db")); errors.Is(statErr, os.ErrNotExist) {
+			err = newChats(ctx, p.Dir)
+		}
+		if err == nil {
+			p.Chats, err = store.OpenChatsReadOnly(ctx, p.Dir)
+		}
+	} else {
+		p.Chats, err = store.OpenChats(ctx, p.Dir)
+	}
+	if err == nil && p.Damage == nil {
+		if _, err = p.Chats.EnsureMother(ctx); err != nil {
+			p.Chats.Close(ctx)
+		}
+	}
+	if err != nil {
+		p.DB.Close(ctx)
+		return err
+	}
+	return nil
+}
+
+// newChats creates dir/chats.db, or opens it, with its Mother chat.
+func newChats(ctx context.Context, dir string) error {
+	chats, err := store.OpenChats(ctx, dir)
+	if err != nil {
+		return err
+	}
+	_, err = chats.EnsureMother(ctx)
+	return errors.Join(err, chats.Close(ctx))
 }
 
 // release gives back one lease; the last one starts the idle timer.

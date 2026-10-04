@@ -311,13 +311,21 @@ func (p *ProjectDB) StartRun(ctx context.Context, r Run) error
 func (p *ProjectDB) FinishStep(ctx context.Context, s RunStep) error
 func (p *ProjectDB) FinishRun(ctx context.Context, id id.Run, st RunState) error
 
-type ChatsDB struct { db *DB }
-func (c *ChatsDB) Chats(ctx context.Context) ([]chat.Chat, error)
-func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]chat.Message, error)
-func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) error  // before any tool runs (2.3)
-func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) error
-func (c *ChatsDB) Search(ctx context.Context, s SearchReq) ([]Hit, error)   // FTS query builder, normalization (2.3)
-func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error)
+// ChatsDB is chats.db. Every write to a chat adds one to its seq and returns it (Q32).
+type ChatsDB struct { *DB }
+func OpenChats(ctx context.Context, dir string) (*ChatsDB, error)          // and OpenChatsReadOnly after damage
+func (c *ChatsDB) EnsureMother(ctx context.Context) (chat.Chat, error)     // at create and at every open (8.6)
+func (c *ChatsDB) CreateChat(ctx context.Context, src id.Source, ch chat.Chat) (chat.Chat, error) // model "default"
+func (c *ChatsDB) Chats(ctx context.Context) ([]chat.Chat, error)          // Mother first
+func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]chat.Message, uint64, error) // turns, with the seq they are current at
+func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Message, uint64, error) // before any tool runs (2.3)
+func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (int, uint64, error) // a finished part; its index
+func (c *ChatsDB) SetTitle(ctx context.Context, ch id.Chat, title string, fixed bool) (string, uint64, error) // unique; generated ones get a number
+func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.Source) (uint64, error) // ≤ 500 tokens; recorded in role_changes
+func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error)  // messages, notes, review results; any chat
+func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error) // revision rule as memory (3.3); ErrConflict
+func (c *ChatsDB) Search(ctx context.Context, s SearchReq) ([]Hit, error)   // P1-07: FTS query builder, normalization (2.3)
+// Also: Chat, Seq, SetModel, SetUsage, Archive and DeleteChat (not for Mother: ErrMother), Notes, RoleChanges.
 
 // Registry is registry.db: one connection, no writer goroutine (2.4).
 type Registry struct { … }
@@ -354,7 +362,7 @@ type Project struct {
     Name   string
     Dir    string
     DB     *store.ProjectDB
-    Chats  *store.ChatsDB // P1-06
+    Chats  *store.ChatsDB // read-only with DB after damage
     Damage *Damage        // set when a quick_check failed; the project is then read-only (2.7)
     // unexported: lease count, idle timer, reporters
 }
