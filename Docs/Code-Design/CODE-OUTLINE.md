@@ -69,7 +69,7 @@ func run(args []string) error {
     calls := limit.NewGate(settings.LLM.MaxParallelCalls)
     runs  := limit.NewGate(settings.Scheduler.MaxParallelRuns)
 
-    models   := provider.NewRegistry(provider.Deps{Settings: settings, Secrets: secrets, Gate: calls, Log: log})
+    models   := provider.NewRegistry(provider.Deps{Settings: settings.LLM, Secrets: secrets, Gate: calls, Backends: backends.All(), Log: log})
     projects := project.NewManager(project.Deps{Paths: paths, Registry: registry, Log: log})
     webc     := web.New(web.Deps{Secrets: secrets, Searchers: web.Searchers(settings, secrets)})
     tools    := tool.NewRegistry()
@@ -374,15 +374,21 @@ type Provider interface {
 }
 
 type Request struct {
-    Model     string
+    Model     string         // "<connection>/<modelID>" or an alias; the Registry resolves it
     System    []Block        // with cache points (3.1)
     Messages  []chat.Message
     Tools     []ToolDef      // name, description, JSON Schema; agent converts tool.Spec to this
     MaxTokens int
+    Thinking  bool
+    Known     *Model         // the catalog entry, set by the Registry: protocol facts such as ThinkingBudget
+    Context   int            // the context window, set by the Registry; Ollama sends it as num_ctx
+    Image     func(ctx context.Context, ref string) ([]byte, error) // reads image parts from the bucket
 }
-type Event struct { Kind EventKind; Text string; Call *chat.ToolCall; Usage *chat.Usage; Stop StopReason }
+// Events: deltas (for the screen), finished parts (stored), then done with usage and the stop reason.
+// EventWait comes from the Registry while the provider is paused.
+type Event struct { Kind EventKind; PartKind chat.PartKind; Text string; Part *chat.Part; Usage *chat.Usage; Stop StopReason; Wait time.Duration }
 
-type Error struct { Kind ErrorKind; Status int; RetryAfter time.Duration; Provider string; Err error }
+type Error struct { Kind ErrorKind; Provider string; Status int; RetryAfter time.Duration; Message string; Err error }
 // Kinds (3.8): RateLimited, Overloaded, Transport (cut-off and stalled streams too) are retried with the
 // waits; Quota and Request (auth included) never are; TooLarge shrinks the context.
 
@@ -392,11 +398,23 @@ type Error struct { Kind ErrorKind; Status int; RetryAfter time.Duration; Provid
 type Registry struct { … }
 func NewRegistry(d Deps) *Registry
 func (r *Registry) Stream(ctx context.Context, p limit.Priority, req Request) iter.Seq2[Event, error]
-func (r *Registry) Models(ctx context.Context) ([]ModelInfo, error) // the built-in catalog plus each provider's list (3.9)
+func (r *Registry) Apply(s config.LLMSettings)                     // settings changed: limits, connections
+func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL, key string, fields map[string]string) (Connected, error) // 3.9
+// Connected: Settings to save, Other models, NoModelList (the user types the models)
+func (r *Registry) Models(ctx context.Context, provider string) ([]ModelInfo, error)
+func (r *Registry) Status() []Status                               // pauses, limits, last problem
 ```
 
-- `provider/anthropic`, `provider/openai` (OpenAI, Gemini, Ollama, compatible): `New(Options) provider.Provider`. Each maps its protocol and errors; nothing else.
-- `provider/fake`: `fake.New(steps ...fake.Step) provider.Provider` plays scripted events, delays and errors.
+- Connections are `llm.providers` in the settings: a name, a kind (`anthropic`, `openai`, `gemini`, `openai_compatible`, `ollama`), a base URL and the models that are on. The key is in the keychain as `provider:<name>`.
+- A base URL may hold placeholders such as `{account_id}` (`Placeholders`); their values are in the keychain as `provider:<name>:<field>` (`FieldName`) and filled in when the backend is built.
+- `Presets` lists well-known providers for the *Connect* form: a name, kind and base URL, never models.
+- A local Ollama (by kind and a loopback base URL) gets a background limit of 1 unless `provider_max_parallel_calls` names it.
+- `models.json` is the built-in catalog (3.9): facts only (limits, prices, `thinking_budget`), never prompts.
+- Backends implement `Provider` and handle only their protocol. `backends.All()` maps each kind to one, apart from `provider` so there is no import cycle:
+  - `provider/anthropic`: the Messages API.
+  - `provider/openai`: the Responses API for OpenAI; Chat Completions for Gemini and OpenAI-compatible APIs.
+  - `provider/ollama`: Ollama's native `/api/chat`, which takes `num_ctx` and `keep_alive`.
+- `provider/fake`: `fake.New(replies ...fake.Reply)` plays scripted events, waits and errors.
 
 ### `web` (6.5, 6.7)
 

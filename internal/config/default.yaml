@@ -15,14 +15,14 @@ context:
 
 llm:
   max_parallel_calls: 8               # background LLM calls; chats count but never wait
-  provider_max_parallel_calls:        # per provider, for background calls
-    ollama: 1                         # local models answer one request at a time
+  provider_max_parallel_calls: {}     # background calls per provider, by its name; a local Ollama gets 1
   max_background_tasks_per_chat: 3
   max_subagents_per_chat: 5           # subagents running at once in one chat
   turn_max_requests: 25               # model requests per user turn
   system_turn_max_requests: 8         # model requests per turn the app starts
   system_turn_max_tokens: 20000       # token cap for turns started by a finish notice
   models: {}                          # aliases such as default and fast; set when a provider is connected
+  providers: {}                       # connected providers; set in Settings → Models, keys stay in the keychain
 
 scheduler:
   max_parallel_runs: 4                # pipeline runs across all projects

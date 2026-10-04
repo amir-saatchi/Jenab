@@ -44,14 +44,37 @@ type ContextSettings struct {
 // aliases (SPEC 3.9).
 type LLMSettings struct {
 	MaxParallelCalls          int               `yaml:"max_parallel_calls"`          // background calls; chats never wait
-	ProviderMaxParallelCalls  map[string]int    `yaml:"provider_max_parallel_calls"` // provider ID → background calls
+	ProviderMaxParallelCalls  map[string]int    `yaml:"provider_max_parallel_calls"` // provider name → background calls; a local Ollama defaults to 1
 	MaxBackgroundTasksPerChat int               `yaml:"max_background_tasks_per_chat"`
 	MaxSubagentsPerChat       int               `yaml:"max_subagents_per_chat"`
 	TurnMaxRequests           int               `yaml:"turn_max_requests"`
 	SystemTurnMaxRequests     int               `yaml:"system_turn_max_requests"`
 	SystemTurnMaxTokens       int               `yaml:"system_turn_max_tokens"`
 	Models                    map[string]string `yaml:"models"` // alias → model, e.g. "default"
+	// Providers are the connected providers by name, e.g. "gemini" or
+	// "zai". Their keys are in the OS keychain as "provider:<name>".
+	Providers map[string]ProviderSettings `yaml:"providers"`
 }
+
+// ProviderSettings is one connected provider (SPEC 3.9).
+type ProviderSettings struct {
+	Kind string `yaml:"kind"` // anthropic, openai, gemini, openai_compatible or ollama
+	// BaseURL is needed for openai_compatible; "" means the kind's own. It
+	// may hold placeholders such as {account_id}, whose values are kept in
+	// the keychain like the key, not in this file.
+	BaseURL string `yaml:"base_url,omitempty"`
+	// Models are the models that are on, as the provider names them.
+	Models []ModelSettings `yaml:"models"`
+}
+
+// ModelSettings is a model that is on.
+type ModelSettings struct {
+	ID      string `yaml:"id"`
+	Context int    `yaml:"context,omitempty"` // tokens; for models the catalog doesn't know
+}
+
+// ProviderKinds are the kinds a provider can have.
+var ProviderKinds = []string{"anthropic", "openai", "gemini", "openai_compatible", "ollama"}
 
 type SchedulerSettings struct {
 	MaxParallelRuns int `yaml:"max_parallel_runs"`
@@ -224,6 +247,23 @@ func (s *Settings) check(root *yaml.Node) []Problem {
 	}
 	if l.ProviderMaxParallelCalls == nil {
 		l.ProviderMaxParallelCalls = map[string]int{}
+	}
+	if l.Providers == nil {
+		l.Providers = map[string]ProviderSettings{}
+	}
+	for name, p := range l.Providers {
+		path := "llm.providers." + name
+		switch {
+		case name == "" || strings.ContainsAny(name, "/: "):
+			bad(path, fmt.Sprintf("%q is not a usable name: no slash, colon or space", name))
+		case !slices.Contains(ProviderKinds, p.Kind):
+			bad(path+".kind", fmt.Sprintf("%q is not one of %s", p.Kind, strings.Join(ProviderKinds, ", ")))
+		case p.Kind == "openai_compatible" && p.BaseURL == "":
+			bad(path+".base_url", "an OpenAI-compatible provider needs a base URL")
+		default:
+			continue
+		}
+		delete(l.Providers, name) // the provider is left out until it is fixed
 	}
 
 	atLeast("scheduler.max_parallel_runs", &s.Scheduler.MaxParallelRuns, 1, d.Scheduler.MaxParallelRuns)

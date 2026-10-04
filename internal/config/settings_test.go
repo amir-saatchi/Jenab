@@ -24,7 +24,7 @@ func TestDefaults(t *testing.T) {
 		t.Errorf("default.yaml has problems: %v", probs)
 	}
 	if d.LLM.Models == nil || d.Updates.Mode != "notify" || d.LLM.MaxParallelCalls != 8 ||
-		d.LLM.MaxSubagentsPerChat != 5 || d.LLM.ProviderMaxParallelCalls["ollama"] != 1 {
+		d.LLM.MaxSubagentsPerChat != 5 || len(d.LLM.ProviderMaxParallelCalls) != 0 {
 		t.Errorf("Defaults = %+v", d)
 	}
 	// Every field of Settings is in default.yaml, so a new file documents all of them.
@@ -150,9 +150,8 @@ func TestLoadProviderLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Entries are added to the default ones; a bad one is dropped, so that
-	// provider gets the global limit.
-	want := map[string]int{"gemini": 2, "ollama": 1}
+	// A bad entry is dropped, so that provider gets the global limit.
+	want := map[string]int{"gemini": 2}
 	if diff := cmp.Diff(want, s.LLM.ProviderMaxParallelCalls); diff != "" {
 		t.Errorf("(-want +got):\n%s", diff)
 	}
@@ -189,7 +188,7 @@ func TestSaveNewFile(t *testing.T) {
 		"# Jenab settings.",                    // the template's header
 		"theme: light # light, dark or system", // value changed, comment kept
 		"models: {}",
-		"ollama: 1 # local models answer one request at a time", // a map entry keeps its comment
+		"provider_max_parallel_calls: {} # background calls per provider", // an empty map keeps its comment
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("new file is missing %q:\n%s", want, text)

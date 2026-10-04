@@ -32,6 +32,12 @@ type Value struct {
 	reveal func() string
 }
 
+// NewValue wraps a value the user just typed, before it is stored, so it is
+// handled like a stored one (e.g. a key tried by Connect).
+func NewValue(name, v string) Value {
+	return Value{name: name, reveal: func() string { return v }}
+}
+
 // Name is the keychain name, e.g. "provider:anthropic".
 func (s Value) Name() string { return s.name }
 
