@@ -2,9 +2,13 @@ package store
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"os"
 	"os/exec"
@@ -15,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
 
@@ -22,8 +27,8 @@ import (
 // process (this test binary) does real work, gets killed at a random moment
 // (TerminateProcess on Windows, SIGKILL elsewhere), and the test then opens
 // the files and checks them. A kill is not a power cut: the OS still writes
-// what it has buffered. The bucket, chats and recovery scenarios belong to
-// P1-04 to P1-06.
+// what it has buffered. The recovery scenario is in project; chats belong
+// to P1-06.
 //
 // go test -run Crash ./internal/store; JENAB_CRASH_KILLS sets the kills per
 // scenario (default 5). -short skips them.
@@ -52,6 +57,8 @@ func TestCrashWorker(t *testing.T) {
 		workSnapshots(ctx, dir)
 	case "format":
 		workFormat(ctx, dir)
+	case "objects":
+		workObjects(ctx, dir)
 	}
 	t.Fatal("the worker returned instead of being killed")
 }
@@ -337,4 +344,86 @@ func TestCrashFormatUpdate(t *testing.T) {
 		}
 	}
 	t.Logf("after the kills: %d at version 1, %d at version 2", seen[1], seen[2])
+}
+
+// ---- objects: no row ever points to missing bytes (N-30) ----
+
+func workObjects(ctx context.Context, dir string) {
+	p, err := OpenProject(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	go func() {
+		for {
+			if _, err := p.SweepObjects(ctx); err != nil {
+				panic(err)
+			}
+		}
+	}()
+	fmt.Println("READY")
+	for i := 0; ; i++ {
+		data := make([]byte, rand.IntN(64<<10))
+		for j := range data {
+			data[j] = byte(rand.IntN(256))
+		}
+		if i%5 == 0 {
+			data = []byte(fmt.Sprintf("repeated %d", i%3)) // stored once
+		}
+		if i%7 == 0 {
+			p.objects.Put(ctx, bytes.NewReader(data), 0) // bytes with no row, for the sweep
+			continue
+		}
+		if _, err := p.PutObject(ctx, limit.Background, id.SourceApp, fmt.Sprintf("k/%d", i%50), bytes.NewReader(data), PutOptions{Source: "tool"}); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func TestCrashObjects(t *testing.T) {
+	if testing.Short() {
+		t.Skip("crash test")
+	}
+	dir := t.TempDir()
+	ctx := context.Background()
+	for k := range kills() {
+		killDuring(t, "objects", dir, 500*time.Millisecond)
+		p, err := OpenProject(ctx, dir)
+		if err != nil {
+			t.Fatalf("kill %d: open: %v", k+1, err)
+		}
+		quickCheck(t, p.DB)
+		used, err := p.usedHashes(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for h := range used {
+			r, err := p.objects.Open(ctx, h)
+			if err != nil {
+				t.Errorf("kill %d: a row points to missing bytes: %v", k+1, err)
+				continue
+			}
+			sum := sha256.New()
+			io.Copy(sum, r)
+			r.Close()
+			if hex.EncodeToString(sum.Sum(nil)) != h {
+				t.Errorf("kill %d: the bytes of %s don't match their name", k+1, h)
+			}
+		}
+		rep, err := p.SweepObjects(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files := 0
+		for s, err := range p.objects.All(ctx) {
+			if err != nil {
+				t.Fatal(err)
+			}
+			files++
+			if !used[s.Hash] {
+				t.Errorf("kill %d: %s has no row after the sweep", k+1, s.Hash)
+			}
+		}
+		t.Logf("kill %d: %d hashes in use, %d files, the sweep removed %d", k+1, len(used), files, rep.Files)
+		p.Close(ctx)
+	}
 }

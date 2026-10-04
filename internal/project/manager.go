@@ -247,6 +247,15 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 		}
 		return fmt.Errorf("project %s: %w", p.ID, err)
 	}
+	if crashed && p.Damage == nil {
+		// Recovery step 4: bytes a put wrote before it crashed (SPEC 2.7).
+		rep, err := p.DB.SweepObjects(ctx)
+		if err != nil {
+			m.d.Log.Warn("project: the objects sweep failed", "project", p.ID, "err", err)
+		} else if rep.Files > 0 {
+			m.d.Log.Info("project: removed bytes no object points to", "project", p.ID, "files", rep.Files, "bytes", rep.Bytes)
+		}
+	}
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if err := m.d.Registry.TouchProject(ctx, p.ID, time.Now()); err != nil {
 		m.d.Log.Warn("project: could not save the open time", "project", p.ID, "err", err)

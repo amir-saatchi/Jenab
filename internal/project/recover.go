@@ -32,7 +32,7 @@ func writeLock(dir string) error {
 //     project opens read-only;
 //  2. runs still `running` become `interrupted` (Phase 4, when runs exist);
 //  3. tmp/ is emptied, and partial snapshots are deleted;
-//  4. the objects/ sweep comes with the bucket (P1-05).
+//  4. objects/ is swept once the database is open (Manager.load).
 //
 // SQLite needs no help: it discards an interrupted transaction itself.
 func recoverProject(ctx context.Context, dir string) (*Damage, error) {

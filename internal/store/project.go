@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"sync"
 
+	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
 
@@ -31,15 +33,25 @@ var ProjectFormat = Format{Name: "project", Steps: []func(*sql.Tx) error{
 		)`,
 		`CREATE INDEX _jenab_approvals_target ON _jenab_approvals (kind, target)`,
 	),
+	objectTables,
 }}
 
 // projectPragmas are for the project.db writer: a 64 MB cache, and a WAL
 // that shrinks back to 64 MB after a large write (SPEC 7.2).
 var projectPragmas = []string{"journal_size_limit = 67108864", "cache_size = -65536"}
 
-// ProjectDB is a project's project.db.
+// ProjectDB is a project's project.db, with its bucket's bytes.
 type ProjectDB struct {
 	*DB
+	objects bucket.ObjectStore
+	// objMu keeps the sweep from removing bytes that a put is about to
+	// point to: a put holds it for reading from its bytes to its index
+	// row, the sweep for writing while it removes (SPEC 4.3).
+	objMu sync.RWMutex
+}
+
+func newProjectDB(db *DB, dir string) *ProjectDB {
+	return &ProjectDB{DB: db, objects: bucket.NewFolder(filepath.Join(dir, "objects"), filepath.Join(dir, "tmp"))}
 }
 
 // OpenProject opens dir/project.db, creating it if needed. Backups before a
@@ -53,7 +65,7 @@ func OpenProject(ctx context.Context, dir string) (*ProjectDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ProjectDB{DB: db}, nil
+	return newProjectDB(db, dir), nil
 }
 
 // OpenProjectReadOnly opens dir/project.db for reading only, for a file that
@@ -63,7 +75,7 @@ func OpenProjectReadOnly(ctx context.Context, dir string) (*ProjectDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ProjectDB{DB: db}, nil
+	return newProjectDB(db, dir), nil
 }
 
 // ReadProjectMeta reads _jenab_meta of a project that is not open, without

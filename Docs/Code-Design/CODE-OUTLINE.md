@@ -246,17 +246,23 @@ type RejectError struct { Layer int; Reason string; Pos int }
 
 ```go
 type ObjectStore interface {
-    Put(ctx context.Context, hash string, r io.Reader) error // write .partial, fsync, rename
-    Open(ctx context.Context, hash string) (io.ReadCloser, error)
+    Put(ctx context.Context, r io.Reader, max int64) (Blob, error) // tmp/ while hashing, fsync, rename; ErrTooLarge
+    Open(ctx context.Context, hash string) (io.ReadSeekCloser, error)
     Delete(ctx context.Context, hash string) error
-    All(ctx context.Context) iter.Seq2[string, error]        // for the sweep (2.7)
+    All(ctx context.Context) iter.Seq2[Stored, error]               // for the sweep (4.4)
+    CleanTmp(ctx context.Context, t time.Time) (int, error)
 }
-type Folder struct { root string }  // objects/ab/12/ab12f9…
-func NewFolder(root string) *Folder
-func Hash(r io.Reader) (string, error)
+type Blob struct { Hash string; Size int64; Head []byte }          // Head: the first 512 bytes, for DetectMIME
+type Folder struct { … }                                            // objects/ab/12/ab12f9…
+func NewFolder(objects, tmp string) *Folder
+func CheckKey(key string) error                                     // 4.1
+func Link(p id.Project, key string) string                          // jenab://<project_id>/<key> (4.5)
+func ParseLink(s string) (id.Project, string, error)
+func DetectMIME(head []byte, key string) string                     // from the bytes, never the source (4.7)
+func Handler(open Opener) http.Handler                              // /objects/<project_id>/<key>, the 4.7 rules
 ```
 
-The index tables and the write order (4.3) are in `store`, which calls `bucket`.
+The index tables and the write order (4.3) are in `store`, which calls `bucket`. The handler is mounted on the Wails asset server in `app`.
 
 ### `store`: databases, writers, readers (2, 7)
 
@@ -294,7 +300,11 @@ func (p *ProjectDB) SaveConfig(ctx context.Context, src id.Source, c SavedConfig
 func (p *ProjectDB) UpdateMemory(ctx context.Context, src id.Source, section, content string, rev int) (int, error)
 func (p *ProjectDB) Migrate(ctx context.Context, src id.Source, m Migration, try bool) (MigrationReport, error) // 7.5, with the schema guard
 func (p *ProjectDB) Undo(ctx context.Context, t UndoTarget, skip []Conflict, ext Restorers) (UndoReport, error) // 2.6
-func (p *ProjectDB) PutObject(ctx context.Context, src id.Source, key string, r io.Reader) (Object, error)     // bytes first, then the index (4.3)
+func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Source, key string, r io.Reader, o PutOptions) (Object, error) // bytes first, then the index (4.3)
+func (p *ProjectDB) DeleteObject(ctx context.Context, pr limit.Priority, src id.Source, key string) error   // versions and bytes stay
+func (p *ProjectDB) MoveObject(ctx context.Context, pr limit.Priority, src id.Source, from, to string) (Object, error)
+func (p *ProjectDB) SweepObjects(ctx context.Context) (SweepReport, error) // bytes no version points to, old tmp/ files (4.4); after a crash (2.7)
+// Object reads: HeadObject, OpenObject, ListObjects (prefix, "/" delimiter, pages), ObjectVersions
 
 // Runs (6.2)
 func (p *ProjectDB) StartRun(ctx context.Context, r Run) error
@@ -636,7 +646,7 @@ type UIError struct { Kind, Message, Details string } // MarshalJSON → cause i
 func uiError(err error) *UIError       // errors.As on the known kinds; else "Something went wrong"
 
 type publisher struct { w *application.App } // implements agent, pipeline and project Publisher with EmitEvent
-func objectHandler(pm *project.Manager) http.Handler // /objects/<project_id>/<key> with the 4.7 headers
+func objectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener over the open projects
 ```
 
 ```go

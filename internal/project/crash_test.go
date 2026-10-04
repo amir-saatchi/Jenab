@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,6 +58,16 @@ func TestCrashWorker(t *testing.T) {
 	os.WriteFile(filepath.Join(p.Dir, "tmp", "download.part"), []byte("half"), 0o644)
 	os.MkdirAll(filepath.Join(p.Dir, "tmp", "dry-run"), 0o755)
 	os.WriteFile(filepath.Join(p.Dir, "snapshots", "project-before-migration.db.partial"), []byte("half"), 0o644)
+	os.MkdirAll(filepath.Dir(orphanPath(p.Dir)), 0o755)
+	os.WriteFile(orphanPath(p.Dir), []byte("no row points here"), 0o644)
+	go func() { // objects too, so a kill can land between a put's bytes and its row
+		for i := 0; ; i++ {
+			body := strings.NewReader(fmt.Sprintf("object %d %s", i, strings.Repeat("x", i%5000)))
+			if _, err := p.DB.PutObject(ctx, limit.Background, id.SourceApp, fmt.Sprintf("o/%d", i%20), body, store.PutOptions{Source: "tool"}); err != nil {
+				panic(err)
+			}
+		}
+	}()
 	first, err := store.Query(ctx, p.DB.DB, "SELECT coalesce(max(batch), -1) + 1 FROM t", nil, func(r *sql.Rows) (int, error) {
 		var n int
 		return n, r.Scan(&n)
@@ -78,6 +89,12 @@ func TestCrashWorker(t *testing.T) {
 			panic(err)
 		}
 	}
+}
+
+// orphanPath is a file in objects/ that no row points to.
+func orphanPath(dir string) string {
+	h := strings.Repeat("ab", 32)
+	return filepath.Join(dir, "objects", h[:2], h[2:4], h)
 }
 
 func cutLast(s string) (string, string, bool) {
@@ -130,6 +147,20 @@ func TestCrashRecovery(t *testing.T) {
 		}
 		if fileExists(filepath.Join(dir, "snapshots", "project-before-migration.db.partial")) {
 			t.Errorf("kill %d: the partial snapshot is still there", k)
+		}
+		if fileExists(orphanPath(dir)) {
+			t.Errorf("kill %d: recovery left bytes no object points to", k)
+		}
+		objs, err := p.DB.ListObjects(ctx, "o/", "", 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, o := range objs.Objects {
+			if _, r, err := p.DB.OpenObject(ctx, o.Key); err != nil {
+				t.Errorf("kill %d: %s: %v", k, o.Key, err)
+			} else {
+				r.Close()
+			}
 		}
 		// Whole batches or nothing, and the project takes writes.
 		var rows, partial int
