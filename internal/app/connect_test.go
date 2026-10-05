@@ -1,0 +1,164 @@
+package app
+
+import (
+	"context"
+	"slices"
+	"testing"
+
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/provider"
+)
+
+func TestModels(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	gs, err := e.svc.Settings.Models(ctx)
+	if err != nil || len(gs) != 1 || gs[0].Provider != "p" || len(gs[0].Models) != 1 {
+		t.Fatalf("Models = %+v, %v", gs, err)
+	}
+	m := gs[0].Models[0]
+	if m.Ref != "p/m1" || m.Name != "m1" || !slices.Equal(m.Aliases, []string{"default", "fast"}) {
+		t.Errorf("model = %+v", m)
+	}
+}
+
+func TestPresets(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	ss := e.svc.Settings
+	for _, up := range []bool{false, true} {
+		ss.ollamaUp = func(context.Context) bool { return up }
+		ps, err := ss.Presets(ctx)
+		if err != nil || len(ps) != len(provider.Presets) {
+			t.Fatalf("Presets = %+v, %v", ps, err)
+		}
+		i := slices.IndexFunc(ps, func(p PresetItem) bool { return p.Kind == string(provider.KindOllama) })
+		if !ps[i].NoKey || ps[i].Running != up || (up && i != 0) || (!up && i == 0) {
+			t.Errorf("up %v: Ollama at %d: %+v", up, i, ps[i])
+		}
+		cf := ps[slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "cloudflare" })]
+		if !slices.Equal(cf.Fields, []string{"account_id"}) || cf.NoKey {
+			t.Errorf("cloudflare = %+v", cf)
+		}
+	}
+}
+
+// A message sent with no provider is kept: the turn fails, and after
+// Connect a Retry sends it (SPEC 3.9).
+func TestConnectSendsKeptMessage(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	ss, cs := e.svc.Settings, e.svc.Chat
+	none := e.settings.Get()
+	none.LLM.Providers = map[string]config.ProviderSettings{}
+	none.LLM.Models = map[string]string{}
+	if _, err := ss.Save(ctx, none); err != nil {
+		t.Fatal(err)
+	}
+	op, err := e.svc.Project.Create(ctx, "Coins")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "track a price every day"); err != nil {
+		t.Fatal(err)
+	}
+	e.idle(op.Mother)
+	snap, err := cs.Snapshot(ctx, op.ID, op.Mother)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := snap.Messages[len(snap.Messages)-1].Parts[0]
+	if last.Notice == nil || last.Notice.Kind != chat.NoticeTurnFailed {
+		t.Fatalf("last part = %+v", last)
+	}
+	if len(e.fp.Calls()) != 0 {
+		t.Fatalf("calls without a provider: %d", len(e.fp.Calls()))
+	}
+
+	e.fp.Listed = []provider.ModelInfo{{ID: "m2", Context: 8000}, {ID: "m3"}}
+	r, err := ss.Connect(ctx, ConnectRequest{Name: " p2 ", Kind: string(provider.KindCompatible),
+		BaseURL: "https://example.test/v1/", Key: "sk-new-0123456789"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	llm := r.View.Settings.LLM
+	if r.Provider != "p2" || r.Models != 2 || llm.Models["default"] != "p2/m2" || llm.Models["fast"] != "p2/m2" ||
+		len(llm.Providers["p2"].Models) != 2 {
+		t.Fatalf("Connect = %+v", r)
+	}
+	if v, err := e.secrets.Get(provider.KeyName("p2")); err != nil || v.Reveal() != "sk-new-0123456789" {
+		t.Errorf("key in the keychain: %v", err)
+	}
+	if err := cs.Retry(ctx, op.ID, op.Mother); err != nil {
+		t.Fatal(err)
+	}
+	e.idle(op.Mother)
+	calls := e.fp.Calls()
+	if len(calls) == 0 || calls[0].Model != "m2" || !sent(calls[0], "track a price every day") {
+		t.Fatalf("calls = %+v", calls)
+	}
+	snap, err = cs.Snapshot(ctx, op.ID, op.Mother)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m := snap.Messages[len(snap.Messages)-1]; m.Role != chat.RoleAssistant || m.Parts[0].Text == nil {
+		t.Fatalf("last message = %+v", m)
+	}
+}
+
+func sent(req provider.Request, text string) bool {
+	for _, m := range req.Messages {
+		for _, p := range m.Parts {
+			if m.Role == chat.RoleUser && p.Text != nil && p.Text.Text == text {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestSetAliases(t *testing.T) {
+	cat := provider.MustCatalog()
+	ps := config.ProviderSettings{Kind: "openai_compatible", Models: []config.ModelSettings{{ID: "a"}, {ID: "b"}}}
+	llm := config.LLMSettings{Models: map[string]string{"default": "old/x"},
+		Providers: map[string]config.ProviderSettings{"keep": {}, "new": ps}}
+	setAliases(&llm, cat, "new", ps)
+	if llm.Models["default"] != "new/a" || llm.Models["fast"] != "new/a" {
+		t.Errorf("aliases = %v", llm.Models)
+	}
+	// Aliases that point at a connected provider stay.
+	llm.Models = map[string]string{"default": "keep/x", "fast": "keep/y"}
+	setAliases(&llm, cat, "new", ps)
+	if llm.Models["default"] != "keep/x" || llm.Models["fast"] != "keep/y" {
+		t.Errorf("aliases = %v", llm.Models)
+	}
+	// The catalog's suggestions win when they are on.
+	var def, fast string
+	for _, k := range provider.Kinds {
+		if def, fast = cat.Suggested(k); def != "" && fast != "" && def != fast {
+			ps = config.ProviderSettings{Kind: string(k), Models: []config.ModelSettings{{ID: "z"}, {ID: fast}, {ID: def}}}
+			break
+		}
+	}
+	if def == "" {
+		t.Skip("no kind with both suggestions")
+	}
+	llm.Models = map[string]string{}
+	setAliases(&llm, cat, "new", ps)
+	if llm.Models["default"] != "new/"+def || llm.Models["fast"] != "new/"+fast {
+		t.Errorf("aliases = %v; want %s and %s", llm.Models, def, fast)
+	}
+}
+
+func TestNotifyWithoutNotifier(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	if err := e.svc.System.Notify(context.Background(), Notification{Title: "t"}); err != nil {
+		t.Fatal(err)
+	}
+	var got Notification
+	e.svc.System.notify = func(n Notification) error { got = n; return nil }
+	if err := e.svc.System.Notify(context.Background(), Notification{Chat: "c", Title: "Mother is waiting"}); err != nil || got.Title != "Mother is waiting" {
+		t.Fatalf("Notify = %v, %+v", err, got)
+	}
+}

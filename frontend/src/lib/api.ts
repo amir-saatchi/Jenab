@@ -8,14 +8,43 @@ export {
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
 export type {
   ChatItem,
+  ChatSnapshot,
+  ConnectRequest,
+  ConnectResult,
+  ModelGroup,
+  ModelItem,
+  Open,
   OpenedProject,
+  PresetItem,
   ProjectItem,
   ProviderStatus,
   SettingsView,
   WaitingItem,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
-export { Kind as ChatKind, State as ChatState } from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
-export type { Chat, Status as ChatStatus, Waiting } from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
+export type { Answer, Live } from "../../bindings/github.com/amir-saatchi/jenab/internal/agent/models"
+export {
+  Grant,
+  Kind as ChatKind,
+  NoticeKind,
+  PartKind,
+  Role,
+  State as ChatState,
+} from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
+export type {
+  Approval,
+  Chat,
+  Delta,
+  Message,
+  Notice as ChatNotice,
+  Part,
+  PartDone,
+  Question,
+  Retry,
+  Status as ChatStatus,
+  ToolCall,
+  ToolResult,
+  Waiting,
+} from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
 export type { Settings } from "../../bindings/github.com/amir-saatchi/jenab/internal/config/models"
 export type { FolderWarning, Notice } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"

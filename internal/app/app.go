@@ -11,9 +11,11 @@ import (
 	"net/http"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/id"
 )
 
 // Deps are what the App needs.
@@ -69,6 +71,7 @@ func (a *App) Bind(s Services) {
 		}
 	})
 	b := NewServices(s)
+	b.System.notify = a.notifier()
 	a.w.RegisterService(application.NewService(b.Project))
 	a.w.RegisterService(application.NewService(b.Chat))
 	a.w.RegisterService(application.NewService(b.Settings))
@@ -78,6 +81,37 @@ func (a *App) Bind(s Services) {
 		a.w.RegisterService(application.NewService(b.Dev))
 	}
 	a.w.RegisterService(application.NewServiceWithOptions(&objects{objectHandler(s.Projects)}, application.ServiceOptions{Route: bucket.Route}))
+}
+
+// notifier sends desktop notifications through Wails' service. On
+// Windows it registers the app with the toast system under
+// HKCU\Software\Classes at start. A click shows the window and sends
+// app:open, so the frontend opens the chat.
+func (a *App) notifier() func(Notification) error {
+	ns := notifications.New()
+	a.w.RegisterService(application.NewService(ns))
+	ns.OnNotificationResponse(func(r notifications.NotificationResult) {
+		if r.Error != nil {
+			a.log.Warn("notification response", "err", r.Error)
+			return
+		}
+		p, _ := r.Response.UserInfo["project"].(string)
+		c, _ := r.Response.UserInfo["chat"].(string)
+		if a.main != nil {
+			a.main.UnMinimise()
+			a.main.Show()
+			a.main.Focus()
+		}
+		if p != "" && c != "" {
+			a.pub.emit(EventOpen, Open{Project: id.Project(p), Chat: id.Chat(c)})
+		}
+	})
+	return func(n Notification) error {
+		return ns.SendNotification(notifications.NotificationOptions{
+			ID: "chat-" + string(n.Chat), Title: n.Title, Body: n.Body,
+			Data: map[string]any{"project": string(n.Project), "chat": string(n.Chat)},
+		})
+	}
 }
 
 // objects is the route for /objects/<project_id>/<key>. Wails binds no

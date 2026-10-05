@@ -4,6 +4,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
 )
 
@@ -15,8 +16,15 @@ const (
 	EventStatus   = "chat:status"
 	EventNotice   = "project:notice"
 	EventActivity = "project:activity"
+	EventOpen     = "app:open" // a desktop notification was clicked
 	// run:status comes with the pipelines (Phase 3).
 )
+
+// Open is a chat to show, after its notification was clicked.
+type Open struct {
+	Project id.Project `json:"project"`
+	Chat    id.Chat    `json:"chat"`
+}
 
 // init is the only one in the app (CODE-OUTLINE 0). The bindings
 // generator reads these calls to write the events' TypeScript types.
@@ -26,6 +34,7 @@ func init() {
 	application.RegisterEvent[chat.Status](EventStatus)
 	application.RegisterEvent[project.Notice](EventNotice)
 	application.RegisterEvent[project.Activity](EventActivity)
+	application.RegisterEvent[Open](EventOpen)
 }
 
 // Publisher sends events to the frontend. It implements the Publisher of

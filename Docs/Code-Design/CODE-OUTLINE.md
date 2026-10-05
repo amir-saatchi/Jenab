@@ -474,11 +474,13 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 // Connected: Settings to save, Other models, NoModelList (the user types the models)
 func (r *Registry) Models(ctx context.Context, provider string) ([]ModelInfo, error)
 func (r *Registry) Status() []Status                               // pauses, limits, last problem
+func (r *Registry) Catalog() *Catalog                              // the built-in catalog, for names and alias picks
 ```
 
 - Connections are `llm.providers` in the settings: a name, a kind (`anthropic`, `openai`, `gemini`, `openai_compatible`, `ollama`), a base URL and the models that are on. The key is in the keychain as `provider:<name>`.
 - A base URL may hold placeholders such as `{account_id}` (`Placeholders`); their values are in the keychain as `provider:<name>:<field>` (`FieldName`) and filled in when the backend is built.
 - `Presets` lists well-known providers for the *Connect* form: a name, kind and base URL, never models.
+- `Connect` needs a key for every kind but Ollama, as calls without a stored key are refused.
 - A local Ollama (by kind and a loopback base URL) gets a background limit of 1 unless `provider_max_parallel_calls` names it.
 - `models.json` is the built-in catalog (3.9): facts only (limits, prices, `thinking_budget`), never prompts.
 - Backends implement `Provider` and handle only their protocol. `backends.All()` maps each kind to one, apart from `provider` so there is no import cycle:
@@ -791,9 +793,15 @@ func (s *ChatService) Messages(ctx context.Context, p id.Project, c id.Chat, fro
 func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string) (id.Message, error)
 func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a agent.Answer) error
 // Also Create, Stop, Retry, Clear, Delete, Rename, SetRole, SetModel, Archive, SetLevel, Search.
-// SettingsService: Get, Save → SettingsView{Settings, Problems}; Providers → []ProviderStatus.
+// SettingsService: Get, Save → SettingsView{Settings, Problems}; Providers → []ProviderStatus;
+//   Models → []ModelGroup (the models that are on, by provider, with their aliases);
+//   Presets → []PresetItem (a running local Ollama first, with no key);
+//   Connect(ConnectRequest) → ConnectResult: checks the key by listing models, stores it, saves the
+//   provider with its catalog models on, and points default and fast at it when they point nowhere (3.9).
 // BucketService: List → ObjectPage (100 a page), Versions. DevService: Providers, Activity, Log.
-// SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical).
+// SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical);
+//   Notify(Notification{Project, Chat, Title, Body}) → a desktop notification (Wails notifications);
+//   a click shows the window and sends app:open with the chat.
 // Later tickets add files to Send, UndoTurn, PageService and PipelineService in the same style.
 
 func windowTheme(theme string, dark bool) (application.RGBA, application.Theme) // the window's background before the
@@ -818,6 +826,7 @@ func init() {
     application.RegisterEvent[chat.Status]("chat:status")
     application.RegisterEvent[project.Notice]("project:notice")
     application.RegisterEvent[project.Activity]("project:activity")
+    application.RegisterEvent[Open]("app:open") // a desktop notification was clicked
     // run:status (pipeline.RunStatus) comes with pipelines.
 }
 ```
@@ -834,20 +843,29 @@ React 19, Vite, Tailwind v4 and shadcn/ui (radix-nova), with Zustand for state. 
 src/
   main.tsx, App.tsx     start: settings, projects and *Waiting*, then the project opened last
   index.css             the tokens for both themes, the tones and the Mother gradient (from the mockups)
+  typeset.css           Markdown styling (5.8), with the typeset-chat and typeset-page presets in index.css
   components/ui/        shadcn components, copied from the mockups; changed only where noted in the file
-  lib/                  api.ts (bindings and enums), errors.ts (UIError, showError with Copy details), theme.ts
+  lib/                  api.ts (bindings and enums), errors.ts (UIError, showError with Copy details), theme.ts,
+                        blocks.ts (Markdown split into blocks), dir.ts (a text's direction, as dir="auto" finds it)
   state/                Zustand stores, one per concern
     nav.ts              history (back and forward), the most recently used chats (Ctrl+Tab), the sidebar
     projects.ts         the list, the opened projects (Mother, level, damage), the folder warning
     chats.ts            each project's chat list, and *Waiting*
     settings.ts         the settings view; setTheme applies at once and reverts if the save fails
     ui.ts               dialogs and overlays
-    events.ts           chat:status and project:notice into the stores
+    thread.ts           each open chat: its messages from the snapshot, then chat:part and chat:status
+    stream.ts           the answer streaming, outside React; deltas applied once per frame
+    events.ts           the events into the stores; the desktop notification when a chat starts waiting off screen
+  chat/                 the chat (5.8, 8.3, 8.8): thread view, rows, parts (thinking, tool chips, notices, skill chips),
+                        markdown (lazy), cards (approval, question, waiting and retry bars), composer, provider card
   shell/                the window (5.12): rail, chat sidebar, main area, right sidebar, bottom bar,
                         Settings, project settings, the welcome screen
 ```
 
 - **Snapshots, then events:** a store loads with a service call, and `events.ts` keeps it up to date. A chat that goes idle, or one the store doesn't know, reloads the chat list.
+- **A chat's thread:** the snapshot is read first and the events that come meanwhile are replayed after it. A part with a seq the thread already has is dropped; a gap reads the snapshot again, and so does the end of each turn.
+- **Streaming (SPIKE-022):** only the streaming part re-renders, once per frame; rows are memoised, and Markdown is parsed block by block, so a finished block isn't parsed again. react-markdown and the highlighter load lazily.
+- **Opening a chat (N-02):** the last rows, about two screens, render at once; the rest follow in a transition.
 - **Theme:** `localStorage` holds a copy of the choice, read by a script in `index.html`, so the first paint has the right colours. The Go side sets the window background from the same setting.
 - **Below 900 px** the rail and both sidebars are sheets, and the bottom bar is hidden.
 - **Contrast (N-53):** `contrast.test.ts` reads the tokens from `index.css` and checks every text pair in both themes.
@@ -855,4 +873,4 @@ src/
 ## 11. Open points
 
 1. **Retry after text was shown.** Decided in P1-10: each try streams a new message (`Status.Streaming`), and the frontend drops the deltas of a try that failed, so a retry never shows text twice.
-2. **The frontend folder.** Decided in P1-14: from `mockups/src` came the shadcn components, `index.css` (without `typeset.css`), `components.json`, the fonts (Geist, Geist Mono, Vazirmatn) and the settings layout. The screens and the fake data stay in `mockups/`; the chat, page and pipeline parts move over with their tickets.
+2. **The frontend folder.** Decided in P1-14: from `mockups/src` came the shadcn components, `index.css` (without `typeset.css`), `components.json`, the fonts (Geist, Geist Mono, Vazirmatn) and the settings layout. The screens and the fake data stay in `mockups/`; the chat, page and pipeline parts move over with their tickets. P1-15 brought `typeset.css` and the chat components (bubble, message, message-scroller, marker, questionnaire and others).

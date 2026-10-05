@@ -7,6 +7,9 @@ import type { Events } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import type * as app$0 from "../../../../amir-saatchi/jenab/internal/app/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import type * as chat$0 from "../../../../amir-saatchi/jenab/internal/chat/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -15,6 +18,7 @@ import type * as project$0 from "../../../../amir-saatchi/jenab/internal/project
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
+            "app:open": app$0.Open;
             "chat:delta": chat$0.Delta;
             "chat:part": chat$0.PartDone;
             "chat:status": chat$0.Status;

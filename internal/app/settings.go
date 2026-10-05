@@ -78,12 +78,13 @@ type SettingsView struct {
 	Problems []config.Problem `json:"problems"`
 }
 
-// SettingsService is *Settings* (SPEC 5.12). P1-16 adds connecting
-// providers and usage.
+// SettingsService is *Settings* (SPEC 5.12): the settings, the providers
+// and their models (connect.go). P1-16 adds usage.
 type SettingsService struct {
 	base
 	settings *Settings
 	models   *provider.Registry
+	ollamaUp func(context.Context) bool // whether Ollama runs on this machine
 }
 
 // Get returns the settings and the problems found in config.yaml.

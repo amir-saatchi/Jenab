@@ -56,6 +56,85 @@ export interface ChatSnapshot {
 }
 
 /**
+ * ConnectRequest is the *Connect* form.
+ */
+export interface ConnectRequest {
+    "name": string;
+    "kind": string;
+    "base_url": string;
+    "key": string;
+
+    /**
+     * values for the base URL's placeholders
+     */
+    "fields": { [_ in string]?: string } | null;
+}
+
+/**
+ * ConnectResult is what *Connect* found and saved.
+ */
+export interface ConnectResult {
+    "provider": string;
+
+    /**
+     * the models turned on
+     */
+    "models": number;
+
+    /**
+     * Other are listed models the catalog doesn't know, off by default.
+     */
+    "other": string[] | null;
+
+    /**
+     * NoModelList: the provider lists no models, so they are added by hand.
+     */
+    "no_model_list": boolean;
+    "view": SettingsView;
+}
+
+/**
+ * ModelGroup is one connected provider with its models that are on, for
+ * the model picker (SPEC 3.9).
+ */
+export interface ModelGroup {
+    "provider": string;
+    "kind": string;
+    "models": ModelItem[] | null;
+}
+
+/**
+ * ModelItem is a model that is on.
+ */
+export interface ModelItem {
+    /**
+     * "provider/model", as chats.model stores it
+     */
+    "ref": string;
+
+    /**
+     * the catalog's name, else the model ID
+     */
+    "name": string;
+
+    /**
+     * "default" or "fast" when they point at it
+     */
+    "aliases": string[] | null;
+}
+
+/**
+ * Notification is a desktop notification for a chat that waits for the
+ * user. A click shows the window and sends app:open with the chat.
+ */
+export interface Notification {
+    "project": id$0.Project;
+    "chat": id$0.Chat;
+    "title": string;
+    "body": string;
+}
+
+/**
  * Object is a file in the bucket.
  */
 export interface $Object {
@@ -104,6 +183,14 @@ export interface ObjectVersion {
 }
 
 /**
+ * Open is a chat to show, after its notification was clicked.
+ */
+export interface Open {
+    "project": id$0.Project;
+    "chat": id$0.Chat;
+}
+
+/**
  * OpenedProject is a project as the app shell needs it.
  */
 export interface OpenedProject {
@@ -124,6 +211,38 @@ export interface OpenedProject {
      * Damage is set when the project is open read-only after damage (2.7).
      */
     "damage"?: project$0.Damage | null;
+}
+
+/**
+ * PresetItem is a well-known provider for the *Connect* form (SPEC 3.9).
+ */
+export interface PresetItem {
+    /**
+     * the suggested connection name
+     */
+    "id": string;
+    "name": string;
+    "kind": string;
+
+    /**
+     * "" means the kind's own
+     */
+    "base_url": string;
+
+    /**
+     * the base URL's placeholders, e.g. account_id
+     */
+    "fields": string[] | null;
+
+    /**
+     * a local Ollama needs no key
+     */
+    "no_key": boolean;
+
+    /**
+     * Ollama answers on this machine
+     */
+    "running": boolean;
 }
 
 /**

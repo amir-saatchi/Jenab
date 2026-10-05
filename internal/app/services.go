@@ -51,7 +51,7 @@ func NewServices(s Services) Bound {
 	return Bound{
 		Project:  &ProjectService{base: b, projects: s.Projects},
 		Chat:     &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects},
-		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models},
+		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, ollamaUp: ollamaRunning},
 		Bucket:   &BucketService{base: b, projects: s.Projects},
 		System:   &SystemService{base: b},
 		Dev:      &DevService{base: b, projects: s.Projects, models: s.Models, logs: s.Logs},

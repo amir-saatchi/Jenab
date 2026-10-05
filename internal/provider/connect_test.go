@@ -222,3 +222,13 @@ func TestPresetsConnect(t *testing.T) {
 		}
 	}
 }
+
+func TestConnectNeedsKey(t *testing.T) {
+	s := newConnectSetup(fake.New())
+	if _, err := s.reg.Connect(context.Background(), "p", provider.KindCompatible, "https://example.test/v1/", "", nil); err == nil {
+		t.Error("Connect worked with no key")
+	}
+	if len(s.rec.built()) != 0 || len(s.kr.m) != 0 {
+		t.Errorf("built %d backends, stored %v", len(s.rec.built()), s.kr.m)
+	}
+}

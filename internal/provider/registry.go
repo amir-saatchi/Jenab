@@ -138,6 +138,9 @@ func (r *Registry) Apply(s config.LLMSettings) {
 	}
 }
 
+// Catalog is the catalog the registry was built with.
+func (r *Registry) Catalog() *Catalog { return r.d.Catalog }
+
 // Forget drops a provider's built backend, so the next call reads its key
 // again, e.g. after the key changed.
 func (r *Registry) Forget(name string) {
@@ -620,6 +623,11 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 	f := r.d.Backends[kind]
 	if f == nil {
 		return Connected{}, fmt.Errorf("provider: no backend for kind %q", kind)
+	}
+	if key == "" && kind != KindOllama {
+		// backendOf refuses calls without a stored key, except a local
+		// Ollama's, so don't save a connection that can't be used.
+		return Connected{}, fmt.Errorf("provider %s: an API key is needed", name)
 	}
 	if baseURL == "" {
 		baseURL = DefaultBaseURL(kind)

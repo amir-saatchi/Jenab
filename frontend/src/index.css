@@ -4,6 +4,7 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 @import "@fontsource-variable/vazirmatn";
+@import "./typeset.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -176,6 +177,57 @@
     --tone-red-soft: oklch(0.29 0.07 25);
     --tone-purple: oklch(0.8 0.1 300);
     --tone-purple-soft: oklch(0.29 0.06 300);
+}
+
+/* Typeset presets (SPEC 5.8). */
+.typeset-chat {
+    --typeset-size: 0.875rem;
+    --typeset-leading: 1.65;
+    --typeset-flow: 0.9em;
+}
+
+.typeset-page {
+    --typeset-size: 0.9375rem;
+    --typeset-leading: 1.7;
+    --typeset-flow: 1.1em;
+}
+
+/* Code highlighting (rehype-highlight), from the theme's tones. */
+.typeset .hljs-comment,
+.typeset .hljs-quote {
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
+.typeset .hljs-keyword,
+.typeset .hljs-selector-tag,
+.typeset .hljs-built_in,
+.typeset .hljs-type {
+    color: var(--tone-purple);
+}
+
+.typeset .hljs-string,
+.typeset .hljs-regexp,
+.typeset .hljs-addition {
+    color: var(--tone-green);
+}
+
+.typeset .hljs-number,
+.typeset .hljs-literal,
+.typeset .hljs-symbol {
+    color: var(--tone-amber);
+}
+
+.typeset .hljs-title,
+.typeset .hljs-section,
+.typeset .hljs-attr,
+.typeset .hljs-attribute {
+    color: var(--tone-blue);
+}
+
+.typeset .hljs-deletion,
+.typeset .hljs-meta {
+    color: var(--tone-red);
 }
 
 /* Mother's gradient (SPEC 8.6): a ring on its chat row and a filled tile in
