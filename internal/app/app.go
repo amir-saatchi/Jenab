@@ -13,6 +13,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/config"
 )
 
 // Deps are what the App needs.
@@ -32,6 +33,7 @@ type App struct {
 	pub  *Publisher
 	log  *slog.Logger
 	name string
+	ui   *Settings // set by Bind
 }
 
 // New makes the Wails application. It shows nothing until Run, but events
@@ -59,11 +61,19 @@ func (a *App) Publisher() *Publisher { return a.pub }
 // Bind registers the services and the objects route. DevService is bound
 // only when the developer tools are on at the start (8.4).
 func (a *App) Bind(s Services) {
+	a.ui = s.Settings
+	s.Settings.OnChange(func(c config.Settings) {
+		if a.main != nil {
+			bg, _ := windowTheme(c.UI.Theme, systemDark())
+			a.main.SetBackgroundColour(bg)
+		}
+	})
 	b := NewServices(s)
 	a.w.RegisterService(application.NewService(b.Project))
 	a.w.RegisterService(application.NewService(b.Chat))
 	a.w.RegisterService(application.NewService(b.Settings))
 	a.w.RegisterService(application.NewService(b.Bucket))
+	a.w.RegisterService(application.NewService(b.System))
 	if s.Settings.Get().DevTools {
 		a.w.RegisterService(application.NewService(b.Dev))
 	}
@@ -89,15 +99,44 @@ func (a *App) OnShutdown(fn func()) {
 
 // Run opens the main window and blocks until the app quits.
 func (a *App) Run() error {
+	theme := "system"
+	if a.ui != nil {
+		theme = a.ui.Get().UI.Theme
+	}
+	bg, frame := windowTheme(theme, systemDark())
 	a.main = a.w.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:     a.name,
-		Width:     1280,
-		Height:    800,
-		MinWidth:  640, // SPEC 5.12
-		MinHeight: 480,
+		Title:            a.name,
+		Width:            1280,
+		Height:           800,
+		MinWidth:         640, // SPEC 5.12
+		MinHeight:        480,
+		BackgroundColour: bg,
+		Windows:          application.WindowsWindow{Theme: frame},
 	})
 	return a.w.Run()
 }
+
+// windowTheme is the window's background before the page paints, so a dark
+// theme shows no white flash, and the Windows frame for ui.theme (SPEC
+// 5.11). The colours are --background in index.css. Wails sets the frame
+// only when the window opens; a later change applies after a restart.
+func windowTheme(theme string, systemDark bool) (application.RGBA, application.Theme) {
+	switch theme {
+	case "light":
+		return lightBackground, application.Light
+	case "dark":
+		return darkBackground, application.Dark
+	}
+	if systemDark {
+		return darkBackground, application.SystemDefault
+	}
+	return lightBackground, application.SystemDefault
+}
+
+var (
+	lightBackground = application.RGBA{Red: 255, Green: 255, Blue: 255, Alpha: 255}
+	darkBackground  = application.RGBA{Red: 10, Green: 10, Blue: 10, Alpha: 255} // oklch(0.145 0 0)
+)
 
 // minLevel drops records below level.
 type minLevel struct {

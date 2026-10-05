@@ -14,5 +14,7 @@
     "paths": { "@/*": ["./src/*"] },
     "types": ["vite/client"]
   },
-  "include": ["src", "bindings"]
+  "include": ["src", "bindings"],
+  // tests run with bun test, which has its own types
+  "exclude": ["src/**/*.test.ts"]
 }

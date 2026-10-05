@@ -143,3 +143,11 @@ export function Snapshot(p: id$0.Project, c: id$0.Chat): $CancellablePromise<$mo
 export function Stop(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
     return $Call.ByID(1081880097, p, c);
 }
+
+/**
+ * Waiting lists the chats of every project that wait for the user. Later
+ * changes come as chat:status events.
+ */
+export function Waiting(): $CancellablePromise<$models.WaitingItem[] | null> {
+    return $Call.ByID(1479388140);
+}

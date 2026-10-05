@@ -118,6 +118,12 @@ func TestMessageDuringTurnJoinsNextStep(t *testing.T) {
 	if s := h.o.ChatStatus(c.ID); s != "in a turn" {
 		t.Errorf("ChatStatus %q", s)
 	}
+	if s := h.o.State(h.pid, c.ID); s != chat.StateWorking {
+		t.Errorf("State %q", s)
+	}
+	if ws := h.o.Waits(); ws == nil || len(ws) != 0 {
+		t.Errorf("Waits %+v while working", ws)
+	}
 	h.send(c.ID, "second") // while the tool runs
 	close(release)
 	h.wait()

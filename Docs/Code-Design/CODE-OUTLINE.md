@@ -13,6 +13,7 @@ Writing the code out, and checking it against later phases, added these to the m
 4. **`internal/workspace`:** the linked folder and its rules (8.5): paths stay inside, no links out, `.gitignore`, blocked credential files. The v1 read tools use it, and Phase 6's `edit_file` and `write_file` reuse the same checks.
 5. **`internal/proc`:** child processes in a Job Object on Windows, with a memory cap, only the listed environment, and the whole tree killed on stop. Used by the Starlark worker (v1), MCP stdio servers (Phase 5) and `run_command` (Phase 6).
 6. **`internal/mcp`** (Phase 5): the MCP client and one server process per project (8.7).
+7. **`internal/sysmem`** (P1-14): free memory and its level (ok, low, critical) for the bottom bar (5.12), and later for the memory check before a command starts (8.5). Commit headroom on Windows, MemAvailable on Linux, the pressure level on macOS.
 
 Two Wails facts found while writing this (beta.26 source):
 
@@ -32,7 +33,7 @@ tool, schedule, update
 project, provider, web, expr, script, mcp
 store
 sqlguard, bucket, workspace, proc, skill
-id, chat, config, limit, secret, logfile
+id, chat, config, limit, secret, logfile, sysmem
 ```
 
 - `agent` imports `pipeline`: Mother's chats and the finish notices need runs. `pipeline` never imports `agent`.
@@ -648,6 +649,8 @@ func (o *Orchestrator) Delete(ctx context.Context, p id.Project, c id.Chat) erro
 func (o *Orchestrator) Wrote(p id.Project, c id.Chat, seq uint64)      // a chat write made elsewhere (title, role), so events carry its seq
 func (o *Orchestrator) Live(p id.Project, c id.Chat) Live              // for a chat opened mid-turn: the streaming answer's parts and text so far
 func (o *Orchestrator) ChatStatus(c id.Chat) string                    // "waiting for the user", "in a turn" or "", for list_chats and Mother's chat list
+func (o *Orchestrator) State(p id.Project, c id.Chat) chat.State       // idle, working (running or queued) or waiting, for the chat list
+func (o *Orchestrator) Waits() []Wait                                  // every chat waiting for the user, by chat ID, for *Waiting* in the rail
 func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // the card or form the turn waits for (8.8); ErrNotWaiting, ErrBadAnswer
 func (o *Orchestrator) SetLevel(ctx context.Context, p id.Project, c id.Chat, l project.Level) error // from the next tool call; adds a notice to the chat
 func (o *Orchestrator) Refuse()                                        // shutdown step 1: Send, Retry, Clear and Delete fail
@@ -657,6 +660,7 @@ func (o *Orchestrator) Wait(ctx context.Context) error
 // (the picked labels or the Other text), and a Note. A message sent while waiting is a Deny with the message as the note.
 type Answer struct { Message id.Message; Index int; Grant chat.Grant; Answers map[string][]string; Note string }
 // Live also has Waiting, the card or form the turn waits for.
+type Wait struct { Project id.Project; Chat id.Chat; Waiting chat.Waiting }
 
 func Tools() []tool.Tool // ask_user (1–4 questions, 2–4 options each; Other is added by the UI); later the other agent tools
 
@@ -770,7 +774,7 @@ func (a *App) OnShutdown(fn func())
 func (a *App) Run() error
 
 type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Logs string; Log }
-type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; Dev *DevService }
+type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; System *SystemService; Dev *DevService }
 func NewServices(s Services) Bound        // what Bind registers; tests call the services without Wails
 
 // Settings holds the settings while the app runs (7.6).
@@ -780,7 +784,8 @@ func (s *Settings) OnChange(fn func(config.Settings)) // after each save
 
 type ProjectService struct { … } // List, Create, Open → OpenedProject{ID, Name, Mother, Level, Damage}, Activity, FolderWarning
 type ChatService struct { … }
-func (s *ChatService) List(ctx context.Context, p id.Project) ([]ChatItem, error) // the chat, its status, last activity
+func (s *ChatService) List(ctx context.Context, p id.Project) ([]ChatItem, error) // the chat, its State, last activity
+func (s *ChatService) Waiting(ctx context.Context) ([]WaitingItem, error)        // every chat waiting, in every open project, with the project's title
 func (s *ChatService) Snapshot(ctx context.Context, p id.Project, c id.Chat) (ChatSnapshot, error) // last 30 turns + Seq + Live (Q32)
 func (s *ChatService) Messages(ctx context.Context, p id.Project, c id.Chat, from, to int) ([]chat.Message, error) // older turns
 func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string) (id.Message, error)
@@ -788,7 +793,11 @@ func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a age
 // Also Create, Stop, Retry, Clear, Delete, Rename, SetRole, SetModel, Archive, SetLevel, Search.
 // SettingsService: Get, Save → SettingsView{Settings, Problems}; Providers → []ProviderStatus.
 // BucketService: List → ObjectPage (100 a page), Versions. DevService: Providers, Activity, Log.
-// P1-14 and later add files to Send, UndoTurn, PageService and PipelineService in the same style.
+// SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical).
+// Later tickets add files to Send, UndoTurn, PageService and PipelineService in the same style.
+
+func windowTheme(theme string, dark bool) (application.RGBA, application.Theme) // the window's background before the
+    // first paint, from the saved theme (System reads Windows' setting); a save changes the background, not the frame
 
 type UIError struct { Kind, Message, Details string } // MarshalJSON → the error's cause in JavaScript (Q25)
 // Kinds: invalid, not_found, busy, read_only, closing, provider, internal.
@@ -817,7 +826,33 @@ Every service method starts with `defer s.guard("what", &err)` (Q26). It recover
 
 The bindings are generated into `frontend/bindings` by `wails3 task bindings` and committed; CI fails if they are stale (DEVELOPMENT.md).
 
-## 10. Open points
+## 10. `frontend`
+
+React 19, Vite, Tailwind v4 and shadcn/ui (radix-nova), with Zustand for state. Tests run with `bun test`.
+
+```
+src/
+  main.tsx, App.tsx     start: settings, projects and *Waiting*, then the project opened last
+  index.css             the tokens for both themes, the tones and the Mother gradient (from the mockups)
+  components/ui/        shadcn components, copied from the mockups; changed only where noted in the file
+  lib/                  api.ts (bindings and enums), errors.ts (UIError, showError with Copy details), theme.ts
+  state/                Zustand stores, one per concern
+    nav.ts              history (back and forward), the most recently used chats (Ctrl+Tab), the sidebar
+    projects.ts         the list, the opened projects (Mother, level, damage), the folder warning
+    chats.ts            each project's chat list, and *Waiting*
+    settings.ts         the settings view; setTheme applies at once and reverts if the save fails
+    ui.ts               dialogs and overlays
+    events.ts           chat:status and project:notice into the stores
+  shell/                the window (5.12): rail, chat sidebar, main area, right sidebar, bottom bar,
+                        Settings, project settings, the welcome screen
+```
+
+- **Snapshots, then events:** a store loads with a service call, and `events.ts` keeps it up to date. A chat that goes idle, or one the store doesn't know, reloads the chat list.
+- **Theme:** `localStorage` holds a copy of the choice, read by a script in `index.html`, so the first paint has the right colours. The Go side sets the window background from the same setting.
+- **Below 900 px** the rail and both sidebars are sheets, and the bottom bar is hidden.
+- **Contrast (N-53):** `contrast.test.ts` reads the tokens from `index.css` and checks every text pair in both themes.
+
+## 11. Open points
 
 1. **Retry after text was shown.** Decided in P1-10: each try streams a new message (`Status.Streaming`), and the frontend drops the deltas of a try that failed, so a retry never shows text twice.
-2. **The frontend folder.** `frontend/src` starts from `mockups/src`; which parts carry over is decided when Phase 1 starts.
+2. **The frontend folder.** Decided in P1-14: from `mockups/src` came the shadcn components, `index.css` (without `typeset.css`), `components.json`, the fonts (Geist, Geist Mono, Vazirmatn) and the settings layout. The screens and the fake data stay in `mockups/`; the chat, page and pipeline parts move over with their tickets.

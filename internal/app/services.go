@@ -34,6 +34,7 @@ type Bound struct {
 	Chat     *ChatService
 	Settings *SettingsService
 	Bucket   *BucketService
+	System   *SystemService
 	Dev      *DevService // bound only with the developer tools on
 }
 
@@ -52,6 +53,7 @@ func NewServices(s Services) Bound {
 		Chat:     &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects},
 		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models},
 		Bucket:   &BucketService{base: b, projects: s.Projects},
+		System:   &SystemService{base: b},
 		Dev:      &DevService{base: b, projects: s.Projects, models: s.Models, logs: s.Logs},
 	}
 }

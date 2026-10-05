@@ -60,11 +60,26 @@ go test ./...
 - `-race` needs cgo, so it runs in CI on macOS and Linux. On Windows, use WSL or leave it to CI.
 - The test layers (unit, fuzz, integration, spike regressions, scenarios) are in QUESTIONS.md Q34–35.
 
+The frontend tests (the stores, the formatting and the contrast check) run with Bun, in `frontend`:
+
+```bash
+bun test
+```
+
+To check the UI in a normal browser against the real Go side, build the server mode and open `http://127.0.0.1:9310`:
+
+```bash
+go build -tags server -o bin/jenab-server.exe ./cmd/desktop
+WAILS_SERVER_HOST=127.0.0.1 WAILS_SERVER_PORT=9310 bin/jenab-server.exe
+```
+
+It uses your real data folder. For a scratch one, point `LOCALAPPDATA` and `USERPROFILE` (Windows) or `HOME` somewhere else.
+
 ## CI
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request, on Windows, macOS and Linux:
 
-1. builds the frontend
+1. builds the frontend and runs `bun test`
 2. the bindings check, `go fmt` check (Linux), `go vet`
 3. `go test`, with `-race` on macOS and Linux
 4. builds `cmd/desktop`

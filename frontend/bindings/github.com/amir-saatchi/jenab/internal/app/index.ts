@@ -6,12 +6,14 @@ import * as ChatService from "./chatservice.js";
 import * as DevService from "./devservice.js";
 import * as ProjectService from "./projectservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as SystemService from "./systemservice.js";
 export {
     BucketService,
     ChatService,
     DevService,
     ProjectService,
-    SettingsService
+    SettingsService,
+    SystemService
 };
 
 export type {
@@ -24,5 +26,6 @@ export type {
     ProjectItem,
     ProviderStatus,
     SearchRequest,
-    SettingsView
+    SettingsView,
+    WaitingItem
 } from "./models.js";

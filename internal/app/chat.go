@@ -24,9 +24,8 @@ type ChatService struct {
 
 // ChatItem is a row of the chat list.
 type ChatItem struct {
-	Chat chat.Chat `json:"chat"`
-	// Status is "in a turn", "waiting for the user" or "" when idle.
-	Status       string     `json:"status"`
+	Chat         chat.Chat  `json:"chat"`
+	State        chat.State `json:"state"`                   // as chat:status sends it
 	LastActivity *time.Time `json:"last_activity,omitempty"` // the newest message; nil without messages
 }
 
@@ -44,7 +43,7 @@ func (s *ChatService) List(ctx context.Context, p id.Project) (items []ChatItem,
 		}
 		items = make([]ChatItem, 0, len(chats))
 		for _, c := range chats {
-			it := ChatItem{Chat: c, Status: s.orch.ChatStatus(c.ID)}
+			it := ChatItem{Chat: c, State: s.orch.State(p, c.ID)}
 			if t, ok := last[c.ID]; ok {
 				it.LastActivity = &t
 			}
@@ -53,6 +52,35 @@ func (s *ChatService) List(ctx context.Context, p id.Project) (items []ChatItem,
 		return nil
 	})
 	return items, err
+}
+
+// WaitingItem is a chat that waits for the user, for *Waiting* in the
+// rail (SPEC 5.12).
+type WaitingItem struct {
+	Project id.Project   `json:"project"`
+	Chat    id.Chat      `json:"chat"`
+	Title   string       `json:"title"`
+	Waiting chat.Waiting `json:"waiting"`
+}
+
+// Waiting lists the chats of every project that wait for the user. Later
+// changes come as chat:status events.
+func (s *ChatService) Waiting(ctx context.Context) (items []WaitingItem, err error) {
+	defer s.guard("chat.waiting", &err)
+	items = []WaitingItem{}
+	for _, w := range s.orch.Waits() {
+		it := WaitingItem{Project: w.Project, Chat: w.Chat, Waiting: w.Waiting}
+		err = open(ctx, s.projects, w.Project, func(proj *project.Project) error {
+			c, err := proj.Chats.Chat(ctx, w.Chat)
+			it.Title = c.Title
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, nil
 }
 
 // Create adds a chat for the user, with an optional title and role.

@@ -149,6 +149,15 @@ func TestApprovalCard(t *testing.T) {
 		if s := h.o.ChatStatus(c.ID); s != "waiting for the user" {
 			t.Errorf("ChatStatus = %q", s)
 		}
+		if s := h.o.State(h.pid, c.ID); s != chat.StateWaiting {
+			t.Errorf("State = %q", s)
+		}
+		if ws := h.o.Waits(); len(ws) != 1 || ws[0] != (Wait{Project: h.pid, Chat: c.ID, Waiting: w}) {
+			t.Errorf("Waits %+v", ws)
+		}
+		if s := h.o.State(h.pid, id.Chat(id.New())); s != chat.StateIdle {
+			t.Errorf("unknown chat State = %q", s)
+		}
 		if st := h.o.find(h.pid, c.ID).Status(); len(st) != 1 || st[0].State != "waiting" || !strings.HasSuffix(st[0].Progress, ", waiting for the user") {
 			t.Errorf("activity %+v", st)
 		}

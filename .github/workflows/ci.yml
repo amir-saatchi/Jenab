@@ -46,6 +46,7 @@ jobs:
         run: |
           bun install --frozen-lockfile
           bun run build
+          bun test
 
       # The committed bindings must match the Go services (P1-13).
       - name: Bindings

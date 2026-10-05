@@ -447,13 +447,63 @@ func (o *Orchestrator) ChatStatus(c id.Chat) string {
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	switch {
-	case cs.waiting != nil:
+	switch cs.state() {
+	case chat.StateWaiting:
 		return "waiting for the user"
-	case cs.running || cs.queued:
+	case chat.StateWorking:
 		return "in a turn"
 	}
 	return ""
+}
+
+// state is the chat's state. cs.mu is held.
+func (cs *chatState) state() chat.State {
+	switch {
+	case cs.waiting != nil:
+		return chat.StateWaiting
+	case cs.running || cs.queued:
+		return chat.StateWorking
+	}
+	return chat.StateIdle
+}
+
+// State is the chat's state for the chat list, as chat:status sends it.
+func (o *Orchestrator) State(p id.Project, c id.Chat) chat.State {
+	cs := o.find(p, c)
+	if cs == nil {
+		return chat.StateIdle
+	}
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	return cs.state()
+}
+
+// Wait is a chat that waits for the user's answer.
+type Wait struct {
+	Project id.Project   `json:"project"`
+	Chat    id.Chat      `json:"chat"`
+	Waiting chat.Waiting `json:"waiting"`
+}
+
+// Waits lists the chats of every project that wait for the user (*Waiting*
+// in the rail, 5.12), oldest first by chat ID.
+func (o *Orchestrator) Waits() []Wait {
+	o.mu.Lock()
+	all := make([]*chatState, 0, len(o.chats))
+	for _, cs := range o.chats {
+		all = append(all, cs)
+	}
+	o.mu.Unlock()
+	ws := []Wait{}
+	for _, cs := range all {
+		cs.mu.Lock()
+		if cs.waiting != nil {
+			ws = append(ws, Wait{Project: cs.key.p, Chat: cs.key.c, Waiting: cs.waiting.w})
+		}
+		cs.mu.Unlock()
+	}
+	slices.SortFunc(ws, func(a, b Wait) int { return strings.Compare(string(a.Chat), string(b.Chat)) })
+	return ws
 }
 
 // Refuse makes Send, Retry, Clear and Delete fail from now on: shutdown
@@ -617,15 +667,12 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 
 // publishStatus sends the chat's status. cs.mu is held.
 func (o *Orchestrator) publishStatus(cs *chatState) {
-	st := chat.Status{Project: cs.key.p, Chat: cs.key.c, State: chat.StateIdle, Retry: cs.retry}
-	if cs.running || cs.queued {
-		st.State = chat.StateWorking
-	}
+	st := chat.Status{Project: cs.key.p, Chat: cs.key.c, State: cs.state(), Retry: cs.retry}
 	if cs.resp != nil {
 		st.Streaming = cs.resp.id
 	}
 	if w := cs.waiting; w != nil {
-		st.State, st.Waiting = chat.StateWaiting, &w.w
+		st.Waiting = &w.w
 	}
 	cs.pub.Lock()
 	defer cs.pub.Unlock()

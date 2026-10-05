@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -693,5 +695,75 @@ func TestWriteDuringTurn(t *testing.T) {
 	wait(2)
 	if d := deltas()[1]; d.Seq < snap.Seq {
 		t.Errorf("delta after the rename has seq %d; the snapshot has %d", d.Seq, snap.Seq)
+	}
+}
+
+// A chat that asks the user is in Waiting and shows as waiting in List.
+func TestWaiting(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	cs := e.svc.Chat
+	if ws, err := cs.Waiting(ctx); err != nil || ws == nil || len(ws) != 0 {
+		t.Fatalf("Waiting = %+v, %v", ws, err)
+	}
+	op, err := e.svc.Project.Create(ctx, "Coins")
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := map[string]any{"questions": []map[string]any{
+		{"header": "Currency", "question": "Which currency?", "options": []map[string]any{{"label": "EUR"}, {"label": "USD"}}},
+	}}
+	e.fp.Push(fake.ToolCall("c1", "ask_user", form), fake.Text("ok"))
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "set up prices"); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for e.orch.State(op.ID, op.Mother) != chat.StateWaiting {
+		if time.Now().After(deadline) {
+			t.Fatal("the chat never waited")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	ws, err := cs.Waiting(ctx)
+	if err != nil || len(ws) != 1 || ws[0].Project != op.ID || ws[0].Chat != op.Mother || ws[0].Title == "" ||
+		ws[0].Waiting.Kind != chat.PartQuestion || ws[0].Waiting.Text != "Which currency?" {
+		t.Fatalf("Waiting = %+v, %v", ws, err)
+	}
+	items, err := cs.List(ctx, op.ID)
+	if err != nil || items[0].State != chat.StateWaiting {
+		t.Fatalf("List = %+v, %v", items, err)
+	}
+	if err := cs.Stop(ctx, op.ID, op.Mother); err != nil {
+		t.Fatal(err)
+	}
+	e.idle(op.Mother)
+	if items, err := cs.List(ctx, op.ID); err != nil || items[0].State != chat.StateIdle {
+		t.Fatalf("List after Stop = %+v, %v", items, err)
+	}
+}
+
+func TestMemory(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	r, err := e.svc.System.Memory(context.Background())
+	if err != nil || r.Total == 0 || r.Level == "" {
+		t.Fatalf("Memory = %+v, %v", r, err)
+	}
+}
+
+func TestWindowTheme(t *testing.T) {
+	for _, c := range []struct {
+		theme string
+		dark  bool
+		bg    application.RGBA
+		frame application.Theme
+	}{
+		{"light", true, lightBackground, application.Light},
+		{"dark", false, darkBackground, application.Dark},
+		{"system", true, darkBackground, application.SystemDefault},
+		{"system", false, lightBackground, application.SystemDefault},
+	} {
+		if bg, frame := windowTheme(c.theme, c.dark); bg != c.bg || frame != c.frame {
+			t.Errorf("windowTheme(%s, %t) = %v, %v", c.theme, c.dark, bg, frame)
+		}
 	}
 }

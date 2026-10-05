@@ -24,9 +24,9 @@ export interface ChatItem {
     "chat": chat$0.Chat;
 
     /**
-     * Status is "in a turn", "waiting for the user" or "" when idle.
+     * as chat:status sends it
      */
-    "status": string;
+    "state": chat$0.State;
 
     /**
      * the newest message; nil without messages
@@ -205,4 +205,15 @@ export interface SearchRequest {
 export interface SettingsView {
     "settings": config$0.Settings;
     "problems": config$0.Problem[] | null;
+}
+
+/**
+ * WaitingItem is a chat that waits for the user, for *Waiting* in the
+ * rail (SPEC 5.12).
+ */
+export interface WaitingItem {
+    "project": id$0.Project;
+    "chat": id$0.Chat;
+    "title": string;
+    "waiting": chat$0.Waiting;
 }
