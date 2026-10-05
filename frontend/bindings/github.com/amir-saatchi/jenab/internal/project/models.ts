@@ -7,6 +7,9 @@ import * as id$0 from "../id/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as store$0 from "../store/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as time$0 from "../../../../../time/models.js";
 
 /**
  * Activity is one snapshot of a project's work: every Reporter's status and
@@ -14,6 +17,7 @@ import * as store$0 from "../store/models.js";
  */
 export interface Activity {
     "project": id$0.Project;
+    "name": string;
     "open": boolean;
     "leases": number;
     "work": Status[] | null;
@@ -124,11 +128,22 @@ export interface Status {
     "kind": string;
 
     /**
+     * e.g. the chat's title
+     */
+    "title"?: string;
+
+    /**
      * e.g. running, waiting, failed
      */
     "state": string;
     "started": string;
     "last_activity": string;
+
+    /**
+     * Limit is how long it may go without activity before the runtime
+     * panel flags it (8.4); 0 has no limit, e.g. while it waits for the user.
+     */
+    "limit": time$0.Duration;
     "progress"?: string;
     "err"?: string;
 }

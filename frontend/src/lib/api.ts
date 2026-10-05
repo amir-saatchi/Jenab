@@ -2,11 +2,13 @@
 export {
   BucketService,
   ChatService,
+  DevService,
   ProjectService,
   SettingsService,
   SystemService,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
 export type {
+  BlockView,
   ChatItem,
   ChatSnapshot,
   ConnectRequest,
@@ -18,13 +20,22 @@ export type {
   OpenedProject,
   PresetItem,
   ProjectItem,
+  ProjectRuntime,
   ProviderModels,
   ProviderStatus,
+  RequestView,
+  Runtime,
   SettingsView,
+  Slots,
   Started,
+  ToolView,
+  TurnItem,
+  TurnView,
   UsageLine,
   UsageReport,
   WaitingItem,
+  WorkView,
+  WriterView,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
 export type { Answer, Live } from "../../bindings/github.com/amir-saatchi/jenab/internal/agent/models"
 export {

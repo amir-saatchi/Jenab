@@ -55,3 +55,11 @@ test("back and forward count as use", () => {
   nav().forward()
   expect(current(nav())).toEqual(chat("b"))
 })
+
+test("a turn in the inspector and a section of Settings are places of their own", () => {
+  const at = (turn: number) => ({ view: "inspector" as const, project: "p", chat: "c", turn })
+  expect(samePlace(at(1), at(1))).toBe(true)
+  expect(samePlace(at(1), at(2))).toBe(false)
+  expect(samePlace({ view: "settings" }, { view: "settings", section: "Models" })).toBe(false)
+  expect(samePlace({ view: "runtime" }, { view: "runtime" })).toBe(true)
+})

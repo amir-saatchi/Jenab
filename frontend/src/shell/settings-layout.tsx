@@ -15,23 +15,32 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 // Full-view settings (SPEC 5.12): a page list on the left, one scrolling
 // page on the right. A page in the list scrolls to its section, whose id is
-// sectionId(page).
+// sectionId(page), or calls onSelect when the page shown is another view.
+// Wide pages, such as the developer tools, use the window's width.
 export function SettingsLayout({
   label,
   items,
+  active: initial,
+  onSelect,
   onBack,
+  wide,
   children,
 }: {
   label?: string
   items: string[]
+  active?: string
+  onSelect?: (page: string) => void
   onBack: () => void
+  wide?: boolean
   children: React.ReactNode
 }) {
-  const [active, setActive] = React.useState(items[0])
+  const [active, setActive] = React.useState(initial ?? items[0])
   const show = (i: string) => {
+    if (onSelect) return onSelect(i)
     setActive(i)
     document.getElementById(sectionId(i))?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
@@ -63,7 +72,7 @@ export function SettingsLayout({
       </Sidebar>
       <main className="flex min-w-0 flex-1">
         <ScrollArea className="h-full flex-1">
-          <div className="mx-auto flex max-w-2xl flex-col gap-8 px-8 py-8">{children}</div>
+          <div className={cn("mx-auto flex flex-col gap-8 px-8 py-8", wide ? "max-w-6xl" : "max-w-2xl")}>{children}</div>
         </ScrollArea>
       </main>
     </div>

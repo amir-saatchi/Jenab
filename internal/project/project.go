@@ -95,7 +95,7 @@ func (p *Project) Activity() Activity {
 		rs = append(rs, p.reporters[k])
 	}
 	p.mu.Unlock()
-	a := Activity{Project: p.ID, Open: true, Work: []Status{}, Writer: p.DB.Stats(), Chats: p.Chats.Stats()}
+	a := Activity{Project: p.ID, Name: p.Name, Open: true, Work: []Status{}, Writer: p.DB.Stats(), Chats: p.Chats.Stats()}
 	for _, r := range rs {
 		a.Work = append(a.Work, r.Status()...)
 	}

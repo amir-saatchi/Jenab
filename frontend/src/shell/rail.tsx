@@ -75,7 +75,7 @@ export function Rail({ chats = false, className }: { chats?: boolean; className?
             variant="ghost"
             size="icon"
             aria-label="Settings"
-            aria-current={place?.view === "settings" ? "page" : undefined}
+            aria-current={place?.view === "settings" || place?.view === "inspector" || place?.view === "runtime" ? "page" : undefined}
             onClick={() => {
               go({ view: "settings" })
               useUI.getState().set({ leftOverlay: false })

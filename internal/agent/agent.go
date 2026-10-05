@@ -50,7 +50,10 @@ type Deps struct {
 	Settings func() config.Settings
 	Events   Publisher
 	Skills   *skill.Set // the skills chats can load (8.9); nil has none
-	Log      *slog.Logger
+	// Traces records each turn for the turn inspector (8.4); nil, with
+	// the developer tools off, records nothing.
+	Traces *Traces
+	Log    *slog.Logger
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.
@@ -130,7 +133,10 @@ type chatState struct {
 	titling   bool // a title request is running
 	clears    int  // counts Clear and Delete, so a late title is dropped
 	started   time.Time
-	active    time.Time
+	active    time.Time     // the start of the current request or tool call
+	moved     atomic.Int64  // the last stream event, in Unix nanoseconds
+	limit     time.Duration // how long the current request or tool call may go without moving
+	title     string        // the chat's title, for the runtime panel
 	requests  int
 
 	// pub keeps a store write and its events together, so events go out
@@ -687,14 +693,18 @@ func (cs *chatState) Status() []project.Status {
 	if !cs.running {
 		return nil
 	}
-	st := project.Status{ID: string(cs.key.c), Kind: "turn", State: "running", Started: cs.started, LastActivity: cs.active,
-		Progress: fmt.Sprintf("turn %d, request %d", cs.turn, cs.requests)}
+	last := cs.active
+	if m := time.Unix(0, cs.moved.Load()); m.After(last) {
+		last = m
+	}
+	st := project.Status{ID: string(cs.key.c), Kind: "turn", Title: cs.title, State: "running", Started: cs.started, LastActivity: last,
+		Limit: cs.limit, Progress: fmt.Sprintf("turn %d, request %d", cs.turn, cs.requests)}
 	if cs.waiting != nil {
-		st.State = "waiting"
+		st.State, st.Limit = "waiting", 0
 		st.Progress += ", waiting for the user"
 	}
 	if cs.retry != nil {
-		st.State = "waiting"
+		st.State, st.Limit = "waiting", 0
 		st.Err = fmt.Sprintf("%s is %s; the next try is at %s", cs.retry.Provider, kindText(provider.ErrorKind(cs.retry.Kind)), cs.retry.At.Local().Format(time.TimeOnly))
 	}
 	return []project.Status{st}

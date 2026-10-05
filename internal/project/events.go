@@ -51,18 +51,23 @@ type Reporter interface {
 // Status is one piece of work in a project.
 type Status struct {
 	ID           string    `json:"id"`
-	Kind         string    `json:"kind"`  // e.g. turn, task, run
-	State        string    `json:"state"` // e.g. running, waiting, failed
+	Kind         string    `json:"kind"`            // e.g. turn, task, run
+	Title        string    `json:"title,omitempty"` // e.g. the chat's title
+	State        string    `json:"state"`           // e.g. running, waiting, failed
 	Started      time.Time `json:"started"`
 	LastActivity time.Time `json:"last_activity"`
-	Progress     string    `json:"progress,omitempty"`
-	Err          string    `json:"err,omitempty"`
+	// Limit is how long it may go without activity before the runtime
+	// panel flags it (8.4); 0 has no limit, e.g. while it waits for the user.
+	Limit    time.Duration `json:"limit"`
+	Progress string        `json:"progress,omitempty"`
+	Err      string        `json:"err,omitempty"`
 }
 
 // Activity is one snapshot of a project's work: every Reporter's status and
 // the writer's queue (Q19a). Open is false once the project has closed.
 type Activity struct {
 	Project id.Project        `json:"project"`
+	Name    string            `json:"name"`
 	Open    bool              `json:"open"`
 	Leases  int               `json:"leases"`
 	Work    []Status          `json:"work"`

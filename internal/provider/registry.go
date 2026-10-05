@@ -550,6 +550,28 @@ type Status struct {
 	LastProblem string // the last error's kind and message, "" after a success
 }
 
+// Calls is the global max_parallel_calls gate's slots, for the runtime
+// panel (SPEC 8.4).
+func (r *Registry) Calls() limit.GateStats {
+	if r.d.Gate == nil {
+		return limit.GateStats{}
+	}
+	return r.d.Gate.Stats()
+}
+
+// FirstEvent is how long a request to the provider may wait for its first
+// event before it counts as stalled (SPEC 3.8).
+func (r *Registry) FirstEvent(provider string) time.Duration {
+	if c := r.conn(provider); c != nil {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.kind == KindOllama {
+			return FirstEventOllama
+		}
+	}
+	return FirstEvent
+}
+
 // Status lists every provider, by name.
 func (r *Registry) Status() []Status {
 	r.mu.Lock()

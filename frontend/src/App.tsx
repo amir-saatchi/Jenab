@@ -12,7 +12,8 @@ import { openProject } from "@/shell/open"
 
 // start loads what the shell shows first and opens the project used last.
 async function start() {
-  await Promise.all([useSettings.getState().load(), useProjects.getState().load(), useChats.getState().loadWaiting()])
+  const s = useSettings.getState()
+  await Promise.all([s.load(), s.loadStarted(), useProjects.getState().load(), useChats.getState().loadWaiting()])
   const last = [...useProjects.getState().list].sort((a, b) => (b.last_opened ?? "").localeCompare(a.last_opened ?? ""))[0]
   if (last) await openProject(last.id)
 }

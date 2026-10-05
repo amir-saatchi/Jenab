@@ -1,6 +1,10 @@
+import { ActivityIcon, SearchIcon } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { showError } from "@/lib/errors"
+import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { SettingsSection } from "@/shell/settings-layout"
 
@@ -31,6 +35,18 @@ export function DeveloperSection() {
           }
         />
       </Field>
+      {started?.dev_tools && (
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => useNav.getState().go({ view: "inspector" })}>
+            <SearchIcon data-icon="inline-start" />
+            Turn inspector
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => useNav.getState().go({ view: "runtime" })}>
+            <ActivityIcon data-icon="inline-start" />
+            Runtime
+          </Button>
+        </div>
+      )}
     </SettingsSection>
   )
 }

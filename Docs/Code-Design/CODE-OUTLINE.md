@@ -81,13 +81,15 @@ func run(args []string) error {
     wapp   := app.New(app.Deps{Name: appName, Assets: assets, WebviewData: filepath.Join(paths.Root, "webview"), Log: log}) // first, so events can be sent
     runner := pipeline.New(pipeline.Deps{Projects: projects, Models: models, Gate: runs, Web: webc, Events: wapp.Publisher(), Log: log})
     tools.Add(runner.Tools()...)
-    orch   := agent.New(agent.Deps{Projects: projects, Models: models, Tools: tools, Runs: runner, Settings: live.Get, Events: wapp.Publisher(), Log: log})
+    var traces *agent.Traces // the turn inspector's record (8.4), only with DevTools on at the start
+    if settings.DevTools { traces = agent.NewTraces() }
+    orch   := agent.New(agent.Deps{Projects: projects, Models: models, Tools: tools, Runs: runner, Settings: live.Get, Events: wapp.Publisher(), Traces: traces, Log: log})
     sched  := schedule.New(schedule.Deps{Wake: schedule.OSWake(), Start: runner.StartScheduled, Log: log})
     upd    := update.New(update.Deps{Settings: settings.Updates, Busy: projects.Busy, Log: log})
 
     live.OnChange(func(s config.Settings) { calls.SetSize(s.LLM.MaxParallelCalls); models.Apply(s.LLM) })
 
-    wapp.Bind(app.Services{Orchestrator: orch, Runner: runner, Projects: projects, Registry: registry, Models: models, Secrets: secrets, Settings: live, Logs: paths.Logs, Updates: upd, Log: log})
+    wapp.Bind(app.Services{Orchestrator: orch, Runner: runner, Projects: projects, Registry: registry, Models: models, Secrets: secrets, Settings: live, Traces: traces, Logs: paths.Logs, Updates: upd, Log: log})
     wapp.OnStart(func(ctx context.Context) { go sched.Run(ctx); go upd.Run(ctx) }) // owned by the app root (Q15)
     wapp.OnShutdown(app.Shutdown{Refuse: {sched.Stop, orch.Refuse}, Cancel: cancel, Wait: {orch.Wait, runner.Wait}, Close: projects.CloseAll, Log: log}.Run) // Q30
     return wapp.Run()
@@ -403,6 +405,7 @@ func (m *Manager) List(ctx context.Context) ([]store.ProjectEntry, error)  // ad
 func (m *Manager) Busy() bool                                              // for the update restart
 func (m *Manager) CloseAll(ctx context.Context) error                      // Q30 steps 3–4
 func (m *Manager) FolderWarning() *FolderWarning                           // network drive or synced folder (2.1)
+func (m *Manager) Activities() []Activity                                  // the open projects' Activity by name, for the runtime panel; opens nothing
 
 // MoveProjects runs at start, before any project opens: when the data folder changed, each project
 // folder moves there (a rename, or a copy across drives) and its registry path is updated. The new
@@ -433,10 +436,12 @@ func (p *Project) PrivateHosts(ctx context.Context) ([]string, error)       // p
 func (p *Project) SetPrivateHosts(ctx context.Context, hosts []string) error // lower case, punycode, sorted, no duplicates
 
 type Reporter interface { Status() []Status }
-type Status struct { ID string; Kind, State string; Started, LastActivity time.Time; Progress string; Err string }
+type Status struct { ID string; Kind, State string; Title string; Started, LastActivity time.Time; Limit time.Duration; Progress string; Err string }
+// Limit: how long the work may go without moving before the runtime panel flags it (8.4): the provider's
+// first-event limit during a request, the tool's timeout during a tool call, 0 while it waits for the user or a retry.
 type Publisher interface { Notice(Notice); Activity(Activity) }
 type Notice struct { Project id.Project; Kind NoticeKind; Text string; Damage *Damage } // recovered, damaged
-type Activity struct { Project id.Project; Open bool; Leases int; Work []Status; Writer store.WriterStats }
+type Activity struct { Project id.Project; Name string; Open bool; Leases int; Work []Status; Writer store.WriterStats }
 ```
 
 Recovery on open (2.7) is unexported in `project`: `quick_check`, mark runs `interrupted`, empty `tmp/`, sweep `objects/`.
@@ -482,7 +487,11 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 func (r *Registry) Models(ctx context.Context, provider string) ([]ModelInfo, error)
 func (r *Registry) Status() []Status                               // pauses, limits, last problem
 func (r *Registry) Catalog() *Catalog                              // the built-in catalog, for names and alias picks
+func (r *Registry) Calls() limit.GateStats                         // the max_parallel_calls slots, for the runtime panel
+func (r *Registry) FirstEvent(provider string) time.Duration       // the stall limit before the first event (3.8)
 ```
+
+`Block.Name` names a system block for the turn inspector; backends don't send it.
 
 - Connections are `llm.providers` in the settings: a name, a kind (`anthropic`, `openai`, `gemini`, `openai_compatible`, `ollama`), a base URL and the models that are on. The key is in the keychain as `provider:<name>`.
 - A base URL may hold placeholders such as `{account_id}` (`Placeholders`); their values are in the keychain as `provider:<name>:<field>` (`FieldName`) and filled in when the backend is built.
@@ -646,6 +655,7 @@ type Deps struct {
     Settings func() config.Settings // read at the start of each turn
     Events   Publisher
     Skills   *skill.Set // the skills chats can load (8.9); nil has none
+    Traces   *Traces    // the turn inspector's record (8.4); nil records nothing
     Log      *slog.Logger
 }
 
@@ -670,6 +680,21 @@ func (o *Orchestrator) Wait(ctx context.Context) error
 type Answer struct { Message id.Message; Index int; Grant chat.Grant; Answers map[string][]string; Note string }
 // Live also has Waiting, the card or form the turn waits for.
 type Wait struct { Project id.Project; Chat id.Chat; Waiting chat.Waiting }
+
+// Traces keeps what recent turns sent and got back, in memory only: the last 100 turns, and 32 MiB of request
+// text across them. Over that, the oldest requests lose their texts (Dropped); their block sizes stay.
+type Traces struct { … }
+func NewTraces() *Traces
+func (s *Traces) List() []TurnTrace                    // newest first, without the request texts
+func (s *Traces) Turn(k TraceKey) (TurnTrace, bool)
+type TurnTrace struct { Project; Chat; Turn int; Title, Model string; Started, Ended time.Time; Requests []RequestTrace; Tools []ToolTrace }
+type RequestTrace struct { Started time.Time; Took time.Duration; Done, Last bool; Req provider.Request; Dropped bool;
+    Blocks []TraceBlock; Message id.Message; Usage chat.Usage; Stop provider.StopReason; Parts []chat.PartKind; Err string }
+type TraceBlock struct { Name string; Tokens int; Cache bool } // tokens estimated at 4 bytes; Cache: a cache point after it
+type ToolTrace struct { Request int; CallID, Name string; Started time.Time; Took time.Duration; Bytes int; Ref string; Error bool }
+func Blocks(req provider.Request, turn int) []TraceBlock // Tools, each system block, History window, This turn
+func SplitTurn(ms []chat.Message, turn int) (before, now []chat.Message)
+// The runner records one RequestTrace per try, around the stream, and one ToolTrace per tool call.
 
 func Tools() []tool.Tool // ask_user (1–4 questions, 2–4 options each; Other is added by the UI); later the other agent tools
 
@@ -782,7 +807,7 @@ func (a *App) Bind(s Services)            // the services and the objects route;
 func (a *App) OnShutdown(fn func())
 func (a *App) Run() error
 
-type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Started Started; Logs string; Log }
+type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Started Started; Traces *agent.Traces; Logs string; Log }
 type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; System *SystemService; Dev *DevService }
 func NewServices(s Services) Bound        // what Bind registers; tests call the services without Wails
 
@@ -810,7 +835,14 @@ func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a age
 //   Remove(name): deletes the provider, its limit and its key; aliases move to another provider's models.
 //   ProviderModels(name) → the catalog models it lists, *Other models* the catalog doesn't know, NoModelList.
 //   Usage(days) → UsageReport: tokens by day, chat and model across all projects, with catalog prices.
-// BucketService: List → ObjectPage (100 a page), Versions. DevService: Providers, Activity, Log.
+// BucketService: List → ObjectPage (100 a page), Versions.
+// DevService (8.4), read-only, every text redacted: Providers, Log;
+//   Turns → []TurnItem (the recorded turns, newest first); Turn(p, c, n) → TurnView: requests with usage,
+//   parts and context blocks (Tokens, Point, Cache hit, part or miss: the estimates scaled to the provider's
+//   prompt count, compared with its cache read), and tool calls, times from the turn's start; not_found if not recorded;
+//   Block(p, c, n, request, block) → the block's text, as BlockText renders it from what was sent;
+//   Runtime → the LLM-call slots, providers, and per open project its work and writers, with Stuck flags
+//   (work past its Limit, a write running over 30 s).
 // SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical);
 //   Notify(Notification{Project, Chat, Title, Body}) → a desktop notification (Wails notifications);
 //   a click shows the window and sends app:open with the chat.
@@ -874,6 +906,9 @@ src/
                         Settings, project settings, the welcome screen
   settings/             the Settings sections (3.9): general (data folder, approval level), models (providers,
                         their models, aliases, limits), usage (recharts chart, lazy), developer
+  dev/                  the developer tools (8.4), wide pages under Settings → Developer: the turn inspector
+                        (timeline, requests, tool calls, context blocks and their text) and the runtime panel
+  hooks/                use-poll.ts (a call every n ms while the window shows), use-mobile.ts
 ```
 
 - **Snapshots, then events:** a store loads with a service call, and `events.ts` keeps it up to date. A chat that goes idle, or one the store doesn't know, reloads the chat list.

@@ -17,6 +17,7 @@ export {
 };
 
 export type {
+    BlockView,
     ChatItem,
     ChatSnapshot,
     ConnectRequest,
@@ -32,12 +33,21 @@ export type {
     OpenedProject,
     PresetItem,
     ProjectItem,
+    ProjectRuntime,
     ProviderModels,
     ProviderStatus,
+    RequestView,
+    Runtime,
     SearchRequest,
     SettingsView,
+    Slots,
     Started,
+    ToolView,
+    TurnItem,
+    TurnView,
     UsageLine,
     UsageReport,
-    WaitingItem
+    WaitingItem,
+    WorkView,
+    WriterView
 } from "./models.js";

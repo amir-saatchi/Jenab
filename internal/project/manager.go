@@ -1,12 +1,14 @@
 package project
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -394,6 +396,31 @@ func (m *Manager) Busy() bool {
 		}
 	}
 	return false
+}
+
+// Activities is a snapshot of every open project's work, by name, for the
+// runtime panel (SPEC 8.4). It opens nothing.
+func (m *Manager) Activities() []Activity {
+	m.mu.Lock()
+	var ps []*Project
+	for _, p := range m.open {
+		select {
+		case <-p.ready:
+			if p.err == nil && !p.closing {
+				ps = append(ps, p)
+			}
+		default: // still opening
+		}
+	}
+	m.mu.Unlock()
+	slices.SortFunc(ps, func(a, b *Project) int {
+		return cmp.Or(strings.Compare(a.Name, b.Name), strings.Compare(string(a.ID), string(b.ID)))
+	})
+	out := make([]Activity, 0, len(ps))
+	for _, p := range ps {
+		out = append(out, p.Activity())
+	}
+	return out
 }
 
 // CloseAll closes every project for shutdown, leases or not (Q30 steps 3–4),

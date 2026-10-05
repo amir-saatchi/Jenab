@@ -55,6 +55,7 @@ type turn struct {
 	// whole are calls whose results carry a skill from load_with;
 	// trimming keeps them whole until the skill moves into block 1.
 	whole map[string]bool
+	trace *TurnTrace // nil with the developer tools off
 }
 
 // turn runs steps until the model answers without tool calls, the request
@@ -64,6 +65,8 @@ type turn struct {
 func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 	cs := r.cs
 	t := &turn{n: n, set: r.o.d.Settings(), whole: map[string]bool{}}
+	t.trace = r.o.d.Traces.begin(r.cs.key.p, r.cs.key.c, n)
+	defer r.o.d.Traces.end(t.trace)
 	if err := r.begin(ctx, t); err != nil {
 		r.finish(ctx, t, err)
 		return t, false
@@ -100,6 +103,10 @@ func (r *runner) begin(ctx context.Context, t *turn) error {
 		return err
 	}
 	t.provider, t.model, t.window = prov, prov+"/"+mid, r.o.d.Models.ContextWindow(prov, mid)
+	r.o.d.Traces.chat(t.trace, t.model, ch.Title)
+	r.cs.mu.Lock()
+	r.cs.title = ch.Title
+	r.cs.mu.Unlock()
 	return r.cutIfDue(ctx, t)
 }
 
@@ -120,8 +127,9 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 	}
 	t.requests++
 	r.cs.mu.Lock()
-	r.cs.requests, r.cs.active = t.requests, time.Now()
+	r.cs.requests = t.requests
 	r.cs.mu.Unlock()
+	r.moving(r.o.d.Models.FirstEvent(t.provider))
 
 	resp, err := r.ask(ctx, t, req, last)
 	if err != nil {
@@ -263,7 +271,9 @@ func (r *runner) ask(ctx context.Context, t *turn, req provider.Request, last bo
 	var since time.Time
 	for attempt := 0; ; attempt++ {
 		resp := r.try()
+		i := r.o.d.Traces.request(t.trace, req, resp.id, last)
 		err := r.stream(ctx, t, req, resp)
+		r.o.d.Traces.answered(t.trace, i, resp, err)
 		if err == nil {
 			r.tried()
 			return resp, nil
@@ -344,6 +354,7 @@ func (r *runner) stream(ctx context.Context, t *turn, req provider.Request, resp
 		if err != nil {
 			return err
 		}
+		r.cs.moved.Store(time.Now().UnixNano())
 		switch ev.Kind {
 		case provider.EventWait:
 			// The provider is paused after a rate limit or an overload;
@@ -500,6 +511,11 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		}
 		env.PrivateHosts = func(h string) bool { return slices.Contains(hosts, strings.ToLower(h)) }
 	}
+	timeout := tl.Spec().Timeout
+	if timeout <= 0 {
+		timeout = tool.DefaultTimeout
+	}
+	start := r.moving(timeout)
 	res, err := r.safeRun(ctx, tl, call)
 	if needs.Effects&tool.Untrusted != 0 {
 		// Outside data entered the turn: Auto asks again until the user's
@@ -509,9 +525,12 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		r.cs.mu.Unlock()
 	}
 	if err != nil && ctx.Err() != nil {
+		r.o.d.Traces.tool(t.trace, ToolTrace{CallID: c.ID, Name: c.Name, Started: start, Took: time.Since(start), Bytes: len(res.Text), Error: true})
 		return result(cancelled(ctx))
 	}
 	out, err := tool.Output(context.WithoutCancel(ctx), call, c.Name, n, res, err)
+	r.o.d.Traces.tool(t.trace, ToolTrace{CallID: c.ID, Name: c.Name, Started: start, Took: time.Since(start),
+		Bytes: max(len(res.Text), len(out.Text)), Ref: out.Ref, Error: err != nil || out.IsError})
 	if err != nil {
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
 		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
@@ -527,6 +546,16 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		}
 	}
 	return parts
+}
+
+// moving starts a request or a tool call that may go limit without
+// moving before the runtime panel flags it (8.4). It returns the start.
+func (r *runner) moving(limit time.Duration) time.Time {
+	now := time.Now()
+	r.cs.mu.Lock()
+	r.cs.active, r.cs.limit = now, limit
+	r.cs.mu.Unlock()
+	return now
 }
 
 func (r *runner) safeRun(ctx context.Context, tl tool.Tool, call tool.Call) (res tool.Result, err error) {

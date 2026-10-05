@@ -221,13 +221,13 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 	if s := r.o.d.Skills.Block(t.ch.Kind, t.ch.Skills); s != "" {
 		b.WriteString("\n\n" + s)
 	}
-	blocks := []provider.Block{{Text: b.String()}}
+	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
 	w := &r.cs.win
 	if t.ch.Kind == chat.KindMother {
-		blocks = append(blocks, provider.Block{Text: w.chatList})
+		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})
 	}
 	if n := w.start - 1; n > 0 {
-		blocks = append(blocks, provider.Block{Text: earlierTurns(n)})
+		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
 	}
 	blocks[len(blocks)-1].Cache = true
 	return blocks, nil

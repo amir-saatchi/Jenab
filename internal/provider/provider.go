@@ -54,6 +54,7 @@ type Request struct {
 type Block struct {
 	Text  string
 	Cache bool
+	Name  string // what the block is, for the turn inspector (SPEC 8.4); not sent
 }
 
 // ToolDef is a tool as the model sees it.

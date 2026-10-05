@@ -21,8 +21,9 @@ type Services struct {
 	Models       *provider.Registry
 	Secrets      *secret.Store // removes secrets from error details; nil removes nothing
 	Settings     *Settings
-	Started      Started // what this start used, for settings that wait for the next one
-	Logs         string  // the log folder, for the developer tools
+	Started      Started       // what this start used, for settings that wait for the next one
+	Traces       *agent.Traces // the turns recorded for the inspector; nil with the developer tools off
+	Logs         string        // the log folder, for the developer tools
 	Log          *slog.Logger
 }
 
@@ -57,7 +58,7 @@ func NewServices(s Services) Bound {
 			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},
 		Bucket: &BucketService{base: b, projects: s.Projects},
 		System: &SystemService{base: b},
-		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, logs: s.Logs},
+		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, traces: s.Traces, logs: s.Logs, now: time.Now},
 	}
 }
 

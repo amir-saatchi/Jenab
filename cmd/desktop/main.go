@@ -100,11 +100,15 @@ func run(_ []string) error {
 	if err != nil {
 		return err
 	}
+	var traces *agent.Traces // the turn inspector's record (SPEC 8.4)
+	if settings.DevTools {
+		traces = agent.NewTraces()
+	}
 	orch := agent.New(agent.Deps{Context: ctx, Projects: projects, Models: models, Tools: tools,
-		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Log: log})
+		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Traces: traces, Log: log})
 
 	wapp.Bind(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,
-		Secrets: secrets, Settings: live, Logs: paths.Logs, Log: log,
+		Secrets: secrets, Settings: live, Traces: traces, Logs: paths.Logs, Log: log,
 		Started: app.Started{DataFolder: paths.DataFolder, DefaultDataFolder: defaultData, DevTools: settings.DevTools, Moved: moved}})
 	wapp.OnShutdown(func() {
 		_ = app.Shutdown{ // logged inside

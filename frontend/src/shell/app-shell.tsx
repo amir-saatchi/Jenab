@@ -2,6 +2,8 @@ import * as React from "react"
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { InspectorView } from "@/dev/inspector"
+import { RuntimeView } from "@/dev/runtime"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { current, useNav } from "@/state/nav"
 import { useUI } from "@/state/ui"
@@ -35,8 +37,12 @@ export function AppShell() {
         <main className="min-w-0 flex-1 overflow-hidden">
           {!place && <Welcome />}
           {chat && <ChatView key={chat.chat} project={chat.project} chat={chat.chat} />}
-          {place?.view === "settings" && <SettingsView />}
+          {place?.view === "settings" && <SettingsView section={place.section} />}
           {place?.view === "project-settings" && <ProjectSettings project={place.project} />}
+          {place?.view === "inspector" && (
+            <InspectorView key={`${place.project}/${place.chat}/${place.turn}`} project={place.project} chat={place.chat} turn={place.turn} />
+          )}
+          {place?.view === "runtime" && <RuntimeView />}
         </main>
         {!narrow && chat && <RightSidebar project={chat.project} />}
       </div>

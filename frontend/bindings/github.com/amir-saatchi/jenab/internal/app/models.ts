@@ -18,6 +18,22 @@ import * as id$0 from "../id/models.js";
 import * as project$0 from "../project/models.js";
 
 /**
+ * BlockView is one context block (3.1). Tokens are estimated. Cache says
+ * how much of it the provider read from its cache: hit, part or miss; ""
+ * when the request has no usage.
+ */
+export interface BlockView {
+    "name": string;
+    "tokens": number;
+
+    /**
+     * a cache point after it
+     */
+    "point": boolean;
+    "cache": string;
+}
+
+/**
  * ChatItem is a row of the chat list.
  */
 export interface ChatItem {
@@ -289,6 +305,17 @@ export interface ProjectItem {
 }
 
 /**
+ * ProjectRuntime is an open project's work and its database writers.
+ */
+export interface ProjectRuntime {
+    "project": id$0.Project;
+    "name": string;
+    "leases": number;
+    "work": WorkView[] | null;
+    "writers": WriterView[] | null;
+}
+
+/**
  * ProviderModels is one provider's models for *Settings → Models* (SPEC
  * 3.9).
  */
@@ -357,6 +384,47 @@ export interface ProviderStatus {
 }
 
 /**
+ * RequestView is one try of a request.
+ */
+export interface RequestView {
+    "start_ms": number;
+    "took_ms": number;
+
+    /**
+     * the turn's last request, without tools
+     */
+    "last": boolean;
+
+    /**
+     * its texts were dropped to save memory
+     */
+    "dropped": boolean;
+    "usage": chat$0.Usage;
+    "stop"?: string;
+
+    /**
+     * the kinds of the parts that came back
+     */
+    "parts": string[] | null;
+    "err"?: string;
+    "blocks": BlockView[] | null;
+}
+
+/**
+ * Runtime is everything running now (SPEC 8.4). Stuck counts what hasn't
+ * moved for longer than its limit.
+ */
+export interface Runtime {
+    /**
+     * the max_parallel_calls slots
+     */
+    "calls": Slots;
+    "providers": ProviderStatus[] | null;
+    "projects": ProjectRuntime[] | null;
+    "stuck": number;
+}
+
+/**
  * SearchRequest is a history search (SPEC 2.3).
  */
 export interface SearchRequest {
@@ -387,6 +455,15 @@ export interface SettingsView {
 }
 
 /**
+ * Slots is a limit's slots in use and the callers waiting (7.6).
+ */
+export interface Slots {
+    "size": number;
+    "in_use": number;
+    "waiting": number;
+}
+
+/**
  * Started is what this start of the app used, for the settings that apply
  * at the next start: the data folder and the developer tools.
  */
@@ -407,6 +484,57 @@ export interface Started {
      * this start (SPEC 2.1); nil if the folder didn't change.
      */
     "moved": project$0.MoveResult | null;
+}
+
+/**
+ * ToolView is one tool call's run.
+ */
+export interface ToolView {
+    "request": number;
+    "call_id": string;
+    "name": string;
+    "start_ms": number;
+    "took_ms": number;
+    "bytes": number;
+    "ref"?: string;
+    "error": boolean;
+}
+
+/**
+ * TurnItem is a recorded turn, for the inspector's pickers.
+ */
+export interface TurnItem {
+    "project": id$0.Project;
+    "project_name": string;
+    "chat": id$0.Chat;
+    "chat_title": string;
+    "turn": number;
+    "model": string;
+    "started": string;
+    "running": boolean;
+    "requests": number;
+}
+
+/**
+ * TurnView is one turn in the inspector. Times are in milliseconds from
+ * the turn's start.
+ */
+export interface TurnView {
+    "project": id$0.Project;
+    "project_name": string;
+    "chat": id$0.Chat;
+    "chat_title": string;
+    "turn": number;
+    "model": string;
+    "started": string;
+    "running": boolean;
+
+    /**
+     * so far, while it runs
+     */
+    "took_ms": number;
+    "requests": RequestView[] | null;
+    "tools": ToolView[] | null;
 }
 
 /**
@@ -493,4 +621,50 @@ export interface WaitingItem {
     "chat": id$0.Chat;
     "title": string;
     "waiting": chat$0.Waiting;
+}
+
+/**
+ * WorkView is a chat in a turn, a background task or a run.
+ */
+export interface WorkView {
+    "id": string;
+    "kind": string;
+    "title": string;
+    "state": string;
+    "progress": string;
+    "err"?: string;
+    "started": string;
+
+    /**
+     * since it last moved
+     */
+    "idle_ms": number;
+
+    /**
+     * 0: no limit, e.g. while it waits for the user
+     */
+    "limit_ms": number;
+    "stuck": boolean;
+}
+
+/**
+ * WriterView is one database file's writer (7.3).
+ */
+export interface WriterView {
+    "file": string;
+
+    /**
+     * requests waiting
+     */
+    "interactive": number;
+    "background": number;
+    "busy": boolean;
+
+    /**
+     * how long the current request has run
+     */
+    "running_ms": number;
+    "done": number;
+    "last_error"?: string;
+    "stuck": boolean;
 }

@@ -19,6 +19,7 @@ import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
 import { copyText, firstRows, lastNotice, results, rows, type Row } from "@/chat/rows"
+import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { useStream } from "@/state/stream"
 import { useThreads, type Thread } from "@/state/thread"
@@ -236,6 +237,7 @@ function AgentRow({
   const res = React.useMemo(() => results(messages), [messages])
   const running = thread.state !== ChatState.StateIdle && isLast
   const groups = useSettings((s) => s.models)
+  const devTools = useSettings((s) => s.started?.dev_tools ?? false)
   const answer = messages.findLast((m) => m.role === Role.RoleAssistant)
   const footer = last && !running && answer
   return (
@@ -252,6 +254,16 @@ function AgentRow({
             <CopyButton text={copyText(messages)} />
             <span className="ps-1">{clock(answer.created_at)}</span>
             {answer.model && <span>· {modelName(groups ?? [], answer.model)}</span>}
+            {devTools && (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="ms-auto"
+                onClick={() => useNav.getState().go({ view: "inspector", project: thread.project, chat: thread.chat.id, turn: answer.turn })}
+              >
+                Inspect
+              </Button>
+            )}
           </MessageFooter>
         )}
       </MessageContent>

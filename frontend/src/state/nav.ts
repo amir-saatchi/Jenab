@@ -1,11 +1,14 @@
 import { create } from "zustand"
 
 // A place is what the main area shows. There are no tabs (SPEC 5.12): one
-// chat, Settings or a project's settings.
+// chat, Settings, a project's settings or a developer tool (8.4).
+// Settings may open at a section; the turn inspector at a turn.
 export type Place =
   | { view: "chat"; project: string; chat: string }
-  | { view: "settings" }
+  | { view: "settings"; section?: string }
   | { view: "project-settings"; project: string }
+  | { view: "inspector"; project?: string; chat?: string; turn?: number }
+  | { view: "runtime" }
 
 export interface ChatRef {
   project: string
@@ -16,6 +19,8 @@ export function samePlace(a: Place | undefined, b: Place | undefined) {
   if (!a || !b || a.view !== b.view) return false
   if (a.view === "chat" && b.view === "chat") return a.project === b.project && a.chat === b.chat
   if (a.view === "project-settings" && b.view === "project-settings") return a.project === b.project
+  if (a.view === "settings" && b.view === "settings") return a.section === b.section
+  if (a.view === "inspector" && b.view === "inspector") return a.project === b.project && a.chat === b.chat && a.turn === b.turn
   return true
 }
 

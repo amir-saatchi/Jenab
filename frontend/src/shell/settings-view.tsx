@@ -11,13 +11,13 @@ import { LimitsSection, ModelsSection } from "@/settings/models"
 import { UsageSection } from "@/settings/usage"
 import { useSettings } from "@/state/settings"
 import { backToChats } from "@/shell/open"
-import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle } from "@/shell/settings-layout"
+import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
-const pages = ["General", "Appearance", "Models", "Usage", "Developer"]
+export const settingsPages = ["General", "Appearance", "Models", "Usage", "Developer"]
 
 // SettingsView is *Settings* as a full view (SPEC 5.12). Search,
 // connections, MCP servers and updates come with their tickets.
-export function SettingsView() {
+export function SettingsView({ section }: { section?: string }) {
   const view = useSettings((s) => s.view)
   const setTheme = useSettings((s) => s.setTheme)
   const theme = readTheme(view?.settings.ui.theme)
@@ -26,9 +26,14 @@ export function SettingsView() {
     const s = useSettings.getState()
     Promise.all([s.load(), s.loadModels(), s.started ? null : s.loadStarted()]).catch(showError)
   }, [])
+  // Opened at a section, from a developer tool's page list.
+  const loaded = !!view
+  React.useEffect(() => {
+    if (section && loaded) document.getElementById(sectionId(section))?.scrollIntoView({ block: "start" })
+  }, [section, loaded])
 
   return (
-    <SettingsLayout items={pages} onBack={backToChats}>
+    <SettingsLayout key={section} items={settingsPages} active={section} onBack={backToChats}>
       <SettingsTitle title="Settings" />
       <Problems />
       <GeneralSection />

@@ -116,6 +116,7 @@ type env struct {
 	orch     *agent.Orchestrator
 	settings *Settings
 	secrets  *secret.Store
+	traces   *agent.Traces
 	svc      Bound
 	cancel   context.CancelFunc
 	stopped  bool
@@ -155,9 +156,10 @@ func newEnv(t *testing.T, root string) *env {
 	tools.Add(agent.Tools()...)
 	appCtx, cancel := context.WithCancel(ctx)
 	e.cancel = cancel
-	e.orch = agent.New(agent.Deps{Context: appCtx, Projects: e.pm, Models: models, Tools: tools, Settings: e.settings.Get, Events: pub})
+	e.traces = agent.NewTraces()
+	e.orch = agent.New(agent.Deps{Context: appCtx, Projects: e.pm, Models: models, Tools: tools, Settings: e.settings.Get, Events: pub, Traces: e.traces})
 	e.svc = NewServices(Services{Orchestrator: e.orch, Projects: e.pm, Registry: e.reg, Models: models, Secrets: secrets,
-		Settings: e.settings, Logs: e.paths.Logs})
+		Settings: e.settings, Traces: e.traces, Logs: e.paths.Logs})
 	t.Cleanup(e.stop)
 	return e
 }
