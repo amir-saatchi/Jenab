@@ -420,6 +420,19 @@ func (c *ChatsDB) SetModel(ctx context.Context, ch id.Chat, model string) (uint6
 	return c.update(ctx, ch, `UPDATE chats SET model = ? WHERE id = ?`, model, ch)
 }
 
+// SetSkills sets the skills loaded in a chat (8.9); they move into block 1
+// at the next cut.
+func (c *ChatsDB) SetSkills(ctx context.Context, ch id.Chat, skills []string) (uint64, error) {
+	if skills == nil {
+		skills = []string{}
+	}
+	b, err := json.Marshal(skills)
+	if err != nil {
+		return 0, err
+	}
+	return c.update(ctx, ch, `UPDATE chats SET skills = ? WHERE id = ?`, string(b), ch)
+}
+
 // Archive archives or restores a chat. The Mother chat can't be archived.
 func (c *ChatsDB) Archive(ctx context.Context, ch id.Chat, archived bool) (uint64, error) {
 	return c.update(ctx, ch, `UPDATE chats SET archived = ? WHERE id = ? AND kind <> 'mother'`, archived, ch)

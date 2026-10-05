@@ -31,7 +31,7 @@ pipeline, view
 tool, schedule, update
 project, provider, web, expr, script, mcp
 store
-sqlguard, bucket, workspace, proc
+sqlguard, bucket, workspace, proc, skill
 id, chat, config, limit, secret, logfile
 ```
 
@@ -233,6 +233,28 @@ func Open(dir string, debug bool) (*slog.Logger, func() error, error) // text ha
 func Tail(dir string, match string) ([]string, error)                 // for *Copy details*
 ```
 
+### `skill`: skills (8.9)
+
+Imports only `chat`. A skill is a folder: `SKILL.md` (front matter and body) and extra `.md` files.
+
+```go
+type Skill struct { Name, Description string; LoadWith []string; Body string; Files map[string]string; Mother bool } // Mother: only Mother lists it; set by the app
+func Parse(file string, src []byte) (Skill, error) // a SKILL.md; each bad field is its own *Error
+func Read(fsys fs.FS, name string) (Skill, error)  // the folder name: SKILL.md, extra files, the name matches the folder
+type Error struct { File, Field, Msg string }      // errors.Is(err, ErrInvalid)
+func (s Skill) Text() string                       // "Skill loaded: <name>" and the body: load_skill's result and block 1's text
+func Tokens(s string) int                          // 4 bytes a token, as requests are counted
+const (MaxDescription = 200; MaxBodyTokens = 3000; MaxLoaded = 6; MaxLoadedTokens = 10000)
+
+type Set struct { … } // by name; names are unique
+func New(ss ...Skill) (*Set, error)
+func Builtin() (*Set, error)                                 // embedded in the app; Phase 1 has config-guide
+func (s *Set) For(k chat.Kind) []Skill                       // the skills a chat can use; a nil Set has none
+func (s *Set) Get(k chat.Kind, name string) (Skill, bool)
+func (s *Set) With(k chat.Kind, tool string) []Skill         // load_with
+func (s *Set) Block(k chat.Kind, loaded []string) string     // the loaded skills' text, then the `## Skills` list
+```
+
 ## 4. Data
 
 ### `sqlguard`: the three layers (2.2)
@@ -332,6 +354,7 @@ func (c *ChatsDB) Chats(ctx context.Context) ([]chat.Chat, error)          // Mo
 func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]chat.Message, uint64, error) // turns, with the seq they are current at
 func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Message, uint64, error) // before any tool runs (2.3)
 func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (int, uint64, error) // a finished part; its index
+func (c *ChatsDB) SetSkills(ctx context.Context, ch id.Chat, skills []string) (uint64, error) // the chat's loaded skills (8.9)
 func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) // an approval or question part, once answered or closed (8.8)
 func (c *ChatsDB) SetTitle(ctx context.Context, ch id.Chat, title string, fixed bool) (string, uint64, error) // unique; generated ones get a number
 func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.Source) (uint64, error) // ≤ 500 tokens; recorded in role_changes
@@ -562,10 +585,11 @@ type Needs struct { Effects Effects; Approvals []chat.Approval } // the agent as
 // Call carries the arguments and where the call runs.
 type Call struct { ID string; Args json.RawMessage; Env *Env }
 type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck; ChatStatus func(id.Chat) string;
-    Ask func(ctx context.Context, q chat.Question) (chat.Question, error) } // Ask: shows a question form and waits; nil for subagents
+    Ask func(ctx context.Context, q chat.Question) (chat.Question, error);   // Ask: shows a question form and waits; nil for subagents
+    Skill func(ctx context.Context, name, file string) (Result, error) }     // load_skill (8.9); set by the agent
 // Workspace *workspace.Root joins Env with the workspace package.
 
-type Result struct { Text string; Ref string; Images []chat.Image }
+type Result struct { Text string; Ref string; Images []chat.Image; Whole bool } // Whole: never stored with a preview (a skill)
 type Error struct { Msg string; Err error } // the model can fix it (Q24)
 
 func Func[A any](s Spec, fn func(ctx context.Context, env *Env, args A) (Result, error)) Tool // Q27; args checked by JSON Schema, then decoded
@@ -608,7 +632,7 @@ type Deps struct {
     Tools    *tool.Registry
     Settings func() config.Settings // read at the start of each turn
     Events   Publisher
-    Skills   Skills // nil until P1-12
+    Skills   *skill.Set // the skills chats can load (8.9); nil has none
     Log      *slog.Logger
 }
 
@@ -641,9 +665,8 @@ type Publisher interface {
     // OpenPage(OpenPage) comes with the pages (Phase 2)
 }
 
-type Skills interface { // block 1's skills (P1-12)
-    Block(ctx context.Context, p *project.Project, c chat.Chat) (string, error)
-}
+// Tools() also has load_skill(name, file): it loads a skill into the chat (chats.skills, a skill_loaded notice
+// in the tool message for the chip), or reads an extra file. At most skill.MaxLoaded skills or MaxLoadedTokens a chat.
 ```
 
 Inside `agent` (unexported):
@@ -698,6 +721,10 @@ Send → AppendMessage → runner.turn → step ─┬─ models.Stream ──�
                                            ├─ ChatsDB.AppendMessage ──► Publisher.Part
                                            └─ runTool ──► tool.Run ──► ProjectDB (writer)
 ```
+
+Skills (8.9): block 1 has the chat's loaded skills after the role, then the skill list. A tool's first call in a chat also
+loads the skills whose `load_with` names it, if they fit, and adds their text to its result; in-turn trimming leaves
+that result whole. The text in results becomes a stub at the next cut, when it moves into block 1.
 
 Store and provider additions (P1-10): `ChatsDB.LastTurn`, `ChatsDB.LastActivity` (with the `messages_activity` index), `provider.Registry.Resume` (ends a provider's pause and wakes the calls waiting on it), `Event.Paused` and the `EventWait` with `Wait` 0 when the wait is over, `fake.Provider.Replace`.
 

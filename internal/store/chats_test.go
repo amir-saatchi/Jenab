@@ -421,6 +421,34 @@ func TestChatsSeqOnEveryWrite(t *testing.T) {
 	}
 }
 
+func TestChatsSetSkills(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	a := newChat(t, c, chat.Chat{})
+	last, _ := c.Seq(ctx, a.ID)
+	for _, skills := range [][]string{{"config-guide", "pipelines"}, nil} {
+		s, err := c.SetSkills(ctx, a.ID, skills)
+		if err != nil || s != last+1 {
+			t.Fatalf("SetSkills(%q) = %d, %v; seq was %d", skills, s, err, last)
+		}
+		last = s
+		got, err := c.Chat(ctx, a.ID)
+		if err != nil || len(got.Skills) != len(skills) || got.Skills == nil || len(skills) > 0 && got.Skills[1] != "pipelines" {
+			t.Errorf("after SetSkills(%q): %q, %v", skills, got.Skills, err)
+		}
+	}
+	m, err := c.EnsureMother(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SetSkills(ctx, m.ID, []string{"delegation"}); err != nil {
+		t.Errorf("Mother: %v", err)
+	}
+	if _, err := c.SetSkills(ctx, "nope", nil); !errors.Is(err, ErrNotFound) {
+		t.Errorf("missing chat: %v", err)
+	}
+}
+
 func TestChatsSetPart(t *testing.T) {
 	c := openTestChats(t)
 	ctx := context.Background()

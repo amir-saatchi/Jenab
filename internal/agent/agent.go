@@ -25,6 +25,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
 )
 
@@ -34,12 +35,6 @@ type Publisher interface {
 	Delta(chat.Delta)
 	Part(chat.PartDone)
 	Status(chat.Status)
-}
-
-// Skills gives a chat's loaded skills and the list of available skills for
-// block 1 of the context (3.1, 8.9). P1-12 implements it.
-type Skills interface {
-	Block(ctx context.Context, p *project.Project, c chat.Chat) (string, error)
 }
 
 // Deps are what the Orchestrator needs.
@@ -54,7 +49,7 @@ type Deps struct {
 	// restart (7.6).
 	Settings func() config.Settings
 	Events   Publisher
-	Skills   Skills // nil adds none
+	Skills   *skill.Set // the skills chats can load (8.9); nil has none
 	Log      *slog.Logger
 }
 

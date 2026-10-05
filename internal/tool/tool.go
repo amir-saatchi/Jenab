@@ -118,14 +118,20 @@ type Env struct {
 	// (ask_user, 8.8). The agent sets it; nil where no one can answer,
 	// such as in a subagent.
 	Ask func(ctx context.Context, q chat.Question) (chat.Question, error)
+	// Skill loads a skill into the chat, or reads one of its extra files
+	// when file is set (load_skill, 8.9). The agent sets it.
+	Skill func(ctx context.Context, name, file string) (Result, error)
 }
 
 // Result is what a tool returns. A tool that stores its own output, such
-// as fetch_page, sets Ref and puts the preview in Text.
+// as fetch_page, sets Ref and puts the preview in Text. Whole keeps a
+// long Text whole instead of storing it with a preview, for text the
+// model must read at once, such as a skill (8.9).
 type Result struct {
 	Text   string
 	Ref    string
 	Images []chat.Image
+	Whole  bool
 }
 
 // Error is a mistake the model can fix, such as bad arguments, a missing

@@ -11,9 +11,9 @@ import (
 )
 
 // Tools are the agent's own tools, for the tool registry. Phase 1 has
-// ask_user.
+// ask_user and load_skill.
 func Tools() []tool.Tool {
-	return []tool.Tool{askUser()}
+	return []tool.Tool{askUser(), loadSkill()}
 }
 
 type askArgs struct {

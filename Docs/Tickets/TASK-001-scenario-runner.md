@@ -40,4 +40,6 @@ A headless tool that tests agent behaviour across models on the real orchestrato
 ## Done when
 `jenab-scenarios run <dir>` runs the SPIKE-021, SPIKE-023 and SPIKE-025 sets on at least two models and writes a report. A change to the guide or system prompt can be checked on every model with one command.
 
+This also closes P1-12's last check: SPIKE-025's skill-loading set passes on two models.
+
 The turn inspector (SPEC 8.4) is a separate Phase 1 task.

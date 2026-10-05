@@ -107,7 +107,7 @@ func Output(ctx context.Context, call Call, name string, n int, r Result, err er
 		return out, nil
 	}
 	env := call.Env
-	if r.Ref != "" || tokens(r.Text) <= env.PreviewTokens {
+	if r.Ref != "" || r.Whole || tokens(r.Text) <= env.PreviewTokens {
 		out.Text, out.Ref = r.Text, r.Ref
 		return out, nil
 	}

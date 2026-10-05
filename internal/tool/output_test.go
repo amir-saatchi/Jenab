@@ -109,6 +109,10 @@ func TestOutput(t *testing.T) {
 	}
 
 	big := strings.Repeat("row ", 100) // 400 bytes, 100 tokens
+	got, err = Output(ctx, c, "load_skill", 3, Result{Text: big, Whole: true}, nil)
+	if err != nil || got != (chat.ToolResult{CallID: "c7", Text: big}) {
+		t.Errorf("whole: %+v, %v", got, err)
+	}
 	got, err = Output(ctx, c, "query", 3, Result{Text: big}, nil)
 	if err != nil {
 		t.Fatal(err)

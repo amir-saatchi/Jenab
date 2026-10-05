@@ -52,6 +52,9 @@ type turn struct {
 	window   int // the model's context window; 0 if unknown
 	requests int
 	seen     id.Message // the newest user message in the last request
+	// whole are calls whose results carry a skill from load_with;
+	// trimming keeps them whole until the skill moves into block 1.
+	whole map[string]bool
 }
 
 // turn runs steps until the model answers without tool calls, the request
@@ -60,7 +63,7 @@ type turn struct {
 // normally.
 func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 	cs := r.cs
-	t := &turn{n: n, set: r.o.d.Settings()}
+	t := &turn{n: n, set: r.o.d.Settings(), whole: map[string]bool{}}
 	if err := r.begin(ctx, t); err != nil {
 		r.finish(ctx, t, err)
 		return t, false
@@ -460,6 +463,9 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 			p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartQuestion, Question: &q})
 			return *p.Question, err
 		},
+		Skill: func(ctx context.Context, name, file string) (tool.Result, error) {
+			return r.loadSkill(ctx, t, tm, name, file)
+		},
 	}
 	call := tool.Call{ID: c.ID, Args: c.Args, Env: env}
 	needs := tool.Needs{Effects: tl.Spec().Effects}
@@ -509,6 +515,10 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	if err != nil {
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
 		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
+	}
+	if s := r.loadWith(ctx, t, tm, c.Name); s != "" {
+		out.Text += s
+		t.whole[c.ID] = true
 	}
 	parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &out}}
 	if !out.IsError {

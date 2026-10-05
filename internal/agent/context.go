@@ -189,7 +189,7 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 	var refs []string
 	for _, m := range cur {
 		for _, p := range m.Parts {
-			if p.ToolResult != nil && p.ToolResult.Ref != "" {
+			if p.ToolResult != nil && p.ToolResult.Ref != "" && !t.whole[p.ToolResult.CallID] {
 				refs = append(refs, p.ToolResult.CallID)
 			}
 		}
@@ -216,14 +216,10 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 	if role := strings.TrimSpace(t.ch.Role); role != "" {
 		b.WriteString("\n\nThis chat's role:\n" + role)
 	}
-	if r.o.d.Skills != nil {
-		s, err := r.o.d.Skills.Block(ctx, r.p, t.ch)
-		if err != nil {
-			return nil, err
-		}
-		if s = strings.TrimSpace(s); s != "" {
-			b.WriteString("\n\n" + s)
-		}
+	// The loaded skills come after the role, and the skill list ends the
+	// block (8.9).
+	if s := r.o.d.Skills.Block(t.ch.Kind, t.ch.Skills); s != "" {
+		b.WriteString("\n\n" + s)
 	}
 	blocks := []provider.Block{{Text: b.String()}}
 	w := &r.cs.win
