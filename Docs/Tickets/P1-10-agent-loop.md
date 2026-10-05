@@ -47,7 +47,7 @@ The orchestrator: turns, steps, the context builder and the history window (CODE
 - **Changes from the plan:**
   - The runner is one goroutine per chat with work, not a loop over an inbox: user messages are stored at once, the turn sees them at its next step, and a message after *Stop* queues the next turn.
   - *Clear* goes through the Orchestrator and fails during a turn (`ErrInTurn`): before, a cleared chat kept its turn count and window.
-- **Not wired yet:** the app, `tool.Env.ChatStatus`, and `Registry.Apply` when settings change (P1-13); `PrivateHosts`, the preflight and the Untrusted mark (P1-11).
+- **Not wired yet:** the app and `Registry.Apply` when settings change (P1-13). `tool.Env.ChatStatus`, `PrivateHosts`, the preflight and the Untrusted mark were wired in P1-11.
 - **Open risks:**
   - Anthropic may refuse the last request (no tools) when the history has tool calls; to check with a real key.
   - A too-large request gets its notice; nothing shrinks it by itself yet.

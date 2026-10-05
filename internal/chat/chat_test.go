@@ -38,9 +38,9 @@ func goodParts() []Part {
 		{Kind: PartToolResult, ToolResult: &ToolResult{CallID: "call_2", Text: "cancelled by user", IsError: true}},
 		{Kind: PartImage, Image: &Image{Ref: "charts/btc.png", MIME: "image/png", Alt: "BTC price"}},
 		{Kind: PartNotice, Notice: &Notice{Kind: NoticeTaskFinished, Text: "[task t_12 finished: 20 pages read]"}},
-		{Kind: PartApproval, Approval: &Approval{ID: "01K6Q2X5E8V3M9T4R7W2N6B1CA", Kind: "host", Ask: "Allow api.coingecko.com?",
+		{Kind: PartApproval, Approval: &Approval{ID: "01K6Q2X5E8V3M9T4R7W2N6B1CA", Kind: "host", Target: "api.coingecko.com", Ask: "Allow api.coingecko.com?",
 			Why: "The price pipeline needs it.", Risk: "Data is sent to a new host.",
-			Options: []string{"Allow for this project", "Deny"}, Answer: "Deny", Note: "use binance", By: "user", AnsweredAt: &answered}},
+			Options: []ApprovalOption{{Label: "Allow for this project", Grant: GrantAlways}, {Label: "Deny", Grant: GrantDeny}}, Answer: GrantDeny, Note: "use binance", By: "user", AnsweredAt: &answered}},
 		{Kind: PartQuestion, Question: question("Currency")},
 		{Kind: PartQuestion, Question: func() *Question {
 			q := question("Currency", "Period", "Chart", "Coins")
@@ -63,6 +63,11 @@ func TestValidPartsPass(t *testing.T) {
 func TestInvalidParts(t *testing.T) {
 	text := &Text{Text: "hi"}
 	call := func(c ToolCall) Part { return Part{Kind: PartToolCall, ToolCall: &c} }
+	card := func(f func(*Approval)) Part {
+		a := &Approval{ID: "a", Kind: "host", Target: "example.com", Ask: "x", Options: []ApprovalOption{{Label: "Allow for this project", Grant: GrantAlways}, {Label: "Deny", Grant: GrantDeny}}}
+		f(a)
+		return Part{Kind: PartApproval, Approval: a}
+	}
 	q := func(f func(*Question)) Part {
 		qq := question("Currency", "Period")
 		f(qq)
@@ -88,8 +93,14 @@ func TestInvalidParts(t *testing.T) {
 		{"image without ref", Part{Kind: PartImage, Image: &Image{MIME: "image/png"}}, "ref"},
 		{"image without MIME", Part{Kind: PartImage, Image: &Image{Ref: "a.png"}}, "MIME"},
 		{"notice without text", Part{Kind: PartNotice, Notice: &Notice{Kind: NoticeEarlyStop}}, "notice"},
-		{"approval with one option", Part{Kind: PartApproval, Approval: &Approval{ID: "a", Kind: "host", Ask: "x", Options: []string{"Deny"}}}, "1 options"},
-		{"approval without ask", Part{Kind: PartApproval, Approval: &Approval{ID: "a", Kind: "host", Options: []string{"Allow", "Deny"}}}, "ask"},
+		{"approval with one option", card(func(a *Approval) { a.Options = a.Options[1:] }), "1 options"},
+		{"approval without ask", card(func(a *Approval) { a.Ask = "" }), "ask"},
+		{"approval without target", card(func(a *Approval) { a.Target = "" }), "target"},
+		{"approval without deny", card(func(a *Approval) { a.Options[1].Grant = GrantOnce }), "no deny"},
+		{"approval with two denies", card(func(a *Approval) { a.Options[0].Grant = GrantDeny }), "two deny"},
+		{"approval with an unknown grant", card(func(a *Approval) { a.Options[0].Grant = "forever" }), "unknown grant"},
+		{"approval option without label", card(func(a *Approval) { a.Options[0].Label = "" }), "without a label"},
+		{"approval answer not an option", card(func(a *Approval) { a.Answer = GrantOnce }), "not an option"},
 		{"no questions", q(func(q *Question) { q.Questions = nil }), "0 questions"},
 		{"five questions", q(func(q *Question) { q.Questions = question("a", "b", "c", "d", "e").Questions }), "5 questions"},
 		{"same header twice", q(func(q *Question) { q.Questions[1].Header = "Currency" }), "used twice"},

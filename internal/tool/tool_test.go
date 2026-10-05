@@ -265,6 +265,30 @@ func TestRunTimeout(t *testing.T) {
 	}
 }
 
+// askTool waits like a question form, longer than its timeout.
+type askTool struct{}
+
+func (askTool) Spec() Spec { return Spec{Name: "ask", Timeout: time.Millisecond, Effects: AsksUser} }
+func (askTool) Run(ctx context.Context, _ Call) (Result, error) {
+	select {
+	case <-ctx.Done():
+		return Result{}, ctx.Err()
+	case <-time.After(50 * time.Millisecond):
+		return Result{Text: "answered"}, nil
+	}
+}
+
+func TestRunAsksUserHasNoTimeout(t *testing.T) {
+	if r, err := Run(context.Background(), askTool{}, Call{}); err != nil || r.Text != "answered" {
+		t.Errorf("Run = %+v, %v", r, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := Run(ctx, askTool{}, Call{}); !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled: %v", err)
+	}
+}
+
 func TestEffectsString(t *testing.T) {
 	if got := (ReadsDB | Untrusted | NoUndo).String(); got != "reads_db|untrusted|no_undo" {
 		t.Errorf("got %q", got)

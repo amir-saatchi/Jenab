@@ -77,7 +77,7 @@ func TestReadMessages(t *testing.T) {
 	addMessage(t, env, env.Chat, 2, chat.RoleAssistant,
 		chat.Part{Kind: chat.PartImage, Image: &chat.Image{Ref: "images/a.png", MIME: "image/png"}},
 		chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeTaskFinished, Text: "task t1 finished"}},
-		chat.Part{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1", Kind: "host", Ask: "Allow example.com?", Options: []string{"Allow", "Deny"}, Answer: "Allow", AnsweredAt: &at}},
+		chat.Part{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1", Kind: "host", Target: "example.com", Ask: "Allow example.com?", Options: []chat.ApprovalOption{{Label: "Allow", Grant: chat.GrantAlways}, {Label: "Deny", Grant: chat.GrantDeny}}, Answer: chat.GrantAlways, AnsweredAt: &at}},
 		chat.Part{Kind: chat.PartQuestion, Question: &chat.Question{
 			Questions: []chat.QuestionItem{{Header: "Coin", Question: "Which coin?", Options: []chat.Option{{Label: "BTC"}, {Label: "ETH"}}}},
 			Answers:   map[string][]string{"Coin": {"BTC"}}, AnsweredAt: &at}},

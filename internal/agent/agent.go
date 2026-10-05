@@ -127,12 +127,16 @@ type chatState struct {
 	retryNow func() // set while a failed request waits to be tried again
 	retry    *chat.Retry
 	resp     *response // the answer streaming now
-	failed   bool      // the last turn stopped on an error; Retry continues it
-	titling  bool      // a title request is running
-	clears   int       // counts Clear and Delete, so a late title is dropped
-	started  time.Time
-	active   time.Time
-	requests int
+	waiting  *pending  // the card or form the turn waits for (8.8)
+	// untrusted: the chat read outside data since the user's last
+	// message, so Auto asks where the rules say so (8.8).
+	untrusted bool
+	failed    bool // the last turn stopped on an error; Retry continues it
+	titling   bool // a title request is running
+	clears    int  // counts Clear and Delete, so a late title is dropped
+	started   time.Time
+	active    time.Time
+	requests  int
 
 	// pub keeps a store write and its events together, so events go out
 	// in seq order. Taken after mu, never before.
@@ -189,7 +193,9 @@ func (o *Orchestrator) leave() {
 
 // Send adds a user message to the chat. It joins the running turn at its
 // next step, or queues a new turn (8.3). After Stop, a message starts a
-// new turn. It returns once the message is stored.
+// new turn. A card the turn waits for closes as Deny with the message as
+// its note; a question form gets the message as its answer (8.8). It
+// returns once the message is stored.
 func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m UserMessage) (id.Message, error) {
 	var parts []chat.Part
 	if strings.TrimSpace(m.Text) != "" {
@@ -229,7 +235,14 @@ func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m User
 	if err != nil {
 		return "", err
 	}
-	cs.lastUser = msg.ID
+	cs.lastUser, cs.untrusted = msg.ID, false
+	if w := cs.waiting; w != nil {
+		a := Answer{Message: w.w.Message, Index: w.w.Index, Note: strings.TrimSpace(m.Text)}
+		if w.part.Approval != nil {
+			a.Grant = chat.GrantDeny
+		}
+		o.deliver(cs, a)
+	}
 	if !join {
 		cs.turn, cs.queued, cs.failed = turn, true, false
 		if !cs.runner {
@@ -395,6 +408,7 @@ type Live struct {
 	Turn      int           `json:"turn"`
 	Seq       uint64        `json:"seq"`
 	Retry     *chat.Retry   `json:"retry,omitempty"`
+	Waiting   *chat.Waiting `json:"waiting,omitempty"`
 	Streaming id.Message    `json:"streaming,omitempty"`
 	Parts     []chat.Part   `json:"parts,omitempty"` // its finished parts
 	Kind      chat.PartKind `json:"kind,omitempty"`  // the part being streamed
@@ -410,6 +424,9 @@ func (o *Orchestrator) Live(p id.Project, c id.Chat) Live {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	l := Live{Running: cs.running || cs.queued, Turn: cs.turn, Seq: cs.seq.Load(), Retry: cs.retry}
+	if w := cs.waiting; w != nil {
+		l.Waiting = &w.w
+	}
 	if r := cs.resp; r != nil {
 		r.mu.Lock()
 		l.Streaming, l.Parts, l.Kind, l.Text = r.id, slices.Clone(r.parts), r.kind, r.text.String()
@@ -419,7 +436,8 @@ func (o *Orchestrator) Live(p id.Project, c id.Chat) Live {
 }
 
 // ChatStatus is a chat's status for list_chats and Mother's chat list:
-// "in a turn" or "" when idle. Chat IDs are unique across projects.
+// "in a turn", "waiting for the user" or "" when idle. Chat IDs are unique
+// across projects.
 func (o *Orchestrator) ChatStatus(c id.Chat) string {
 	o.mu.Lock()
 	var cs *chatState
@@ -434,7 +452,10 @@ func (o *Orchestrator) ChatStatus(c id.Chat) string {
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	if cs.running || cs.queued {
+	switch {
+	case cs.waiting != nil:
+		return "waiting for the user"
+	case cs.running || cs.queued:
 		return "in a turn"
 	}
 	return ""
@@ -466,7 +487,8 @@ func (o *Orchestrator) Wait(ctx context.Context) error {
 }
 
 // load reads the chat's last turn and sequence number once, and whether
-// the last turn stopped on an error. cs.mu is held.
+// the last turn stopped on an error: its last message, not counting
+// approval level notices, ends with a turn_failed notice. cs.mu is held.
 func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Project) error {
 	if cs.loaded {
 		return nil
@@ -485,10 +507,14 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 		if err != nil {
 			return err
 		}
-		if n := len(ms); n > 0 {
-			for _, part := range ms[n-1].Parts {
-				failed = part.Notice != nil && part.Notice.Kind == chat.NoticeTurnFailed
+		for i := len(ms) - 1; i >= 0; i-- {
+			ps := ms[i].Parts
+			if !slices.ContainsFunc(ps, func(p chat.Part) bool { return p.Notice == nil || p.Notice.Kind != chat.NoticeApprovalLevel }) {
+				continue
 			}
+			last := ps[len(ps)-1]
+			failed = last.Notice != nil && last.Notice.Kind == chat.NoticeTurnFailed
+			break
 		}
 	}
 	cs.turn, cs.failed, cs.loaded = turn, failed, true
@@ -560,7 +586,7 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 		}
 		cs.mu.Lock()
 		if cs.gen == gen && cs.runner {
-			cs.runner, cs.running, cs.queued, cs.cancel, cs.retryNow, cs.retry, cs.resp, cs.failed = false, false, false, nil, nil, nil, nil, true
+			cs.runner, cs.running, cs.queued, cs.cancel, cs.retryNow, cs.retry, cs.resp, cs.waiting, cs.failed = false, false, false, nil, nil, nil, nil, nil, true
 			o.publishStatus(cs)
 		}
 		cs.mu.Unlock()
@@ -603,6 +629,9 @@ func (o *Orchestrator) publishStatus(cs *chatState) {
 	if cs.resp != nil {
 		st.Streaming = cs.resp.id
 	}
+	if w := cs.waiting; w != nil {
+		st.State, st.Waiting = chat.StateWaiting, &w.w
+	}
 	cs.pub.Lock()
 	defer cs.pub.Unlock()
 	st.Seq = cs.seq.Load()
@@ -618,6 +647,10 @@ func (cs *chatState) Status() []project.Status {
 	}
 	st := project.Status{ID: string(cs.key.c), Kind: "turn", State: "running", Started: cs.started, LastActivity: cs.active,
 		Progress: fmt.Sprintf("turn %d, request %d", cs.turn, cs.requests)}
+	if cs.waiting != nil {
+		st.State = "waiting"
+		st.Progress += ", waiting for the user"
+	}
 	if cs.retry != nil {
 		st.State = "waiting"
 		st.Err = fmt.Sprintf("%s is %s; the next try is at %s", cs.retry.Provider, kindText(provider.ErrorKind(cs.retry.Kind)), cs.retry.At.Local().Format(time.TimeOnly))

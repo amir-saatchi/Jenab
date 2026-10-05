@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -391,21 +392,14 @@ func (r *runner) setRetry(rt *chat.Retry, now func()) {
 // user" (8.3). Calls in the answer to the last request, which had no
 // tools, are closed without running.
 func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) error {
-	wrote := false
+	tm := &toolMsg{r: r, t: t, id: resp.toolID}
 	for i, c := range calls {
 		parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: "not run: the turn reached its request limit", IsError: true}}}
 		if !last {
-			parts = r.runTool(ctx, t, resp.id, i, c)
+			parts = r.runTool(ctx, t, tm, resp.id, i, c)
 		}
 		for _, part := range parts {
-			var err error
-			if !wrote {
-				err = r.writeMessage(ctx, chat.Message{ID: resp.toolID, Chat: t.ch.ID, Turn: t.n, Role: chat.RoleTool, Parts: []chat.Part{part}})
-				wrote = err == nil
-			} else {
-				err = r.writePart(ctx, resp.toolID, part)
-			}
-			if err != nil {
+			if _, err := tm.add(ctx, part); err != nil {
 				return err
 			}
 		}
@@ -413,11 +407,44 @@ func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []
 	return nil
 }
 
-// runTool runs one call. Every outcome is a result the model can read; a
-// panic or a system failure is logged too.
-func (r *runner) runTool(ctx context.Context, t *turn, msg id.Message, n int, c chat.ToolCall) []chat.Part {
+// toolMsg is an answer's tool message: the results of its calls, and the
+// cards and forms they wait for (8.8). It is written with its first part.
+type toolMsg struct {
+	r     *runner
+	t     *turn
+	id    id.Message
+	wrote bool
+}
+
+// add writes a part and returns its index.
+func (m *toolMsg) add(ctx context.Context, p chat.Part) (int, error) {
+	if m.wrote {
+		return m.r.writePart(ctx, m.id, p)
+	}
+	if err := m.r.writeMessage(ctx, chat.Message{ID: m.id, Chat: m.t.ch.ID, Turn: m.t.n, Role: chat.RoleTool, Parts: []chat.Part{p}}); err != nil {
+		return 0, err
+	}
+	m.wrote = true
+	return 0, nil
+}
+
+// runTool runs one call: its approvals first (8.8), then the tool. Every
+// outcome is a result the model can read; a panic or a system failure is
+// logged too.
+func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Message, n int, c chat.ToolCall) []chat.Part {
 	result := func(text string) []chat.Part {
 		return []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: text, IsError: true}}}
+	}
+	failed := func(err error) []chat.Part {
+		var te *tool.Error
+		switch {
+		case ctx.Err() != nil:
+			return result(cancelled(ctx))
+		case errors.As(err, &te):
+			return result(te.Msg)
+		}
+		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
+		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
 	}
 	if ctx.Err() != nil {
 		return result(cancelled(ctx))
@@ -426,11 +453,55 @@ func (r *runner) runTool(ctx context.Context, t *turn, msg id.Message, n int, c 
 	if !ok || tl.Spec().Mother && t.ch.Kind != chat.KindMother {
 		return result("there is no tool named " + c.Name)
 	}
-	call := tool.Call{ID: c.ID, Args: c.Args, Env: &tool.Env{
+	env := &tool.Env{
 		Project: r.p, Chat: t.ch.ID, Message: msg, Source: id.SourceOf("message", string(msg)),
-		Priority: limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens,
-	}}
+		Priority: limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens, ChatStatus: r.o.ChatStatus,
+		Ask: func(ctx context.Context, q chat.Question) (chat.Question, error) {
+			p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartQuestion, Question: &q})
+			return *p.Question, err
+		},
+	}
+	call := tool.Call{ID: c.ID, Args: c.Args, Env: env}
+	needs := tool.Needs{Effects: tl.Spec().Effects}
+	if pf, ok := tl.(tool.Preflighter); ok {
+		var err error
+		if needs, err = pf.Preflight(ctx, call); err != nil {
+			return failed(err)
+		}
+	}
+	asks, autos, err := r.approve(ctx, needs)
+	if err != nil {
+		return failed(err)
+	}
+	for _, a := range autos {
+		if err := r.autoApprove(ctx, tm, a); err != nil {
+			return failed(err)
+		}
+	}
+	for _, a := range asks {
+		p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartApproval, Approval: &a})
+		if err != nil {
+			return failed(err)
+		}
+		if p.Approval.Answer == chat.GrantDeny {
+			return result(denied(p.Approval))
+		}
+	}
+	if needs.Effects&tool.Network != 0 {
+		hosts, err := r.p.PrivateHosts(ctx)
+		if err != nil {
+			return failed(err)
+		}
+		env.PrivateHosts = func(h string) bool { return slices.Contains(hosts, strings.ToLower(h)) }
+	}
 	res, err := r.safeRun(ctx, tl, call)
+	if needs.Effects&tool.Untrusted != 0 {
+		// Outside data entered the turn: Auto asks again until the user's
+		// next message (8.8).
+		r.cs.mu.Lock()
+		r.cs.untrusted = true
+		r.cs.mu.Unlock()
+	}
 	if err != nil && ctx.Err() != nil {
 		return result(cancelled(ctx))
 	}
@@ -471,24 +542,47 @@ func cancelled(ctx context.Context) string {
 // writeMessage stores a message and publishes its parts. It writes after
 // Stop too.
 func (r *runner) writeMessage(ctx context.Context, m chat.Message) error {
-	wctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), writeTimeout)
+	wctx, cancel := writing(ctx)
 	defer cancel()
 	_, err := r.o.write(wctx, r.cs, r.p, m)
 	return err
 }
 
-func (r *runner) writePart(ctx context.Context, m id.Message, p chat.Part) error {
-	wctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), writeTimeout)
+// writePart appends a part to a message and returns its index.
+func (r *runner) writePart(ctx context.Context, m id.Message, p chat.Part) (int, error) {
+	wctx, cancel := writing(ctx)
 	defer cancel()
 	r.cs.pub.Lock()
 	defer r.cs.pub.Unlock()
 	i, seq, err := r.p.Chats.AppendPart(wctx, m, p)
+	if err != nil {
+		return 0, err
+	}
+	r.cs.bumpSeq(seq)
+	r.o.pub.Part(chat.PartDone{Project: r.p.ID, Chat: r.cs.key.c, Seq: seq, Message: m, Index: i, Part: p})
+	return i, nil
+}
+
+// setPart replaces an answered or closed card; its PartDone has the same
+// index, so the frontend replaces it too.
+func (r *runner) setPart(ctx context.Context, m id.Message, i int, p chat.Part) error {
+	wctx, cancel := writing(ctx)
+	defer cancel()
+	r.cs.pub.Lock()
+	defer r.cs.pub.Unlock()
+	seq, err := r.p.Chats.SetPart(wctx, m, i, p)
 	if err != nil {
 		return err
 	}
 	r.cs.bumpSeq(seq)
 	r.o.pub.Part(chat.PartDone{Project: r.p.ID, Chat: r.cs.key.c, Seq: seq, Message: m, Index: i, Part: p})
 	return nil
+}
+
+// writing is the context for a write: Stop doesn't cancel it, so the
+// history stays valid, but it is bounded.
+func writing(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), writeTimeout)
 }
 
 // finish ends a turn that did not end normally. Stop and a closing app end

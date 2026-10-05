@@ -42,6 +42,9 @@ type Deps struct {
 	Log      *slog.Logger
 	Events   Publisher     // nil sends nothing
 	Idle     time.Duration // 0 means IdleAfter
+	// Level is the approval level for new projects
+	// (approvals.default_level); nil means Standard.
+	Level func() Level
 }
 
 // Manager keeps one Project per open project, with its leases (Q29).
@@ -66,6 +69,9 @@ func NewManager(d Deps) *Manager {
 	}
 	if d.Idle <= 0 {
 		d.Idle = IdleAfter
+	}
+	if d.Level == nil {
+		d.Level = func() Level { return Standard }
 	}
 	return &Manager{d: d, open: map[id.Project]*Project{}}
 }
@@ -105,7 +111,7 @@ func (m *Manager) create(ctx context.Context, pid id.Project, name, dir string) 
 		return err
 	}
 	now := time.Now().UTC()
-	err = db.SetMeta(ctx, map[string]string{metaID: string(pid), metaName: name, metaCreated: now.Format(time.RFC3339Nano)})
+	err = db.SetMeta(ctx, map[string]string{metaID: string(pid), metaName: name, metaCreated: now.Format(time.RFC3339Nano), metaLevel: string(m.d.Level())})
 	if err = errors.Join(err, db.Close(ctx)); err != nil {
 		return err
 	}

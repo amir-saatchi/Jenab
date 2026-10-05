@@ -196,7 +196,11 @@ func writeMessage(b *strings.Builder, m chat.Message) {
 			fmt.Fprintf(b, "[notice %s: %s]", p.Notice.Kind, p.Notice.Text)
 		case chat.PartApproval:
 			a := p.Approval
-			fmt.Fprintf(b, "[approval %s: %s — %s]", a.Kind, a.Ask, answerOr(a.Answer))
+			ans := "not answered"
+			if o, ok := a.Option(a.Answer); ok && a.Answer != "" {
+				ans = o.Label
+			}
+			fmt.Fprintf(b, "[approval %s: %s — %s]", a.Kind, a.Ask, ans)
 		case chat.PartQuestion:
 			q := p.Question
 			var asked []string
@@ -213,13 +217,6 @@ func writeMessage(b *strings.Builder, m chat.Message) {
 			fmt.Fprintf(b, "[%s part]", p.Kind)
 		}
 	}
-}
-
-func answerOr(a string) string {
-	if a == "" {
-		return "not answered"
-	}
-	return a
 }
 
 func listChats() Tool {

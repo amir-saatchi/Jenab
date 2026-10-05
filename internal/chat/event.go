@@ -17,6 +17,12 @@ import (
 // stored parts can differ from the streamed ones. Deltas for a message
 // that is neither stored nor Status.Streaming are dropped; a failed try
 // clears Streaming, and the next try streams a new message.
+//
+// An approval card or question form is written when the turn starts to
+// wait for it, and again, at the same index, once it is answered or
+// closed: a PartDone for an index the frontend has replaces that part
+// (SPEC 8.8). A card that is neither answered nor stopped nor the chat's
+// Status.Waiting was left by a crash, and is closed.
 
 // Delta is streamed text for a part still in progress. At most one per 16 ms
 // per chat (Q17).

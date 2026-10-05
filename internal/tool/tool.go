@@ -57,7 +57,7 @@ const (
 	Workspace                     // reads the linked folder
 	Memory                        // changes memory or session notes
 	Schema                        // changes the schema
-	AsksUser                      // waits for the user
+	AsksUser                      // waits for the user, so it has no timeout
 	// Untrusted: the result is outside data (web pages, files, MCP
 	// results); after one, the turn is marked (8.5, 8.7).
 	Untrusted
@@ -85,7 +85,7 @@ type Preflighter interface {
 
 // Needs are a call's effects and the approvals it asks for. The
 // orchestrator drops approvals already given and applies the approval
-// level (P1-11).
+// level (8.8).
 type Needs struct {
 	Effects   Effects
 	Approvals []chat.Approval
@@ -114,6 +114,10 @@ type Env struct {
 	// ChatStatus gives a chat's status for list_chats, such as "in a
 	// turn"; nil or "" leaves it out. The agent sets it.
 	ChatStatus func(id.Chat) string
+	// Ask shows a question form in the chat and waits for the answer
+	// (ask_user, 8.8). The agent sets it; nil where no one can answer,
+	// such as in a subagent.
+	Ask func(ctx context.Context, q chat.Question) (chat.Question, error)
 }
 
 // Result is what a tool returns. A tool that stores its own output, such
@@ -122,7 +126,6 @@ type Result struct {
 	Text   string
 	Ref    string
 	Images []chat.Image
-	Denied bool // the user said no; Text has their note
 }
 
 // Error is a mistake the model can fix, such as bad arguments, a missing
@@ -143,8 +146,13 @@ func Errorf(format string, a ...any) *Error {
 }
 
 // Run runs t with its timeout. A timeout of the tool's own becomes an
-// *Error the model sees; a cancelled ctx stays as it is.
+// *Error the model sees; a cancelled ctx stays as it is. A tool that asks
+// the user has no timeout: the form stays until the user answers or
+// stops (8.8).
 func Run(ctx context.Context, t Tool, call Call) (Result, error) {
+	if t.Spec().Effects&AsksUser != 0 {
+		return t.Run(ctx, call)
+	}
 	d := t.Spec().Timeout
 	if d <= 0 {
 		d = DefaultTimeout

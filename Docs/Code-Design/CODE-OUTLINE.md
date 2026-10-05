@@ -149,6 +149,10 @@ type Part struct {
     Question   *Question
 }
 func (p Part) Validate() error // exactly one field set, it matches Kind, and the kind's own rules
+// Approval (8.8): ID, Kind ("host", "starlark" …), Target, Ask, Why, Options, then Answer, Note, By and AnsweredAt;
+// Stopped when Stop closed it unanswered. Question: ask_user's items, then Answers, Note, AnsweredAt or Stopped.
+type ApprovalOption struct { Label string; Grant Grant } // a card needs a Deny option and no grant twice
+type Grant string // GrantOnce, GrantAlways, GrantDeny
 // JSON names are snake_case (2.3). ToolCall.Extra and Thinking.Signature are strings, so they come back byte for byte.
 
 type SessionNote struct { Chat id.Chat; Content string; Revision int; UpdatedAt time.Time }
@@ -313,6 +317,12 @@ func (p *ProjectDB) StartRun(ctx context.Context, r Run) error
 func (p *ProjectDB) FinishStep(ctx context.Context, s RunStep) error
 func (p *ProjectDB) FinishRun(ctx context.Context, id id.Run, st RunState) error
 
+// Approvals (8.8): the newest decision for a (kind, target) counts, so a later Deny revokes an Always.
+type Approval struct { ID id.Approval; Kind, Target string; Answer chat.Grant; Note string; Source id.Source; CreatedAt time.Time }
+func (p *ProjectDB) RecordApproval(ctx context.Context, a Approval) error
+func (p *ProjectDB) Approved(ctx context.Context, kind, target string) (bool, error) // the newest decision is Always
+func (p *ProjectDB) Approvals(ctx context.Context) ([]Approval, error)              // newest first, for project settings
+
 // ChatsDB is chats.db. Every write to a chat adds one to its seq and returns it (Q32).
 type ChatsDB struct { *DB }
 func OpenChats(ctx context.Context, dir string) (*ChatsDB, error)          // and OpenChatsReadOnly after damage
@@ -322,6 +332,7 @@ func (c *ChatsDB) Chats(ctx context.Context) ([]chat.Chat, error)          // Mo
 func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]chat.Message, uint64, error) // turns, with the seq they are current at
 func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Message, uint64, error) // before any tool runs (2.3)
 func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (int, uint64, error) // a finished part; its index
+func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) // an approval or question part, once answered or closed (8.8)
 func (c *ChatsDB) SetTitle(ctx context.Context, ch id.Chat, title string, fixed bool) (string, uint64, error) // unique; generated ones get a number
 func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.Source) (uint64, error) // ≤ 500 tokens; recorded in role_changes
 func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error)  // messages, notes, review results; any chat
@@ -350,7 +361,7 @@ type Restorer interface {
 type Restorers map[string]Restorer
 ```
 
-Store-only types: `Run`, `RunStep`, `ChangeEntry`, `Memory`, `Approval`, `Object`, `Migration` and its steps (8.2).
+Store-only types: `Run`, `RunStep`, `ChangeEntry`, `Memory`, `Object`, `Migration` and its steps (8.2).
 
 ### `project`: lifetime and leases (2.7, Q29)
 
@@ -378,6 +389,14 @@ func (p *Project) Release()                                  // the last release
 func (p *Project) Report(r Reporter) (unregister func())     // chat runners and runs register (Q19a)
 func (p *Project) Activity() Activity                        // one snapshot of every Reporter plus writer Stats
 func (p *Project) OnClose(fn func()) (remove func())         // for work that lives as long as the project, e.g. MCP servers
+
+// Settings in _jenab_meta. A new project's level comes from Deps.Level (approvals.default_level in config.yaml).
+type Level string // Strict, Standard, Auto (8.8)
+func ParseLevel(s string) (Level, error)
+func (p *Project) Level(ctx context.Context) (Level, error)                 // Standard when none or an unknown one is stored
+func (p *Project) SetLevel(ctx context.Context, l Level) error
+func (p *Project) PrivateHosts(ctx context.Context) ([]string, error)       // private-network exceptions (6.7)
+func (p *Project) SetPrivateHosts(ctx context.Context, hosts []string) error // lower case, punycode, sorted, no duplicates
 
 type Reporter interface { Status() []Status }
 type Status struct { ID string; Kind, State string; Started, LastActivity time.Time; Progress string; Err string }
@@ -538,18 +557,19 @@ type Effects uint // ReadsDB, WritesDB, Network, Bucket, Workspace, Memory, Sche
 type Preflighter interface {
     Preflight(ctx context.Context, call Call) (Needs, error)
 }
-type Needs struct { Effects Effects; Approvals []chat.Approval }
+type Needs struct { Effects Effects; Approvals []chat.Approval } // the agent asks for, or auto-approves, each approval before Run (8.8)
 
 // Call carries the arguments and where the call runs.
 type Call struct { ID string; Args json.RawMessage; Env *Env }
-type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck; ChatStatus func(id.Chat) string }
+type Env struct { Project *project.Project; Chat id.Chat; Message id.Message; Source id.Source; Priority limit.Priority; PreviewTokens int; PrivateHosts web.HostCheck; ChatStatus func(id.Chat) string;
+    Ask func(ctx context.Context, q chat.Question) (chat.Question, error) } // Ask: shows a question form and waits; nil for subagents
 // Workspace *workspace.Root joins Env with the workspace package.
 
-type Result struct { Text string; Ref string; Images []chat.Image; Denied bool }
+type Result struct { Text string; Ref string; Images []chat.Image }
 type Error struct { Msg string; Err error } // the model can fix it (Q24)
 
 func Func[A any](s Spec, fn func(ctx context.Context, env *Env, args A) (Result, error)) Tool // Q27; args checked by JSON Schema, then decoded
-func Run(ctx context.Context, t Tool, c Call) (Result, error) // with the tool's timeout; running over it is an *Error, a cancel stays a cancel
+func Run(ctx context.Context, t Tool, c Call) (Result, error) // with the tool's timeout (none for AsksUser); running over it is an *Error, a cancel stays a cancel
 
 // Previews and refs (3.7)
 func Output(ctx context.Context, c Call, name string, n int, r Result, err error) (chat.ToolResult, error) // stores a large result under cache/tool/
@@ -600,10 +620,18 @@ func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error
 func (o *Orchestrator) Delete(ctx context.Context, p id.Project, c id.Chat) error // ErrInTurn during a turn; not Mother
 func (o *Orchestrator) Wrote(p id.Project, c id.Chat, seq uint64)      // a chat write made elsewhere (title, role), so events carry its seq
 func (o *Orchestrator) Live(p id.Project, c id.Chat) Live              // for a chat opened mid-turn: the streaming answer's parts and text so far
-func (o *Orchestrator) ChatStatus(c id.Chat) string                    // "in a turn" or "", for list_chats and Mother's chat list
-func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // later (P1-11): approval card or question form (8.8)
+func (o *Orchestrator) ChatStatus(c id.Chat) string                    // "waiting for the user", "in a turn" or "", for list_chats and Mother's chat list
+func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // the card or form the turn waits for (8.8); ErrNotWaiting, ErrBadAnswer
+func (o *Orchestrator) SetLevel(ctx context.Context, p id.Project, c id.Chat, l project.Level) error // from the next tool call; adds a notice to the chat
 func (o *Orchestrator) Refuse()                                        // shutdown step 1: Send, Retry, Clear and Delete fail
 func (o *Orchestrator) Wait(ctx context.Context) error
+
+// Answer: the card's message and part index, then an approval's Grant, or a form's Answers by header
+// (the picked labels or the Other text), and a Note. A message sent while waiting is a Deny with the message as the note.
+type Answer struct { Message id.Message; Index int; Grant chat.Grant; Answers map[string][]string; Note string }
+// Live also has Waiting, the card or form the turn waits for.
+
+func Tools() []tool.Tool // ask_user (1–4 questions, 2–4 options each; Other is added by the UI); later the other agent tools
 
 type Publisher interface {
     Delta(chat.Delta)
@@ -635,7 +663,15 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (more bool, err e
     //    a message sent during the wait goes into the next try
     // An answer without calls that hit the output limit, was refused or has no text adds an answer_cut notice
     // 3. write the answer in one AppendMessage, then run its calls and write their results in one tool message
-func (r *runner) runTool(ctx context.Context, t *turn, msg id.Message, n int, c chat.ToolCall) []chat.Part // recover, error mapping, cancelled on Stop
+func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Message, n int, c chat.ToolCall) []chat.Part
+    // preflight, approvals, private hosts, then the tool: recover, error mapping, cancelled on Stop;
+    // after an Untrusted tool the chat is marked untrusted until the user's next message
+type toolMsg struct { … } // an answer's tool message: its results and the cards and forms they wait for
+func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.Approval, err error)
+    // 8.8 levels and the untrusted mark, in one place: approvals already given are dropped; autos are recorded with source auto
+func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part, error)
+    // writes the card or form, waits with no transaction held (status "waiting"), writes the answer into the same part;
+    // Stop marks it stopped
 func (r *runner) startTitle(ctx context.Context, wg *sync.WaitGroup, t *turn) // after the first turn, with the fast model, beside
     // the next turn; one at a time, dropped if the chat was cleared meanwhile; the runner waits for it
 
@@ -651,7 +687,6 @@ type subagent struct { … }              // not a chat: in-memory messages, no 
                                         // writes use the parent's Source; at the end its transcript goes to the bucket
                                         // and the parent's tool_result gets the ref (8.6)
 type schemaAgent struct { … }           // 8.2: steps, try, needs_approval
-func approve(t *turn, s tool.Spec, n tool.Needs) []chat.Approval // 8.8 levels, the turn's Untrusted mark, in one place
 ```
 
 IDs: each try makes its answer's ID and its tool message's ID when it starts, under the chat's lock like Send, and messages sort by (turn, ID). So a user message sent during the try sorts after the answer and its results, and a retried try leaves nothing behind.

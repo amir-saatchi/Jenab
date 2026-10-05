@@ -253,7 +253,7 @@ func allParts() []chat.Part {
 		{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: "c2", Text: "cancelled by user", IsError: true}},
 		{Kind: chat.PartImage, Image: &chat.Image{Ref: "images/a.png", MIME: "image/png", Alt: "a chart"}},
 		{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeTaskFinished, Text: "task t1 finished"}},
-		{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1", Kind: "host", Ask: "Allow example.com?", Options: []string{"Allow", "Deny"}, Answer: "Allow", By: id.SourceUser, AnsweredAt: &at}},
+		{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1", Kind: "host", Target: "example.com", Ask: "Allow example.com?", Options: []chat.ApprovalOption{{Label: "Allow", Grant: chat.GrantAlways}, {Label: "Deny", Grant: chat.GrantDeny}}, Answer: chat.GrantAlways, By: id.SourceUser, AnsweredAt: &at}},
 		{Kind: chat.PartQuestion, Question: &chat.Question{
 			Questions: []chat.QuestionItem{{Header: "Coin", Question: "Which coin?", Options: []chat.Option{{Label: "BTC", Recommended: true}, {Label: "ETH"}}}},
 			Answers:   map[string][]string{"Coin": {"BTC"}}, AnsweredAt: &at}},
@@ -418,6 +418,68 @@ func TestChatsSeqOnEveryWrite(t *testing.T) {
 	}
 	if _, err := c.Clear(ctx, id.Chat(id.New())); !errors.Is(err, ErrNotFound) {
 		t.Errorf("Clear(missing) = %v", err)
+	}
+}
+
+func TestChatsSetPart(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	a := newChat(t, c, chat.Chat{})
+	card := &chat.Approval{ID: "a1", Kind: "host", Target: "example.com", Ask: "Allow example.com?",
+		Options: []chat.ApprovalOption{{Label: "Allow", Grant: chat.GrantAlways}, {Label: "Deny", Grant: chat.GrantDeny}}}
+	form := &chat.Question{Questions: []chat.QuestionItem{{Header: "Coin", Question: "Which coin?", Options: []chat.Option{{Label: "BTC"}, {Label: "ETH"}}}}}
+	m, _, err := c.AppendMessage(ctx, chat.Message{Chat: a.ID, Turn: 1, Role: chat.RoleTool, Parts: []chat.Part{
+		{Kind: chat.PartApproval, Approval: card},
+		{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: "c1", Text: "ok"}},
+		{Kind: chat.PartQuestion, Question: form},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	last, _ := c.Seq(ctx, a.ID)
+	at := time.Date(2026, 10, 5, 10, 14, 0, 0, time.UTC)
+	done := *card
+	done.Answer, done.By, done.AnsweredAt = chat.GrantAlways, id.SourceUser, &at
+	answered := *form
+	answered.Answers, answered.AnsweredAt = map[string][]string{"Coin": {"BTC"}}, &at
+	for i, p := range map[int]chat.Part{0: {Kind: chat.PartApproval, Approval: &done}, 2: {Kind: chat.PartQuestion, Question: &answered}} {
+		s, err := c.SetPart(ctx, m.ID, i, p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s <= last {
+			t.Errorf("part %d: seq %d, want more than %d", i, s, last)
+		}
+		last = s
+	}
+	ms, _, err := c.Messages(ctx, a.ID, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []chat.Part{{Kind: chat.PartApproval, Approval: &done}, m.Parts[1], {Kind: chat.PartQuestion, Question: &answered}}
+	if diff := cmp.Diff(want, ms[0].Parts); diff != "" {
+		t.Errorf("parts (-want +got):\n%s", diff)
+	}
+	bad := map[string]struct {
+		m    id.Message
+		i    int
+		p    chat.Part
+		want error
+	}{
+		"a tool result":  {m.ID, 1, m.Parts[1], nil},
+		"the wrong kind": {m.ID, 1, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotFound},
+		"no such part":   {m.ID, 3, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotFound},
+		"no message":     {id.Message(id.New()), 0, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotFound},
+		"invalid":        {m.ID, 0, chat.Part{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1"}}, chat.ErrInvalidPart},
+	}
+	for name, b := range bad {
+		_, err := c.SetPart(ctx, b.m, b.i, b.p)
+		if err == nil || b.want != nil && !errors.Is(err, b.want) {
+			t.Errorf("%s: err = %v, want %v", name, err, b.want)
+		}
+	}
+	if s, _ := c.Seq(ctx, a.ID); s != last {
+		t.Errorf("failed writes changed the seq: %d, want %d", s, last)
 	}
 }
 

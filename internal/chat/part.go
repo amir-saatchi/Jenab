@@ -100,21 +100,49 @@ type Notice struct {
 	Text string     `json:"text"`
 }
 
-// Approval is an approval card (SPEC 8.8). P1-11 may change these fields
-// until the first release.
+// Approval is an approval card (SPEC 8.8). Kind and Target name what is
+// approved, as _jenab_approvals stores it: a host, a script's hash.
 type Approval struct {
-	ID      id.Approval `json:"id"`
-	Kind    string      `json:"kind"` // host, migration, starlark, connection, mcp, command
-	Ask     string      `json:"ask"`  // what is asked
-	Why     string      `json:"why"`  // one line from the agent
-	Risk    string      `json:"risk"`
-	Details string      `json:"details,omitempty"`
-	Options []string    `json:"options"` // e.g. "Allow for this project", "Deny"
+	ID      id.Approval      `json:"id"`
+	Kind    string           `json:"kind"` // host, migration, starlark, connection, mcp, command
+	Target  string           `json:"target"`
+	Ask     string           `json:"ask"`           // what is asked
+	Why     string           `json:"why,omitempty"` // one line from the agent
+	Risk    string           `json:"risk"`
+	Details string           `json:"details,omitempty"`
+	Options []ApprovalOption `json:"options"` // e.g. "Allow for this project", "Deny"
 	// The answer, once given.
-	Answer     string     `json:"answer,omitempty"`
+	Answer     Grant      `json:"answer,omitempty"`
 	Note       string     `json:"note,omitempty"` // a Deny note, or the message written instead
 	By         id.Source  `json:"by,omitempty"`   // "user", or "auto" for the Auto level
 	AnsweredAt *time.Time `json:"answered_at,omitempty"`
+	// Stopped: Stop or the project's close ended the wait, without an answer.
+	Stopped bool `json:"stopped,omitempty"`
+}
+
+// ApprovalOption is one button of an approval card.
+type ApprovalOption struct {
+	Label string `json:"label"`
+	Grant Grant  `json:"grant"`
+}
+
+// Grant is what an approval option gives.
+type Grant string
+
+const (
+	GrantOnce   Grant = "once"   // this call only
+	GrantAlways Grant = "always" // kept for the project; the target isn't asked for again
+	GrantDeny   Grant = "deny"
+)
+
+// Option returns the card's option with grant g.
+func (a *Approval) Option(g Grant) (ApprovalOption, bool) {
+	for _, o := range a.Options {
+		if o.Grant == g {
+			return o, true
+		}
+	}
+	return ApprovalOption{}, false
 }
 
 // Question is a question form from ask_user (SPEC 8.8).
@@ -125,6 +153,7 @@ type Question struct {
 	Answers    map[string][]string `json:"answers,omitempty"`
 	Note       string              `json:"note,omitempty"`
 	AnsweredAt *time.Time          `json:"answered_at,omitempty"`
+	Stopped    bool                `json:"stopped,omitempty"` // as for Approval
 }
 
 // QuestionItem is one question of a form.
@@ -213,14 +242,40 @@ func (p Part) Validate() error {
 		}
 	case PartApproval:
 		a := p.Approval
-		if a.ID == "" || a.Kind == "" || a.Ask == "" {
-			return invalid("approval without an ID, kind or ask")
-		}
-		if len(a.Options) < 2 {
-			return invalid("approval %s has %d options, needs at least 2", a.ID, len(a.Options))
-		}
+		return a.validate()
 	case PartQuestion:
 		return p.Question.validate()
+	}
+	return nil
+}
+
+// validate checks a card: 2 or more options with labels and different
+// grants, one of them Deny, and an answer that is one of them.
+func (a *Approval) validate() error {
+	if a.ID == "" || a.Kind == "" || a.Target == "" || a.Ask == "" {
+		return invalid("approval without an ID, kind, target or ask")
+	}
+	if len(a.Options) < 2 {
+		return invalid("approval %s has %d options, needs at least 2", a.ID, len(a.Options))
+	}
+	seen := map[Grant]bool{}
+	for _, o := range a.Options {
+		if o.Label == "" {
+			return invalid("approval %s has an option without a label", a.ID)
+		}
+		if o.Grant != GrantOnce && o.Grant != GrantAlways && o.Grant != GrantDeny {
+			return invalid("approval %s: unknown grant %q", a.ID, o.Grant)
+		}
+		if seen[o.Grant] {
+			return invalid("approval %s has two %s options", a.ID, o.Grant)
+		}
+		seen[o.Grant] = true
+	}
+	if !seen[GrantDeny] {
+		return invalid("approval %s has no deny option", a.ID)
+	}
+	if _, ok := a.Option(a.Answer); a.Answer != "" && !ok {
+		return invalid("approval %s: the answer %q is not an option", a.ID, a.Answer)
 	}
 	return nil
 }

@@ -71,10 +71,11 @@ func HostApproval(host, by string) chat.Approval {
 	return chat.Approval{
 		ID:      id.Approval(id.New()),
 		Kind:    "host",
+		Target:  host,
 		Ask:     "Allow requests to " + host + " for this project?",
 		Risk:    "Requests can carry text from this chat to the host.",
 		Details: by + " needs " + host,
-		Options: []string{"Allow for this project", "Deny"},
+		Options: []chat.ApprovalOption{{Label: "Allow for this project", Grant: chat.GrantAlways}, {Label: "Deny", Grant: chat.GrantDeny}},
 	}
 }
 

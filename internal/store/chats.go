@@ -563,6 +563,33 @@ func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (in
 	return r.i, r.s, err
 }
 
+// SetPart replaces an approval card or a question form with its answered
+// or closed form (SPEC 8.8). Other parts don't change once written.
+func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) {
+	if p.Kind != chat.PartApproval && p.Kind != chat.PartQuestion {
+		return 0, fmt.Errorf("store: a %s part can't be changed", p.Kind)
+	}
+	if err := p.Validate(); err != nil {
+		return 0, err
+	}
+	rows, err := encodeParts([]chat.Part{p})
+	if err != nil {
+		return 0, err
+	}
+	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (uint64, error) {
+		var ch id.Chat
+		err := tx.QueryRow(`UPDATE message_parts SET content = ? WHERE message_id = ? AND seq = ? AND type = ?
+			RETURNING (SELECT chat_id FROM messages WHERE id = message_id)`, rows[0].content, m, i, p.Kind).Scan(&ch)
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("store: message %s has no %s part %d: %w", m, p.Kind, i, ErrNotFound)
+		}
+		if err != nil {
+			return 0, err
+		}
+		return bump(tx, ch)
+	})
+}
+
 // SetUsage saves an assistant message's token counts once its response has
 // ended.
 func (c *ChatsDB) SetUsage(ctx context.Context, m id.Message, u chat.Usage) (uint64, error) {
