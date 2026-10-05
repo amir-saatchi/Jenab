@@ -1,5 +1,7 @@
 # Jenab
 
+![Jenab, a robot butler with its hand on its heart](Docs/images/banner.png)
+
 A desktop AI agent that keeps its work in per-project databases, not long chats, and turns it into reusable dashboards and scheduled pipelines. Dashboards are built from tables, charts, stats and forms. Any model, local or cloud. Go + Wails.
 
 > **Status:** in design. There is no app to use yet: the design, the spikes that tested it, the UI mockups and the first code skeleton are here. Phase 1 coding starts after Gate 3, with the [Phase 1 tickets](Docs/Tickets/README.md#phase-1).
