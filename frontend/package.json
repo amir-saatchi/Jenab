@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:dev": "tsc -b && vite build --minify false --mode development",
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@wailsio/runtime": "3.0.0-beta.26",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

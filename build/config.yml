@@ -1,0 +1,40 @@
+# Settings for `wails3 dev` (wails3 task dev). Packaging settings come with
+# the release work.
+version: '3'
+
+info:
+  companyName: "Jenab"
+  productName: "Jenab"
+  productIdentifier: "io.github.amir-saatchi.jenab"
+  description: "Jenab, a desktop AI agent"
+  copyright: "Apache-2.0"
+  version: "0.0.0"
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+      - spikes
+      - mockups
+      - Docs
+    file:
+      - .DS_Store
+      - .gitignore
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 task build DEV=true
+      type: blocking
+    - cmd: wails3 task dev:frontend
+      type: background
+    - cmd: wails3 task run
+      type: primary
+      exit_policy: shutdown

@@ -21,76 +21,76 @@ var defaultYAML []byte
 
 // Settings are the user settings in config.yaml (SPEC 2.1).
 type Settings struct {
-	DataFolder string            `yaml:"data_folder"` // "" means ~/Jenab
-	Context    ContextSettings   `yaml:"context"`
-	LLM        LLMSettings       `yaml:"llm"`
-	Scheduler  SchedulerSettings `yaml:"scheduler"`
-	Approvals  ApprovalSettings  `yaml:"approvals"`
-	UI         UISettings        `yaml:"ui"`
-	Updates    UpdateSettings    `yaml:"updates"`
-	DevTools   bool              `yaml:"dev_tools"`
+	DataFolder string            `yaml:"data_folder" json:"data_folder"` // "" means ~/Jenab
+	Context    ContextSettings   `yaml:"context" json:"context"`
+	LLM        LLMSettings       `yaml:"llm" json:"llm"`
+	Scheduler  SchedulerSettings `yaml:"scheduler" json:"scheduler"`
+	Approvals  ApprovalSettings  `yaml:"approvals" json:"approvals"`
+	UI         UISettings        `yaml:"ui" json:"ui"`
+	Updates    UpdateSettings    `yaml:"updates" json:"updates"`
+	DevTools   bool              `yaml:"dev_tools" json:"dev_tools"`
 }
 
 // ContextSettings size the history window (SPEC 3.6).
 type ContextSettings struct {
-	HistoryMinTurns   int     `yaml:"history_min_turns"`
-	HistoryMaxTurns   int     `yaml:"history_max_turns"`
-	HistoryMaxTokens  int     `yaml:"history_max_tokens"`
-	ToolPreviewTokens int     `yaml:"tool_preview_tokens"`
-	TurnTrimRatio     float64 `yaml:"turn_trim_ratio"`
+	HistoryMinTurns   int     `yaml:"history_min_turns" json:"history_min_turns"`
+	HistoryMaxTurns   int     `yaml:"history_max_turns" json:"history_max_turns"`
+	HistoryMaxTokens  int     `yaml:"history_max_tokens" json:"history_max_tokens"`
+	ToolPreviewTokens int     `yaml:"tool_preview_tokens" json:"tool_preview_tokens"`
+	TurnTrimRatio     float64 `yaml:"turn_trim_ratio" json:"turn_trim_ratio"`
 }
 
 // LLMSettings are the limits for model calls (SPEC 7.6, 8.3) and the model
 // aliases (SPEC 3.9).
 type LLMSettings struct {
-	MaxParallelCalls          int               `yaml:"max_parallel_calls"`          // background calls; chats never wait
-	ProviderMaxParallelCalls  map[string]int    `yaml:"provider_max_parallel_calls"` // provider name → background calls; a local Ollama defaults to 1
-	MaxBackgroundTasksPerChat int               `yaml:"max_background_tasks_per_chat"`
-	MaxSubagentsPerChat       int               `yaml:"max_subagents_per_chat"`
-	TurnMaxRequests           int               `yaml:"turn_max_requests"`
-	SystemTurnMaxRequests     int               `yaml:"system_turn_max_requests"`
-	SystemTurnMaxTokens       int               `yaml:"system_turn_max_tokens"`
-	Models                    map[string]string `yaml:"models"` // alias → model, e.g. "default"
+	MaxParallelCalls          int               `yaml:"max_parallel_calls" json:"max_parallel_calls"`                   // background calls; chats never wait
+	ProviderMaxParallelCalls  map[string]int    `yaml:"provider_max_parallel_calls" json:"provider_max_parallel_calls"` // provider name → background calls; a local Ollama defaults to 1
+	MaxBackgroundTasksPerChat int               `yaml:"max_background_tasks_per_chat" json:"max_background_tasks_per_chat"`
+	MaxSubagentsPerChat       int               `yaml:"max_subagents_per_chat" json:"max_subagents_per_chat"`
+	TurnMaxRequests           int               `yaml:"turn_max_requests" json:"turn_max_requests"`
+	SystemTurnMaxRequests     int               `yaml:"system_turn_max_requests" json:"system_turn_max_requests"`
+	SystemTurnMaxTokens       int               `yaml:"system_turn_max_tokens" json:"system_turn_max_tokens"`
+	Models                    map[string]string `yaml:"models" json:"models"` // alias → model, e.g. "default"
 	// Providers are the connected providers by name, e.g. "gemini" or
 	// "zai". Their keys are in the OS keychain as "provider:<name>".
-	Providers map[string]ProviderSettings `yaml:"providers"`
+	Providers map[string]ProviderSettings `yaml:"providers" json:"providers"`
 }
 
 // ProviderSettings is one connected provider (SPEC 3.9).
 type ProviderSettings struct {
-	Kind string `yaml:"kind"` // anthropic, openai, gemini, openai_compatible or ollama
+	Kind string `yaml:"kind" json:"kind"` // anthropic, openai, gemini, openai_compatible or ollama
 	// BaseURL is needed for openai_compatible; "" means the kind's own. It
 	// may hold placeholders such as {account_id}, whose values are kept in
 	// the keychain like the key, not in this file.
-	BaseURL string `yaml:"base_url,omitempty"`
+	BaseURL string `yaml:"base_url,omitempty" json:"base_url,omitempty"`
 	// Models are the models that are on, as the provider names them.
-	Models []ModelSettings `yaml:"models"`
+	Models []ModelSettings `yaml:"models" json:"models"`
 }
 
 // ModelSettings is a model that is on.
 type ModelSettings struct {
-	ID      string `yaml:"id"`
-	Context int    `yaml:"context,omitempty"` // tokens; for models the catalog doesn't know
+	ID      string `yaml:"id" json:"id"`
+	Context int    `yaml:"context,omitempty" json:"context,omitempty"` // tokens; for models the catalog doesn't know
 }
 
 // ProviderKinds are the kinds a provider can have.
 var ProviderKinds = []string{"anthropic", "openai", "gemini", "openai_compatible", "ollama"}
 
 type SchedulerSettings struct {
-	MaxParallelRuns int `yaml:"max_parallel_runs"`
+	MaxParallelRuns int `yaml:"max_parallel_runs" json:"max_parallel_runs"`
 }
 
 type ApprovalSettings struct {
-	DefaultLevel string `yaml:"default_level"` // strict, standard, auto (SPEC 8.8)
+	DefaultLevel string `yaml:"default_level" json:"default_level"` // strict, standard, auto (SPEC 8.8)
 }
 
 type UISettings struct {
-	Theme string `yaml:"theme"` // light, dark, system (SPEC 5.11)
+	Theme string `yaml:"theme" json:"theme"` // light, dark, system (SPEC 5.11)
 }
 
 type UpdateSettings struct {
-	Mode    string `yaml:"mode"`    // automatic, notify, off (SPEC 2.8)
-	Channel string `yaml:"channel"` // stable, beta
+	Mode    string `yaml:"mode" json:"mode"`       // automatic, notify, off (SPEC 2.8)
+	Channel string `yaml:"channel" json:"channel"` // stable, beta
 }
 
 // Defaults returns the settings of a new install.
@@ -105,9 +105,9 @@ func Defaults() Settings {
 // Problem is a setting that was ignored: unknown, of the wrong type or out
 // of range. The default is used instead.
 type Problem struct {
-	Path string // e.g. "context.history_min_turns"
-	Line int
-	Msg  string
+	Path string `json:"path"` // e.g. "context.history_min_turns"
+	Line int    `json:"line"`
+	Msg  string `json:"msg"`
 }
 
 func (p Problem) String() string {

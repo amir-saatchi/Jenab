@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.0.0",
+			"CompanyName": "Jenab",
+			"FileDescription": "Jenab, a desktop AI agent",
+			"LegalCopyright": "Apache-2.0",
+			"ProductName": "Jenab",
+			"Comments": "https://github.com/amir-saatchi/Jenab"
+		}
+	}
+}

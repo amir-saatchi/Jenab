@@ -47,6 +47,13 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
+      # The committed bindings must match the Go services (P1-13).
+      - name: Bindings
+        if: runner.os == 'Linux'
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
+          wails3 task check:bindings
+
       - name: Format
         if: runner.os == 'Linux'
         run: test -z "$(go fmt ./...)"

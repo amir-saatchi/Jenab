@@ -1,0 +1,74 @@
+# Run with `wails3 task <name>`; the Wails CLI has Task built in.
+# See Docs/DEVELOPMENT.md.
+version: '3'
+
+vars:
+  APP_NAME: jenab
+  BIN_DIR: bin
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  EXE: '{{.BIN_DIR}}/{{.APP_NAME}}{{if eq OS "windows"}}.exe{{end}}'
+
+tasks:
+  install:frontend:
+    summary: Installs the frontend packages
+    dir: frontend
+    sources: [package.json, bun.lock]
+    cmds:
+      - bun install --frozen-lockfile
+
+  bindings:
+    summary: Generates the TypeScript bindings and event types in frontend/bindings
+    cmds:
+      - wails3 generate bindings -clean=true -ts -i -d frontend/bindings ./cmd/desktop
+
+  check:bindings:
+    summary: Fails if the committed bindings differ from freshly generated ones
+    cmds:
+      - wails3 generate bindings -clean=true -ts -i -silent -d {{.BIN_DIR}}/bindings-check ./cmd/desktop
+      - git diff --no-index --exit-code frontend/bindings {{.BIN_DIR}}/bindings-check
+
+  build:frontend:
+    summary: Builds the frontend into frontend/dist
+    deps: [install:frontend, bindings]
+    dir: frontend
+    cmds:
+      - bun run {{if eq .DEV "true"}}build:dev{{else}}build{{end}}
+
+  syso:
+    summary: Makes the Windows resource file with the icon and the manifest (git-ignored)
+    platforms: [windows]
+    dir: build
+    cmds:
+      - wails3 generate syso -arch {{ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../cmd/desktop/wails_windows_{{ARCH}}.syso
+
+  build:
+    summary: Builds the app into bin/; DEV=true for a dev build
+    deps: [build:frontend]
+    cmds:
+      - task: syso
+      - go build {{.FLAGS}} -o "{{.EXE}}" ./cmd/desktop
+    vars:
+      FLAGS: '{{if eq .DEV "true"}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production -trimpath -buildvcs=false -ldflags="-w -s{{if eq OS "windows"}} -H windowsgui{{end}}"{{end}}'
+
+  run:
+    summary: Runs the built app
+    cmds:
+      - '{{.EXE}}'
+
+  dev:
+    summary: Runs the app with hot reload (the Go side rebuilds on save)
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  dev:frontend:
+    summary: The Vite dev server that wails3 dev starts
+    deps: [install:frontend]
+    dir: frontend
+    cmds:
+      - bun run dev --port {{.VITE_PORT}} --strictPort
+
+  test:
+    summary: Vets and tests the Go code
+    cmds:
+      - go vet ./...
+      - go test ./...

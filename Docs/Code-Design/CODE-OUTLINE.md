@@ -64,6 +64,7 @@ func run(args []string) error {
     ctx, cancel := context.WithCancel(context.Background()) // the app context (Q20)
     defer cancel()
 
+    live    := app.NewSettings(paths.Settings, settings, problems) // a save applies at once
     secrets := secret.New(secret.OSKeyring("jenab"))
     registry, err := store.OpenRegistry(ctx, paths.Registry)
     calls := limit.NewGate(settings.LLM.MaxParallelCalls)
@@ -75,23 +76,25 @@ func run(args []string) error {
     tools    := tool.NewRegistry()
     tool.AddBuiltins(tools, tool.Deps{Web: webc, Registry: registry, Secrets: secrets})
 
-    wapp   := app.New(app.Deps{Log: log})         // Wails app first, so events can be sent
+    wapp   := app.New(app.Deps{Name: appName, Assets: assets, WebviewData: filepath.Join(paths.Root, "webview"), Log: log}) // first, so events can be sent
     runner := pipeline.New(pipeline.Deps{Projects: projects, Models: models, Gate: runs, Web: webc, Events: wapp.Publisher(), Log: log})
     tools.Add(runner.Tools()...)
-    orch   := agent.New(agent.Deps{Projects: projects, Models: models, Tools: tools, Runs: runner, Settings: settings.LLM, Events: wapp.Publisher(), Log: log})
+    orch   := agent.New(agent.Deps{Projects: projects, Models: models, Tools: tools, Runs: runner, Settings: live.Get, Events: wapp.Publisher(), Log: log})
     sched  := schedule.New(schedule.Deps{Wake: schedule.OSWake(), Start: runner.StartScheduled, Log: log})
     upd    := update.New(update.Deps{Settings: settings.Updates, Busy: projects.Busy, Log: log})
 
-    wapp.Bind(app.Services{Orchestrator: orch, Runner: runner, Projects: projects, Registry: registry, Models: models, Secrets: secrets, Updates: upd, Dev: settings.DevTools})
+    live.OnChange(func(s config.Settings) { calls.SetSize(s.LLM.MaxParallelCalls); models.Apply(s.LLM) })
+
+    wapp.Bind(app.Services{Orchestrator: orch, Runner: runner, Projects: projects, Registry: registry, Models: models, Secrets: secrets, Settings: live, Logs: paths.Logs, Updates: upd, Log: log})
     wapp.OnStart(func(ctx context.Context) { go sched.Run(ctx); go upd.Run(ctx) }) // owned by the app root (Q15)
-    wapp.OnShutdown(shutdown(cancel, sched, orch, runner, projects)) // Q30
+    wapp.OnShutdown(app.Shutdown{Refuse: {sched.Stop, orch.Refuse}, Cancel: cancel, Wait: {orch.Wait, runner.Wait}, Close: projects.CloseAll, Log: log}.Run) // Q30
     return wapp.Run()
 }
 ```
 
-`wapp.OnStart` and `wapp.OnShutdown` are our wrapper's methods over a Wails service startup hook and Wails' `OnShutdown`.
+`wapp.OnShutdown` hides the window, then runs the function on Wails' `OnShutdown`. `wapp.OnStart` comes with the scheduler (Phase 3), over a Wails service startup hook.
 
-`shutdown` runs the Q30 order within 10 s: `sched.Stop()` and `orch.Refuse()` (no new work), cancel the app context and wait up to 5 s for `orch.Wait` and `runner.Wait`, then `projects.CloseAll(ctx)` (drain writers, checkpoint, remove the lock file) with the rest of the time.
+`app.Shutdown.Run` runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged.
 
 ## 3. Bottom packages
 
@@ -759,26 +762,43 @@ type Runs interface { StartFromForm(ctx context.Context, p id.Project, pl string
 ## 9. `app`: the Wails layer (Q31–33)
 
 ```go
-type App struct { w *application.App; pub publisher }
-func New(d Deps) *App
-func (a *App) Publisher() *publisher
-func (a *App) Bind(s Services)            // RegisterService for each service; DevService only with DevTools
+type Deps struct { Name string; Assets fs.FS; WebviewData string; Log *slog.Logger }
+func New(d Deps) *App                     // Wails logs at Warn and above only
+func (a *App) Publisher() *Publisher
+func (a *App) Bind(s Services)            // the services and the objects route; DevService only with DevTools on at the start
+func (a *App) OnShutdown(fn func())
 func (a *App) Run() error
 
+type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Logs string; Log }
+type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; Dev *DevService }
+func NewServices(s Services) Bound        // what Bind registers; tests call the services without Wails
+
+// Settings holds the settings while the app runs (7.6).
+func NewSettings(path string, s config.Settings, problems []config.Problem) *Settings
+func (s *Settings) Get() config.Settings
+func (s *Settings) OnChange(fn func(config.Settings)) // after each save
+
+type ProjectService struct { … } // List, Create, Open → OpenedProject{ID, Name, Mother, Level, Damage}, Activity, FolderWarning
 type ChatService struct { … }
-func (s *ChatService) List(ctx context.Context, p id.Project) ([]chat.Chat, error)
-func (s *ChatService) Snapshot(ctx context.Context, p id.Project, c id.Chat) (ChatSnapshot, error) // messages + Seq
-func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string, files []string) (id.Message, error)
-func (s *ChatService) Stop(ctx context.Context, p id.Project, c id.Chat) error
+func (s *ChatService) List(ctx context.Context, p id.Project) ([]ChatItem, error) // the chat, its status, last activity
+func (s *ChatService) Snapshot(ctx context.Context, p id.Project, c id.Chat) (ChatSnapshot, error) // last 30 turns + Seq + Live (Q32)
+func (s *ChatService) Messages(ctx context.Context, p id.Project, c id.Chat, from, to int) ([]chat.Message, error) // older turns
+func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string) (id.Message, error)
 func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a agent.Answer) error
-func (s *ChatService) UndoTurn(ctx context.Context, p id.Project, c id.Chat, turn int, skip []store.Conflict) (store.UndoReport, error)
-// ProjectService, PageService, PipelineService, BucketService, SettingsService, DevService in the same style.
+// Also Create, Stop, Retry, Clear, Delete, Rename, SetRole, SetModel, Archive, SetLevel, Search.
+// SettingsService: Get, Save → SettingsView{Settings, Problems}; Providers → []ProviderStatus.
+// BucketService: List → ObjectPage (100 a page), Versions. DevService: Providers, Activity, Log.
+// P1-14 and later add files to Send, UndoTurn, PageService and PipelineService in the same style.
 
-type UIError struct { Kind, Message, Details string } // MarshalJSON → cause in JavaScript (Q25)
-func uiError(err error) *UIError       // errors.As on the known kinds; else "Something went wrong"
+type UIError struct { Kind, Message, Details string } // MarshalJSON → the error's cause in JavaScript (Q25)
+// Kinds: invalid, not_found, busy, read_only, closing, provider, internal.
+func toUI(err error, log *slog.Logger, redact func(string) string, what string) error // known errors get a message; else logged, "Something went wrong."
 
-type publisher struct { w *application.App } // implements agent, pipeline and project Publisher with EmitEvent
-func objectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener over the open projects
+type Publisher struct { … }               // implements agent and project Publisher with Event.Emit
+func objectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener that leases the project per request
+
+type Shutdown struct { Refuse []func(); Cancel func(); Wait []func(context.Context) error; Close func(context.Context) error; Log *slog.Logger }
+func (s Shutdown) Run() error             // the Q30 order within 10 s
 ```
 
 ```go
@@ -787,13 +807,15 @@ func init() {
     application.RegisterEvent[chat.Delta]("chat:delta")
     application.RegisterEvent[chat.PartDone]("chat:part")
     application.RegisterEvent[chat.Status]("chat:status")
-    application.RegisterEvent[pipeline.RunStatus]("run:status")
     application.RegisterEvent[project.Notice]("project:notice")
     application.RegisterEvent[project.Activity]("project:activity")
+    // run:status (pipeline.RunStatus) comes with pipelines.
 }
 ```
 
-Every service method starts with `defer s.recover(&err)` (Q26) and ends with `return x, uiError(err)`, so errors are logged once, here.
+Every service method starts with `defer s.guard("what", &err)` (Q26). It recovers a panic and turns the error into a `*UIError`, so errors are logged once, here. The config structs have `json` tags that mirror their `yaml` tags, so the frontend sees config.yaml's names.
+
+The bindings are generated into `frontend/bindings` by `wails3 task bindings` and committed; CI fails if they are stale (DEVELOPMENT.md).
 
 ## 10. Open points
 

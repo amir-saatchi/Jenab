@@ -53,7 +53,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-10](P1-10-agent-loop.md) | Agent loop | P1-06, P1-08, P1-09 | Done |
 | [P1-11](P1-11-approvals.md) | Approvals and questions | P1-10 | Done |
 | [P1-12](P1-12-skills.md) | Skills | P1-10 | Done |
-| [P1-13](P1-13-wails-layer.md) | Wails layer | P1-10, P1-11 | Open |
+| [P1-13](P1-13-wails-layer.md) | Wails layer | P1-10, P1-11 | Done |
 | [P1-14](P1-14-app-shell.md) | Frontend base and app shell | P1-13 | Open |
 | [P1-15](P1-15-chat-ui.md) | Chat UI | P1-14, P1-11 | Open |
 | [P1-16](P1-16-settings.md) | Settings: models, keys and usage | P1-14, P1-08 | Open |

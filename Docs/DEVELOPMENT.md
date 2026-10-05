@@ -9,6 +9,7 @@ How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.m
 | Go | 1.26 or newer | the version in `go.mod` |
 | Bun | 1.3 or newer | for the frontend; not npm (the lock file is `bun.lock`) |
 | Git | any recent | |
+| Wails CLI (`wails3`) | `v3.0.0-beta.26` | the same version as the library in `go.mod` |
 
 **Per platform:**
 
@@ -20,27 +21,33 @@ How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.m
   ```
   On Fedora: `gtk4-devel` and `webkitgtk6.0-devel`.
 
-The Wails CLI (`wails3`) is not needed yet. It comes with P1-13, for the generated bindings and the dev mode with hot reload.
+Install the Wails CLI with Go:
+
+```bash
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
+```
+
+It has [Task](https://taskfile.dev) built in, so `wails3 task <name>` runs the tasks in [`Taskfile.yml`](../Taskfile.yml). No separate Task install is needed.
 
 ## Build and run
 
-The Go build embeds `frontend/dist`, so build the frontend first:
+| Command | What it does |
+|---|---|
+| `wails3 task dev` | runs the app with hot reload: Vite serves the UI, and the Go side rebuilds and restarts on save |
+| `wails3 task build` | builds `bin/jenab.exe` (`bin/jenab` on macOS and Linux) for production |
+| `wails3 task build DEV=true` | a dev build: no minifying, and the dev tools work |
+| `wails3 task run` | runs the built app |
+| `wails3 task bindings` | regenerates `frontend/bindings` after a service or event changes |
+| `wails3 task check:bindings` | fails if the committed bindings differ from fresh ones (CI runs it) |
+| `wails3 task test` | `go vet` and `go test` |
 
-```bash
-cd frontend
-bun install
-bun run build
-cd ..
-go run ./cmd/desktop
-```
+- The Go build embeds `frontend/dist`. `wails3 task build` builds the frontend and the bindings first.
+- `frontend/bindings` is generated but committed, so the frontend builds without Go. Commit it with the Go change that made it.
+- The frontend uses `@wailsio/runtime`, pinned to the same version as the Wails library. Upgrade both together.
+- `wails3 task dev` serves Vite on port 9245; set `WAILS_VITE_PORT` to change it.
+- On Windows, the build adds the icon and manifest from `build/windows` through a `.syso` file in `cmd/desktop` (git-ignored).
 
-On Windows, `go run` also opens a console window. For a build without it:
-
-```bash
-go build -ldflags "-H=windowsgui" -o jenab.exe ./cmd/desktop
-```
-
-Rebuild the frontend after changing it. Until P1-13, `bun run dev` only serves the UI in a browser, without Go.
+Without the CLI, `go run ./cmd/desktop` still works after `bun run build` in `frontend`.
 
 ## Tests
 
@@ -58,7 +65,7 @@ go test ./...
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request, on Windows, macOS and Linux:
 
 1. builds the frontend
-2. `go fmt` check (Linux), `go vet`
+2. the bindings check, `go fmt` check (Linux), `go vet`
 3. `go test`, with `-race` on macOS and Linux
 4. builds `cmd/desktop`
 

@@ -2,12 +2,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-
-	"github.com/wailsapp/wails/v3/pkg/application"
+	"path/filepath"
+	"strings"
 
 	"github.com/amir-saatchi/jenab/frontend"
+	"github.com/amir-saatchi/jenab/internal/agent"
+	"github.com/amir-saatchi/jenab/internal/app"
+	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/limit"
+	"github.com/amir-saatchi/jenab/internal/logfile"
+	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/provider/backends"
+	"github.com/amir-saatchi/jenab/internal/secret"
+	"github.com/amir-saatchi/jenab/internal/skill"
+	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/web"
 )
 
 // appName is the one place the app's name is set (Q1).
@@ -20,23 +34,78 @@ func main() {
 	}
 }
 
-// run builds the app and blocks until it quits. For now it only opens the
-// main window; the packages in CODE-OUTLINE section 2 are added ticket by ticket.
+// run builds everything in import order and blocks until the app quits
+// (Q28, CODE-OUTLINE 2). The scheduler, pipelines and updates join it in
+// later phases.
 func run(_ []string) error {
+	paths, err := config.DefaultPaths(appName)
+	if err != nil {
+		return err
+	}
+	settings, problems, err := config.LoadSettings(paths.Settings)
+	if err != nil {
+		return err
+	}
+	paths = paths.WithDataFolder(settings.DataFolder)
+	log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
+	if err != nil {
+		return err
+	}
+	defer closeLog()
+	for _, p := range problems {
+		log.Warn("setting ignored", "problem", p.String())
+	}
+	ctx, cancel := context.WithCancel(context.Background()) // the app context (Q20)
+	defer cancel()
+
 	assets, err := frontend.Assets()
 	if err != nil {
 		return err
 	}
-	app := application.New(application.Options{
-		Name:   appName,
-		Assets: application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
+	live := app.NewSettings(paths.Settings, settings, problems)
+	secrets := secret.New(secret.OSKeyring(strings.ToLower(appName)))
+	registry, err := store.OpenRegistry(ctx, paths.Registry)
+	if err != nil {
+		return err
+	}
+	defer registry.Close()
+	calls := limit.NewGate(settings.LLM.MaxParallelCalls)
+	models := provider.NewRegistry(provider.Deps{Settings: settings.LLM, Secrets: secrets, Gate: calls, Backends: backends.All(), Log: log})
+	live.OnChange(func(s config.Settings) {
+		calls.SetSize(s.LLM.MaxParallelCalls)
+		models.Apply(s.LLM)
 	})
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:     appName,
-		Width:     1280,
-		Height:    800,
-		MinWidth:  640,
-		MinHeight: 480,
+
+	wapp := app.New(app.Deps{Name: appName, Assets: assets, Log: log, // first, so events can be sent
+		WebviewData: filepath.Join(paths.Root, "webview")})
+	projects := project.NewManager(project.Deps{Paths: paths, Registry: registry, Log: log, Events: wapp.Publisher(),
+		Level: func() project.Level {
+			l, err := project.ParseLevel(live.Get().Approvals.DefaultLevel)
+			if err != nil {
+				return project.Standard
+			}
+			return l
+		}})
+	tools := tool.NewRegistry()
+	tools.Add(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})})...)
+	tools.Add(agent.Tools()...)
+	skills, err := skill.Builtin()
+	if err != nil {
+		return err
+	}
+	orch := agent.New(agent.Deps{Context: ctx, Projects: projects, Models: models, Tools: tools,
+		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Log: log})
+
+	wapp.Bind(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,
+		Secrets: secrets, Settings: live, Logs: paths.Logs, Log: log})
+	wapp.OnShutdown(func() {
+		_ = app.Shutdown{ // logged inside
+			Refuse: []func(){orch.Refuse},
+			Cancel: cancel,
+			Wait:   []func(context.Context) error{orch.Wait},
+			Close:  projects.CloseAll,
+			Log:    log,
+		}.Run()
 	})
-	return app.Run()
+	return wapp.Run()
 }
