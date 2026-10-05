@@ -68,6 +68,7 @@ func run(args []string) error {
     live    := app.NewSettings(paths.Settings, settings, problems) // a save applies at once
     secrets := secret.New(secret.OSKeyring("jenab"))
     registry, err := store.OpenRegistry(ctx, paths.Registry)
+    moved, err := project.MoveProjects(ctx, paths, registry, log) // the data folder changed (2.1); logged, not fatal
     calls := limit.NewGate(settings.LLM.MaxParallelCalls)
     runs  := limit.NewGate(settings.Scheduler.MaxParallelRuns)
 
@@ -172,7 +173,7 @@ type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State;
 ### `config`: settings and configs (1, 10)
 
 ```go
-type Paths struct { Root, Settings, Registry, Logs, DataFolder, Projects string }
+type Paths struct { Root, Settings, Registry, Logs, LastData, DataFolder, Projects string } // LastData: the folder used last time
 func DefaultPaths(appDir string) (Paths, error)
 func (p Paths) WithDataFolder(dir string) Paths
 
@@ -355,6 +356,7 @@ func OpenChats(ctx context.Context, dir string) (*ChatsDB, error)          // an
 func (c *ChatsDB) EnsureMother(ctx context.Context) (chat.Chat, error)     // at create and at every open (8.6)
 func (c *ChatsDB) CreateChat(ctx context.Context, src id.Source, ch chat.Chat) (chat.Chat, error) // model "default"
 func (c *ChatsDB) Chats(ctx context.Context) ([]chat.Chat, error)          // Mother first
+func (c *ChatsDB) Usage(ctx context.Context, from time.Time, offset time.Duration) ([]UsageRow, error) // tokens by local day, chat and model
 func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]chat.Message, uint64, error) // turns, with the seq they are current at
 func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Message, uint64, error) // before any tool runs (2.3)
 func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (int, uint64, error) // a finished part; its index
@@ -401,6 +403,11 @@ func (m *Manager) List(ctx context.Context) ([]store.ProjectEntry, error)  // ad
 func (m *Manager) Busy() bool                                              // for the update restart
 func (m *Manager) CloseAll(ctx context.Context) error                      // Q30 steps 3–4
 func (m *Manager) FolderWarning() *FolderWarning                           // network drive or synced folder (2.1)
+
+// MoveProjects runs at start, before any project opens: when the data folder changed, each project
+// folder moves there (a rename, or a copy across drives) and its registry path is updated. The new
+// folder is recorded only when all moved, so a failed one is tried again at the next start.
+func MoveProjects(ctx context.Context, paths config.Paths, reg *store.Registry, log *slog.Logger) (*MoveResult, error)
 
 type Project struct {
     ID     id.Project
@@ -775,7 +782,7 @@ func (a *App) Bind(s Services)            // the services and the objects route;
 func (a *App) OnShutdown(fn func())
 func (a *App) Run() error
 
-type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Logs string; Log }
+type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Started Started; Logs string; Log }
 type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; System *SystemService; Dev *DevService }
 func NewServices(s Services) Bound        // what Bind registers; tests call the services without Wails
 
@@ -794,10 +801,15 @@ func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text st
 func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a agent.Answer) error
 // Also Create, Stop, Retry, Clear, Delete, Rename, SetRole, SetModel, Archive, SetLevel, Search.
 // SettingsService: Get, Save → SettingsView{Settings, Problems}; Providers → []ProviderStatus;
+//   Started → the data folder, dev tools and MoveResult of this start; CheckFolder → a FolderWarning;
 //   Models → []ModelGroup (the models that are on, by provider, with their aliases);
 //   Presets → []PresetItem (a running local Ollama first, with no key);
 //   Connect(ConnectRequest) → ConnectResult: checks the key by listing models, stores it, saves the
 //   provider with its catalog models on, and points default and fast at it when they point nowhere (3.9).
+//   Connect again with the same name replaces the key and keeps the models.
+//   Remove(name): deletes the provider, its limit and its key; aliases move to another provider's models.
+//   ProviderModels(name) → the catalog models it lists, *Other models* the catalog doesn't know, NoModelList.
+//   Usage(days) → UsageReport: tokens by day, chat and model across all projects, with catalog prices.
 // BucketService: List → ObjectPage (100 a page), Versions. DevService: Providers, Activity, Log.
 // SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical);
 //   Notify(Notification{Project, Chat, Title, Body}) → a desktop notification (Wails notifications);
@@ -851,7 +863,7 @@ src/
     nav.ts              history (back and forward), the most recently used chats (Ctrl+Tab), the sidebar
     projects.ts         the list, the opened projects (Mother, level, damage), the folder warning
     chats.ts            each project's chat list, and *Waiting*
-    settings.ts         the settings view; setTheme applies at once and reverts if the save fails
+    settings.ts         the settings view; edit saves a changed copy; setTheme applies at once and reverts if the save fails
     ui.ts               dialogs and overlays
     thread.ts           each open chat: its messages from the snapshot, then chat:part and chat:status
     stream.ts           the answer streaming, outside React; deltas applied once per frame
@@ -860,6 +872,8 @@ src/
                         markdown (lazy), cards (approval, question, waiting and retry bars), composer, provider card
   shell/                the window (5.12): rail, chat sidebar, main area, right sidebar, bottom bar,
                         Settings, project settings, the welcome screen
+  settings/             the Settings sections (3.9): general (data folder, approval level), models (providers,
+                        their models, aliases, limits), usage (recharts chart, lazy), developer
 ```
 
 - **Snapshots, then events:** a store loads with a service call, and `events.ts` keeps it up to date. A chat that goes idle, or one the store doesn't know, reloads the chat list.
@@ -873,4 +887,4 @@ src/
 ## 11. Open points
 
 1. **Retry after text was shown.** Decided in P1-10: each try streams a new message (`Status.Streaming`), and the frontend drops the deltas of a try that failed, so a retry never shows text twice.
-2. **The frontend folder.** Decided in P1-14: from `mockups/src` came the shadcn components, `index.css` (without `typeset.css`), `components.json`, the fonts (Geist, Geist Mono, Vazirmatn) and the settings layout. The screens and the fake data stay in `mockups/`; the chat, page and pipeline parts move over with their tickets. P1-15 brought `typeset.css` and the chat components (bubble, message, message-scroller, marker, questionnaire and others).
+2. **The frontend folder.** Decided in P1-14: from `mockups/src` came the shadcn components, `index.css` (without `typeset.css`), `components.json`, the fonts (Geist, Geist Mono, Vazirmatn) and the settings layout. The screens and the fake data stay in `mockups/`; the chat, page and pipeline parts move over with their tickets. P1-15 brought `typeset.css` and the chat components (bubble, message, message-scroller, marker, questionnaire and others). P1-16 brought switch, select, table, alert-dialog and chart, with recharts 3.8.0.

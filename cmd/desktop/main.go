@@ -46,6 +46,7 @@ func run(_ []string) error {
 	if err != nil {
 		return err
 	}
+	defaultData := paths.DataFolder
 	paths = paths.WithDataFolder(settings.DataFolder)
 	log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
 	if err != nil {
@@ -69,6 +70,12 @@ func run(_ []string) error {
 		return err
 	}
 	defer registry.Close()
+	// Before any project opens: a changed data folder moves the projects
+	// (SPEC 2.1). One that can't move opens from its old place.
+	moved, err := project.MoveProjects(ctx, paths, registry, log)
+	if err != nil {
+		log.Error("project: moving the projects to the new data folder failed", "err", err)
+	}
 	calls := limit.NewGate(settings.LLM.MaxParallelCalls)
 	models := provider.NewRegistry(provider.Deps{Settings: settings.LLM, Secrets: secrets, Gate: calls, Backends: backends.All(), Log: log})
 	live.OnChange(func(s config.Settings) {
@@ -97,7 +104,8 @@ func run(_ []string) error {
 		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Log: log})
 
 	wapp.Bind(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,
-		Secrets: secrets, Settings: live, Logs: paths.Logs, Log: log})
+		Secrets: secrets, Settings: live, Logs: paths.Logs, Log: log,
+		Started: app.Started{DataFolder: paths.DataFolder, DefaultDataFolder: defaultData, DevTools: settings.DevTools, Moved: moved}})
 	wapp.OnShutdown(func() {
 		_ = app.Shutdown{ // logged inside
 			Refuse: []func(){orch.Refuse},

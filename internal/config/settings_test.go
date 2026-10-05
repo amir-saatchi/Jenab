@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -295,5 +296,45 @@ func TestHistoryMaxAboveMin(t *testing.T) {
 	}
 	if s.Context.HistoryMinTurns != 5 || s.Context.HistoryMaxTurns != Defaults().Context.HistoryMaxTurns || len(probs) != 1 {
 		t.Errorf("min %d, max %d, problems %v; want max back at the default", s.Context.HistoryMinTurns, s.Context.HistoryMaxTurns, probs)
+	}
+}
+
+// A {} map that gets entries keeps its comment on its own line, not on the
+// next key's.
+func TestSaveFilledMapKeepsItsComment(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	s := Defaults()
+	s.LLM.Models = map[string]string{"default": "p/a"}
+	s.LLM.ProviderMaxParallelCalls = map[string]int{"p": 2}
+	s.LLM.Providers = map[string]ProviderSettings{"p": {Kind: "ollama", Models: []ModelSettings{{ID: "a"}}}}
+	for range 2 {
+		if err := SaveSettings(path, s); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b, _ := os.ReadFile(path)
+	lines := strings.Split(string(b), "\n")
+	for key, comment := range map[string]string{
+		"  models:":                      "# aliases such as default",
+		"  providers:":                   "# connected providers",
+		"  provider_max_parallel_calls:": "# background calls per provider",
+		"scheduler:":                     "",
+	} {
+		i := slices.IndexFunc(lines, func(l string) bool { return strings.HasPrefix(l, key) })
+		if i < 0 {
+			t.Fatalf("no %q in:\n%s", key, b)
+		}
+		if comment == "" && strings.Contains(lines[i], "#") || comment != "" && !strings.Contains(lines[i], comment) {
+			t.Errorf("line %q, want comment %q:\n%s", lines[i], comment, b)
+		}
+	}
+	// Emptied again, it is {} with its comment.
+	s.LLM.ProviderMaxParallelCalls = map[string]int{}
+	if err := SaveSettings(path, s); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(path)
+	if !strings.Contains(string(b), "provider_max_parallel_calls: {} # background calls per provider") {
+		t.Errorf("emptied map:\n%s", b)
 	}
 }

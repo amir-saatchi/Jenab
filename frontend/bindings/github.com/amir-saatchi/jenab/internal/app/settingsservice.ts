@@ -3,7 +3,7 @@
 
 /**
  * SettingsService is *Settings* (SPEC 5.12): the settings, the providers
- * and their models (connect.go). P1-16 adds usage.
+ * and their models (connect.go), and usage (usage.go).
  * @module
  */
 
@@ -14,10 +14,22 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as config$0 from "../config/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as project$0 from "../project/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
+
+/**
+ * CheckFolder checks a folder chosen as the data folder: it must be a full
+ * path, and gets the warning of SPEC 2.1 if it is on a network drive or in
+ * a synced folder.
+ */
+export function CheckFolder(dir: string): $CancellablePromise<project$0.FolderWarning | null> {
+    return $Call.ByID(3362060126, dir);
+}
 
 /**
  * Connect checks the key by listing the provider's models, stores it in
@@ -52,6 +64,14 @@ export function Presets(): $CancellablePromise<$models.PresetItem[] | null> {
 }
 
 /**
+ * ProviderModels lists a provider's models, asking the provider for its
+ * list.
+ */
+export function ProviderModels(name: string): $CancellablePromise<$models.ProviderModels> {
+    return $Call.ByID(4028451697, name);
+}
+
+/**
  * Providers lists the connected providers.
  */
 export function Providers(): $CancellablePromise<$models.ProviderStatus[] | null> {
@@ -59,8 +79,32 @@ export function Providers(): $CancellablePromise<$models.ProviderStatus[] | null
 }
 
 /**
+ * Remove disconnects a provider (SPEC 3.9): it leaves the settings with its
+ * limit, the aliases that pointed at it move to another provider's models,
+ * and its key and base-URL values are deleted from the keychain.
+ */
+export function Remove(name: string): $CancellablePromise<$models.SettingsView> {
+    return $Call.ByID(2483636730, name);
+}
+
+/**
  * Save stores the settings and applies them.
  */
 export function Save(next: config$0.Settings): $CancellablePromise<$models.SettingsView> {
     return $Call.ByID(2298170107, next);
+}
+
+/**
+ * Started returns what this start used.
+ */
+export function Started(): $CancellablePromise<$models.Started> {
+    return $Call.ByID(93079023);
+}
+
+/**
+ * Usage sums the tokens of the last days days, today included, across
+ * every project.
+ */
+export function Usage(days: number): $CancellablePromise<$models.UsageReport> {
+    return $Call.ByID(1016345497, days);
 }

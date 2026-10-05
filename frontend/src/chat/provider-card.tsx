@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SettingsService, type ConnectResult, type PresetItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { placeholders } from "@/settings/format"
 import { useSettings } from "@/state/settings"
 
 const OTHER = "other"
@@ -21,10 +22,26 @@ function freeName(name: string, taken: Record<string, unknown>) {
   for (let i = 2; ; i++) if (!(`${name}-${i}` in taken)) return `${name}-${i}`
 }
 
+// Replace names a connected provider whose key is replaced; its models stay.
+export interface Replace {
+  name: string
+  kind: string
+  base_url?: string
+}
+
 // ConnectForm adds a provider with the user's own key (SPEC 3.9). The key
-// goes to the OS keychain; the models it lists are turned on.
-export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r: ConnectResult) => void; id?: string }) {
-  const [presets, setPresets] = React.useState<PresetItem[] | null>(null)
+// goes to the OS keychain; the models it lists are turned on. With replace,
+// it takes a new key for a connected provider.
+export function ConnectForm({
+  onConnected,
+  id = "connect",
+  replace,
+}: {
+  onConnected?: (r: ConnectResult) => void
+  id?: string
+  replace?: Replace
+}) {
+  const [presets, setPresets] = React.useState<PresetItem[] | null>(replace ? [] : null)
   const [pick, setPick] = React.useState("")
   const [key, setKey] = React.useState("")
   const [fields, setFields] = React.useState<Record<string, string>>({})
@@ -33,22 +50,24 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
   const providers = useSettings((s) => s.view?.settings.llm.providers ?? {})
 
   React.useEffect(() => {
+    if (replace) return
     SettingsService.Presets()
       .then((ps) => {
         setPresets(ps ?? [])
         setPick((ps ?? [])[0]?.id ?? OTHER)
       })
       .catch(showError)
-  }, [])
+  }, [replace])
 
   const preset = presets?.find((p) => p.id === pick)
-  const isOther = pick === OTHER
-  const needsKey = isOther || !preset?.no_key
+  const isOther = !replace && pick === OTHER
+  const needsKey = !!replace || isOther || !preset?.no_key
+  const wanted = replace ? placeholders(replace.base_url) : (preset?.fields ?? [])
   const ready =
     !busy &&
-    (isOther ? other.name.trim() !== "" && other.base_url.trim() !== "" : !!preset) &&
+    (replace || (isOther ? other.name.trim() !== "" && other.base_url.trim() !== "" : !!preset)) &&
     (!needsKey || key.trim() !== "") &&
-    (preset?.fields ?? []).every((f) => (fields[f] ?? "").trim() !== "")
+    wanted.every((f) => (fields[f] ?? "").trim() !== "")
 
   const connect = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,16 +75,20 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
     setBusy(true)
     try {
       const r = await SettingsService.Connect(
-        isOther
-          ? { name: other.name.trim(), kind: "openai_compatible", base_url: other.base_url.trim(), key, fields: {} }
-          : { name: freeName(preset!.id, providers), kind: preset!.kind, base_url: preset!.base_url, key, fields },
+        replace
+          ? { name: replace.name, kind: replace.kind, base_url: replace.base_url ?? "", key, fields }
+          : isOther
+            ? { name: other.name.trim(), kind: "openai_compatible", base_url: other.base_url.trim(), key, fields: {} }
+            : { name: freeName(preset!.id, providers), kind: preset!.kind, base_url: preset!.base_url, key, fields },
       )
       useSettings.setState({ view: r.view })
       await useSettings.getState().loadModels()
       setKey("")
-      const name = isOther ? r.provider : preset!.name
+      const name = replace || isOther ? r.provider : preset!.name
       toast.success(
-        r.no_model_list
+        replace
+          ? `${name}: the new key works and is saved`
+          : r.no_model_list
           ? `${name} connected. It lists no models; add them in Settings → Models.`
           : `${name} connected · ${r.models} ${r.models === 1 ? "model" : "models"} on`,
       )
@@ -80,23 +103,25 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
   if (!presets) return <Spinner />
   return (
     <form className="flex flex-col gap-4" onSubmit={connect}>
-      <ToggleGroup
-        type="single"
-        value={pick}
-        onValueChange={(v) => v && setPick(v)}
-        variant="outline"
-        size="sm"
-        className="flex-wrap"
-        aria-label="Provider"
-      >
-        {presets.map((p) => (
-          <ToggleGroupItem key={p.id} value={p.id}>
-            {p.name}
-            {p.running && <span className="text-xs text-tone-green">running</span>}
-          </ToggleGroupItem>
-        ))}
-        <ToggleGroupItem value={OTHER}>Other…</ToggleGroupItem>
-      </ToggleGroup>
+      {!replace && (
+        <ToggleGroup
+          type="single"
+          value={pick}
+          onValueChange={(v) => v && setPick(v)}
+          variant="outline"
+          size="sm"
+          className="flex-wrap"
+          aria-label="Provider"
+        >
+          {presets.map((p) => (
+            <ToggleGroupItem key={p.id} value={p.id}>
+              {p.name}
+              {p.running && <span className="text-xs text-tone-green">running</span>}
+            </ToggleGroupItem>
+          ))}
+          <ToggleGroupItem value={OTHER}>Other…</ToggleGroupItem>
+        </ToggleGroup>
+      )}
       <FieldGroup>
         {isOther && (
           <>
@@ -126,7 +151,7 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
             </Field>
           </>
         )}
-        {(preset?.fields ?? []).map((f) => (
+        {wanted.map((f) => (
           <Field key={f}>
             <FieldLabel htmlFor={`${id}-${f}`}>{f.replaceAll("_", " ")}</FieldLabel>
             <Input id={`${id}-${f}`} value={fields[f] ?? ""} onChange={(e) => setFields({ ...fields, [f]: e.target.value })} />
@@ -147,7 +172,9 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
                 onChange={(e) => setKey(e.target.value)}
               />
             </InputGroup>
-            <FieldDescription>Stored in the OS keychain · also in Settings → Models</FieldDescription>
+            <FieldDescription>
+              {replace ? "Checked with the provider, then stored in the OS keychain" : "Stored in the OS keychain · also in Settings → Models"}
+            </FieldDescription>
           </Field>
         ) : (
           <FieldDescription>
@@ -157,7 +184,7 @@ export function ConnectForm({ onConnected, id = "connect" }: { onConnected?: (r:
       </FieldGroup>
       <Button type="submit" size="sm" className="w-fit" disabled={!ready}>
         {busy && <Spinner data-icon="inline-start" />}
-        Connect
+        {replace ? "Save key" : "Connect"}
       </Button>
     </form>
   )

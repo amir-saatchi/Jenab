@@ -868,3 +868,25 @@ func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error
 }
 
 func now() time.Time { return time.Now().UTC().Truncate(time.Millisecond) }
+
+// UsageRow is the tokens one chat used with one model on one day.
+type UsageRow struct {
+	Day   string // YYYY-MM-DD in the caller's time zone
+	Chat  id.Chat
+	Model string // "provider/model"
+	Usage chat.Usage
+}
+
+// Usage sums the tokens of the messages since from, by day, chat and
+// model (SPEC 3.9). offset is the caller's UTC offset, which sets the day.
+func (c *ChatsDB) Usage(ctx context.Context, from time.Time, offset time.Duration) ([]UsageRow, error) {
+	shift := fmt.Sprintf("%+d minutes", int(offset.Minutes()))
+	return Query(ctx, c.DB, `SELECT date(created_at, ?) AS day, chat_id, model,
+			SUM(input_tokens), SUM(output_tokens), SUM(cache_read_tokens), SUM(cache_write_tokens)
+		FROM messages
+		WHERE created_at >= ? AND input_tokens + output_tokens + cache_read_tokens + cache_write_tokens > 0
+		GROUP BY day, chat_id, model ORDER BY day, chat_id, model`, []any{shift, formatTime(from)}, func(r *sql.Rows) (UsageRow, error) {
+		var u UsageRow
+		return u, r.Scan(&u.Day, &u.Chat, &u.Model, &u.Usage.Input, &u.Usage.Output, &u.Usage.CacheRead, &u.Usage.CacheWrite)
+	})
+}

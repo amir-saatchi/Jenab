@@ -6,7 +6,7 @@ import { FolderWarning } from "@/shell/folder-warning"
 import { backToChats } from "@/shell/open"
 import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle } from "@/shell/settings-layout"
 
-const levels = [
+export const levels = [
   { value: "strict", label: "Strict" },
   { value: "standard", label: "Standard" },
   { value: "auto", label: "Auto" },

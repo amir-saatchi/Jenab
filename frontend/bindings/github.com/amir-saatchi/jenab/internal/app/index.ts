@@ -23,6 +23,7 @@ export type {
     ConnectResult,
     ModelGroup,
     ModelItem,
+    ModelOption,
     Notification,
     $Object,
     ObjectPage,
@@ -31,8 +32,12 @@ export type {
     OpenedProject,
     PresetItem,
     ProjectItem,
+    ProviderModels,
     ProviderStatus,
     SearchRequest,
     SettingsView,
+    Started,
+    UsageLine,
+    UsageReport,
     WaitingItem
 } from "./models.js";

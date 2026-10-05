@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -20,7 +21,8 @@ type Services struct {
 	Models       *provider.Registry
 	Secrets      *secret.Store // removes secrets from error details; nil removes nothing
 	Settings     *Settings
-	Logs         string // the log folder, for the developer tools
+	Started      Started // what this start used, for settings that wait for the next one
+	Logs         string  // the log folder, for the developer tools
 	Log          *slog.Logger
 }
 
@@ -49,12 +51,13 @@ func NewServices(s Services) Bound {
 		b.redact = s.Secrets.Redact
 	}
 	return Bound{
-		Project:  &ProjectService{base: b, projects: s.Projects},
-		Chat:     &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects},
-		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, ollamaUp: ollamaRunning},
-		Bucket:   &BucketService{base: b, projects: s.Projects},
-		System:   &SystemService{base: b},
-		Dev:      &DevService{base: b, projects: s.Projects, models: s.Models, logs: s.Logs},
+		Project: &ProjectService{base: b, projects: s.Projects},
+		Chat:    &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects},
+		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, secrets: s.Secrets, registry: s.Registry,
+			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},
+		Bucket: &BucketService{base: b, projects: s.Projects},
+		System: &SystemService{base: b},
+		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, logs: s.Logs},
 	}
 }
 

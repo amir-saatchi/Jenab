@@ -13,12 +13,17 @@ export type {
   ConnectResult,
   ModelGroup,
   ModelItem,
+  ModelOption,
   Open,
   OpenedProject,
   PresetItem,
   ProjectItem,
+  ProviderModels,
   ProviderStatus,
   SettingsView,
+  Started,
+  UsageLine,
+  UsageReport,
   WaitingItem,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
 export type { Answer, Live } from "../../bindings/github.com/amir-saatchi/jenab/internal/agent/models"
@@ -45,7 +50,7 @@ export type {
   ToolResult,
   Waiting,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
-export type { Settings } from "../../bindings/github.com/amir-saatchi/jenab/internal/config/models"
-export type { FolderWarning, Notice } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
+export type { ModelSettings, ProviderSettings, Settings } from "../../bindings/github.com/amir-saatchi/jenab/internal/config/models"
+export type { FolderWarning, MoveResult, Notice } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Reading as MemoryReading } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"

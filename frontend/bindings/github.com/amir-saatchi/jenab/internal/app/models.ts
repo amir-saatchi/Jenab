@@ -124,6 +124,33 @@ export interface ModelItem {
 }
 
 /**
+ * ModelOption is a model that can be turned on or off.
+ */
+export interface ModelOption {
+    "id": string;
+
+    /**
+     * the catalog's or the provider's name, else the ID
+     */
+    "name": string;
+
+    /**
+     * in llm.providers.<name>.models
+     */
+    "on": boolean;
+
+    /**
+     * tokens: the setting, the catalog or the provider's; 0 if unknown
+     */
+    "context": number;
+
+    /**
+     * in the catalog
+     */
+    "known": boolean;
+}
+
+/**
  * Notification is a desktop notification for a chat that waits for the
  * user. A click shows the window and sends app:open with the chat.
  */
@@ -262,6 +289,39 @@ export interface ProjectItem {
 }
 
 /**
+ * ProviderModels is one provider's models for *Settings → Models* (SPEC
+ * 3.9).
+ */
+export interface ProviderModels {
+    "provider": string;
+    "kind": string;
+
+    /**
+     * Models are the catalog models the provider lists (Anthropic, OpenAI,
+     * Gemini), or every listed model (OpenAI-compatible, Ollama), then the
+     * models that are on but not listed.
+     */
+    "models": ModelOption[] | null;
+
+    /**
+     * Other are listed models the catalog doesn't know (*Other models*).
+     * Turning one on needs its context window.
+     */
+    "other": ModelOption[] | null;
+
+    /**
+     * NoModelList: the provider has no model list, so models are typed in.
+     */
+    "no_model_list": boolean;
+
+    /**
+     * Problem is why the list couldn't be read; the models that are on are
+     * still shown.
+     */
+    "problem"?: string;
+}
+
+/**
  * ProviderStatus is a connected provider's state, for the bottom bar
  * (SPEC 5.12).
  */
@@ -324,6 +384,104 @@ export interface SearchRequest {
 export interface SettingsView {
     "settings": config$0.Settings;
     "problems": config$0.Problem[] | null;
+}
+
+/**
+ * Started is what this start of the app used, for the settings that apply
+ * at the next start: the data folder and the developer tools.
+ */
+export interface Started {
+    /**
+     * in use
+     */
+    "data_folder": string;
+
+    /**
+     * used when data_folder is ""
+     */
+    "default_data_folder": string;
+    "dev_tools": boolean;
+
+    /**
+     * Moved is what moving the projects to a changed data folder did at
+     * this start (SPEC 2.1); nil if the folder didn't change.
+     */
+    "moved": project$0.MoveResult | null;
+}
+
+/**
+ * UsageLine is the tokens of one day, chat or model.
+ */
+export interface UsageLine {
+    /**
+     * YYYY-MM-DD, for a day
+     */
+    "day"?: string;
+
+    /**
+     * the project's name, for a chat
+     */
+    "project"?: string;
+
+    /**
+     * the chat's title, for a chat
+     */
+    "chat"?: string;
+
+    /**
+     * the catalog's name, else the model ID
+     */
+    "model"?: string;
+
+    /**
+     * the provider's name, for a model
+     */
+    "provider"?: string;
+
+    /**
+     * not read from the cache
+     */
+    "input": number;
+    "output": number;
+    "cache_read": number;
+    "cache_write": number;
+
+    /**
+     * US dollars, for the tokens with a price
+     */
+    "cost": number;
+
+    /**
+     * tokens of models the catalog has no price for
+     */
+    "unpriced": number;
+}
+
+/**
+ * UsageReport is *Settings → Usage* (SPEC 3.9): tokens per day, per chat
+ * and per model, with the cost from the catalog prices.
+ */
+export interface UsageReport {
+    /**
+     * every day of the range, oldest first
+     */
+    "days": UsageLine[] | null;
+
+    /**
+     * most tokens first
+     */
+    "chats": UsageLine[] | null;
+
+    /**
+     * most tokens first
+     */
+    "models": UsageLine[] | null;
+    "total": UsageLine;
+
+    /**
+     * Skipped are the projects whose chats couldn't be read, by name.
+     */
+    "skipped": string[] | null;
 }
 
 /**

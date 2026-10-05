@@ -66,6 +66,20 @@ export interface FolderWarning {
 }
 
 /**
+ * MoveResult is what MoveProjects did.
+ */
+export interface MoveResult {
+    "from": string;
+    "to": string;
+    "moved": number;
+
+    /**
+     * the projects left in the old folder, by name
+     */
+    "failed": string[] | null;
+}
+
+/**
  * Notice is a message about one project for the user.
  */
 export interface Notice {

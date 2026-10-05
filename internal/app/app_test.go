@@ -147,7 +147,7 @@ func newEnv(t *testing.T, root string) *env {
 	e.secrets = secrets
 	gate := limit.NewGate(s.LLM.MaxParallelCalls)
 	models := provider.NewRegistry(provider.Deps{Settings: s.LLM, Secrets: secrets, Gate: gate,
-		Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: e.fp.Factory()}})
+		Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: e.fp.Factory(), provider.KindGemini: e.fp.Factory()}})
 	e.settings.OnChange(func(s config.Settings) { gate.SetSize(s.LLM.MaxParallelCalls); models.Apply(s.LLM) })
 	pub := &Publisher{emit: e.sink.emit}
 	e.pm = project.NewManager(project.Deps{Paths: e.paths, Registry: e.reg, Events: pub})

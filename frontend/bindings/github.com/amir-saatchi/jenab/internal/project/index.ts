@@ -9,6 +9,7 @@ export type {
     Activity,
     Damage,
     FolderWarning,
+    MoveResult,
     Notice,
     Status
 } from "./models.js";

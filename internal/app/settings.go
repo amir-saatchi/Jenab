@@ -2,10 +2,16 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/secret"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // Settings holds the user settings while the app runs. Readers get the
@@ -79,12 +85,44 @@ type SettingsView struct {
 }
 
 // SettingsService is *Settings* (SPEC 5.12): the settings, the providers
-// and their models (connect.go). P1-16 adds usage.
+// and their models (connect.go), and usage (usage.go).
 type SettingsService struct {
 	base
 	settings *Settings
 	models   *provider.Registry
+	secrets  *secret.Store // nil in tests that keep no keys
+	registry *store.Registry
+	started  Started
 	ollamaUp func(context.Context) bool // whether Ollama runs on this machine
+	now      func() time.Time
+}
+
+// Started is what this start of the app used, for the settings that apply
+// at the next start: the data folder and the developer tools.
+type Started struct {
+	DataFolder        string `json:"data_folder"`         // in use
+	DefaultDataFolder string `json:"default_data_folder"` // used when data_folder is ""
+	DevTools          bool   `json:"dev_tools"`
+	// Moved is what moving the projects to a changed data folder did at
+	// this start (SPEC 2.1); nil if the folder didn't change.
+	Moved *project.MoveResult `json:"moved"`
+}
+
+// Started returns what this start used.
+func (s *SettingsService) Started(ctx context.Context) (st Started, err error) {
+	defer s.guard("settings.started", &err)
+	return s.started, nil
+}
+
+// CheckFolder checks a folder chosen as the data folder: it must be a full
+// path, and gets the warning of SPEC 2.1 if it is on a network drive or in
+// a synced folder.
+func (s *SettingsService) CheckFolder(ctx context.Context, dir string) (w *project.FolderWarning, err error) {
+	defer s.guard("settings.check_folder", &err)
+	if !filepath.IsAbs(dir) {
+		return nil, &UIError{Kind: KindInvalid, Message: fmt.Sprintf("%q is not a full path. Choose a folder.", dir)}
+	}
+	return project.CheckFolder(dir), nil
 }
 
 // Get returns the settings and the problems found in config.yaml.

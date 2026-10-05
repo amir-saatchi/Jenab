@@ -12,10 +12,13 @@ import (
 
 // Paths are the app's folders and files.
 type Paths struct {
-	Root       string // <user data dir>/<app>: settings, registry and logs, in a fixed place
-	Settings   string // Root/config.yaml
-	Registry   string // Root/registry.db
-	Logs       string // Root/logs
+	Root     string // <user data dir>/<app>: settings, registry and logs, in a fixed place
+	Settings string // Root/config.yaml
+	Registry string // Root/registry.db
+	Logs     string // Root/logs
+	// LastData is Root/data-folder: the data folder in use at the last
+	// start, so a changed one moves the projects (SPEC 2.1).
+	LastData   string
 	DataFolder string // ~/<app> unless the settings say otherwise (SPEC 3.9)
 	Projects   string // DataFolder/projects
 }
@@ -36,6 +39,7 @@ func DefaultPaths(app string) (Paths, error) {
 		Settings: filepath.Join(root, "config.yaml"),
 		Registry: filepath.Join(root, "registry.db"),
 		Logs:     filepath.Join(root, "logs"),
+		LastData: filepath.Join(root, "data-folder"),
 	}
 	return p.WithDataFolder(filepath.Join(home, app)), nil
 }

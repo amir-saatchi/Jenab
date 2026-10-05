@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"maps"
 	"net/http"
 	"slices"
@@ -141,12 +143,17 @@ func (s *SettingsService) Connect(ctx context.Context, req ConnectRequest) (r Co
 	if next.LLM.Models == nil {
 		next.LLM.Models = map[string]string{}
 	}
+	// A new key for a connected provider keeps the models the user chose.
+	if old, ok := next.LLM.Providers[req.Name]; ok && old.Kind == c.Settings.Kind && old.BaseURL == c.Settings.BaseURL {
+		c.Settings.Models = old.Models
+	}
 	next.LLM.Providers[req.Name] = c.Settings
 	setAliases(&next.LLM, s.models.Catalog(), req.Name, c.Settings)
 	loaded, problems, err := s.settings.save(next)
 	if err != nil {
 		return r, err
 	}
+	s.models.Forget(req.Name) // the next call reads the new key
 	r = ConnectResult{Provider: req.Name, Models: len(c.Settings.Models), Other: []string{}, NoModelList: c.NoModelList,
 		View: settingsView(loaded, problems)}
 	for _, m := range c.Other {
@@ -179,4 +186,152 @@ func setAliases(llm *config.LLMSettings, cat *provider.Catalog, name string, ps 
 		}
 		llm.Models[alias] = name + "/" + id
 	}
+}
+
+// Remove disconnects a provider (SPEC 3.9): it leaves the settings with its
+// limit, the aliases that pointed at it move to another provider's models,
+// and its key and base-URL values are deleted from the keychain.
+func (s *SettingsService) Remove(ctx context.Context, name string) (v SettingsView, err error) {
+	defer s.guard("settings.remove", &err)
+	next := s.settings.Get()
+	ps, ok := next.LLM.Providers[name]
+	if !ok {
+		return v, fmt.Errorf("%w: %q", provider.ErrUnknownProvider, name)
+	}
+	next.LLM.Providers = maps.Clone(next.LLM.Providers)
+	next.LLM.ProviderMaxParallelCalls = maps.Clone(next.LLM.ProviderMaxParallelCalls)
+	next.LLM.Models = maps.Clone(next.LLM.Models)
+	delete(next.LLM.Providers, name)
+	delete(next.LLM.ProviderMaxParallelCalls, name)
+	for alias, ref := range next.LLM.Models {
+		if p, _, _ := strings.Cut(ref, "/"); p == name {
+			delete(next.LLM.Models, alias)
+		}
+	}
+	for _, p := range slices.Sorted(maps.Keys(next.LLM.Providers)) {
+		setAliases(&next.LLM, s.models.Catalog(), p, next.LLM.Providers[p])
+	}
+	loaded, problems, err := s.settings.save(next)
+	if err != nil {
+		return v, err
+	}
+	v = settingsView(loaded, problems)
+	if s.secrets == nil {
+		return v, nil
+	}
+	base := ps.BaseURL
+	if base == "" {
+		base = provider.DefaultBaseURL(provider.Kind(ps.Kind))
+	}
+	names := []string{provider.KeyName(name)}
+	for _, f := range provider.Placeholders(base) {
+		names = append(names, provider.FieldName(name, f))
+	}
+	for _, n := range names {
+		if err := s.secrets.Delete(n); err != nil {
+			return v, fmt.Errorf("the provider was removed, but its key is still in the keychain: %w", err)
+		}
+	}
+	return v, nil
+}
+
+// ProviderModels is one provider's models for *Settings → Models* (SPEC
+// 3.9).
+type ProviderModels struct {
+	Provider string `json:"provider"`
+	Kind     string `json:"kind"`
+	// Models are the catalog models the provider lists (Anthropic, OpenAI,
+	// Gemini), or every listed model (OpenAI-compatible, Ollama), then the
+	// models that are on but not listed.
+	Models []ModelOption `json:"models"`
+	// Other are listed models the catalog doesn't know (*Other models*).
+	// Turning one on needs its context window.
+	Other []ModelOption `json:"other"`
+	// NoModelList: the provider has no model list, so models are typed in.
+	NoModelList bool `json:"no_model_list"`
+	// Problem is why the list couldn't be read; the models that are on are
+	// still shown.
+	Problem string `json:"problem,omitempty"`
+}
+
+// ModelOption is a model that can be turned on or off.
+type ModelOption struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`    // the catalog's or the provider's name, else the ID
+	On      bool   `json:"on"`      // in llm.providers.<name>.models
+	Context int    `json:"context"` // tokens: the setting, the catalog or the provider's; 0 if unknown
+	Known   bool   `json:"known"`   // in the catalog
+}
+
+// ProviderModels lists a provider's models, asking the provider for its
+// list.
+func (s *SettingsService) ProviderModels(ctx context.Context, name string) (pm ProviderModels, err error) {
+	defer s.guard("settings.provider_models", &err)
+	ps, ok := s.settings.Get().LLM.Providers[name]
+	if !ok {
+		return pm, fmt.Errorf("%w: %q", provider.ErrUnknownProvider, name)
+	}
+	kind := provider.Kind(ps.Kind)
+	cat := s.models.Catalog()
+	pm = ProviderModels{Provider: name, Kind: ps.Kind, Models: []ModelOption{}, Other: []ModelOption{}}
+	on := map[string]config.ModelSettings{}
+	for _, m := range ps.Models {
+		on[m.ID] = m
+	}
+	listed, err := s.models.Models(ctx, name)
+	var pe *provider.Error
+	switch {
+	case err == nil:
+	case errors.As(err, &pe) && (pe.Status == 404 || pe.Status == 405):
+		pm.NoModelList = true
+	default:
+		pm.Problem = s.redact(err.Error())
+	}
+	seen := map[string]bool{}
+	option := func(id, name string, context int) ModelOption {
+		seen[id] = true
+		o := ModelOption{ID: id, Name: id, Context: context}
+		if name != "" {
+			o.Name = name
+		}
+		if c, ok := cat.Find(kind, id); ok {
+			o.Name, o.Context, o.Known = c.Name, c.Context, true
+		}
+		if m, ok := on[id]; ok {
+			o.On = true
+			if m.Context > 0 {
+				o.Context = m.Context
+			}
+		}
+		return o
+	}
+	known := cat.Models(kind)
+	have := map[string]provider.ModelInfo{}
+	for _, m := range listed {
+		have[m.ID] = m
+	}
+	if len(known) > 0 {
+		for _, c := range known {
+			if _, ok := have[c.ID]; ok {
+				pm.Models = append(pm.Models, option(c.ID, "", 0))
+			}
+		}
+	}
+	for _, m := range listed {
+		if seen[m.ID] {
+			continue
+		}
+		o := option(m.ID, m.Name, m.Context)
+		if len(known) > 0 && !o.Known {
+			pm.Other = append(pm.Other, o)
+		} else {
+			pm.Models = append(pm.Models, o)
+		}
+	}
+	for _, m := range ps.Models {
+		if !seen[m.ID] {
+			pm.Models = append(pm.Models, option(m.ID, "", m.Context))
+		}
+	}
+	return pm, nil
 }

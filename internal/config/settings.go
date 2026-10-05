@@ -357,6 +357,7 @@ func merge(old, next *yaml.Node, t reflect.Type) {
 			merge(ov, nv, f.Type)
 		case f.Type.Kind() == reflect.Map && ov.Kind == yaml.MappingNode:
 			mergeMap(ov, nv)
+			lineComment(ok2, ov)
 		default:
 			setValue(ov, nv)
 		}
@@ -378,6 +379,21 @@ func mergeMap(old, next *yaml.Node) {
 		old.Style = yaml.FlowStyle // an empty map as {}
 	} else if old.Style == yaml.FlowStyle {
 		old.Style = 0 // a map that was {} gets one entry per line
+	}
+}
+
+// lineComment keeps a map's line comment on its key's line. The encoder
+// writes a {} value's comment after it, on the same line, but a block
+// map's after its last entry, where it would look like the next key's.
+func lineComment(k, v *yaml.Node) {
+	if v.Style == yaml.FlowStyle {
+		if v.LineComment == "" {
+			k.LineComment, v.LineComment = "", k.LineComment
+		}
+		return
+	}
+	if k.LineComment == "" {
+		k.LineComment, v.LineComment = v.LineComment, ""
 	}
 }
 

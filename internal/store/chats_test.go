@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -672,5 +673,34 @@ func TestChatsLastTurnAndActivity(t *testing.T) {
 	}
 	if act, err := c.LastActivity(ctx); err != nil || len(act) != 1 {
 		t.Errorf("LastActivity after Clear = %v, %v; want only b", act, err)
+	}
+}
+
+func TestChatsUsage(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	a, b := newChat(t, c, chat.Chat{}), newChat(t, c, chat.Chat{})
+	add := func(ch id.Chat, model string, at time.Time, u chat.Usage) {
+		if _, _, err := c.AppendMessage(ctx, chat.Message{Chat: ch, Turn: 1, Role: chat.RoleAssistant, Model: model, CreatedAt: at, Usage: u,
+			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	day := time.Date(2026, 10, 4, 0, 0, 0, 0, time.UTC)
+	add(a.ID, "g/x", day.Add(-time.Hour), chat.Usage{Input: 100}) // before from
+	add(a.ID, "g/x", day.Add(time.Hour), chat.Usage{Input: 10, Output: 1})
+	add(a.ID, "g/x", day.Add(2*time.Hour), chat.Usage{Input: 20, Output: 2, CacheRead: 5})
+	add(a.ID, "g/y", day.Add(21*time.Hour), chat.Usage{Output: 7}) // the next day at UTC+3:30
+	add(b.ID, "g/x", day.Add(3*time.Hour), chat.Usage{})           // no tokens
+	rows, err := c.Usage(ctx, day, 210*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []UsageRow{
+		{Day: "2026-10-04", Chat: a.ID, Model: "g/x", Usage: chat.Usage{Input: 30, Output: 3, CacheRead: 5}},
+		{Day: "2026-10-05", Chat: a.ID, Model: "g/y", Usage: chat.Usage{Output: 7}},
+	}
+	if !reflect.DeepEqual(rows, want) {
+		t.Fatalf("Usage = %+v\nwant %+v", rows, want)
 	}
 }

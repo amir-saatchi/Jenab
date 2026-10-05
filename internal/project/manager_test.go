@@ -49,7 +49,7 @@ func (r *recorder) noticeKinds() []NoticeKind {
 }
 
 func testPaths(root string) config.Paths {
-	return config.Paths{Root: root, Registry: filepath.Join(root, "registry.db")}.WithDataFolder(filepath.Join(root, "data"))
+	return config.Paths{Root: root, Registry: filepath.Join(root, "registry.db"), LastData: filepath.Join(root, "data-folder")}.WithDataFolder(filepath.Join(root, "data"))
 }
 
 // env is a manager on a fresh app folder.
