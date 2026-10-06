@@ -363,3 +363,22 @@ func TestPassed(t *testing.T) {
 		}
 	}
 }
+
+func TestChangesNeedTheSameScenarios(t *testing.T) {
+	run := func(sc string, st string) Run {
+		return Run{Model: "m", Scenario: sc, Rep: 1, Asserts: []Result{{Type: "tool_called", Test: "x", Status: st}}}
+	}
+	prev := &Report{Models: []string{"m"}, Runs: []Run{run("a", Fail)}}
+	now := &Report{Models: []string{"m"}, Runs: []Run{run("a", Pass), run("b", Pass)}}
+	prev.summarize()
+	now.summarize()
+	got := strings.Join(now.Changes(prev), "\n")
+	if strings.Contains(got, "tool_called") || !strings.Contains(got, "not compared") || !strings.Contains(got, "a 0/1 → 1/1") {
+		t.Errorf("changes:\n%s", got)
+	}
+	now.Runs = now.Runs[:1]
+	now.summarize()
+	if got := strings.Join(now.Changes(prev), "\n"); !strings.Contains(got, "tool_called 0/1 → 1/1") {
+		t.Errorf("changes:\n%s", got)
+	}
+}

@@ -191,8 +191,20 @@ func (rep *Report) checkTypes() []string {
 	return out
 }
 
+// ran is the scenarios a model ran, skipped ones left out, sorted.
+func (rep *Report) ran(model string) []string {
+	var out []string
+	for _, r := range rep.Runs {
+		if r.Model == model && r.Skipped == "" && !slices.Contains(out, r.Scenario) {
+			out = append(out, r.Scenario)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 // Changes are what differs from an earlier report: each model's check
-// rates and each scenario's cell.
+// rates, when it ran the same scenarios, and each scenario's cell.
 func (rep *Report) Changes(prev *Report) []string {
 	if prev == nil {
 		return nil
@@ -205,9 +217,14 @@ func (rep *Report) Changes(prev *Report) []string {
 			out = append(out, m+": new model")
 			continue
 		}
-		for _, t := range rep.checkTypes() {
-			if a, b := was.Checks[t].String(), now.Checks[t].String(); a != b {
-				out = append(out, fmt.Sprintf("%s: %s %s → %s", m, t, a, b))
+		// Check rates only compare when both ran the same scenarios.
+		if !slices.Equal(prev.ran(m), rep.ran(m)) {
+			out = append(out, m+": other scenarios ran than last time, so check rates are not compared")
+		} else {
+			for _, t := range rep.checkTypes() {
+				if a, b := was.Checks[t].String(), now.Checks[t].String(); a != b {
+					out = append(out, fmt.Sprintf("%s: %s %s → %s", m, t, a, b))
+				}
 			}
 		}
 		for _, sc := range rep.scenarios() {

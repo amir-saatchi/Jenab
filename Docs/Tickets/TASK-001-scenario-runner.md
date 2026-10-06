@@ -56,19 +56,22 @@ The turn inspector (SPEC 8.4) is a separate Phase 1 task.
 - **Report** per set in `<set>/results/`: runs passed, checks per model, tokens and time per run, a table of scenarios, the changes since the last report, the failures, and one transcript per run.
 - **Agent addition:** `agent.Deps.Card`, the project card as block 4 (SPEC 3.1). Phase 2 builds it from the schema; the runner gives a fixture's.
 - **Sets** in `scenarios/`: `multi-part` (SPIKE-023, 20 scenarios, 9 run now), `skill-loading` (SPIKE-025 T-load, 12) and `role-skills` (SPIKE-025 T-roles, 6).
-- **First run,** 2026-10-06, on gemma4:31b (Ollama Cloud) and glm-4.5-flash (Z.ai), 1 rep:
+- **Runs,** 2026-10-06, on gemma4:31b (Ollama Cloud) and glm-4.5-flash (Z.ai), 1 rep, after the fix below:
 
   | Set | gemma4:31b | glm-4.5-flash |
   |---|---|---|
-  | multi-part | 9/9 | 9/9 |
-  | skill-loading | 11/12 | 11/12 |
-  | role-skills | 4/6 | 4/6 |
+  | multi-part | 8/9 | 9/9 |
+  | skill-loading | 12/12 | 11/12 |
+  | role-skills | 4/6 | 3/6 |
 
   - skill-loading: the skill was loaded before the action in 7/7 (gemma) and 6/7 (glm) runs, and no skill was loaded when none was needed in 8/8. This closes P1-12's last check.
-  - glm's L04 and both models' R3 and R6 failed as in SPIKE-025: glm answered "why does this SQL fail" without sql-queries, R3 got no pipelines and R6 no migrations.
-  - gemma's L02 broke: after its one save it repeated the same `save_pipeline` call 17 times, until the truncation guard stopped the turn ("read 4941 input tokens of about 9937"). L03 repeated the same way until the request cap. The provider's prompt count grew by about 18 tokens per request while each call was about 435, so Ollama Cloud may drop the earlier tool calls from what gemma sees. SPIKE-025 stopped at the first write, so it never saw this.
+  - glm's L04 and both models' R3 and R6 failed as in SPIKE-025: glm answered "why does this SQL fail" without sql-queries, R3 got no pipelines and R6 no migrations. glm's R1 also left out migrations.
+  - gemma's t4_d wrote a query and its result as text instead of calling the tool, and gave a made-up close.
+  - With 1 rep, a few scenarios change from run to run: t4_d and R1 passed in the first run.
+- **Fix found by the first run:** gemma repeated its one `save_pipeline` call 17 times, until the truncation guard stopped the turn. The cause was ours: an assistant message with only tool calls was sent with `content: []`, and Ollama turns that into no message, so every call after the first was lost. Such a message now has a single space as content, for every provider (SPEC 3.8). `TestSmokeChain` (`-tags smoke`) checks a chain of three calls on Gemini, Groq, Ollama Cloud, Z.ai and Cloudflare. SPIKE-025 stopped at the first write, so it never saw this.
+- **Report diff:** check rates are compared only when both reports ran the same scenarios for a model; otherwise the report says so and lists the per-scenario changes.
 - **Checks:** a run on `provider/fake` covers the card, the skill list, the fake tools on the fixture, the checks, the report, the diff and that no key reaches a file. Further tests cover a Mother run with a message during the turn, a timeout, model and .env selection, 22 load errors and the command. A test loads every set in the repo.
 - **Not done:**
-  - SPIKE-021's config tasks (T1–T4), `config_valid` and `max_repair_rounds` come with Phase 2, when the app checks configs; the user's decision. So does T4 on gemma with 5 reps.
+  - SPIKE-021's config tasks (T1â€“T4), `config_valid` and `max_repair_rounds` come with Phase 2, when the app checks configs; the user's decision. So does T4 on gemma with 5 reps.
   - The 11 SPIKE-023 scenarios that need background work run when the app has it (8.3); their checks are kept in the files.
   - In CI, `go test` loads every set. A run on models needs the keys as secrets, and Actions are blocked for now.

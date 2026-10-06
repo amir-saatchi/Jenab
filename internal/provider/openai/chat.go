@@ -55,6 +55,10 @@ type base struct {
 	ollama bool // Ollama's OpenAI-compatible API, e.g. Ollama Cloud
 }
 
+// toolCallsOnly is the content of an assistant message with only tool
+// calls (SPEC 3.8).
+const toolCallsOnly = " "
+
 func isOllama(baseURL string) bool {
 	return strings.Contains(baseURL, "://ollama.com/") || strings.Contains(baseURL, ":11434/")
 }
@@ -301,10 +305,13 @@ func (a *chatAPI) messages(ctx context.Context, req provider.Request) ([]sdk.Cha
 				if text.Len() > 0 {
 					am.Content.OfString = sdk.String(text.String())
 				} else {
-					// Tool calls only: an empty part list. Cloudflare Workers
-					// AI refuses a missing content; Z.ai refuses "" and null
-					// (with a 429 "overloaded").
-					am.Content.OfArrayOfContentParts = []sdk.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{}
+					// Tool calls only: a single space, the same for every
+					// provider. Every empty form breaks one of them:
+					// Cloudflare Workers AI refuses a missing content, Z.ai
+					// refuses "" and null (with a 429 "overloaded"), and
+					// Ollama turns [] into no message, so the model loses
+					// every call after the first and repeats it.
+					am.Content.OfString = sdk.String(toolCallsOnly)
 				}
 				out = append(out, sdk.ChatCompletionMessageParamUnion{OfAssistant: &am})
 			}

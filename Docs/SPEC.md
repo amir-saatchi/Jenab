@@ -453,7 +453,7 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
     - Daily or quota errors are `quota`. Examples: Gemini `PerDay`, and Z.ai codes 1113, 1308 and 1310. They often come as a 429, so the body decides the kind, not the status.
     - Transport errors and cut-off streams are `transport`.
   - Waits follow the rules above. Ollama Cloud and Z.ai send no rate-limit headers, so the pause per provider is their only pacing.
-  - An assistant message with only tool calls is sent with `content: []`. Cloudflare Workers AI refuses one without `content`, and Z.ai refuses `""` or `null` (with a 429 "overloaded").
+  - An assistant message with only tool calls is sent with a single space as `content`, to every provider. Each empty form breaks one of them: Cloudflare Workers AI refuses a message without `content`, Z.ai refuses `""` or `null` (with a 429 "overloaded"), and Ollama turns `[]` into no message and attaches the calls to the message before, so every call after the first is lost and the model repeats it. `TestSmokeChain` checks this on each provider.
   - Clients are built with explicit options and an allow-list of outgoing headers. The SDKs' `OPENAI_*` and `ANTHROPIC_*` environment variables are ignored, so they never reach another host.
   - Gemini:
     - Tool calls carry `extra_content` (a thought signature), which is sent back unchanged. Without it, Gemini returns a 400.
