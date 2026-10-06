@@ -18,6 +18,7 @@ The pattern (proposed on 2026-10-03):
 - **History cards:** older related parts, through `search_history` and `read_messages`, added to the recent turns, never replacing them.
 - **Subagents per request** only for heavy, independent work; the model decides. A result comes back as a short note plus a ref.
 - **Notes:** in the session notes (3.4), which already hold the plan.
+- **Subjects:** [SPIKE-029](SPIKE-029-subjects.md) keeps the chat's work across turns as subjects. A request that ends `done`, `blocked` or `dropped` may update or create a subject. The two designs are decided together.
 
 ## Conditions
 1. **Today:** the SPEC 8.3 loop with the prompt rule.
