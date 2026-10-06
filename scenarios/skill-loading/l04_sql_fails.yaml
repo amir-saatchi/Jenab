@@ -1,0 +1,13 @@
+id: L04_sql_fails
+title: 'This query fails in the query tool. Why?'
+tests: ["load"]
+context: main
+why: 'Load sql-queries before the answer; no skills outside sql-queries.'
+messages:
+  - text: |
+      This query fails in the query tool. Why?
+      SELECT status, count(*) FROM _jenab_runs GROUP BY status
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [sql-queries], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [sql-queries]}
+  - {type: answer_delivered, test: info}

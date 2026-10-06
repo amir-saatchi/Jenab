@@ -1,0 +1,12 @@
+id: t4_b_yesterday_close
+title: Yesterday's BTC close, one quick query
+tests: ["4"]
+context: main
+why: 'Query the prices table and answer (64,512.30); do not run the pipeline or a subagent.'
+messages:
+  - text: "What was BTC's closing price yesterday?"
+asserts:
+  - {type: no_background, test: "4"}
+  - {type: max_turns, test: "4", n: 1}
+  - {type: no_false_running, test: "4"}
+  - {type: answer_contains, test: "4", turn: any, match: '64[,.]?512'}

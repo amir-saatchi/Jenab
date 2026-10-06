@@ -1,0 +1,36 @@
+# The providers jenab-scenarios can run on. Copy this file to
+# scenarios/models.yaml (git-ignored) and list your own. Nothing is built
+# in: each provider names the environment variable that holds its key.
+# Keys never go in this file; give them in the environment or in a .env
+# file with -env.
+#
+# kind is as in config.yaml: anthropic, openai, gemini, openai_compatible
+# or ollama. context is the model's window in tokens, for models the app's
+# catalog doesn't know. Models of a paid provider run only when named with
+# -model.
+providers:
+  - name: ollama-cloud
+    kind: openai_compatible
+    base_url: https://ollama.com/v1/
+    key_env: OLLAMA_API_KEY
+    models:
+      - {id: nemotron-3-ultra, context: 262144}
+      - {id: gemma4:31b, context: 262144}
+      - {id: gpt-oss:120b, context: 131072}
+  - name: zai
+    kind: openai_compatible
+    base_url: https://api.z.ai/api/paas/v4/
+    key_env: Z_API_KEY
+    models:
+      - {id: glm-4.5-flash, context: 128000}
+  # A local Ollama needs no key.
+  # - name: local
+  #   kind: ollama
+  #   models:
+  #     - {id: qwen3:8b, context: 32768}
+  # - name: anthropic
+  #   kind: anthropic
+  #   key_env: ANTHROPIC_API_KEY
+  #   paid: true
+  #   models:
+  #     - {id: claude-sonnet-5-5}

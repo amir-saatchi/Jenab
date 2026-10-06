@@ -234,6 +234,15 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 		b.WriteString("\n\n" + s)
 	}
 	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
+	if f := r.o.d.Card; f != nil {
+		card, err := f(ctx, r.cs.key.p)
+		if err != nil {
+			return nil, err
+		}
+		if card = strings.TrimSpace(card); card != "" {
+			blocks = append(blocks, provider.Block{Text: card, Name: "Project card"})
+		}
+	}
 	w := &r.cs.win
 	if t.ch.Kind == chat.KindMother {
 		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})

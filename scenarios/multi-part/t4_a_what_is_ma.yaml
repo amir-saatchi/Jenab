@@ -1,0 +1,13 @@
+id: t4_a_what_is_ma
+title: Simple knowledge question, no tools needed
+tests: ["4"]
+context: main
+why: 'Answer directly in one turn; no tools, no background work.'
+messages:
+  - text: "What is a moving average?"
+asserts:
+  - {type: no_background, test: "4"}
+  - {type: max_turns, test: "4", n: 1}
+  - {type: no_false_running, test: "4"}
+  - {type: answer_contains, test: "4", turn: any, match: '(?i)average'}
+  - {type: tool_not_called, test: info, tools: [query, web_search, fetch_page, call_api, run_pipeline, subagent]}

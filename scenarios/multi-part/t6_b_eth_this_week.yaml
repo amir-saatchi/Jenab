@@ -1,0 +1,14 @@
+id: t6_b_eth_this_week
+title: '"How did ETH do this week?" -> ETH tracker'
+tests: ["6"]
+context: mother
+needs: [background]
+why: 'send_to_chat(c_eth) asking about this week; pass on the +4.2% and the news.'
+messages:
+  - text: "How did ETH do this week?"
+asserts:
+  - {type: right_target, test: "6", chat_id: c_eth, match: '(?i)week|7 days|seven days'}
+  - {type: created_chat_only_for_lasting_job, test: "6", expect: false}
+  - {type: no_resend_after_notice, test: "6"}
+  - {type: answer_contains, test: "6", turn: finish, match: '4[.,]2'}
+  - {type: no_repeat, test: "6", max_overlap: 0.3}

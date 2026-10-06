@@ -1,0 +1,176 @@
+# SPIKE-023: requests with several parts, messages during a turn, and
+# Mother's delegation, on the "Crypto watch" fixture. Scenarios that need
+# background work (8.3) are marked `needs: [background]` and skipped until
+# the app has it.
+#
+# The fake tools are SPIKE-023's. A call of a background tool returns at
+# once with a "started" text; no notice follows yet. A rule's `match` is a
+# regex on the call's arguments as JSON; the first match wins, the
+# scenario's rules first.
+title: Crypto watch
+card: ../fixtures/crypto-watch/card.md
+fixture: ../fixtures/crypto-watch/fixture.sql
+configs: ../fixtures/crypto-watch/configs
+
+chats:
+  - title: Reviewer
+    role: Review every new pipeline for cost and missing error handling.
+    notes: Reviewed daily_prices on 2026-09-20; ok after on_error was added.
+  - title: ETH tracker
+    role: Track the ETH price and news, keep a weekly log, and answer questions about how ETH is doing.
+    notes: Weekly log for weeks 36-39; follows ETH through web search and the ETH news feed.
+  - title: Project setup
+    notes: Built the prices and news tables, the daily_prices and backfill_prices pipelines, and the views.
+
+tools:
+  - name: query
+    description: Read-only SQL SELECT on the project database (SQLite); returns up to 200 rows and the row count.
+    schema: {type: object, properties: {sql: {type: string}}, required: [sql]}
+    kind: sql
+    arg: sql
+    delay: 1s
+  - name: describe_table
+    description: Columns, types, keys and row count of a table.
+    schema: {type: object, properties: {name: {type: string}}, required: [name]}
+    kind: describe
+    arg: name
+    delay: 1s
+  - name: read_config
+    description: The stored pipeline or view config as YAML.
+    schema: {type: object, properties: {id: {type: string}}, required: [id]}
+    kind: config
+    arg: id
+    delay: 1s
+  - name: run_pipeline
+    description: Start a pipeline run. Returns the run ID right away; the run goes on in the background and a notice follows when it finishes.
+    schema:
+      type: object
+      properties:
+        id: {type: string}
+        inputs: {type: object, description: input values of the pipeline}
+      required: [id]
+    background: true
+    delay: 500ms
+  - name: run_status
+    description: Status and step summaries of a pipeline run.
+    schema: {type: object, properties: {run_id: {type: string}}, required: [run_id]}
+    delay: 500ms
+  - name: web_search
+    description: Search the web or the news; returns titles, URLs, dates and snippets.
+    schema:
+      type: object
+      properties:
+        query: {type: string}
+        limit: {type: integer}
+        source: {type: string, enum: [web, news]}
+      required: [query]
+    delay: 6s
+  - name: fetch_page
+    description: Fetch a web page as readable text; returns a preview.
+    schema: {type: object, properties: {url: {type: string}}, required: [url]}
+    delay: 3s
+  - name: call_api
+    description: One GET request through a saved connection; returns the response.
+    schema:
+      type: object
+      properties:
+        connection: {type: string}
+        path: {type: string, description: "path with query string, e.g. /simple/price?ids=bitcoin&vs_currencies=usd"}
+      required: [connection, path]
+    delay: 3s
+  # Any subagent call counts as delegated work, as in SPIKE-023.
+  - name: subagent
+    description: "Run a task in an isolated context with its own tools (web_search, fetch_page, query); returns only the result. Subagents cannot change memory or the schema. With background: true it returns a task ID right away and a notice follows when it finishes; otherwise the call returns when the task is done, which can take minutes."
+    schema:
+      type: object
+      properties:
+        task: {type: string}
+        inputs: {type: object}
+        background: {type: boolean}
+      required: [task]
+    background: true
+    delay: 90s
+  - name: task_status
+    description: Status of a background task (subagent or chat).
+    schema: {type: object, properties: {id: {type: string}}, required: [id]}
+    delay: 500ms
+  - name: create_chat
+    description: "Mother chat only: create a chat with a title, a role (its lasting job) and a first message. Returns the chat ID and a task ID right away; a notice with the chat's reply follows when its turn ends."
+    schema:
+      type: object
+      properties:
+        title: {type: string}
+        role: {type: string}
+        message: {type: string}
+      required: [title, role, message]
+    mother: true
+    background: true
+    delay: 500ms
+  - name: send_to_chat
+    description: "Mother chat only: send a message to an existing chat. Returns a task ID right away; a notice with the chat's reply follows when its turn ends."
+    schema:
+      type: object
+      properties:
+        chat_id: {type: string}
+        message: {type: string}
+      required: [chat_id, message]
+    mother: true
+    background: true
+    delay: 500ms
+
+rules:
+  run_pipeline:
+    - match: '"id"\s*:\s*"(daily_prices|backfill_prices|fear_greed)"'
+      result: "started: run r_1. It goes on in the background; a notice follows when it finishes."
+    - result: "pipeline not found (pipelines: daily_prices, backfill_prices, fear_greed)"
+      error: true
+  run_status:
+    - result: running for 5 s (typical length 30 s)
+  task_status:
+    - result: running for 5 s
+  create_chat:
+    - result: "started: chat c_new, task t_1. A notice with the chat's reply follows when its turn ends."
+  send_to_chat:
+    - result: "started: task t_1. A notice with the chat's reply follows when its turn ends."
+  call_api:
+    - match: '(?i)(usd.*eur|eur.*usd)'
+      result: '200 OK {"bitcoin":{"eur":55190.2,"eur_24h_change":1.8,"usd":64210.5,"usd_24h_change":1.8}}'
+    - match: '(?i)eur'
+      result: '200 OK {"bitcoin":{"eur":55190.2,"eur_24h_change":1.8}}'
+    - result: '200 OK {"bitcoin":{"usd":64210.5,"usd_24h_change":1.8}}'
+  web_search:
+    - match: '(?i)gold|xau'
+      result: |
+        1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today.
+        2. "Central banks keep buying gold" - reuters.example, 2026-09-28.
+        3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+    - match: '(?i)\beth\b|ethereum|ether'
+      result: |
+        1. "ETH gas fees fall to a two-year low" - theblock.example, 2026-09-29: average fee 0.8 gwei.
+        2. "Ethereum staking queue shortens after the upgrade" - coindesk.example, 2026-09-28.
+        3. "ETH ETFs see first inflows in three weeks" - decrypt.example, 2026-09-27: 62M USD.
+        4. "ETH trades at 2,587 USD, up 4% on the week" - cryptoslate.example, 2026-09-29.
+    - result: |
+        1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows.
+        2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28.
+        3. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28.
+        4. "BTC jumped 4% on 2026-09-12 after low US inflation data" - reuters.example, 2026-09-13: the largest daily move this month.
+        5. "Miner reserves fall to a three-year low" - cryptoslate.example, 2026-09-25.
+  fetch_page:
+    - result: |
+        (preview) Synthetic article text. The page covers recent market moves, quotes two analysts and links to earlier coverage. No figures beyond those in the search snippet.
+  subagent:
+    - match: '"background"\s*:\s*(true|"true")'
+      result: "started: task t_1. A notice follows when it finishes."
+      delay: 500ms
+    - match: '(?i)stak'
+      result: |
+        Summary of 20 pages on ETH staking: 1) the withdrawal queue is down to about 2 days after the upgrade; 2) liquid staking holds 31% of staked ETH, the largest provider 24%; 3) the average staking yield is 2.9% a year; 4) slashing is rare (0.04% of validators); 5) restaking adds yield but also new risks.
+    - match: '(?i)mica|\beu\b|europe|regulat|rules'
+      result: |
+        Summary of 20 pages on the new EU crypto rules: 1) the MiCA transition period ends on 2026-07-01, after that providers need a licence; 2) stablecoin issuers must hold reserves in EU banks; 3) the travel rule applies to transfers above 1,000 EUR; 4) self-hosted wallets are not banned, but large transfers need checks.
+    - match: '(?i)gold'
+      result: |
+        Spot gold is 2,641 USD/oz today (markets.example.com, 2026-09-29), so it is above 2,600 USD.
+    - result: |
+        Done. The sources agree with the project data; nothing new found.

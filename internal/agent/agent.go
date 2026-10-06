@@ -50,6 +50,10 @@ type Deps struct {
 	Settings func() config.Settings
 	Events   Publisher
 	Skills   *skill.Set // the skills chats can load (8.9); nil has none
+	// Card returns the project card (3.2), block 4 of the context. Phase 2
+	// builds it from the schema; the scenario runner gives a fixture's.
+	// Nil, or "", leaves the block out.
+	Card func(ctx context.Context, p id.Project) (string, error)
 	// Traces records each turn for the turn inspector (8.4); nil, with
 	// the developer tools off, records nothing.
 	Traces *Traces

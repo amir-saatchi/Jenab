@@ -1,0 +1,11 @@
+version: 1
+id: keyword_list
+title: News keywords
+type: table
+query: SELECT id, keyword FROM watch_keywords
+default_sort: { field: keyword, direction: asc }
+columns:
+  - { field: keyword, label: "Keyword", format: text }
+rows_from: { table: watch_keywords, key: id }
+row_actions:
+  - { label: "Delete", delete: true, confirm: true }

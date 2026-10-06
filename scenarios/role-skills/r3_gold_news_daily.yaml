@@ -1,0 +1,12 @@
+id: R3_gold_news_daily
+title: 'Start a new chat that watches gold news every day and keeps a short log of what matters.'
+tests: ["roles"]
+context: mother
+skills: [delegation]
+why: 'Create one chat with a fitting role and the skills pipelines, web-research (database-design, migrations, sql-queries are fine too).'
+messages:
+  - text: 'Start a new chat that watches gold news every day and keeps a short log of what matters.'
+asserts:
+  - {type: tool_called, test: roles, tool: create_chat}
+  - {type: created_skills, test: roles, tool: create_chat, skills: [pipelines, web-research], allow: [database-design, migrations, sql-queries]}
+  - {type: max_calls, test: info, tool: create_chat, n: 1}

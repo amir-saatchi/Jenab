@@ -1,0 +1,14 @@
+version: 1
+id: fear_greed
+title: Fear and greed index
+trigger: { schedule: "0 9 * * *", timezone: Europe/Berlin }
+steps:
+  - id: index
+    use: http.get
+    with: { url: "https://api.alternative.example/fng/" }
+  - id: summary
+    use: llm.summarize
+    with: { text: "{{ steps.index.body }}", max_tokens: 400 }
+  - id: save
+    use: db.insert
+    with: { table: news, rows: [{ url: "fng-{{ run.date }}", coin: BTC, title: "{{ steps.summary.text }}", source: alternative.example }] }

@@ -1,0 +1,18 @@
+id: t12_c_eth_run_and_columns
+title: Run daily_prices for ETH plus a question the project card answers (columns of prices)
+tests: ["1", "2"]
+context: main
+needs: [background]
+why: 'List the columns (from the card or describe_table) at once, start daily_prices for ETH, say it is running; the finish turn gives the ETH price and news without listing the columns again.'
+messages:
+  - text: "Run the daily prices pipeline for ETH now, and tell me which columns the prices table has."
+asserts:
+  - {type: quick_before_finish, test: "1", match_all: ['(?i)\bclose\b', '(?i)\bdate\b', '(?i)\bcurrency\b'], tools: [run_pipeline]}
+  - {type: slow_started, test: "1", tools: [run_pipeline]}
+  - {type: tool_called, test: "1", tool: run_pipeline, args_match: '(?i)eth'}
+  - {type: text_before_tool, test: info, tool: run_pipeline}
+  - {type: background_started, test: info, tools: [run_pipeline]}
+  - {type: mentions_running, test: info}
+  - {type: answer_contains, test: "2", turn: finish, match: '2[,.]?587'}
+  - {type: no_repeat, test: "2", max_overlap: 0.3, markers: ['(?i)columns?\W+(are|:|\n)', '(?i)coin\W+(text\W+)?date\W+(text\W+)?open']}
+  - {type: no_restart, test: "2", tools: [run_pipeline]}

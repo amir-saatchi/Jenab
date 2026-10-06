@@ -1,0 +1,11 @@
+id: L02_schedule
+title: 'Change the daily_btc pipeline so it runs at 07:30 UTC instead of 08:00.'
+tests: ["load"]
+context: main
+why: 'Load pipelines before the first write; no skills outside pipelines.'
+messages:
+  - text: 'Change the daily_btc pipeline so it runs at 07:30 UTC instead of 08:00.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [pipelines], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [pipelines]}
+  - {type: answer_delivered, test: info}

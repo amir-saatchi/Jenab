@@ -1,0 +1,11 @@
+id: L07_chart
+title: 'Build a bar chart of the number of saved news items per day.'
+tests: ["load"]
+context: main
+why: 'Load config-guide before the first write; no skills outside config-guide, sql-queries.'
+messages:
+  - text: 'Build a bar chart of the number of saved news items per day.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [config-guide], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [config-guide, sql-queries]}
+  - {type: answer_delivered, test: info}

@@ -1,0 +1,10 @@
+id: L10_price_yesterday
+title: 'What was the BTC price yesterday?'
+tests: ["load"]
+context: main
+why: 'Answer without loading a skill.'
+messages:
+  - text: 'What was the BTC price yesterday?'
+asserts:
+  - {type: max_calls, test: load, tool: load_skill, n: 0}
+  - {type: answer_delivered, test: info}

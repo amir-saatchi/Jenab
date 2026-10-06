@@ -1,0 +1,10 @@
+id: L09_moving_average
+title: 'What is a moving average? Answer in two sentences.'
+tests: ["load"]
+context: main
+why: 'Answer without loading a skill.'
+messages:
+  - text: 'What is a moving average? Answer in two sentences.'
+asserts:
+  - {type: max_calls, test: load, tool: load_skill, n: 0}
+  - {type: answer_delivered, test: info}

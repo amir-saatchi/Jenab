@@ -1,12 +1,14 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 )
 
 func TestCutOnTokens(t *testing.T) {
@@ -32,6 +34,43 @@ func TestCutOnTokens(t *testing.T) {
 	sys := h.fp.Calls()[4].System
 	if last := sys[len(sys)-1].Text; !strings.Contains(last, "has 1 earlier turn.") {
 		t.Errorf("turn 5: %q", last)
+	}
+}
+
+func TestCardBlock(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	var asked []id.Project
+	h.o.d.Card = func(_ context.Context, p id.Project) (string, error) {
+		asked = append(asked, p)
+		return "Project card\nTables: prices", nil
+	}
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.turn(c.ID, "hello")
+	h.turn(h.mother().ID, "hello")
+	var names [][]string
+	for _, req := range h.fp.Calls() {
+		var ns []string
+		for _, b := range req.System {
+			ns = append(ns, b.Name)
+		}
+		names = append(names, ns)
+		if last := req.System[len(req.System)-1]; !last.Cache {
+			t.Errorf("no cache point after %q", last.Name)
+		}
+	}
+	want := [][]string{
+		{"System prompt, role and skills", "Project card"},
+		{"System prompt, role and skills", "Project card", "Chat list"},
+	}
+	if fmt.Sprint(names) != fmt.Sprint(want) {
+		t.Errorf("blocks %q, want %q", names, want)
+	}
+	if card := h.fp.Calls()[1].System[1]; card.Text != "Project card\nTables: prices" || card.Cache {
+		t.Errorf("card block %+v", card)
+	}
+	if len(asked) != 2 || asked[0] != h.pid {
+		t.Errorf("Card asked for %v, want %s twice", asked, h.pid)
 	}
 }
 

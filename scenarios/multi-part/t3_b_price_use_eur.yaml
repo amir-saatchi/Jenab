@@ -1,0 +1,15 @@
+id: t3_b_price_use_eur
+title: BTC price through the coingecko connection; "stop, use EUR" arrives while call_api runs
+tests: ["3"]
+context: main
+why: 'After the message, give the price in EUR (55,190.20), fetching it again if needed.'
+delays:
+  call_api: 8s
+messages:
+  - text: "What's the current BTC price in USD? Use the coingecko connection."
+  - text: "stop, use EUR"
+    at: 6s
+asserts:
+  # v2 of this assertion: a later EUR call is not required (a model that already fetched both currencies can answer at once)
+  - {type: after_message, test: "3", answer_match: '55[,.]?190|(?i)eur.{0,20}55|€\s?55'}
+  - {type: no_background, test: info}

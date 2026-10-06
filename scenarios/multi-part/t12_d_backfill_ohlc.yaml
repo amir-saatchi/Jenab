@@ -1,0 +1,18 @@
+id: t12_d_backfill_ohlc
+title: Backfill 90 days of ETH prices in EUR (2 min run) plus "what does OHLC stand for"
+tests: ["1", "2"]
+context: main
+needs: [background]
+why: 'Expand OHLC at once, start backfill_prices (ETH, 90, EUR), say it is running; the finish turn reports the 90 rows without explaining OHLC again.'
+messages:
+  - text: "Backfill the last 90 days of ETH prices in EUR. And what does OHLC stand for?"
+asserts:
+  - {type: quick_before_finish, test: "1", match_all: ['(?i)open', '(?i)high', '(?i)low', '(?i)close'], tools: [run_pipeline]}
+  - {type: slow_started, test: "1", tools: [run_pipeline]}
+  - {type: tool_called, test: "1", tool: run_pipeline, args_match: '(?is)backfill_prices.*(eth.*eur|eur.*eth)|(eth.*eur|eur.*eth).*backfill_prices'}
+  - {type: text_before_tool, test: info, tool: run_pipeline}
+  - {type: background_started, test: info, tools: [run_pipeline]}
+  - {type: mentions_running, test: info}
+  - {type: answer_contains, test: "2", turn: finish, match: '(?i)\b90\b'}
+  - {type: no_repeat, test: "2", max_overlap: 0.3, markers: ['(?i)open,? high,? low,? (and |& )?close']}
+  - {type: no_restart, test: "2", tools: [run_pipeline]}

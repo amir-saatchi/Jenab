@@ -1,0 +1,9 @@
+version: 1
+id: add_keyword
+title: Add news keyword
+type: form
+fields:
+  - { field: keyword, label: "Keyword", control: text, required: true }
+submit:
+  action: insert
+  table: watch_keywords

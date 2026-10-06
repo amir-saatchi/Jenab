@@ -1,0 +1,9 @@
+version: 1
+id: btc_price_chart
+title: Bitcoin price chart
+type: chart
+chart_type: line
+query: SELECT date, price FROM btc_prices
+x: { field: date, label: "Date", format: date }
+y:
+  - { field: price, label: "Price (USD)" }

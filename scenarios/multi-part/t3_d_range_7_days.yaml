@@ -1,0 +1,22 @@
+id: t3_d_range_7_days
+title: 30-day high/low from the database plus the web; "make that the last 7 days" arrives during the first steps
+tests: ["3"]
+context: main
+why: 'After the message, use 7 days (high 65,230.80 on 09-26) instead of 30 days (66,120.00 on 09-12).'
+messages:
+  - text: "What were BTC's highest and lowest closes over the last 30 days in our database? And check the web for what caused the biggest move."
+  - text: "make that the last 7 days instead"
+    at: 3s
+rules:
+  # v2 of this scenario: the web also explains the biggest move of the 7-day window (in v1 the
+  # models searched again and again for it and hit the step cap)
+  web_search:
+    - result: |
+        1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows.
+        2. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28.
+        3. "BTC tops 65,000 USD as ETF inflows return" - coindesk.example, 2026-09-26: the largest move of the past week, +2.1% in a day after three days of ETF inflows.
+        4. "Fed minutes weigh on risk assets; BTC slips 2%" - reuters.example, 2026-09-27.
+        5. "BTC jumped 4% on 2026-09-12 after low US inflation data" - reuters.example, 2026-09-13: the largest daily move this month.
+asserts:
+  - {type: after_message, test: "3", args_match: '(?i)\b7\b|seven|2026-09-2[123]|-7 day|-6 day', answer_match: '65[,.]?230'}
+  - {type: no_background, test: info}

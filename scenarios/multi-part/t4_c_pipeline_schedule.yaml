@@ -1,0 +1,12 @@
+id: t4_c_pipeline_schedule
+title: What does daily_prices do and when does it run (in the project card)
+tests: ["4"]
+context: main
+why: 'Answer from the card (or read_config) in one turn; do not run the pipeline.'
+messages:
+  - text: "What does the daily_prices pipeline do, and when does it run?"
+asserts:
+  - {type: no_background, test: "4"}
+  - {type: max_turns, test: "4", n: 1}
+  - {type: no_false_running, test: "4"}
+  - {type: answer_contains, test: "4", turn: any, match: '(?i)0?8:00|8 ?am|\b8 o.clock|08\.00'}

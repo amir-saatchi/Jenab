@@ -1,0 +1,12 @@
+id: L06_etf_news
+title: 'Search the web for this week''s news about Bitcoin ETFs and tell me the three most important items.'
+tests: ["load"]
+context: main
+why: 'Load web-research before the first web_search; no skills outside web-research.'
+messages:
+  - text: 'Search the web for this week''s news about Bitcoin ETFs and tell me the three most important items.'
+asserts:
+  - {type: skill_loaded, test: load, skills: [web-research]}
+  - {type: skill_loaded_before, test: info, skills: [web-research], tools: [apply_migration, save_pipeline, save_view, save_form, web_search]}
+  - {type: only_skills, test: info, skills: [web-research]}
+  - {type: answer_delivered, test: info}

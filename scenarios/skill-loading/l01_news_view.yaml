@@ -1,0 +1,11 @@
+id: L01_news_view
+title: 'Add a table view news_last_week that shows the saved news of the last 7 days (date, title, link), newest first.'
+tests: ["load"]
+context: main
+why: 'Load config-guide before the first write; no skills outside config-guide, sql-queries.'
+messages:
+  - text: 'Add a table view news_last_week that shows the saved news of the last 7 days (date, title, link), newest first.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [config-guide], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [config-guide, sql-queries]}
+  - {type: answer_delivered, test: info}

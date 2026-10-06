@@ -25,8 +25,8 @@ Two Wails facts found while writing this (beta.26 source):
 A package imports only from rows below its own.
 
 ```
-cmd/desktop
-app                                   Wails; nothing imports it
+cmd/desktop, cmd/jenab-scenarios
+app, scenario                         nothing imports them; app has Wails, scenario is the scenario runner
 agent
 pipeline, view
 tool, schedule, update
@@ -666,6 +666,7 @@ type Deps struct {
     Settings func() config.Settings // read at the start of each turn
     Events   Publisher
     Skills   *skill.Set // the skills chats can load (8.9); nil has none
+    Card     func(ctx context.Context, p id.Project) (string, error) // the project card (3.2), block 4; nil or "" leaves it out
     Traces   *Traces    // the turn inspector's record (8.4); nil records nothing
     Log      *slog.Logger
 }
@@ -777,6 +778,17 @@ Send → AppendMessage → runner.turn → step ─┬─ models.Stream ──�
 Skills (8.9): block 1 has the chat's loaded skills after the role, then the skill list. A tool's first call in a chat also
 loads the skills whose `load_with` names it, if they fit, and adds their text to its result; in-turn trimming leaves
 that result whole. The text in results becomes a stub at the next cut, when it moves into block 1.
+
+Scenario runner (TASK-001, 8.4): `internal/scenario` builds a project, the real orchestrator and its tools for each run,
+with fake tools from the set's files in place of the tools the app doesn't have yet. `cmd/jenab-scenarios` runs sets on
+the models of a models file and writes a report to `<set>/results/`:
+
+```go
+func Load(dir string) (*Set, error)                       // _set.yaml and one YAML file per scenario
+func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error)
+func (f *ModelsFile) Select(names []string, env Env) (*Models, error) // keys from the environment or a .env file
+func (rep *Report) Write(dir string, prev *Report) (string, error)    // <time>.json, <time>.md and the transcripts
+```
 
 Store and provider additions (P1-10): `ChatsDB.LastTurn`, `ChatsDB.LastActivity` (with the `messages_activity` index), `provider.Registry.Resume` (ends a provider's pause and wakes the calls waiting on it), `Event.Paused` and the `EventWait` with `Wait` 0 when the wait is over, `fake.Provider.Replace`.
 

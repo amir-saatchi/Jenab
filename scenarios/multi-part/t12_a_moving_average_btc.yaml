@@ -1,0 +1,17 @@
+id: t12_a_moving_average_btc
+title: Moving average question plus today's BTC price and news (pipeline run, 30 s)
+tests: ["1", "2"]
+context: main
+needs: [background]
+why: 'Explain the moving average at once, start daily_prices, say it is running; in the finish turn give the price and news only.'
+messages:
+  - text: "What is a moving average, and also fetch today's BTC price and news?"
+asserts:
+  - {type: quick_before_finish, test: "1", match_all: ['(?i)moving average|\bS?MA\b', '(?i)smooth|window|sliding|rolling|(last|past|previous|recent) (\w+ ){0,2}(days|periods|values|points|prices|closes)|number of (days|periods|data)|over (a|the) (set|fixed|specific|given)'], tools: [run_pipeline, web_search, call_api, subagent]}
+  - {type: slow_started, test: "1", tools: [run_pipeline]}
+  - {type: text_before_tool, test: info, tool: run_pipeline}
+  - {type: background_started, test: info, tools: [run_pipeline]}
+  - {type: mentions_running, test: info}
+  - {type: answer_contains, test: "2", turn: finish, match: '64[,.]?210'}
+  - {type: no_repeat, test: "2", max_overlap: 0.3, markers: ['(?i)moving average (is|\(ma\) is|smooths|takes)', '(?i)(sum|average) of the (last|past|previous) \w+']}
+  - {type: no_restart, test: "2", tools: [run_pipeline, call_api, web_search]}

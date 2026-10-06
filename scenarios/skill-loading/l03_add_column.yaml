@@ -1,0 +1,11 @@
+id: L03_add_column
+title: 'Add an optional column volume (a number) to btc_prices for the daily trading volume.'
+tests: ["load"]
+context: main
+why: 'Load migrations before the first write; no skills outside migrations, database-design.'
+messages:
+  - text: 'Add an optional column volume (a number) to btc_prices for the daily trading volume.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [migrations], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [migrations, database-design]}
+  - {type: answer_delivered, test: info}

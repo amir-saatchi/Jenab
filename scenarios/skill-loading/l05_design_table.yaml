@@ -1,0 +1,11 @@
+id: L05_design_table
+title: 'Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don''t create it yet.'
+tests: ["load"]
+context: main
+why: 'Load database-design before the answer; no skills outside database-design, migrations.'
+messages:
+  - text: 'Design a table for the crypto exchanges I want to compare: name, country, website and trading fee in percent. Describe the design first; don''t create it yet.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [database-design], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [database-design, migrations]}
+  - {type: answer_delivered, test: info}

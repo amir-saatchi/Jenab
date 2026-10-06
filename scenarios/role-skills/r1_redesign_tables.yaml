@@ -1,0 +1,12 @@
+id: R1_redesign_tables
+title: 'Start a new chat that redesigns our tables so that prices and news work for many coins and many news sources.'
+tests: ["roles"]
+context: mother
+skills: [delegation]
+why: 'Create one chat with a fitting role and the skills database-design, migrations (sql-queries, pipelines, config-guide are fine too).'
+messages:
+  - text: 'Start a new chat that redesigns our tables so that prices and news work for many coins and many news sources.'
+asserts:
+  - {type: tool_called, test: roles, tool: create_chat}
+  - {type: created_skills, test: roles, tool: create_chat, skills: [database-design, migrations], allow: [sql-queries, pipelines, config-guide]}
+  - {type: max_calls, test: info, tool: create_chat, n: 1}

@@ -1,0 +1,22 @@
+version: 1
+id: daily_prices
+title: Daily price and news
+inputs:
+  coin: { type: string, enum: [BTC, ETH], default: BTC }
+  currency: { type: string, enum: [USD, EUR], default: USD }
+trigger: { schedule: "0 8 * * *", timezone: Europe/Berlin }
+steps:
+  - id: price
+    use: http.get
+    with: { url: "https://api.coingecko.example/simple/price", query: { ids: "{{ inputs.coin }}", vs_currencies: "{{ inputs.currency }}" } }
+    on_error: { retry: 3, then: fail }
+  - id: save_price
+    use: db.upsert
+    with: { table: prices, rows: "{{ steps.price.rows }}" }
+  - id: news
+    use: feed.read
+    with: { url: "https://news.example.com/{{ inputs.coin }}.rss", since: 1d }
+    on_error: { retry: 2, then: skip }
+  - id: save_news
+    use: db.upsert
+    with: { table: news, rows: "{{ steps.news.items }}" }

@@ -1,0 +1,10 @@
+id: t6_e_two_plus_two
+title: 'What''s 2+2? -> Mother answers itself'
+tests: ["6"]
+context: mother
+why: 'Answer 4 directly; no delegation.'
+messages:
+  - text: "What's 2+2?"
+asserts:
+  - {type: tool_not_called, test: "6", tools: [subagent, create_chat, send_to_chat, run_pipeline]}
+  - {type: answer_contains, test: "6", turn: first, match: '\b4\b|four'}

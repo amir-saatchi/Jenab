@@ -1,0 +1,16 @@
+id: t3_c_run_then_add_eth
+title: Run daily_prices; "also run it for ETH" arrives while the run is in the background
+tests: ["3"]
+context: main
+needs: [background]
+why: 'Start a second run for ETH (the BTC run keeps going, no second BTC run); report both results as the notices come in.'
+messages:
+  - text: "Run the daily prices pipeline now."
+  - text: "also run it for ETH"
+    at: 12s
+asserts:
+  - {type: after_message, test: "3", args_match: '(?is)run_pipeline.*eth'}
+  - {type: max_calls, test: "3", tool: run_pipeline, args_not_match: '(?i)eth', n: 1}
+  - {type: answer_contains, test: "3", turn: finish, match: '2[,.]?587'}
+  - {type: answer_contains, test: "3", turn: finish, match: '64[,.]?210'}
+  - {type: no_restart, test: info, tools: [run_pipeline]}

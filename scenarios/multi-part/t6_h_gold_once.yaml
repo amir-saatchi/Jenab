@@ -1,0 +1,13 @@
+id: t6_h_gold_once
+title: '"Check once whether gold is above 2,600 USD today" -> one-off, no new chat'
+tests: ["6"]
+context: mother
+needs: [background]
+why: 'A one-off check: web_search itself or a subagent; no create_chat, no send_to_chat.'
+messages:
+  - text: "Check once whether gold is above 2,600 USD today."
+asserts:
+  - {type: created_chat_only_for_lasting_job, test: "6", expect: false}
+  - {type: tool_not_called, test: "6", tools: [send_to_chat]}
+  - {type: answer_contains, test: "6", turn: any, match: '2[,.]?641'}
+  - {type: no_resend_after_notice, test: "6"}

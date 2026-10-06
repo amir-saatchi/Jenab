@@ -1,0 +1,15 @@
+version: 1
+id: backfill_prices
+title: Backfill daily prices
+inputs:
+  coin: { type: string, enum: [BTC, ETH] }
+  days: { type: integer, min: 1, max: 365 }
+  currency: { type: string, enum: [USD, EUR], default: USD }
+steps:
+  - id: history
+    use: http.get
+    with: { url: "https://api.coingecko.example/coins/{{ inputs.coin }}/ohlc", query: { days: "{{ inputs.days }}", vs_currency: "{{ inputs.currency }}" } }
+    on_error: { retry: 3, then: fail }
+  - id: save
+    use: db.upsert
+    with: { table: prices, rows: "{{ steps.history.rows }}" }

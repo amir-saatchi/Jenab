@@ -1,0 +1,11 @@
+id: L08_form
+title: 'Add a form for adding a news item by hand: url, date, title and reason.'
+tests: ["load"]
+context: main
+why: 'Load config-guide before the first write; no skills outside config-guide.'
+messages:
+  - text: 'Add a form for adding a news item by hand: url, date, title and reason.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [config-guide], tools: [apply_migration, save_pipeline, save_view, save_form]}
+  - {type: only_skills, test: info, skills: [config-guide]}
+  - {type: answer_delivered, test: info}

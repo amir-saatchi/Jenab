@@ -1,0 +1,11 @@
+version: 1
+id: btc_news_table
+title: Bitcoin news
+type: table
+query: SELECT date, title, reason, url FROM btc_news
+default_sort: { field: date, direction: desc }
+columns:
+  - { field: date, label: "Date", format: date }
+  - { field: title, label: "Title" }
+  - { field: reason, label: "Why it matters" }
+  - { field: url, label: "Link", format: url }

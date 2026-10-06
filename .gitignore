@@ -21,3 +21,7 @@ dist/
 
 # saved copies of third-party web pages; spikes/015-readable-text/fetch downloads them again
 spikes/015-readable-text/fixtures/
+
+# scenario runner: each developer's models file and the reports
+scenarios/models.yaml
+scenarios/*/results/

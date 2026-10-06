@@ -1,0 +1,94 @@
+# SPIKE-025 T-load: short requests on the Bitcoin project of SPEC 9 (the
+# state after SPIKE-021's T3). Eight need a skill, four need none. Does the
+# chat load the right skill before the first action that needs it, and no
+# others?
+#
+# The tools are SPIKE-021's builder tools plus web_search. The write tools
+# don't validate here: they answer "saved". Config tasks with real
+# validation (T1-T4) come with Phase 2.
+title: Bitcoin tracker
+card: ../fixtures/bitcoin/card.md
+fixture: ../fixtures/bitcoin/fixture.sql
+configs: ../fixtures/bitcoin/configs
+skills: ../skills
+mother_skills: [delegation]
+
+tools:
+  - name: apply_migration
+    description: "Change the database schema with structured migration steps (never SQL DDL). Runs as one transaction: the steps, then every view and pipeline is re-validated against the new schema. Views and pipelines that must change because of the migration are sent in the same call as full YAML configs in `views` and `pipelines`; if any check fails, nothing is applied and all errors are returned."
+    schema:
+      type: object
+      properties:
+        steps: {type: array, items: {type: object}, description: "migration steps, each with op"}
+        pipelines: {type: array, items: {type: string}, description: full YAML of pipelines updated in the same change}
+        views: {type: array, items: {type: string}, description: full YAML of views and forms updated in the same change}
+      required: [steps]
+    delay: 200ms
+  - name: save_pipeline
+    description: Validate and save a pipeline config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string, description: the complete pipeline config as YAML}}, required: [yaml]}
+    delay: 200ms
+  - name: save_view
+    description: Validate and save a table or chart view config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string, description: the complete view config as YAML}}, required: [yaml]}
+    delay: 200ms
+  - name: save_form
+    description: "Validate and save a form view config (full YAML, type: form). Returns all errors with paths, or success."
+    schema: {type: object, properties: {yaml: {type: string, description: the complete form config as YAML}}, required: [yaml]}
+    delay: 200ms
+  - name: describe_table
+    description: Columns, types, keys, indexes and row count of a table.
+    schema: {type: object, properties: {name: {type: string}}, required: [name]}
+    kind: describe
+    arg: name
+    delay: 200ms
+  - name: query
+    description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
+    schema:
+      type: object
+      properties:
+        sql: {type: string}
+        params: {type: object, description: "values for named parameters (:name)"}
+      required: [sql]
+    kind: sql
+    arg: sql
+    delay: 200ms
+  - name: get_config
+    description: Read the saved YAML of a view or pipeline by id.
+    schema: {type: object, properties: {id: {type: string}}, required: [id]}
+    kind: config
+    arg: id
+    delay: 200ms
+  - name: web_search
+    description: Search the web or the news; returns titles, URLs, dates and snippets.
+    schema:
+      type: object
+      properties:
+        query: {type: string}
+        limit: {type: integer}
+        freshness: {type: string, enum: [day, week, month, any]}
+        source: {type: string, enum: [web, news, wikipedia, hn]}
+      required: [query]
+    delay: 1s
+
+rules:
+  apply_migration:
+    - result: "applied: migration committed, schema version 1."
+  save_pipeline:
+    - result: saved pipeline (revision 2).
+  save_view:
+    - result: saved view (revision 1).
+  save_form:
+    - result: saved form view (revision 1).
+  web_search:
+    - match: '(?i)gold|xau'
+      result: |
+        1. "Gold holds above 2,600 USD as the dollar weakens" - markets.example.com, 2026-09-29: spot gold at 2,641 USD/oz, +0.6% today.
+        2. "Central banks keep buying gold" - reuters.example, 2026-09-28.
+        3. "Gold ETF holdings rise for a third week" - ft.example, 2026-09-27.
+    - result: |
+        1. "Spot bitcoin ETFs add 410M USD in a day" - coindesk.example, 2026-09-29: fourth day of inflows.
+        2. "SEC delays decision on staking ETFs" - reuters.example, 2026-09-28.
+        3. "Bitcoin hashrate sets a new record" - theblock.example, 2026-09-28.
+        4. "ETF issuers cut fees as competition grows" - ft.example, 2026-09-27.
+        5. "Miner reserves fall to a three-year low" - cryptoslate.example, 2026-09-25.

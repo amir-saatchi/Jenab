@@ -1,0 +1,10 @@
+id: t6_f_card_schedule
+title: '"When does daily_prices run?" (in the project card) -> Mother answers itself'
+tests: ["6"]
+context: mother
+why: 'Answer 08:00 from the project card; no delegation.'
+messages:
+  - text: "When does the daily_prices pipeline run?"
+asserts:
+  - {type: tool_not_called, test: "6", tools: [subagent, create_chat, send_to_chat, run_pipeline]}
+  - {type: answer_contains, test: "6", turn: first, match: '(?i)0?8:00|8 ?am|\b8 o.clock|08\.00'}

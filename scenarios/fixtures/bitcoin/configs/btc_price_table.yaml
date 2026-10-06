@@ -1,0 +1,15 @@
+version: 1
+id: btc_price_table
+title: Bitcoin price
+type: table
+query: |
+  SELECT date, price FROM btc_prices
+  WHERE date >= :from_date
+filters:
+  - { param: from_date, control: date, label: "From", default: "today-90d", required: true }
+default_sort: { field: date, direction: desc }
+columns:
+  - { field: date, label: "Date", format: date }
+  - { field: price, label: "Price", format: currency, format_options: { currency: USD } }
+actions:
+  - { label: "Refresh now", run_pipeline: daily_btc }

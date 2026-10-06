@@ -1,0 +1,15 @@
+id: t3_a_news_add_eth
+title: Web news summary; "also add ETH" arrives while web_search runs
+tests: ["3"]
+context: main
+why: 'After the message, search for ETH news too and cover both coins in the answer.'
+delays:
+  web_search: 10s
+messages:
+  - text: "Search the web for the latest Bitcoin news and summarise the top 3 stories."
+  - text: "also add ETH"
+    at: 6s
+asserts:
+  - {type: after_message, test: "3", args_match: '(?i)\beth\b|ethereum|ether', answer_match: '(?i)\beth\b|ethereum|ether'}
+  - {type: answer_contains, test: "3", turn: any, match: '(?i)etf|hashrate|sec'}
+  - {type: no_background, test: info}
