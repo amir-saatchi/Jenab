@@ -2,6 +2,8 @@ package skill
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -28,6 +30,12 @@ func TestParse(t *testing.T) {
 	}
 	if s, err := Parse("a/SKILL.md", []byte("---\nname: a\ndescription: d\n---")); err == nil || err.(*Error).Field != "body" {
 		t.Errorf("no body: %+v, %v", s, err)
+	}
+	// Fence lines may end in spaces; a load_with tool name may be 64
+	// characters, as the registry allows.
+	long := "a" + strings.Repeat("b", 63)
+	if s, err := Parse("a/SKILL.md", []byte("--- \nname: a\ndescription: d\nload_with: ["+long+"]\n---  \nbody")); err != nil || s.Body != "body" {
+		t.Errorf("spaces after ---: %+v, %v", s, err)
 	}
 }
 
@@ -56,11 +64,21 @@ func TestParseErrors(t *testing.T) {
 		{fm(name, "description: '  '"), "description", "missing"},
 		{fm(name, "description: [a]"), "description", "must be text"},
 		{fm(name, "description: \"two\\nlines\""), "description", "one line"},
+		{fm(name, `description: "a\Lb"`), "description", "one line"},
+		{fm(name, `description: "a\Pb"`), "description", "one line"},
+		{fm(name, `description: "a\Nb"`), "description", "one line"},
+		{fm(name, `description: "a\vb"`), "description", "one line"},
+		{fm(name, `description: "a\0b"`), "description", "control characters"},
+		{fm(name, `description: "a\eb"`), "description", "control characters"},
 		{fm(name, "description: "+strings.Repeat("é", MaxDescription+1)), "description", "201 characters"},
 		{fm(name, desc, "load_with: query"), "load_with", "list of tool names"},
 		{fm(name, desc, "load_with: [Query]"), "load_with", "not a tool name"},
 		{fm(name, desc, "load_with: [save-view]"), "load_with", "not a tool name"},
 		{fm(name, desc, "load_with: [query, query]"), "load_with", "twice"},
+		{fm(name, desc, "load_with: [load_skill]"), "load_with", "can't load a skill"},
+		{fm(name, desc, "load_with: [a"+strings.Repeat("b", 64)+"]"), "load_with", "not a tool name"},
+		{"---\n---\nThe body.\n", "front matter", "empty"},
+		{"---\n  \n---\nThe body.\n", "front matter", "empty"},
 		{"---\nname: a\ndescription: d\n---\n  \n", "body", "missing"},
 		{"---\nname: a\ndescription: d\n---\n" + strings.Repeat("word ", MaxBodyTokens), "body", "at most 3000"},
 		{"\xff\xfe", "front matter", "UTF-8"},
@@ -121,6 +139,12 @@ func TestRead(t *testing.T) {
 		{"empty", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}, "sql-queries/a.md": {Data: []byte(" \r\n")}}, "sql-queries/a.md", "file"},
 		{"not UTF-8", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}, "sql-queries/a.md": {Data: []byte("\xff")}}, "sql-queries/a.md", "file"},
 		{"bad SKILL.md", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte("x")}}, "sql-queries/SKILL.md", "front matter"},
+		{"link", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}, "sql-queries/a.md": {Data: []byte("../../secret"), Mode: fs.ModeSymlink}}, "sql-queries/a.md", "file"},
+		{"SKILL.md link", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte("../x/SKILL.md"), Mode: fs.ModeSymlink}}, "sql-queries/SKILL.md", "file"},
+		{"big file", fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}, "sql-queries/a.md": {Data: big(MaxFileBytes + 1)}}, "sql-queries/a.md", "file"},
+		{"big SKILL.md", fstest.MapFS{"sql-queries/SKILL.md": {Data: append([]byte(good), big(MaxFileBytes)...)}}, "sql-queries/SKILL.md", "file"},
+		{"many files", many(MaxFiles+1, 1), "sql-queries/f32.md", "file"},
+		{"big folder", many(9, 60<<10), "sql-queries/f08.md", "file"},
 	}
 	for _, c := range bad {
 		dir := strings.SplitN(c.file, "/", 2)[0]
@@ -133,6 +157,27 @@ func TestRead(t *testing.T) {
 	if _, err := Read(fstest.MapFS{}, "none"); err == nil || errors.Is(err, ErrInvalid) {
 		t.Errorf("no skill: %v", err)
 	}
+	// The limits themselves pass.
+	if s, err := Read(many(MaxFiles, 1), "sql-queries"); err != nil || len(s.Files) != MaxFiles {
+		t.Errorf("%d files: %v", MaxFiles, err)
+	}
+	// On Windows SKILL.md may be skill.md; it isn't an extra file.
+	lower := fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}, "sql-queries/skill.md": {Data: []byte(good)}}
+	if s, err := Read(lower, "sql-queries"); err != nil || len(s.Files) != 0 {
+		t.Errorf("skill.md: %v, files %q", err, s.FileNames())
+	}
+}
+
+// big is n bytes of text.
+func big(n int) []byte { return []byte(strings.Repeat("a", n)) }
+
+// many is a skill with n extra files of size bytes, f00.md and on.
+func many(n, size int) fstest.MapFS {
+	fsys := fstest.MapFS{"sql-queries/SKILL.md": {Data: []byte(good)}}
+	for i := range n {
+		fsys[fmt.Sprintf("sql-queries/f%02d.md", i)] = &fstest.MapFile{Data: big(size)}
+	}
+	return fsys
 }
 
 func TestSet(t *testing.T) {

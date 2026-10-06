@@ -70,13 +70,18 @@ func (s *ChatService) Waiting(ctx context.Context) (items []WaitingItem, err err
 	items = []WaitingItem{}
 	for _, w := range s.orch.Waits() {
 		it := WaitingItem{Project: w.Project, Chat: w.Chat, Waiting: w.Waiting}
-		err = open(ctx, s.projects, w.Project, func(proj *project.Project) error {
+		err := open(ctx, s.projects, w.Project, func(proj *project.Project) error {
 			c, err := proj.Chats.Chat(ctx, w.Chat)
 			it.Title = c.Title
 			return err
 		})
 		if err != nil {
-			return nil, err
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			// One project that can't be read doesn't hide the others.
+			s.log.Warn("app: a waiting chat not read", "project", w.Project, "chat", w.Chat, "err", s.redact(err.Error()))
+			continue
 		}
 		items = append(items, it)
 	}

@@ -7,7 +7,6 @@ import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ChatKind } from "@/lib/api"
-import { showError } from "@/lib/errors"
 import { RetryBar, WaitingBar } from "@/chat/cards"
 import { Composer } from "@/chat/composer"
 import { ThreadView } from "@/chat/thread-view"
@@ -24,9 +23,11 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
   const item = useChats((s) => s.byProject[project]?.find((it) => it.chat.id === chat))
   const damage = useProjects((s) => s.opened[project]?.damage)
   const thread = useThreads((s) => s.threads[chat])
-  React.useEffect(() => {
-    useThreads.getState().open(project, chat).catch(showError)
+  const failed = useThreads((s) => s.failed[chat])
+  const open = React.useCallback(() => {
+    useThreads.getState().open(project, chat).catch(() => {}) // failed shows it
   }, [project, chat])
+  React.useEffect(open, [open])
   const mother = (item?.chat ?? thread?.chat)?.kind === ChatKind.KindMother
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -56,6 +57,19 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
           </div>
           <Composer thread={thread} mother={mother} readOnly={!!damage} />
         </>
+      ) : failed ? (
+        <div className="flex flex-1 items-center justify-center p-6">
+          <Alert variant="destructive" className="max-w-md">
+            <TriangleAlertIcon />
+            <AlertTitle>Can't read this chat</AlertTitle>
+            <AlertDescription className="flex flex-col items-start gap-3">
+              <p dir="auto">{failed}</p>
+              <Button variant="outline" size="sm" onClick={open}>
+                Try again
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
           <Spinner className="text-muted-foreground" />

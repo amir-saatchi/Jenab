@@ -109,13 +109,15 @@ function ProviderRow({
   const local = p.kind === "ollama" && limitDefault(p.kind, p.base_url, 2) === 1
   const on = p.models?.length ?? 0
   const own = llm.provider_max_parallel_calls?.[name]
-  const id = `limit-${name}`
+  // A generated id: a provider's name can be anything, such as "0".
+  const id = React.useId()
+  const [bad, setBad] = React.useState(false)
   const setLimit = (v: number | null) =>
     edit((s) => {
       const m = (s.llm.provider_max_parallel_calls ??= {})
       if (v === null) delete m[name]
       else m[name] = v
-    }).catch(showError)
+    })
 
   return (
     <Item variant="outline" size="sm">
@@ -135,7 +137,7 @@ function ProviderRow({
             {p.base_url}
           </ItemDescription>
         )}
-        <div className="mt-1 flex items-center gap-2">
+        <Field orientation="horizontal" data-invalid={bad || undefined} className="mt-1 w-auto">
           <Label htmlFor={id} className="text-xs font-normal text-muted-foreground">
             Background calls at once
           </Label>
@@ -147,9 +149,10 @@ function ProviderRow({
             value={own ?? null}
             placeholder={String(limitDefault(p.kind, p.base_url, llm.max_parallel_calls))}
             onCommit={setLimit}
+            onInvalidChange={setBad}
             title="Empty uses the default"
           />
-        </div>
+        </Field>
       </ItemContent>
       <ItemActions>
         <Button variant="ghost" size="sm" onClick={onModels}>
@@ -259,7 +262,15 @@ function Aliases() {
   )
 }
 
-const limits: { label: string; hint?: string; min: number; get: (s: Settings) => number; set: (s: Settings, v: number) => void }[] = [
+interface Limit {
+  label: string
+  hint?: string
+  min: number
+  get: (s: Settings) => number
+  set: (s: Settings, v: number) => void
+}
+
+const limits: Limit[] = [
   {
     label: "Parallel background LLM calls",
     hint: "Chats count but never wait",
@@ -308,26 +319,12 @@ const limits: { label: string; hint?: string; min: number; get: (s: Settings) =>
 // LimitsSection holds the limits of SPEC 7.6. A change applies at once.
 export function LimitsSection() {
   const settings = useSettings((s) => s.view?.settings)
-  const edit = useSettings((s) => s.edit)
   if (!settings) return null
   return (
     <SettingsSection title="Limits" description="Starting values, tuned with the benchmark. Changes apply at once.">
       <FieldGroup className="grid max-w-md gap-y-2">
-        {limits.map((l, i) => (
-          <Field key={l.label} orientation="horizontal" className="justify-between">
-            <div className="flex flex-col">
-              <Label htmlFor={`limit-${i}`} className="font-normal">
-                {l.label}
-              </Label>
-              {l.hint && <span className="text-xs text-muted-foreground">{l.hint}</span>}
-            </div>
-            <NumberInput
-              id={`limit-${i}`}
-              min={l.min}
-              value={l.get(settings)}
-              onCommit={(v) => edit((s) => void l.set(s, v!)).catch(showError)}
-            />
-          </Field>
+        {limits.map((l) => (
+          <LimitRow key={l.label} limit={l} value={l.get(settings)} />
         ))}
       </FieldGroup>
       <p className="text-xs text-muted-foreground">
@@ -337,5 +334,28 @@ export function LimitsSection() {
         Saved in the user config file, with your comments kept. A limit for one provider is on its row above.
       </p>
     </SettingsSection>
+  )
+}
+
+function LimitRow({ limit, value }: { limit: Limit; value: number }) {
+  const edit = useSettings((s) => s.edit)
+  const id = React.useId()
+  const [bad, setBad] = React.useState(false)
+  return (
+    <Field orientation="horizontal" data-invalid={bad || undefined} className="justify-between">
+      <div className="flex flex-col">
+        <Label htmlFor={id} className="font-normal">
+          {limit.label}
+        </Label>
+        {limit.hint && <span className="text-xs text-muted-foreground">{limit.hint}</span>}
+      </div>
+      <NumberInput
+        id={id}
+        min={limit.min}
+        value={value}
+        onCommit={(v) => edit((s) => void limit.set(s, v!))}
+        onInvalidChange={setBad}
+      />
+    </Field>
   )
 }

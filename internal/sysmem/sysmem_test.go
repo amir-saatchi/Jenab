@@ -22,3 +22,11 @@ func TestLevelOf(t *testing.T) {
 		}
 	}
 }
+
+func TestPressureLevel(t *testing.T) {
+	for p, want := range map[uint32]Level{0: OK, 1: OK, 2: Low, 3: Low, 4: Critical, 5: Critical} {
+		if got := pressureLevel(p); got != want {
+			t.Errorf("pressureLevel(%d) = %s; want %s", p, got, want)
+		}
+	}
+}

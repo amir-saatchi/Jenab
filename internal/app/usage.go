@@ -3,6 +3,7 @@ package app
 import (
 	"cmp"
 	"context"
+	"database/sql"
 	"errors"
 	"slices"
 	"strings"
@@ -66,9 +67,9 @@ func (s *SettingsService) Usage(ctx context.Context, days int) (r UsageReport, e
 	defer s.guard("settings.usage", &err)
 	days = min(max(days, 1), 366)
 	now := s.now()
-	_, off := now.Zone()
 	y, m, d := now.Date()
 	from := time.Date(y, m, d-days+1, 0, 0, 0, 0, now.Location())
+	to := time.Date(y, m, d+1, 0, 0, 0, 0, now.Location())
 
 	r = UsageReport{Days: []UsageLine{}, Chats: []UsageLine{}, Models: []UsageLine{}, Skipped: []string{}}
 	byDay := map[string]int{}
@@ -90,7 +91,7 @@ func (s *SettingsService) Usage(ctx context.Context, days int) (r UsageReport, e
 		return r, err
 	}
 	for _, p := range ps {
-		rows, titles, err := projectUsage(ctx, p.Folder, from, time.Duration(off)*time.Second)
+		rows, titles, err := projectUsage(ctx, p.Folder, from, to)
 		if err != nil {
 			if ctx.Err() != nil {
 				return r, ctx.Err()
@@ -133,12 +134,12 @@ func (s *SettingsService) Usage(ctx context.Context, days int) (r UsageReport, e
 }
 
 // projectUsage reads one project's usage rows and chat titles.
-func projectUsage(ctx context.Context, dir string, from time.Time, offset time.Duration) ([]store.UsageRow, map[id.Chat]string, error) {
+func projectUsage(ctx context.Context, dir string, from, to time.Time) ([]store.UsageRow, map[id.Chat]string, error) {
 	db, err := store.OpenChatsReadOnly(ctx, dir)
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, err := db.Usage(ctx, from, offset)
+	rows, err := usageRows(ctx, db, from, to)
 	var cs []chat.Chat
 	if err == nil {
 		cs, err = db.Chats(ctx)
@@ -150,6 +151,29 @@ func projectUsage(ctx context.Context, dir string, from time.Time, offset time.D
 	}
 	return rows, titles, err
 }
+
+// usageRows sums the tokens of the messages from from up to to, by chat,
+// model and 15-minute UTC slot, and gives each row the slot's day in
+// from's time zone. Every UTC offset in use is a whole number of quarter
+// hours, so the day is right on both sides of a daylight saving change,
+// which one offset for the whole range is not.
+func usageRows(ctx context.Context, db *store.ChatsDB, from, to time.Time) ([]store.UsageRow, error) {
+	const slot = 15 * 60 // seconds
+	return store.Query(ctx, db.DB, `SELECT CAST(strftime('%s', created_at) AS INTEGER) / ? AS slot, chat_id, model,
+			SUM(input_tokens), SUM(output_tokens), SUM(cache_read_tokens), SUM(cache_write_tokens)
+		FROM messages
+		WHERE created_at >= ? AND created_at < ? AND input_tokens + output_tokens + cache_read_tokens + cache_write_tokens > 0
+		GROUP BY slot, chat_id, model`, []any{slot, storeTime(from), storeTime(to)}, func(r *sql.Rows) (store.UsageRow, error) {
+		var u store.UsageRow
+		var n int64
+		err := r.Scan(&n, &u.Chat, &u.Model, &u.Usage.Input, &u.Usage.Output, &u.Usage.CacheRead, &u.Usage.CacheWrite)
+		u.Day = time.Unix(n*slot, 0).In(from.Location()).Format(time.DateOnly)
+		return u, err
+	})
+}
+
+// storeTime is t as the store keeps created_at.
+func storeTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 
 // priceOf is the catalog price of a "provider/model" ref, or nil. A
 // provider that was removed has no kind, so no price.

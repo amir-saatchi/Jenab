@@ -62,22 +62,49 @@ type Connection struct {
 type Factory func(Connection) (Provider, error)
 
 // CheckBaseURL accepts an https URL, or http for this machine only, so a
-// key never travels in clear text over a network.
-func CheckBaseURL(raw string) (*url.URL, error) {
+// key never travels in clear text over a network. Its errors show the URL
+// without its user, query and fragment, which may hold a key.
+func CheckBaseURL(raw string) (*url.URL, error) { return checkBaseURL(raw, nil) }
+
+// checkBaseURL is CheckBaseURL with hide also removing secrets from the
+// URL shown in its errors.
+func checkBaseURL(raw string, hide func(string) string) (*url.URL, error) {
+	show := showURL(raw)
+	if hide != nil {
+		show = hide(show)
+	}
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
-		return nil, fmt.Errorf("provider: %q is not a URL", raw)
+		return nil, fmt.Errorf("provider: %w: %q is not a URL", ErrBadBaseURL, show)
 	}
 	switch {
 	case u.Scheme == "https":
 	case u.Scheme == "http" && isLoopback(u.Hostname()):
 	default:
-		return nil, fmt.Errorf("provider: %q must use https (http only for this machine)", raw)
+		return nil, fmt.Errorf("provider: %w: %q must use https (http only for this machine)", ErrBadBaseURL, show)
 	}
 	if u.User != nil || u.RawQuery != "" || u.Fragment != "" {
-		return nil, fmt.Errorf("provider: %q must not hold a user, query or fragment", raw)
+		return nil, fmt.Errorf("provider: %w: %q must not hold a user, query or fragment", ErrBadBaseURL, show)
 	}
 	return u, nil
+}
+
+// showURL is raw for an error message: without its user, query and
+// fragment. It works on text, so a URL that doesn't parse is cut too.
+func showURL(raw string) string {
+	s, _, _ := strings.Cut(raw, "#")
+	s, _, _ = strings.Cut(s, "?")
+	scheme, rest, ok := strings.Cut(s, "://")
+	if !ok {
+		rest = s
+	}
+	if i := strings.LastIndex(rest, "@"); i >= 0 {
+		rest = rest[i+1:]
+	}
+	if ok {
+		return scheme + "://" + rest
+	}
+	return rest
 }
 
 func isLoopback(host string) bool {

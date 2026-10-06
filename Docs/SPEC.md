@@ -75,7 +75,8 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 ```
 
 - `<user data dir>` is `%LOCALAPPDATA%` on Windows, `~/Library/Application Support` on macOS and `$XDG_DATA_HOME` or `~/.local/share` on Linux. Moving the data folder moves only the projects; the settings, registry and logs stay, so the app can always find them.
-- `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote. An unknown key, a wrong type or a value out of range is logged with its line and replaced by the default, so the app still starts.
+- `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote. An unknown key, a wrong type or a value out of range is logged with its line and replaced by the default, so the app still starts. A file that doesn't parse at all gives the defaults; the next save first keeps a copy of it as `config.yaml.broken`.
+- Only one copy of the app runs at a time: a second one says Jenab is already running and quits.
 - A project folder is self-contained. Backup, export and delete work on the folder.
 - A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. Every `VACUUM INTO` follows the safe-copy rule in 7.5.
 - If `registry.db` is lost, it is rebuilt by scanning `projects/`. The project's name is also stored in `_jenab_meta`.
@@ -1135,7 +1136,7 @@ The agent writes pipelines after reading untrusted web content, and pipelines ru
   - Chats and pipelines never see or write a key; there is no `secrets.` expression.
   - This is checked at validation and again at runtime, including on redirects.
 - LLM and search provider keys are used by the providers themselves and never appear in pipelines.
-- **Host approval:** every literal host in a pipeline must be approved for the project once, in an approval card (8.8), or by the Auto level when the turn hasn't read untrusted content. A connection's host is approved when the connection is made. Approvals are stored in `_jenab_approvals`. Requests whose host comes from an expression (e.g. URLs from search results) are allowed, but cannot carry secrets or custom headers.
+- **Host approval:** every literal host in a pipeline must be approved for the project once, in an approval card (8.8), or by the Auto level when the turn hasn't read untrusted content. A connection's host is approved when the connection is made. Approvals are stored in `_jenab_approvals`. Requests whose host comes from an expression (e.g. URLs from search results) are allowed, but cannot carry secrets or custom headers. `fetch_page` doesn't follow a redirect to a host not approved for the project; it returns the target, and the model fetches that URL itself, which asks.
 - **Private network block:** requests to loopback, private (RFC 1918), link-local and unique-local addresses are blocked. This is checked after DNS resolution and on every redirect. Exceptions are set per host in project settings.
 - Only `http` and `https` URLs are allowed.
 - **Redaction:** secret values are replaced with `[secret:NAME]` in previews, errors, logs and anything sent to an LLM.

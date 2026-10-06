@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 
 import { ChatKind, ChatState, MemoryLevel, type ChatItem } from "@/lib/api"
 import { initial, initials } from "@/state/projects"
-import { shortcut } from "@/shell/app-shell"
+import { pageTitle, shortcut } from "@/shell/app-shell"
 import { memoryText, modelText, problemText, workText } from "@/shell/bottom-bar"
 import { subline } from "@/shell/chat-sidebar"
 
@@ -16,8 +16,8 @@ test("workText", () => {
 })
 
 test("memoryText", () => {
-  expect(memoryText({ free: 2.1 * 2 ** 30, total: 16 * 2 ** 30, level: MemoryLevel.OK })).toBe("RAM 2.1 / 16 GB")
-  expect(memoryText({ free: 0, total: 16 * 2 ** 30, level: MemoryLevel.Low })).toBe("RAM low") // macOS
+  expect(memoryText({ free: 2.1 * 2 ** 30, total: 16 * 2 ** 30, level: MemoryLevel.OK })).toBe("Memory 2.1 / 16 GB")
+  expect(memoryText({ free: 0, total: 16 * 2 ** 30, level: MemoryLevel.Low })).toBe("Memory low") // macOS
 })
 
 test("modelText", () => {
@@ -60,4 +60,12 @@ test("shortcut", () => {
   expect(shortcut(k("ArrowLeft", { altKey: true }), true)).toBeNull()
   expect(shortcut(k("[", { metaKey: true }), true)).toBe("back")
   expect(shortcut(k("]", { metaKey: true }), true)).toBe("forward")
+})
+
+test("pageTitle names the places with a header of their own below 900 px", () => {
+  expect(pageTitle(undefined)).toBe("Jenab")
+  expect(pageTitle({ view: "settings", section: "Models" })).toBe("Settings")
+  expect(pageTitle({ view: "project-settings", project: "p1" })).toBe("Project settings")
+  expect(pageTitle({ view: "inspector" })).toBe("Turn inspector")
+  expect(pageTitle({ view: "runtime" })).toBe("Runtime")
 })

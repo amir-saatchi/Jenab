@@ -19,14 +19,3 @@ func read() (Reading, error) {
 	}
 	return Reading{Total: total, Level: pressureLevel(p)}, nil
 }
-
-// pressureLevel maps the kernel's 1 (normal), 2 (warn) and 4 (critical).
-func pressureLevel(p uint32) Level {
-	switch {
-	case p >= 4:
-		return Critical
-	case p >= 2:
-		return Low
-	}
-	return OK
-}

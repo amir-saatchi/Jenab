@@ -17,6 +17,8 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/store"
 	"github.com/amir-saatchi/jenab/internal/web"
 )
 
@@ -50,8 +52,12 @@ func pageServer(t *testing.T, env *Env) (Deps, string) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
-	env.PrivateHosts = func(h string) bool { return h == "site.test" }
-	c := web.NewClient(web.Options{Resolver: resolver{"site.test": "127.0.0.1", "intranet.test": "192.168.0.10"}})
+	// /away redirects to the same server as other.test, a second host.
+	mux.HandleFunc("/away", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://other.test:"+port+"/review", http.StatusFound)
+	})
+	env.PrivateHosts = func(h string) bool { return h == "site.test" || h == "other.test" }
+	c := web.NewClient(web.Options{Resolver: resolver{"site.test": "127.0.0.1", "other.test": "127.0.0.1", "intranet.test": "192.168.0.10"}})
 	return Deps{Web: c}, "http://site.test:" + port
 }
 
@@ -143,6 +149,38 @@ func TestFetchPageErrors(t *testing.T) {
 	}
 }
 
+// A redirect to another host needs that host's approval too (8.8).
+func TestFetchPageRedirectHost(t *testing.T) {
+	env := testEnv(t)
+	d, base := pageServer(t, env)
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(base, "http://"))
+	ctx := context.Background()
+	target := "http://other.test:" + port + "/review"
+	_, err := callWith(t, d, env, "fetch_page", `{"url": "`+base+`/away"}`)
+	var te *Error
+	if !errors.As(err, &te) || !strings.Contains(te.Msg, "redirects to "+target+", on a host not approved") ||
+		!strings.Contains(te.Msg, "call fetch_page with that URL") {
+		t.Fatalf("got %v", err)
+	}
+	l, err := env.Project.DB.ListObjects(ctx, "cache/pages/", "", 0)
+	if err != nil || len(l.Objects)+len(l.Folders) != 0 {
+		t.Errorf("stored %+v, %v", l, err)
+	}
+	// A redirect within the approved host still works.
+	if r, err := callWith(t, d, env, "fetch_page", `{"url": "`+base+`/moved"}`); err != nil || !strings.HasPrefix(r.Ref, "cache/pages/site.test_") {
+		t.Errorf("same host: %+v, %v", r, err)
+	}
+	// Once other.test is approved, the redirect is followed.
+	a := store.Approval{ID: id.Approval(id.New()), Kind: "host", Target: "other.test", Answer: chat.GrantAlways, Source: id.SourceUser}
+	if err := env.Project.DB.RecordApproval(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	r, err := callWith(t, d, env, "fetch_page", `{"url": "`+base+`/away"}`)
+	if err != nil || !strings.HasPrefix(r.Ref, "cache/pages/other.test_"+port+"/") {
+		t.Errorf("approved: %+v, %v", r, err)
+	}
+}
+
 func TestFetchPagePreflight(t *testing.T) {
 	env := testEnv(t)
 	pf := newFetchPage(web.NewClient(web.Options{})).(Preflighter)
@@ -160,7 +198,14 @@ func TestFetchPagePreflight(t *testing.T) {
 	if err := (chat.Part{Kind: chat.PartApproval, Approval: &a}).Validate(); err != nil {
 		t.Errorf("approval part: %v", err)
 	}
-	for _, args := range []string{`{"url": "ftp://x.org/"}`, `{"url": 5}`, `{}`} {
+	// Spellings of one host ask for it under one name.
+	for _, raw := range []string{"http://[0:0::1]/", "http://[::1]:8080/"} {
+		n, err := pf.Preflight(context.Background(), Call{Args: json.RawMessage(`{"url": "` + raw + `"}`), Env: env})
+		if err != nil || n.Approvals[0].Target != "::1" {
+			t.Errorf("%s: %+v, %v", raw, n.Approvals, err)
+		}
+	}
+	for _, args := range []string{`{"url": "ftp://x.org/"}`, `{"url": 5}`, `{}`, `{"url": "http://16843009/"}`, `{"url": "http://0x01010101/"}`, `{"url": "http://1.1/"}`} {
 		_, err := pf.Preflight(context.Background(), Call{Args: json.RawMessage(args), Env: env})
 		var te *Error
 		if !errors.As(err, &te) {
@@ -176,6 +221,10 @@ func TestHostKey(t *testing.T) {
 		"https://bücher.de/x":         "xn--bcher-kva.de",
 		"http://[2001:db8::1]:81/":    "2001-db8--1_81",
 		"https://a_b.example.org/x/y": "a_b.example.org",
+		"https://EXAMPLE.com./":       "example.com",
+		"https://example.com../":      "example.com",
+		"http://[0:0::1]:81/":         "--1_81",
+		"http://[::ffff:1.1.1.1]/":    "1.1.1.1",
 	} {
 		u, err := url.Parse(raw)
 		if err != nil {

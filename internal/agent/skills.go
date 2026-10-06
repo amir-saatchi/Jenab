@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
-	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
 )
@@ -111,24 +110,25 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 			s.Name, skill.MaxLoaded, skill.MaxLoadedTokens, strings.Join(loaded, ", "))
 	}
 	skills := append(slices.Clone(t.ch.Skills), s.Name)
-	if err := r.setSkills(ctx, t.ch.ID, skills); err != nil {
-		return err
-	}
-	t.ch.Skills = skills
-	_, err := tm.add(ctx, chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeSkillLoaded, Text: "Skill loaded: " + s.Name}})
-	return err
-}
-
-func (r *runner) setSkills(ctx context.Context, c id.Chat, skills []string) error {
+	chip := chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeSkillLoaded, Text: "Skill loaded: " + s.Name}}
 	wctx, cancel := writing(ctx)
 	defer cancel()
 	r.cs.pub.Lock()
 	defer r.cs.pub.Unlock()
-	seq, err := r.p.Chats.SetSkills(wctx, c, skills)
+	seq, err := r.p.Chats.SetSkills(wctx, t.ch.ID, skills)
 	if err != nil {
 		return err
 	}
 	r.cs.bumpSeq(seq)
+	t.ch.Skills = skills
+	i, chipSeq, err := tm.store(wctx, chip)
+	if err != nil {
+		return err
+	}
+	// The skills write has no part of its own, so the chip goes out with
+	// its sequence number too: the frontend sees no gap.
+	tm.publish(seq, i, chip)
+	tm.publish(chipSeq, i, chip)
 	return nil
 }
 

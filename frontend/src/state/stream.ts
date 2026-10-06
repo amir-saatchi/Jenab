@@ -23,9 +23,11 @@ export function fromLive(l: LiveTurn): Stream | null {
 
 // addDelta applies one delta, as the Go side builds the answer: a higher
 // part index finishes the part before, and a new kind at the same index
-// starts its text again.
+// starts its text again. A delta for a part before the one streaming came
+// late, and that part is already finished, so it is dropped.
 export function addDelta(s: Stream | null, d: Delta): Stream {
   if (!s || s.message !== d.message) s = { message: d.message, parts: [], index: d.part, kind: d.kind, text: "" }
+  else if (d.part < s.index) return s
   else s = { ...s }
   if (d.part > s.index) {
     if (s.text) s.parts = [...s.parts, textPart(s.kind, s.text)]
@@ -44,16 +46,6 @@ function textPart(kind: PartKind | "", text: string): Part {
   return kind === PartKind.PartThinking
     ? { kind: PartKind.PartThinking, thinking: { text } }
     : { kind: PartKind.PartText, text: { text } }
-}
-
-// overlap is how many of chunks a snapshot's text already holds: deltas
-// sent before the snapshot read the answer may arrive after it. It is the
-// most chunks whose text ends the snapshot's text.
-export function overlap(text: string, chunks: string[]): number {
-  for (let n = chunks.length; n > 0; n--) {
-    if (text.endsWith(chunks.slice(0, n).join(""))) return n
-  }
-  return 0
 }
 
 const streams = new Map<string, Stream | null>()
@@ -105,6 +97,12 @@ export function get(chat: string): Stream | null {
   return streams.get(chat) ?? null
 }
 
+// drop forgets a chat's stream, for a chat that is closed or deleted.
+export function drop(chat: string) {
+  pending.delete(chat)
+  streams.delete(chat)
+}
+
 // useStream is the chat's stream, rendered at most once per frame.
 export function useStream(chat: string): Stream | null {
   const subscribe = React.useCallback(
@@ -112,7 +110,10 @@ export function useStream(chat: string): Stream | null {
       let set = listeners.get(chat)
       if (!set) listeners.set(chat, (set = new Set()))
       set.add(f)
-      return () => void set.delete(f)
+      return () => {
+        set.delete(f)
+        if (set.size === 0 && listeners.get(chat) === set) listeners.delete(chat)
+      }
     },
     [chat],
   )

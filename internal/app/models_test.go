@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 	"time"
+	_ "time/tzdata" // Europe/Berlin on any system
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -147,5 +148,67 @@ func TestCheckFolder(t *testing.T) {
 	}
 	if w, err := ss.CheckFolder(context.Background(), t.TempDir()); w != nil || err != nil {
 		t.Errorf("CheckFolder(temp) = %v, %v", w, err)
+	}
+}
+
+// Each message counts on its own local day, on both sides of a daylight
+// saving change, and the days add up to the total.
+func TestUsageAcrossDST(t *testing.T) {
+	berlin, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		t.Skip(err)
+	}
+	at := func(m time.Month, d, h, min int) time.Time { return time.Date(2026, m, d, h, min, 0, 0, berlin) }
+	cases := []struct {
+		name string
+		now  time.Time
+		msgs []time.Time
+		want map[string]int // day → output tokens
+	}{
+		{"march", at(time.April, 2, 12, 0), // summer time from March 29
+			[]time.Time{at(time.March, 27, 0, 30), at(time.March, 27, 23, 30), at(time.March, 29, 1, 30), at(time.March, 29, 3, 30), at(time.April, 2, 0, 15)},
+			map[string]int{"2026-03-27": 2, "2026-03-29": 2, "2026-04-02": 1}},
+		{"october", at(time.October, 28, 12, 0), // winter time from October 25
+			[]time.Time{at(time.October, 22, 0, 30), at(time.October, 24, 23, 45), at(time.October, 25, 2, 30), at(time.October, 28, 0, 15), at(time.October, 28, 23, 59)},
+			map[string]int{"2026-10-22": 1, "2026-10-24": 1, "2026-10-25": 1, "2026-10-28": 2}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ctx := context.Background()
+			e := newEnv(t, t.TempDir())
+			ss := e.svc.Settings
+			ss.now = func() time.Time { return c.now }
+			op, err := e.svc.Project.Create(ctx, "Coins")
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, err := e.pm.Open(ctx, op.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, at := range c.msgs {
+				m := chat.Message{Chat: op.Mother, Turn: 1, Role: chat.RoleAssistant, Model: "p/m1", CreatedAt: at, Usage: chat.Usage{Output: 1},
+					Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}}
+				if _, _, err := p.Chats.AppendMessage(ctx, m); err != nil {
+					t.Fatal(err)
+				}
+			}
+			p.Release()
+
+			r, err := ss.Usage(ctx, 7)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sum := 0
+			for _, d := range r.Days {
+				sum += d.Output
+				if d.Output != c.want[d.Day] {
+					t.Errorf("%s: %d tokens, want %d", d.Day, d.Output, c.want[d.Day])
+				}
+			}
+			if sum != r.Total.Output || sum != len(c.msgs) {
+				t.Errorf("days add up to %d, total %d, want %d", sum, r.Total.Output, len(c.msgs))
+			}
+		})
 	}
 }

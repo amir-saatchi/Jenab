@@ -131,6 +131,18 @@ func TestDevUnknownTurn(t *testing.T) {
 	uiErr(t, err, KindNotFound)
 }
 
+// A negative block is not found, not a panic.
+func TestBlockTextBounds(t *testing.T) {
+	req := provider.Request{System: []provider.Block{{Text: "s"}}}
+	for _, r := range []provider.Request{req, {System: req.System, Tools: []provider.ToolDef{{Name: "t"}}}} {
+		for _, i := range []int{-1, -2, 99} {
+			if _, ok := BlockText(r, 1, i); ok {
+				t.Errorf("block %d with %d tools found", i, len(r.Tools))
+			}
+		}
+	}
+}
+
 func TestCacheHits(t *testing.T) {
 	bs := []agent.TraceBlock{{Tokens: 100}, {Tokens: 100}, {Tokens: 200}}
 	// The provider counted twice the estimate: 800 tokens, 300 from cache.

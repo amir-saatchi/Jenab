@@ -70,11 +70,11 @@ export function SettingsLayout({
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
-      <main className="flex min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1">
         <ScrollArea className="h-full flex-1">
           <div className={cn("mx-auto flex flex-col gap-8 px-8 py-8", wide ? "max-w-6xl" : "max-w-2xl")}>{children}</div>
         </ScrollArea>
-      </main>
+      </div>
     </div>
   )
 }

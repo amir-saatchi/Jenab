@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/net/html/charset"
+	"golang.org/x/net/idna"
 )
 
 // MaxBody caps a response body (SPEC 6.6); the rest is not read.
@@ -29,6 +30,17 @@ const maxRedirects = 10
 // HostCheck reports whether host may reach private addresses: the
 // exceptions in the project settings (SPEC 6.7).
 type HostCheck func(host string) bool
+
+// RedirectCheck is asked before a fetch follows a redirect to another
+// host, such as one the project hasn't approved (SPEC 8.8). An error stops
+// the fetch with a *RedirectError.
+type RedirectCheck func(ctx context.Context, to *url.URL) error
+
+// Rules are one fetch's project rules.
+type Rules struct {
+	Private  HostCheck     // hosts that may reach private addresses; nil allows none
+	Redirect RedirectCheck // nil follows redirects to any host
+}
 
 // Resolver finds a host's addresses. net.DefaultResolver is one; tests use
 // a fake.
@@ -64,7 +76,7 @@ func NewClient(o Options) *Client {
 	if c.agent == "" {
 		c.agent = DefaultUserAgent
 	}
-	c.hc = &http.Client{Transport: c.transport(nil), CheckRedirect: checkRedirect}
+	c.hc = &http.Client{Transport: c.transport(nil)}
 	return c
 }
 
@@ -80,15 +92,18 @@ func (c *Client) transport(allow HostCheck) *http.Transport {
 	}
 }
 
-// client returns the HTTP client for a fetch with these exceptions. With
-// some, it is a new one, closed after the fetch, so a connection opened
-// under one project's exception is never reused without it.
-func (c *Client) client(allow HostCheck) (*http.Client, func()) {
-	if allow == nil {
-		return c.hc, func() {}
+// client returns the HTTP client for a fetch with these rules. With
+// exceptions, its transport is a new one, closed after the fetch, so a
+// connection opened under one project's exception is never reused without
+// it.
+func (c *Client) client(r Rules) (*http.Client, func()) {
+	hc := &http.Client{Transport: c.hc.Transport, CheckRedirect: checkRedirect(r.Redirect)}
+	if r.Private == nil {
+		return hc, func() {}
 	}
-	t := c.transport(allow)
-	return &http.Client{Transport: t, CheckRedirect: checkRedirect}, t.CloseIdleConnections
+	t := c.transport(r.Private)
+	hc.Transport = t
+	return hc, t.CloseIdleConnections
 }
 
 // BlockedError is a request the network rules refused.
@@ -109,6 +124,15 @@ func (e *StatusError) Error() string {
 	return fmt.Sprintf("web: %s returned %d %s", e.URL, e.Status, http.StatusText(e.Status))
 }
 
+// RedirectError is a redirect that the fetch's RedirectCheck refused.
+type RedirectError struct {
+	URL string // where the redirect goes
+	Err error
+}
+
+func (e *RedirectError) Error() string { return "web: redirected to " + e.URL + ": " + e.Err.Error() }
+func (e *RedirectError) Unwrap() error { return e.Err }
+
 // ErrNotPage is returned for content that isn't a page or text, such as a
 // PDF or an image.
 var ErrNotPage = errors.New("web: not a web page or text")
@@ -122,21 +146,70 @@ func CheckURL(raw string) (*url.URL, error) {
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return nil, &BlockedError{URL: raw, Reason: "only http and https URLs are allowed"}
 	}
-	if u.Hostname() == "" {
+	h := Host(u)
+	if h == "" {
 		return nil, fmt.Errorf("web: URL %q has no host", raw)
 	}
 	if u.User != nil {
 		return nil, &BlockedError{URL: raw, Reason: "URLs with a user name or password are not allowed"}
 	}
+	if _, err := netip.ParseAddr(h); err != nil && numeric(h) {
+		return nil, &BlockedError{URL: raw, Reason: "a numeric host must be an IPv4 address in four dotted parts"}
+	}
 	return u, nil
 }
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) > maxRedirects { // this request is redirect number len(via)
-		return fmt.Errorf("web: more than %d redirects", maxRedirects)
+// Host is u's host in one spelling, so a host is approved or revoked
+// under one name: lower case, ASCII (punycode), without trailing dots, and
+// an IP address in its standard form.
+func Host(u *url.URL) string { return canonical(u.Hostname()) }
+
+func canonical(h string) string {
+	if a, err := netip.ParseAddr(h); err == nil {
+		return a.Unmap().String()
 	}
-	_, err := CheckURL(req.URL.String())
-	return err
+	h = strings.ToLower(h)
+	if a, err := idna.Lookup.ToASCII(h); err == nil {
+		h = a
+	}
+	h = strings.TrimRight(h, ".")
+	if a, err := netip.ParseAddr(h); err == nil {
+		return a.Unmap().String()
+	}
+	return h
+}
+
+// numeric reports whether host h ends in a number, such as 16843009,
+// 0x01010101 or 1.1, which resolvers may read as an IPv4 address.
+func numeric(h string) bool {
+	last := h[strings.LastIndexByte(h, '.')+1:]
+	digits := "0123456789"
+	if x, ok := strings.CutPrefix(last, "0x"); ok {
+		if x == "" {
+			return true
+		}
+		last, digits = x, "0123456789abcdef"
+	}
+	return last != "" && strings.Trim(last, digits) == ""
+}
+
+// checkRedirect checks each redirect as a new URL, and asks check about
+// one to another host.
+func checkRedirect(check RedirectCheck) func(req *http.Request, via []*http.Request) error {
+	return func(req *http.Request, via []*http.Request) error {
+		if len(via) > maxRedirects { // this request is redirect number len(via)
+			return fmt.Errorf("web: more than %d redirects", maxRedirects)
+		}
+		if _, err := CheckURL(req.URL.String()); err != nil {
+			return err
+		}
+		if check != nil && Host(req.URL) != Host(via[len(via)-1].URL) {
+			if err := check(req.Context(), req.URL); err != nil {
+				return &RedirectError{URL: req.URL.String(), Err: err}
+			}
+		}
+		return nil
+	}
 }
 
 // dialer connects to one of the host's addresses that the rules allow.
@@ -157,7 +230,7 @@ func (c *Client) dialer(allow HostCheck) func(ctx context.Context, network, addr
 				return nil, err
 			}
 		}
-		exception := allow != nil && allow(host)
+		exception := allow != nil && allow(canonical(host))
 		var d net.Dialer
 		var lastErr error
 		for _, a := range addrs {
@@ -178,9 +251,35 @@ func (c *Client) dialer(allow HostCheck) func(ctx context.Context, network, addr
 	}
 }
 
-// blocked says why a is not allowed, or "" if it is.
+var (
+	shared   = netip.MustParsePrefix("100.64.0.0/10") // carrier-grade NAT
+	thisNet  = netip.MustParsePrefix("0.0.0.0/8")
+	nat64    = netip.MustParsePrefix("64:ff9b::/96")
+	nat64Own = netip.MustParsePrefix("64:ff9b:1::/48") // local-use NAT64
+	sixTo4   = netip.MustParsePrefix("2002::/16")
+	compat   = netip.MustParsePrefix("::/96") // IPv4-compatible
+)
+
+// blocked says why a is not allowed, or "" if it is. An IPv6 address that
+// carries an IPv4 one, as NAT64, 6to4 and IPv4-compatible addresses do, is
+// also checked by that one.
 func blocked(a netip.Addr) string {
 	a = a.Unmap()
+	if a.Is6() {
+		b := a.As16()
+		var v4 netip.Addr
+		switch {
+		case nat64.Contains(a), compat.Contains(a) && !a.IsLoopback() && !a.IsUnspecified():
+			v4 = netip.AddrFrom4([4]byte(b[12:16]))
+		case sixTo4.Contains(a):
+			v4 = netip.AddrFrom4([4]byte(b[2:6]))
+		}
+		if v4.IsValid() {
+			if why := blocked(v4); why != "" {
+				return why + " inside an IPv6 address"
+			}
+		}
+	}
 	switch {
 	case !a.IsValid():
 		return "not an address"
@@ -194,6 +293,10 @@ func blocked(a netip.Addr) string {
 		return "an unspecified address"
 	case a.IsMulticast(), a.IsInterfaceLocalMulticast():
 		return "a multicast address"
+	case shared.Contains(a):
+		return "a shared (carrier-grade NAT) address"
+	case thisNet.Contains(a), nat64Own.Contains(a):
+		return "a reserved address"
 	}
 	return ""
 }
@@ -213,9 +316,9 @@ type Page struct {
 // minText is the text length below which an HTML page needs JavaScript.
 const minText = 200
 
-// Fetch gets rawURL and turns it into readable text (SPEC 3.7). allow
-// names the hosts that may reach private addresses; nil allows none.
-func (c *Client) Fetch(ctx context.Context, rawURL string, allow HostCheck) (Page, error) {
+// Fetch gets rawURL and turns it into readable text (SPEC 3.7), under the
+// project rules r.
+func (c *Client) Fetch(ctx context.Context, rawURL string, r Rules) (Page, error) {
 	u, err := CheckURL(rawURL)
 	if err != nil {
 		return Page{}, err
@@ -226,13 +329,17 @@ func (c *Client) Fetch(ctx context.Context, rawURL string, allow HostCheck) (Pag
 	}
 	req.Header.Set("User-Agent", c.agent)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5")
-	hc, done := c.client(allow)
+	hc, done := c.client(r)
 	defer done()
 	resp, err := hc.Do(req)
 	if err != nil {
 		var b *BlockedError
 		if errors.As(err, &b) {
 			return Page{}, b
+		}
+		var re *RedirectError
+		if errors.As(err, &re) {
+			return Page{}, re
 		}
 		return Page{}, err
 	}

@@ -13,7 +13,7 @@ Writing the code out, and checking it against later phases, added these to the m
 4. **`internal/workspace`:** the linked folder and its rules (8.5): paths stay inside, no links out, `.gitignore`, blocked credential files. The v1 read tools use it, and Phase 6's `edit_file` and `write_file` reuse the same checks.
 5. **`internal/proc`:** child processes in a Job Object on Windows, with a memory cap, only the listed environment, and the whole tree killed on stop. Used by the Starlark worker (v1), MCP stdio servers (Phase 5) and `run_command` (Phase 6).
 6. **`internal/mcp`** (Phase 5): the MCP client and one server process per project (8.7).
-7. **`internal/sysmem`** (P1-14): free memory and its level (ok, low, critical) for the bottom bar (5.12), and later for the memory check before a command starts (8.5). Commit headroom on Windows, MemAvailable on Linux, the pressure level on macOS.
+7. **`internal/sysmem`** (P1-14): free memory and its level (ok, low, critical) for the bottom bar (5.12), and later for the memory check before a command starts (8.5). Commit headroom out of the commit limit on Windows, MemAvailable out of MemTotal on Linux, the pressure level on macOS.
 
 Two Wails facts found while writing this (beta.26 source):
 
@@ -57,7 +57,8 @@ func run(args []string) error {
         return script.Serve(os.Stdin, os.Stdout) // child process (Q4)
     }
     paths, err := config.DefaultPaths(appDir)                   // <user data dir>/<app>/
-    settings, problems, err := config.LoadSettings(paths.Settings) // config.yaml
+    lock, err := lockRoot(paths.Root)                           // app.lock: one copy of the app at a time
+    settings, problems := config.LoadSettingsOrDefaults(paths.Settings) // a broken config.yaml gives Defaults and a Problem
     paths = paths.WithDataFolder(settings.DataFolder)           // projects/ (2.1)
     log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
     defer closeLog()
@@ -165,8 +166,8 @@ type Grant string // GrantOnce, GrantAlways, GrantDeny
 type SessionNote struct { Chat id.Chat; Content string; Revision int; UpdatedAt time.Time }
 
 // Event payloads (Q32); every one carries its IDs and the chat's sequence number.
-type Delta   struct { Project id.Project; Chat id.Chat; Message id.Message; Seq uint64; Part int; Kind PartKind; Text string }
-type PartDone struct { Project id.Project; Chat id.Chat; Seq uint64; Message id.Message; Index int; Part Part }
+type Delta   struct { Project id.Project; Chat id.Chat; Message id.Message; Seq uint64; Part int; Kind PartKind; Text string; Offset int } // Offset: where Text starts in the part, in UTF-16 units
+type PartDone struct { Project id.Project; Chat id.Chat; Seq uint64; Message id.Message; Index int; Turn int; Part Part }
 type Status  struct { Project id.Project; Chat id.Chat; Seq uint64; State State; Tasks int; Waiting *Waiting; Retry *Retry; Streaming id.Message }
 // Streaming is the answer being streamed. The first PartDone of a message replaces the copy built from its deltas;
 // deltas for a message neither stored nor Streaming are dropped (a failed try).
@@ -182,7 +183,8 @@ func (p Paths) WithDataFolder(dir string) Paths
 type Settings struct { DataFolder string; Context ContextSettings; LLM LLMSettings; Scheduler SchedulerSettings; Approvals ApprovalSettings; UI UISettings; Updates UpdateSettings; DevTools bool }
 func Defaults() Settings                                       // from the embedded default.yaml
 func LoadSettings(path string) (Settings, []Problem, error)    // problems: ignored keys and values, with lines
-func SaveSettings(path string, s Settings) error               // keeps comments and unknown keys
+func LoadSettingsOrDefaults(path string) (Settings, []Problem) // at start: a file that doesn't parse gives Defaults and a Problem
+func SaveSettings(path string, s Settings) error               // keeps comments, unknown keys and entries rejected at load; a broken file is copied to config.yaml.broken first
 
 type View struct { … }     // also Page, Form, Pipeline, Step, Connection, MCPServer
 func ParseView(src []byte) (View, error) // YAML or JSON with the strict rules of 1; errors are Errors
@@ -363,7 +365,7 @@ func (c *ChatsDB) Messages(ctx context.Context, ch id.Chat, from, to int) ([]cha
 func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Message, uint64, error) // before any tool runs (2.3)
 func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (int, uint64, error) // a finished part; its index
 func (c *ChatsDB) SetSkills(ctx context.Context, ch id.Chat, skills []string) (uint64, error) // the chat's loaded skills (8.9)
-func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) // an approval or question part, once answered or closed (8.8)
+func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) // an approval or question part, once answered or closed (8.8); ErrNotPending if it already was
 func (c *ChatsDB) SetTitle(ctx context.Context, ch id.Chat, title string, fixed bool) (string, uint64, error) // unique; generated ones get a number
 func (c *ChatsDB) SetRole(ctx context.Context, ch id.Chat, role string, src id.Source) (uint64, error) // ≤ 500 tokens; recorded in role_changes
 func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error)  // messages, notes, review results; any chat
@@ -407,9 +409,12 @@ func (m *Manager) CloseAll(ctx context.Context) error                      // Q3
 func (m *Manager) FolderWarning() *FolderWarning                           // network drive or synced folder (2.1)
 func (m *Manager) Activities() []Activity                                  // the open projects' Activity by name, for the runtime panel; opens nothing
 
-// MoveProjects runs at start, before any project opens: when the data folder changed, each project
-// folder moves there (a rename, or a copy across drives) and its registry path is updated. The new
-// folder is recorded only when all moved, so a failed one is tried again at the next start.
+// MoveProjects runs at start, before any project opens: every registered project under the projects
+// folder of an earlier data folder moves to the current one (a rename, or a copy only across drives:
+// copy, rename into place, update the registry, then delete the old folder). The new folder is
+// recorded only when all moved, so a failed one is tried again at the next start. A registered
+// folder that is gone but sits in Projects/<id> is pointed there (also in Manager.load and scan).
+// ErrNested: the new data folder and the old one are inside each other.
 func MoveProjects(ctx context.Context, paths config.Paths, reg *store.Registry, log *slog.Logger) (*MoveResult, error)
 
 type Project struct {
@@ -484,6 +489,8 @@ func (r *Registry) Stream(ctx context.Context, p limit.Priority, req Request) it
 func (r *Registry) Apply(s config.LLMSettings)                     // settings changed: limits, connections
 func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL, key string, fields map[string]string) (Connected, error) // 3.9
 // Connected: Settings to save, Other models, NoModelList (the user types the models)
+// Errors wrap ErrBadName, ErrBadBaseURL, ErrBadField, ErrNeedKey (only a local Ollama goes without) or
+// ErrKeyTooLong; a URL in a message has no user info, query or fragment.
 func (r *Registry) Models(ctx context.Context, provider string) ([]ModelInfo, error)
 func (r *Registry) Status() []Status                               // pauses, limits, last problem
 func (r *Registry) Catalog() *Catalog                              // the built-in catalog, for names and alias picks
@@ -512,9 +519,13 @@ type Searcher interface { Search(ctx context.Context, q SearchReq) ([]SearchResu
 type Client struct { … }  // the address checks in the dialer, so they cover DNS answers and every redirect; no proxy
 func NewClient(o Options) *Client // Options{Resolver, UserAgent}; tests give a fake resolver
 func (c *Client) Search(ctx context.Context, q SearchReq) ([]SearchResult, error)          // Phase 4
-func (c *Client) Fetch(ctx context.Context, url string, allow HostCheck) (Page, error) // readable text (3.7); 5 MB, 10 redirects
+func (c *Client) Fetch(ctx context.Context, url string, r Rules) (Page, error) // readable text (3.7); 5 MB, 10 redirects
+type Rules struct { Private HostCheck; Redirect RedirectCheck } // Redirect is asked before a redirect to another host
+type RedirectCheck func(ctx context.Context, to *url.URL) error  // fetch_page: the host must be approved (6.7)
+type RedirectError struct { URL string; Err error }              // a refused redirect; the model can fetch URL itself
+func Host(u *url.URL) string // lower case, punycode, no trailing dot, IPs in standard form
 type Page struct { URL, Title, Text, MIME string; Truncated, NeedsJavaScript bool } // URL after redirects; plain text and JSON as they are
-func CheckURL(raw string) (*url.URL, error) // http and https, a host, no user name
+func CheckURL(raw string) (*url.URL, error) // http and https, a host, no user name, no numeric host but dotted IPv4
 type BlockedError struct { URL, Reason string } // loopback, private, link-local, unspecified, multicast; a scheme
 type StatusError struct { URL, Status string }
 var ErrNotPage error // a PDF, an image, other binary
@@ -621,7 +632,7 @@ func Run(ctx context.Context, t Tool, c Call) (Result, error) // with the tool's
 func Output(ctx context.Context, c Call, name string, n int, r Result, err error) (chat.ToolResult, error) // stores a large result under cache/tool/
 func Stub(r chat.ToolResult) string // a result's header without its size, for previous turns
 func HostApproval(host, by string) chat.Approval // the card for a new host (6.7, 8.8)
-func Host(u *url.URL) string // lower case and punycode, as approvals name hosts
+func Host(u *url.URL) string // web.Host, as approvals name hosts
 
 type Deps struct { Web *web.Client }
 func Builtin(d Deps) []Tool // the Phase 1 tools of this package
@@ -831,7 +842,8 @@ func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a age
 //   Presets → []PresetItem (a running local Ollama first, with no key);
 //   Connect(ConnectRequest) → ConnectResult: checks the key by listing models, stores it, saves the
 //   provider with its catalog models on, and points default and fast at it when they point nowhere (3.9).
-//   Connect again with the same name replaces the key and keeps the models.
+//   Connect again with the same name, kind and base URL replaces the key and keeps the models; another
+//   kind or base URL under a taken name is invalid. Settings changes go through Settings.update, one at a time.
 //   Remove(name): deletes the provider, its limit and its key; aliases move to another provider's models.
 //   ProviderModels(name) → the catalog models it lists, *Other models* the catalog doesn't know, NoModelList.
 //   Usage(days) → UsageReport: tokens by day, chat and model across all projects, with catalog prices.
@@ -858,8 +870,8 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 type Publisher struct { … }               // implements agent and project Publisher with Event.Emit
 func objectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener that leases the project per request
 
-type Shutdown struct { Refuse []func(); Cancel func(); Wait []func(context.Context) error; Close func(context.Context) error; Log *slog.Logger }
-func (s Shutdown) Run() error             // the Q30 order within 10 s
+type Shutdown struct { Refuse []func(); Cancel func(); Wait []func(context.Context) error; Close func(context.Context) error; Log *slog.Logger; Exit func() }
+func (s Shutdown) Run() error             // the Q30 order within 10 s; past it plus 2 s, Exit (nil: os.Exit(1))
 ```
 
 ```go
@@ -895,10 +907,10 @@ src/
     nav.ts              history (back and forward), the most recently used chats (Ctrl+Tab), the sidebar
     projects.ts         the list, the opened projects (Mother, level, damage), the folder warning
     chats.ts            each project's chat list, and *Waiting*
-    settings.ts         the settings view; edit saves a changed copy; setTheme applies at once and reverts if the save fails
+    settings.ts         the settings view; edit, connect, removeProvider and setTheme run one at a time, each on the last saved settings; the view shows pending edits, a failed one is taken out
     ui.ts               dialogs and overlays
     thread.ts           each open chat: its messages from the snapshot, then chat:part and chat:status
-    stream.ts           the answer streaming, outside React; deltas applied once per frame
+    stream.ts           the answer streaming, outside React; deltas applied once per frame; a chat read mid-answer skips the text Live holds by Delta.Offset
     events.ts           the events into the stores; the desktop notification when a chat starts waiting off screen
   chat/                 the chat (5.8, 8.3, 8.8): thread view, rows, parts (thinking, tool chips, notices, skill chips),
                         markdown (lazy), cards (approval, question, waiting and retry bars), composer, provider card
@@ -908,7 +920,7 @@ src/
                         their models, aliases, limits), usage (recharts chart, lazy), developer
   dev/                  the developer tools (8.4), wide pages under Settings → Developer: the turn inspector
                         (timeline, requests, tool calls, context blocks and their text) and the runtime panel
-  hooks/                use-poll.ts (a call every n ms while the window shows), use-mobile.ts
+  hooks/                use-poll.ts (a call every n ms while the window shows, never two at once; a failure clears the value), use-mobile.ts
 ```
 
 - **Snapshots, then events:** a store loads with a service call, and `events.ts` keeps it up to date. A chat that goes idle, or one the store doesn't know, reloads the chat list.

@@ -74,15 +74,13 @@ export function ConnectForm({
     if (!ready) return
     setBusy(true)
     try {
-      const r = await SettingsService.Connect(
+      const r = await useSettings.getState().connect(
         replace
           ? { name: replace.name, kind: replace.kind, base_url: replace.base_url ?? "", key, fields }
           : isOther
             ? { name: other.name.trim(), kind: "openai_compatible", base_url: other.base_url.trim(), key, fields: {} }
             : { name: freeName(preset!.id, providers), kind: preset!.kind, base_url: preset!.base_url, key, fields },
       )
-      useSettings.setState({ view: r.view })
-      await useSettings.getState().loadModels()
       setKey("")
       const name = replace || isOther ? r.provider : preset!.name
       toast.success(
@@ -107,7 +105,12 @@ export function ConnectForm({
         <ToggleGroup
           type="single"
           value={pick}
-          onValueChange={(v) => v && setPick(v)}
+          onValueChange={(v) => {
+            if (!v || v === pick) return
+            // A key typed for one provider never goes to another one's URL.
+            setPick(v)
+            setKey("")
+          }}
           variant="outline"
           size="sm"
           className="flex-wrap"

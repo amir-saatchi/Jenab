@@ -188,8 +188,8 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 	}
 	var refs []string
 	for _, m := range cur {
-		for _, p := range m.Parts {
-			if p.ToolResult != nil && p.ToolResult.Ref != "" && !t.whole[p.ToolResult.CallID] {
+		for i, p := range m.Parts {
+			if p.ToolResult != nil && p.ToolResult.Ref != "" && !carriesSkill(m.Parts, i) {
 				refs = append(refs, p.ToolResult.CallID)
 			}
 		}
@@ -202,6 +202,18 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 		}
 	}
 	return changed
+}
+
+// carriesSkill reports whether result i of a tool message carries a skill
+// from load_with: the skill's chip comes right before it. Trimming keeps
+// such a result whole until the skill moves into block 1. It is read from
+// the history, so it holds for a turn continued by Retry too.
+func carriesSkill(parts []chat.Part, i int) bool {
+	if i == 0 {
+		return false
+	}
+	n := parts[i-1].Notice
+	return n != nil && n.Kind == chat.NoticeSkillLoaded
 }
 
 // system is blocks 1–5 of the context (3.1) for the window. Phase 1 has the

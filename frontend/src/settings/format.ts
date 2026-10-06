@@ -44,3 +44,14 @@ function isLocal(baseURL: string | undefined) {
 export function placeholders(baseURL: string | undefined) {
   return [...(baseURL ?? "").matchAll(/\{([A-Za-z0-9_]+)\}/g)].map((m) => m[1])
 }
+
+// readNumber reads what was typed in a whole-number field that shows shown:
+// the same, bad (not a whole number, or below min), or the value to save.
+// With optional, an empty field is null.
+export function readNumber(text: string, shown: string, min: number, optional?: boolean): "same" | "bad" | { value: number | null } {
+  const t = text.trim()
+  if (t === shown) return "same"
+  if (t === "") return optional ? { value: null } : "bad"
+  const n = Number(t)
+  return Number.isInteger(n) && n >= min ? { value: n } : "bad"
+}

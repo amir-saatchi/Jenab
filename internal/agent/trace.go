@@ -138,13 +138,35 @@ func (s *Traces) begin(p id.Project, c id.Chat, n int) *TurnTrace {
 	t := &TurnTrace{Project: p, Chat: c, Turn: n, Started: time.Now()}
 	s.turns = append(s.turns, t)
 	if len(s.turns) > s.max {
-		for _, r := range s.turns[0].Requests {
-			s.size -= textSize(r)
+		// The oldest ended turn goes; a running one still adds to it. With
+		// every turn running, the store goes over max for a while.
+		if i := slices.IndexFunc(s.turns, func(old *TurnTrace) bool { return !old.Ended.IsZero() }); i >= 0 {
+			s.remove(i)
 		}
-		s.turns[0] = nil
-		s.turns = s.turns[1:]
 	}
 	return t
+}
+
+// remove drops turn i. s.mu is held.
+func (s *Traces) remove(i int) {
+	for _, r := range s.turns[i].Requests {
+		s.size -= textSize(r)
+	}
+	s.turns = slices.Delete(s.turns, i, i+1)
+}
+
+// drop forgets a chat's turns, after Clear starts its turns again from 1.
+func (s *Traces) drop(p id.Project, c id.Chat) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i := len(s.turns) - 1; i >= 0; i-- {
+		if t := s.turns[i]; t.Project == p && t.Chat == c {
+			s.remove(i)
+		}
+	}
 }
 
 func textSize(r RequestTrace) int {

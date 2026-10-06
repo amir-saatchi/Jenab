@@ -145,13 +145,17 @@ func (m *Manager) scan(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	have := map[id.Project]bool{}
+	have := map[id.Project]store.ProjectEntry{}
 	for _, p := range known {
-		have[p.ID] = true
+		have[p.ID] = p
 	}
 	for _, e := range ents {
 		pid := id.Project(e.Name())
-		if !e.IsDir() || !id.Valid(e.Name()) || have[pid] {
+		if !e.IsDir() || !id.Valid(e.Name()) {
+			continue
+		}
+		if p, ok := have[pid]; ok {
+			m.relocate(ctx, p)
 			continue
 		}
 		dir := filepath.Join(m.d.Paths.Projects, e.Name())
@@ -170,6 +174,23 @@ func (m *Manager) scan(ctx context.Context) error {
 		m.d.Log.Info("project: added to the registry from its folder", "project", pid)
 	}
 	return nil
+}
+
+// relocate points the registry at the project's folder in the projects
+// folder when the registered folder is gone, as a move that stopped before
+// it updated the registry leaves it (SPEC 2.1). It returns the entry.
+func (m *Manager) relocate(ctx context.Context, e store.ProjectEntry) store.ProjectEntry {
+	dir := filepath.Join(m.d.Paths.Projects, string(e.ID))
+	if _, err := os.Stat(filepath.Join(e.Folder, "project.db")); err == nil || samePath(e.Folder, dir) || !hasProject(ctx, dir, e.ID) {
+		return e
+	}
+	e.Folder = dir
+	if err := m.d.Registry.SaveProject(ctx, e); err != nil {
+		m.d.Log.Warn("project: could not point the registry at the project's folder", "project", e.ID, "err", err)
+		return e // still opens from there
+	}
+	m.d.Log.Info("project: registry pointed at the project's folder", "project", e.ID, "folder", dir)
+	return e
 }
 
 // Open returns the open project and takes a lease on it; call Release when
@@ -233,6 +254,7 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 	if err != nil {
 		return err
 	}
+	e = m.relocate(ctx, e)
 	p.Name, p.Dir = e.Name, e.Folder
 	if _, err := os.Stat(filepath.Join(p.Dir, "project.db")); err != nil {
 		return fmt.Errorf("project %s: %w", p.ID, err)

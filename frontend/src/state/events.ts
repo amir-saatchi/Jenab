@@ -25,14 +25,16 @@ function reload(project: string) {
   )
 }
 
-// states is each chat's last state, to see when it starts to wait.
+// states is each busy chat's last state, to see when it starts to wait;
+// an idle chat is left out.
 const states = new Map<string, ChatState>()
 
 function onStatus(s: ChatStatus) {
   const chats = useChats.getState()
   const items = chats.byProject[s.project]
   const before = states.get(s.chat)
-  states.set(s.chat, s.state)
+  if (s.state === ChatState.StateIdle) states.delete(s.chat)
+  else states.set(s.chat, s.state)
   chats.status(s)
   useThreads.getState().status(s)
   if (items && (s.state === ChatState.StateIdle || !items.some((it) => it.chat.id === s.chat))) reload(s.project)

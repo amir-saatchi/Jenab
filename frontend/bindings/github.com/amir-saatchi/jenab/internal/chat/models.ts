@@ -129,6 +129,13 @@ export interface Delta {
      * new text since the last delta
      */
     "text": string;
+
+    /**
+     * Offset is where Text starts in the part's text, in UTF-16 units as
+     * JavaScript counts, so a chat opened mid-answer can skip the deltas
+     * Live.Text already holds.
+     */
+    "offset": number;
 }
 
 /**
@@ -293,6 +300,11 @@ export interface PartDone {
     "chat": id$0.Chat;
     "seq": number;
     "message": id$0.Message;
+
+    /**
+     * the message's turn
+     */
+    "turn": number;
     "index": number;
     "part": Part;
 }

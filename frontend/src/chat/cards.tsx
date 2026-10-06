@@ -136,6 +136,7 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
           <Input
             className="h-7 min-w-40 flex-1 text-sm"
             dir="auto"
+            aria-label="Note for the agent"
             placeholder="Note for the agent (optional)"
             value={note}
             onChange={(e) => setNote(e.target.value)}

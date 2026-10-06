@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -111,6 +113,9 @@ type Problem struct {
 }
 
 func (p Problem) String() string {
+	if p.Path == "" && p.Line == 0 {
+		return "config.yaml: " + p.Msg
+	}
 	if p.Path == "" {
 		return fmt.Sprintf("config.yaml:%d: %s", p.Line, p.Msg)
 	}
@@ -140,7 +145,30 @@ func LoadSettings(path string) (Settings, []Problem, error) {
 	if root.Kind != yaml.MappingNode {
 		return Defaults(), nil, fmt.Errorf("config: %s: line %d: expected settings, found %s", filepath.Base(path), root.Line, kindName(root))
 	}
+	return decode(root)
+}
 
+// LoadSettingsOrDefaults is LoadSettings for the start of the app: a file
+// that can't be read or parsed gives the defaults and a problem saying so,
+// so the app still starts (SPEC 2.1). A save keeps a copy of the file.
+func LoadSettingsOrDefaults(path string) (Settings, []Problem) {
+	s, probs, err := LoadSettings(path)
+	if err == nil {
+		return s, probs
+	}
+	msg := strings.TrimPrefix(err.Error(), "config: ")
+	msg = strings.TrimPrefix(msg, filepath.Base(path)+": ")
+	msg = strings.TrimPrefix(msg, "yaml: ")
+	var line int
+	if _, err := fmt.Sscanf(msg, "line %d:", &line); err == nil {
+		_, msg, _ = strings.Cut(msg, ": ")
+	}
+	return Defaults(), []Problem{{Line: line, Msg: msg + "; the file can't be used, so every setting has its default." +
+		" Fix it, or save in Settings, which keeps a copy of it as " + filepath.Base(path) + ".broken"}}
+}
+
+// decode reads the settings in root, a mapping.
+func decode(root *yaml.Node) (Settings, []Problem, error) {
 	s := Defaults()
 	var probs []Problem
 	if err := root.Decode(&s); err != nil {
@@ -303,8 +331,11 @@ func lookup(n *yaml.Node, key string) (k, v *yaml.Node) {
 
 // SaveSettings writes s to path. Values in the existing file are updated in
 // place, so the user's comments and keys this version doesn't know stay. A
-// new file starts from default.yaml, with its comments. The file is
-// replaced in one step, so a crash leaves the old or the new file.
+// new file starts from default.yaml, with its comments. Map entries that
+// were left out at load (a provider with an unknown kind, say) stay in the
+// file until they are fixed. A file that can't be parsed is copied to
+// config.yaml.broken first. The file is replaced in one step, so a crash
+// leaves the old or the new file.
 func SaveSettings(path string, s Settings) error {
 	base, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -314,17 +345,33 @@ func SaveSettings(path string, s Settings) error {
 	}
 	var doc yaml.Node
 	if err := yaml.Unmarshal(base, &doc); err != nil || docRoot(&doc) == nil || docRoot(&doc).Kind != yaml.MappingNode {
-		// A broken file isn't merged: start again from the defaults.
+		// A broken file isn't merged: keep a copy, then start again from
+		// the defaults.
+		if len(bytes.TrimSpace(base)) > 0 {
+			if err := backup(path, base); err != nil {
+				return err
+			}
+		}
 		doc = yaml.Node{}
 		if err := yaml.Unmarshal(defaultYAML, &doc); err != nil {
 			return fmt.Errorf("config: default.yaml: %w", err)
 		}
 	}
-	var next yaml.Node
+	root := docRoot(&doc)
+	// loaded is what LoadSettings makes of the file. An entry the file has
+	// but loaded doesn't was rejected at load, not removed by the user.
+	cur, _, err := decode(root)
+	if err != nil {
+		cur = s // can't tell: an entry s doesn't have was removed
+	}
+	var loaded, next yaml.Node
+	if err := loaded.Encode(cur); err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
 	if err := next.Encode(s); err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
-	merge(docRoot(&doc), &next, reflect.TypeFor[Settings]())
+	merge(root, &next, &loaded, reflect.TypeFor[Settings]())
 
 	var b strings.Builder
 	enc := yaml.NewEncoder(&b)
@@ -338,11 +385,25 @@ func SaveSettings(path string, s Settings) error {
 	return writeFile(path, []byte(b.String()))
 }
 
+// backup copies a broken config.yaml to config.yaml.broken, or to a name
+// with the time if that is taken, so a save never loses the user's file.
+func backup(path string, data []byte) error {
+	name := path + ".broken"
+	if _, err := os.Stat(name); err == nil {
+		name += "-" + time.Now().Format("20060102-150405")
+	}
+	return writeFile(name, data)
+}
+
 // merge copies the values of next into old. Struct fields are merged key by
-// key. A map such as llm.models gets exactly the keys of next, but entries
-// it already had keep their node, so their comments stay. A scalar is
-// replaced. Comments on the old nodes stay.
-func merge(old, next *yaml.Node, t reflect.Type) {
+// key; a known field next leaves out (omitempty) is removed, keys this
+// version doesn't know stay. A map such as llm.models gets the keys of
+// next, plus the keys of old that loaded doesn't have: those were rejected
+// at load, and stay until they are fixed. Entries it already had keep
+// their node, so their comments stay, and struct values are merged too. A
+// list of items with an id is merged item by item. A scalar is replaced.
+// Comments on the old nodes stay. loaded may be nil.
+func merge(old, next, loaded *yaml.Node, t reflect.Type) {
 	for i := 0; i+1 < len(next.Content); i += 2 {
 		nk, nv := next.Content[i], next.Content[i+1]
 		f, ok := fieldByKey(t, nk.Value)
@@ -350,29 +411,57 @@ func merge(old, next *yaml.Node, t reflect.Type) {
 			continue
 		}
 		ok2, ov := lookup(old, nk.Value)
+		_, lv := lookup(loaded, nk.Value)
 		switch {
 		case ok2 == nil:
 			old.Content = append(old.Content, nk, nv)
 		case f.Type.Kind() == reflect.Struct && ov.Kind == yaml.MappingNode:
-			merge(ov, nv, f.Type)
+			merge(ov, nv, lv, f.Type)
 		case f.Type.Kind() == reflect.Map && ov.Kind == yaml.MappingNode:
-			mergeMap(ov, nv)
+			mergeMap(ov, nv, lv, f.Type.Elem())
 			lineComment(ok2, ov)
+		case f.Type.Kind() == reflect.Slice && ov.Kind == yaml.SequenceNode && hasID(f.Type.Elem()):
+			mergeList(ov, nv, f.Type.Elem())
 		default:
 			setValue(ov, nv)
 		}
 	}
+	content := old.Content[:0]
+	for i := 0; i+1 < len(old.Content); i += 2 {
+		k := old.Content[i]
+		if _, known := fieldByKey(t, k.Value); known {
+			if nk, _ := lookup(next, k.Value); nk == nil {
+				continue // empty, so next omits it
+			}
+		}
+		content = append(content, k, old.Content[i+1])
+	}
+	old.Content = content
 }
 
-func mergeMap(old, next *yaml.Node) {
-	content := make([]*yaml.Node, 0, len(next.Content))
-	for i := 0; i+1 < len(next.Content); i += 2 {
-		nk, nv := next.Content[i], next.Content[i+1]
-		if ok, ov := lookup(old, nk.Value); ok != nil {
-			setValue(ov, nv)
-			nk, nv = ok, ov
+func mergeMap(old, next, loaded *yaml.Node, elem reflect.Type) {
+	content := make([]*yaml.Node, 0, len(old.Content)+len(next.Content))
+	for i := 0; i+1 < len(old.Content); i += 2 {
+		ok, ov := old.Content[i], old.Content[i+1]
+		nk, nv := lookup(next, ok.Value)
+		if nk == nil {
+			if lk, _ := lookup(loaded, ok.Value); lk == nil {
+				content = append(content, ok, ov) // rejected at load: kept
+			}
+			continue // removed
 		}
-		content = append(content, nk, nv)
+		if elem.Kind() == reflect.Struct && ov.Kind == yaml.MappingNode && nv.Kind == yaml.MappingNode {
+			_, lv := lookup(loaded, ok.Value)
+			merge(ov, nv, lv, elem)
+		} else {
+			setValue(ov, nv)
+		}
+		content = append(content, ok, ov)
+	}
+	for i := 0; i+1 < len(next.Content); i += 2 {
+		if k, _ := lookup(old, next.Content[i].Value); k == nil {
+			content = append(content, next.Content[i], next.Content[i+1])
+		}
 	}
 	old.Content = content
 	if len(content) == 0 {
@@ -380,6 +469,49 @@ func mergeMap(old, next *yaml.Node) {
 	} else if old.Style == yaml.FlowStyle {
 		old.Style = 0 // a map that was {} gets one entry per line
 	}
+}
+
+// mergeList merges a list of structs with an id, such as a provider's
+// models: an item whose id was there keeps its node and comments. The
+// items and their order are next's.
+func mergeList(old, next *yaml.Node, elem reflect.Type) {
+	byID := map[string]*yaml.Node{}
+	for _, item := range old.Content {
+		if _, v := lookup(item, "id"); v != nil && v.Kind == yaml.ScalarNode {
+			if _, dup := byID[v.Value]; !dup {
+				byID[v.Value] = item
+			}
+		}
+	}
+	content := make([]*yaml.Node, 0, len(next.Content))
+	for _, nv := range next.Content {
+		var ov *yaml.Node
+		if _, id := lookup(nv, "id"); id != nil {
+			ov = byID[id.Value]
+			delete(byID, id.Value) // a second item with this id is new
+		}
+		if ov == nil {
+			content = append(content, nv)
+			continue
+		}
+		merge(ov, nv, nil, elem)
+		content = append(content, ov)
+	}
+	old.Content = content
+	if len(content) == 0 {
+		old.Style = yaml.FlowStyle // an empty list as []
+	} else if old.Style == yaml.FlowStyle {
+		old.Style = 0
+	}
+}
+
+// hasID reports whether t is a struct with an id field.
+func hasID(t reflect.Type) bool {
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	_, ok := fieldByKey(t, "id")
+	return ok
 }
 
 // lineComment keeps a map's line comment on its key's line. The encoder

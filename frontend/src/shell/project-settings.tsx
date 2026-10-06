@@ -1,3 +1,5 @@
+import * as React from "react"
+
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ChatService } from "@/lib/api"
 import { showError } from "@/lib/errors"
@@ -20,13 +22,21 @@ export function ProjectSettings({ project }: { project: string }) {
   const opened = useProjects((s) => s.opened[project])
   const created = item ? new Date(item.created_at).toLocaleDateString(undefined, { dateStyle: "medium" }) : ""
 
+  // One change at a time, so the calls can't finish out of order.
+  const [busy, setBusy] = React.useState(false)
+  const out = React.useRef(false)
   const setLevel = async (level: string) => {
-    if (!opened || level === opened.level) return
+    if (!opened || out.current || level === opened.level) return
+    out.current = true
+    setBusy(true)
     try {
       await ChatService.SetLevel(project, opened.mother, level)
       useProjects.getState().setLevel(project, level)
     } catch (err) {
       showError(err)
+    } finally {
+      out.current = false
+      setBusy(false)
     }
   }
 
@@ -55,7 +65,7 @@ export function ProjectSettings({ project }: { project: string }) {
             variant="outline"
             size="sm"
             value={opened?.level ?? ""}
-            disabled={!opened}
+            disabled={!opened || busy}
             onValueChange={(v) => v && void setLevel(v)}
           >
             {levels.map((l) => (

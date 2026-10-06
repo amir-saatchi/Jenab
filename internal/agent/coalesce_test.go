@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -88,6 +89,42 @@ func TestCoalescerKeepsPartsApart(t *testing.T) {
 		}
 		if strings.Join(parts, "|") != "first| think|Hello there|Next|Hi" {
 			t.Errorf("deltas %q", parts)
+		}
+	})
+}
+
+// Offsets count UTF-16 units, as JavaScript does, and start again with each
+// part; a merged delta keeps where its first text started.
+func TestDeltaOffsets(t *testing.T) {
+	resp := &response{}
+	var at []int
+	for _, s := range []string{"سلام", " 😀", "!"} {
+		at = append(at, resp.delta(chat.PartText, s))
+	}
+	if !slices.Equal(at, []int{0, 4, 7}) || resp.u16 != 8 {
+		t.Errorf("offsets %v, length %d", at, resp.u16)
+	}
+	if n := resp.delta(chat.PartThinking, "hm"); n != 0 {
+		t.Errorf("a new kind starts at %d", n)
+	}
+	resp.part(chat.Part{Text: &chat.Text{Text: "hm"}})
+	if n := resp.delta(chat.PartText, "x"); n != 0 {
+		t.Errorf("a new part starts at %d", n)
+	}
+
+	synctest.Test(t, func(t *testing.T) {
+		send, got := collector()
+		c := newCoalescer(deltaEvery, send)
+		c.add(chat.Delta{Message: "m", Kind: chat.PartText, Text: "ab", Offset: 0}) // sent at once
+		c.add(chat.Delta{Message: "m", Kind: chat.PartText, Text: "c", Offset: 2})
+		c.add(chat.Delta{Message: "m", Kind: chat.PartText, Text: "d", Offset: 3})
+		c.flush()
+		var offs []int
+		for _, s := range got() {
+			offs = append(offs, s.d.Offset)
+		}
+		if !slices.Equal(offs, []int{0, 2}) {
+			t.Errorf("offsets %v", offs)
 		}
 	})
 }

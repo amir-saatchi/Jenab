@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf16"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -52,10 +53,7 @@ type turn struct {
 	window   int // the model's context window; 0 if unknown
 	requests int
 	seen     id.Message // the newest user message in the last request
-	// whole are calls whose results carry a skill from load_with;
-	// trimming keeps them whole until the skill moves into block 1.
-	whole map[string]bool
-	trace *TurnTrace // nil with the developer tools off
+	trace    *TurnTrace // nil with the developer tools off
 }
 
 // turn runs steps until the model answers without tool calls, the request
@@ -64,7 +62,7 @@ type turn struct {
 // normally.
 func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 	cs := r.cs
-	t := &turn{n: n, set: r.o.d.Settings(), whole: map[string]bool{}}
+	t := &turn{n: n, set: r.o.d.Settings()}
 	t.trace = r.o.d.Traces.begin(r.cs.key.p, r.cs.key.c, n)
 	defer r.o.d.Traces.end(t.trace)
 	if err := r.begin(ctx, t); err != nil {
@@ -129,7 +127,6 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 	r.cs.mu.Lock()
 	r.cs.requests = t.requests
 	r.cs.mu.Unlock()
-	r.moving(r.o.d.Models.FirstEvent(t.provider))
 
 	resp, err := r.ask(ctx, t, req, last)
 	if err != nil {
@@ -182,6 +179,7 @@ type response struct {
 	parts []chat.Part
 	kind  chat.PartKind   // the part being streamed
 	text  strings.Builder // its text so far
+	u16   int             // its length in UTF-16 units
 }
 
 // try starts a try: its IDs, and Status.Streaming. The IDs are made under
@@ -208,14 +206,21 @@ func (r *runner) tried() {
 	r.cs.mu.Unlock()
 }
 
-func (resp *response) delta(k chat.PartKind, s string) {
+// delta adds streamed text and returns where it starts, in UTF-16 units.
+func (resp *response) delta(k chat.PartKind, s string) int {
 	resp.mu.Lock()
 	defer resp.mu.Unlock()
 	if k != resp.kind {
 		resp.kind = k
 		resp.text.Reset()
+		resp.u16 = 0
 	}
+	at := resp.u16
 	resp.text.WriteString(s)
+	for _, r := range s {
+		resp.u16 += utf16.RuneLen(r)
+	}
+	return at
 }
 
 func (resp *response) part(p chat.Part) {
@@ -224,6 +229,7 @@ func (resp *response) part(p chat.Part) {
 	resp.parts = append(resp.parts, p)
 	resp.kind = ""
 	resp.text.Reset()
+	resp.u16 = 0
 }
 
 // stopped is what is kept after Stop: the finished text parts and the
@@ -271,6 +277,7 @@ func (r *runner) ask(ctx context.Context, t *turn, req provider.Request, last bo
 	var since time.Time
 	for attempt := 0; ; attempt++ {
 		resp := r.try()
+		r.moving(r.o.d.Models.FirstEvent(t.provider)) // each try, so one after a wait isn't flagged
 		i := r.o.d.Traces.request(t.trace, req, resp.id, last)
 		err := r.stream(ctx, t, req, resp)
 		r.o.d.Traces.answered(t.trace, i, resp, err)
@@ -370,8 +377,8 @@ func (r *runner) stream(ctx context.Context, t *turn, req provider.Request, resp
 			r.setRetry(&chat.Retry{Provider: t.provider, Kind: string(kind), At: retryAt(ev.Wait)},
 				func() { r.o.d.Models.Resume(t.provider) })
 		case provider.EventDelta:
-			resp.delta(ev.PartKind, ev.Text)
-			co.add(chat.Delta{Project: r.p.ID, Chat: t.ch.ID, Seq: r.cs.seq.Load(), Message: resp.id, Part: len(resp.parts), Kind: ev.PartKind, Text: ev.Text})
+			at := resp.delta(ev.PartKind, ev.Text)
+			co.add(chat.Delta{Project: r.p.ID, Chat: t.ch.ID, Seq: r.cs.seq.Load(), Message: resp.id, Part: len(resp.parts), Kind: ev.PartKind, Text: ev.Text, Offset: at})
 		case provider.EventPart:
 			co.flush()
 			resp.part(*ev.Part)
@@ -430,16 +437,61 @@ type toolMsg struct {
 	wrote bool
 }
 
-// add writes a part and returns its index.
+// add writes a part, publishes it and returns its index. It writes after
+// Stop too.
 func (m *toolMsg) add(ctx context.Context, p chat.Part) (int, error) {
-	if m.wrote {
-		return m.r.writePart(ctx, m.id, p)
-	}
-	if err := m.r.writeMessage(ctx, chat.Message{ID: m.id, Chat: m.t.ch.ID, Turn: m.t.n, Role: chat.RoleTool, Parts: []chat.Part{p}}); err != nil {
+	wctx, cancel := writing(ctx)
+	defer cancel()
+	m.r.cs.pub.Lock()
+	defer m.r.cs.pub.Unlock()
+	i, seq, err := m.store(wctx, p)
+	if err != nil {
 		return 0, err
 	}
+	m.publish(seq, i, p)
+	return i, nil
+}
+
+// store writes a part without publishing it, and returns its index and
+// the chat's new sequence number. cs.pub is held.
+func (m *toolMsg) store(ctx context.Context, p chat.Part) (int, uint64, error) {
+	var (
+		i   int
+		seq uint64
+		err error
+	)
+	if m.wrote {
+		i, seq, err = m.r.p.Chats.AppendPart(ctx, m.id, p)
+	} else {
+		_, seq, err = m.r.p.Chats.AppendMessage(ctx, chat.Message{ID: m.id, Chat: m.t.ch.ID, Turn: m.t.n, Role: chat.RoleTool, Parts: []chat.Part{p}})
+	}
+	if err != nil {
+		return 0, 0, err
+	}
 	m.wrote = true
-	return 0, nil
+	m.r.cs.bumpSeq(seq)
+	return i, seq, nil
+}
+
+// set replaces an answered or closed card; its PartDone has the same
+// index, so the frontend replaces it too.
+func (m *toolMsg) set(ctx context.Context, i int, p chat.Part) error {
+	wctx, cancel := writing(ctx)
+	defer cancel()
+	m.r.cs.pub.Lock()
+	defer m.r.cs.pub.Unlock()
+	seq, err := m.r.p.Chats.SetPart(wctx, m.id, i, p)
+	if err != nil {
+		return err
+	}
+	m.r.cs.bumpSeq(seq)
+	m.publish(seq, i, p)
+	return nil
+}
+
+// publish sends part i's PartDone. cs.pub is held.
+func (m *toolMsg) publish(seq uint64, i int, p chat.Part) {
+	m.r.o.pub.Part(chat.PartDone{Project: m.r.p.ID, Chat: m.t.ch.ID, Seq: seq, Message: m.id, Turn: m.t.n, Index: i, Part: p})
 }
 
 // runTool runs one call: its approvals first (8.8), then the tool. Every
@@ -490,11 +542,6 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	if err != nil {
 		return failed(err)
 	}
-	for _, a := range autos {
-		if err := r.autoApprove(ctx, tm, a); err != nil {
-			return failed(err)
-		}
-	}
 	for _, a := range asks {
 		p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartApproval, Approval: &a})
 		if err != nil {
@@ -502,6 +549,13 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		}
 		if p.Approval.Answer == chat.GrantDeny {
 			return result(denied(p.Approval))
+		}
+	}
+	// The level's approvals are recorded once the cards are approved, so a
+	// denied call grants nothing.
+	for _, a := range autos {
+		if err := r.autoApprove(ctx, tm, a); err != nil {
+			return failed(err)
 		}
 	}
 	if needs.Effects&tool.Network != 0 {
@@ -535,10 +589,7 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
 		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
 	}
-	if s := r.loadWith(ctx, t, tm, c.Name); s != "" {
-		out.Text += s
-		t.whole[c.ID] = true
-	}
+	out.Text += r.loadWith(ctx, t, tm, c.Name)
 	parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &out}}
 	if !out.IsError {
 		for _, img := range res.Images {
@@ -585,37 +636,6 @@ func (r *runner) writeMessage(ctx context.Context, m chat.Message) error {
 	defer cancel()
 	_, err := r.o.write(wctx, r.cs, r.p, m)
 	return err
-}
-
-// writePart appends a part to a message and returns its index.
-func (r *runner) writePart(ctx context.Context, m id.Message, p chat.Part) (int, error) {
-	wctx, cancel := writing(ctx)
-	defer cancel()
-	r.cs.pub.Lock()
-	defer r.cs.pub.Unlock()
-	i, seq, err := r.p.Chats.AppendPart(wctx, m, p)
-	if err != nil {
-		return 0, err
-	}
-	r.cs.bumpSeq(seq)
-	r.o.pub.Part(chat.PartDone{Project: r.p.ID, Chat: r.cs.key.c, Seq: seq, Message: m, Index: i, Part: p})
-	return i, nil
-}
-
-// setPart replaces an answered or closed card; its PartDone has the same
-// index, so the frontend replaces it too.
-func (r *runner) setPart(ctx context.Context, m id.Message, i int, p chat.Part) error {
-	wctx, cancel := writing(ctx)
-	defer cancel()
-	r.cs.pub.Lock()
-	defer r.cs.pub.Unlock()
-	seq, err := r.p.Chats.SetPart(wctx, m, i, p)
-	if err != nil {
-		return err
-	}
-	r.cs.bumpSeq(seq)
-	r.o.pub.Part(chat.PartDone{Project: r.p.ID, Chat: r.cs.key.c, Seq: seq, Message: m, Index: i, Part: p})
-	return nil
 }
 
 // writing is the context for a write: Stop doesn't cancel it, so the

@@ -144,13 +144,16 @@ type pending struct {
 // answer, which it writes into the part. Stop and the project's close end
 // the wait; the part is then marked as stopped.
 func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part, error) {
+	cs := r.cs
+	// cs.mu is held from the write until the wait is set, so an answer to
+	// the card's PartDone finds it.
+	cs.mu.Lock()
 	i, err := tm.add(ctx, p)
 	if err != nil {
+		cs.mu.Unlock()
 		return p, err
 	}
-	cs := r.cs
 	pd := &pending{w: chat.Waiting{Message: tm.id, Index: i, Kind: p.Kind, Text: waitText(p)}, part: p, reply: make(chan Answer, 1)}
-	cs.mu.Lock()
 	cs.waiting = pd
 	r.o.publishStatus(cs)
 	cs.mu.Unlock()
@@ -165,7 +168,7 @@ func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part
 		}
 		cs.mu.Unlock()
 		p = stoppedCard(p)
-		if err := r.setPart(ctx, tm.id, i, p); err != nil {
+		if err := tm.set(ctx, i, p); err != nil {
 			r.o.d.Log.Error("agent: closing a card", "chat", cs.key.c, "err", err)
 		}
 		return p, context.Cause(ctx)
@@ -176,7 +179,7 @@ func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part
 			return p, err
 		}
 	}
-	return p, r.setPart(ctx, tm.id, i, p)
+	return p, tm.set(ctx, i, p)
 }
 
 // waitText is the card or form in one line, for the bar above the

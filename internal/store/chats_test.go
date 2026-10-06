@@ -500,6 +500,8 @@ func TestChatsSetPart(t *testing.T) {
 		"no such part":   {m.ID, 3, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotFound},
 		"no message":     {id.Message(id.New()), 0, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotFound},
 		"invalid":        {m.ID, 0, chat.Part{Kind: chat.PartApproval, Approval: &chat.Approval{ID: "a1"}}, chat.ErrInvalidPart},
+		"answered card":  {m.ID, 0, chat.Part{Kind: chat.PartApproval, Approval: &done}, ErrNotPending},
+		"answered form":  {m.ID, 2, chat.Part{Kind: chat.PartQuestion, Question: &answered}, ErrNotPending},
 	}
 	for name, b := range bad {
 		_, err := c.SetPart(ctx, b.m, b.i, b.p)
@@ -509,6 +511,27 @@ func TestChatsSetPart(t *testing.T) {
 	}
 	if s, _ := c.Seq(ctx, a.ID); s != last {
 		t.Errorf("failed writes changed the seq: %d, want %d", s, last)
+	}
+
+	// A card closed by Stop takes no late answer.
+	m2, _, err := c.AppendMessage(ctx, chat.Message{Chat: a.ID, Turn: 2, Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartApproval, Approval: card}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopped := *card
+	stopped.Stopped = true
+	if _, err := c.SetPart(ctx, m2.ID, 0, chat.Part{Kind: chat.PartApproval, Approval: &stopped}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SetPart(ctx, m2.ID, 0, chat.Part{Kind: chat.PartApproval, Approval: &done}); !errors.Is(err, ErrNotPending) {
+		t.Errorf("answer after Stop: err = %v, want ErrNotPending", err)
+	}
+	ms, _, err = c.Messages(ctx, a.ID, 2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ms[0].Parts[0].Approval; !got.Stopped || got.Answer != "" {
+		t.Errorf("stopped card = %+v", got)
 	}
 }
 

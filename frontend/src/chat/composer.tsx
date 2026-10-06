@@ -19,10 +19,7 @@ import { cn } from "@/lib/utils"
 import { ConnectForm } from "@/chat/provider-card"
 import { useProjects } from "@/state/projects"
 import { useSettings } from "@/state/settings"
-import { useThreads, type Thread } from "@/state/thread"
-
-// Drafts are the composer's text per chat, kept while another chat is open.
-const drafts = new Map<string, string>()
+import { drafts, useThreads, type Thread } from "@/state/thread"
 
 // modelName is the name the picker shows for a chat's model: an alias
 // shows the model it points at.
@@ -67,6 +64,8 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
     change("")
     try {
       const id = await ChatService.Send(project, chat, t)
+      // joined checks the turn as it is now: it may have ended, or a new
+      // try taken the message, while Send ran.
       if (running) useThreads.getState().joined(chat, id)
     } catch (err) {
       change(text)

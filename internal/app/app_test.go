@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,7 +15,9 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -767,5 +770,100 @@ func TestWindowTheme(t *testing.T) {
 		if bg, frame := windowTheme(c.theme, c.dark); bg != c.bg || frame != c.frame {
 			t.Errorf("windowTheme(%s, %t) = %v, %v", c.theme, c.dark, bg, frame)
 		}
+	}
+}
+
+// Concurrent changes all land, and an OnChange function may read the
+// settings: it runs without the lock.
+func TestSettingsUpdate(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	var applied atomic.Int32
+	e.settings.OnChange(func(config.Settings) {
+		_ = e.settings.Get()
+		applied.Add(1)
+	})
+	const n = 10
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Go(func() {
+			_, _, err := e.settings.update(func(s *config.Settings) error {
+				s.LLM.Providers[fmt.Sprintf("c%d", i)] = config.ProviderSettings{Kind: string(provider.KindCompatible), BaseURL: "https://example.test/v1/"}
+				return nil
+			})
+			if err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if got := len(e.settings.Get().LLM.Providers); got != n+1 {
+		t.Errorf("%d providers, want %d", got, n+1)
+	}
+	if applied.Load() != n {
+		t.Errorf("OnChange ran %d times, want %d", applied.Load(), n)
+	}
+	// An error from fn saves nothing.
+	before := e.settings.Get()
+	if _, _, err := e.settings.update(func(s *config.Settings) error {
+		delete(s.LLM.Providers, "p")
+		return errors.New("no")
+	}); err == nil {
+		t.Error("update ignored fn's error")
+	}
+	if _, ok := e.settings.Get().LLM.Providers["p"]; !ok || len(before.LLM.Providers) != n+1 {
+		t.Error("a failed update changed the settings")
+	}
+}
+
+// A shutdown stuck past its deadline exits the app.
+func TestShutdownWatchdog(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		release := make(chan struct{})
+		exited := make(chan time.Duration, 1)
+		start := time.Now()
+		done := make(chan error)
+		go func() {
+			done <- Shutdown{
+				Close: func(context.Context) error { <-release; return nil }, // ignores its deadline
+				Exit:  func() { exited <- time.Since(start); close(release) },
+			}.Run()
+		}()
+		if took := <-exited; took != ShutdownTimeout+exitGrace {
+			t.Errorf("exited after %v", took)
+		}
+		<-done
+	})
+	// A shutdown in time doesn't exit.
+	synctest.Test(t, func(t *testing.T) {
+		Shutdown{Exit: func() { t.Error("exited") }}.Run()
+		time.Sleep(time.Minute)
+	})
+}
+
+// A cancelled call is closing, not logged; a panic's value is redacted in
+// the log; Connect's input errors are invalid.
+func TestUIErrorQuiet(t *testing.T) {
+	var buf bytes.Buffer
+	b := base{log: slog.New(slog.NewTextHandler(&buf, nil)), redact: func(s string) string { return strings.ReplaceAll(s, testKey, "[key]") }}
+	for _, c := range []error{context.Canceled, fmt.Errorf("query: %w", context.DeadlineExceeded)} {
+		err := c
+		b.guard("test", &err)
+		uiErr(t, err, KindClosing)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("logged %q", buf.String())
+	}
+	for _, c := range []error{provider.ErrBadName, provider.ErrBadBaseURL, provider.ErrBadField, provider.ErrNeedKey, provider.ErrKeyTooLong} {
+		err := fmt.Errorf("provider x: %w", c)
+		b.guard("test", &err)
+		uiErr(t, err, KindInvalid)
+	}
+	err := func() (err error) {
+		defer b.guard("panics", &err)
+		panic("boom " + testKey)
+	}()
+	uiErr(t, err, KindInternal)
+	if strings.Contains(buf.String(), testKey) || !strings.Contains(buf.String(), "boom [key]") {
+		t.Errorf("log %q", buf.String())
 	}
 }

@@ -1,5 +1,3 @@
-import * as React from "react"
-
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { usePoll } from "@/hooks/use-poll"
 import {
@@ -76,8 +74,8 @@ export function gb(bytes: number) {
 }
 
 export function memoryText(r: MemoryReading) {
-  if (r.free > 0) return `RAM ${gb(r.free)} / ${Math.round(r.total / 2 ** 30)} GB`
-  return r.level === MemoryLevel.OK ? `RAM ${Math.round(r.total / 2 ** 30)} GB` : "RAM low"
+  if (r.free > 0) return `Memory ${gb(r.free)} / ${Math.round(r.total / 2 ** 30)} GB`
+  return r.level === MemoryLevel.OK ? `Memory ${Math.round(r.total / 2 ** 30)} GB` : "Memory low"
 }
 
 function Memory() {

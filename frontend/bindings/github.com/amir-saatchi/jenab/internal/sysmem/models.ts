@@ -25,7 +25,8 @@ export enum Level {
 
 /**
  * Reading is one reading. Free is 0 where the OS gives only a level
- * (macOS).
+ * (macOS). Total is what Free is out of: the commit limit (RAM plus page
+ * files) on Windows, the physical memory elsewhere.
  */
 export interface Reading {
     /**
@@ -34,7 +35,7 @@ export interface Reading {
     "free": number;
 
     /**
-     * physical memory
+     * bytes Free is out of
      */
     "total": number;
     "level": Level;

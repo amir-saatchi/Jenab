@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -67,6 +68,11 @@ var known = []struct {
 	{bucket.ErrNotFound, KindNotFound, "It no longer exists."},
 	{provider.ErrUnknownModel, KindInvalid, "That model isn't connected."},
 	{provider.ErrUnknownProvider, KindNotFound, "That provider isn't connected."},
+	{provider.ErrBadName, KindInvalid, "A provider name can't be empty or hold /, : or spaces."},
+	{provider.ErrBadBaseURL, KindInvalid, "That base URL can't be used. It needs https (http only for this computer), and no user name, query or fragment."},
+	{provider.ErrBadField, KindInvalid, "Fill in the base URL's fields with letters, digits, - or _."},
+	{provider.ErrNeedKey, KindInvalid, "An API key is needed."},
+	{provider.ErrKeyTooLong, KindInvalid, "That API key is too long."},
 }
 
 // toUI turns err into a *UIError. Known kinds get their message; anything
@@ -91,6 +97,10 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	if errors.As(err, &le) {
 		return &UIError{Kind: KindInvalid, Message: le.Error(), Details: details}
 	}
+	// A call cancelled by its caller or by quitting is no failure to log.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return &UIError{Kind: KindClosing, Message: "The call was cancelled.", Details: details}
+	}
 	log.Error("app: call failed", "call", what, "err", details)
 	return &UIError{Kind: KindInternal, Message: "Something went wrong.", Details: details}
 }
@@ -106,8 +116,9 @@ func (e *levelError) Error() string {
 // its stack, and turns *err into a *UIError.
 func (b *base) guard(what string, err *error) {
 	if r := recover(); r != nil {
-		b.log.Error("app: panic", "call", what, "panic", r, "stack", string(debug.Stack()))
-		*err = &UIError{Kind: KindInternal, Message: "Something went wrong.", Details: b.redact(fmt.Sprint(r))}
+		v := b.redact(fmt.Sprint(r))
+		b.log.Error("app: panic", "call", what, "panic", v, "stack", string(debug.Stack()))
+		*err = &UIError{Kind: KindInternal, Message: "Something went wrong.", Details: v}
 		return
 	}
 	if *err != nil {

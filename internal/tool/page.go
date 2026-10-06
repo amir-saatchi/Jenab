@@ -5,12 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
-
-	"golang.org/x/net/idna"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -80,10 +79,15 @@ func HostApproval(host, by string) chat.Approval {
 }
 
 func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result, error) {
-	p, err := t.web.Fetch(ctx, a.URL, env.PrivateHosts)
+	p, err := t.web.Fetch(ctx, a.URL, web.Rules{Private: env.PrivateHosts, Redirect: approvedRedirect(env, a.URL)})
 	if err != nil {
 		if ctx.Err() != nil {
 			return Result{}, err
+		}
+		var re *web.RedirectError
+		if errors.As(err, &re) && errors.Is(err, errNotApproved) {
+			return Result{}, &Error{Msg: "could not fetch " + a.URL + ": it redirects to " + re.URL +
+				", on a host not approved for this project; call fetch_page with that URL to ask for it", Err: err}
 		}
 		return Result{}, &Error{Msg: "could not fetch " + a.URL + ": " + strings.TrimPrefix(err.Error(), "web: "), Err: err}
 	}
@@ -116,14 +120,39 @@ func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result,
 	return Result{Text: preview(label, key, p.Text, env.PreviewTokens), Ref: key}, nil
 }
 
-// Host is u's host as approvals name it: lower case and ASCII (punycode).
-func Host(u *url.URL) string {
-	h := strings.ToLower(u.Hostname())
-	if a, err := idna.Lookup.ToASCII(h); err == nil {
-		h = a
+// errNotApproved is a redirect to a host the project hasn't approved.
+var errNotApproved = errors.New("the host is not approved for this project")
+
+// approvedRedirect lets a fetch follow a redirect only to the host the
+// call was approved for (Preflight) or to one approved for the project, so
+// a redirect can't skip the host's approval (8.8).
+func approvedRedirect(env *Env, raw string) web.RedirectCheck {
+	ok := map[string]bool{}
+	if u, err := url.Parse(raw); err == nil {
+		ok[Host(u)] = true
 	}
-	return h
+	return func(ctx context.Context, to *url.URL) error {
+		h := Host(to)
+		if !ok[h] {
+			if env == nil || env.Project == nil {
+				return errNotApproved
+			}
+			yes, err := env.Project.DB.Approved(ctx, "host", h)
+			if err != nil {
+				return err
+			}
+			if !yes {
+				return errNotApproved
+			}
+			ok[h] = true
+		}
+		return nil
+	}
 }
+
+// Host is u's host as approvals name it, in one spelling (web.Host): lower
+// case, ASCII (punycode), no trailing dots, IP addresses in standard form.
+func Host(u *url.URL) string { return web.Host(u) }
 
 // hostKey is u's host as one key segment: Host with the port after "_",
 // and anything else a key can't hold as "-".

@@ -325,6 +325,7 @@ func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error
 			return err
 		}
 		cs.bumpSeq(seq)
+		o.d.Traces.drop(p, c) // turn numbers start again
 		return nil
 	})
 }
@@ -369,7 +370,7 @@ func (o *Orchestrator) empty(ctx context.Context, p id.Project, c id.Chat, fn fu
 		return err
 	}
 	cs.clears++
-	cs.loaded, cs.turn, cs.lastUser, cs.failed, cs.retry, cs.win = true, 0, "", false, nil, window{}
+	cs.loaded, cs.turn, cs.lastUser, cs.failed, cs.untrusted, cs.retry, cs.win = true, 0, "", false, false, nil, window{}
 	o.publishStatus(cs)
 	return nil
 }
@@ -537,9 +538,11 @@ func (o *Orchestrator) Wait(ctx context.Context) error {
 	}
 }
 
-// load reads the chat's last turn and sequence number once, and whether
-// the last turn stopped on an error: its last message, not counting
-// approval level notices, ends with a turn_failed notice. cs.mu is held.
+// load reads the chat's last turn and sequence number once, whether the
+// last turn stopped on an error (its last message, not counting approval
+// level notices, ends with a turn_failed notice), and whether it read
+// outside data since the user's last message, so Retry after a restart
+// keeps Auto's mark (8.8). cs.mu is held.
 func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Project) error {
 	if cs.loaded {
 		return nil
@@ -552,7 +555,7 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 	if err != nil {
 		return err
 	}
-	failed := false
+	failed, untrusted := false, false
 	if turn > 0 {
 		ms, _, err := p.Chats.Messages(ctx, cs.key.c, turn, turn)
 		if err != nil {
@@ -567,10 +570,43 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 			failed = last.Notice != nil && last.Notice.Kind == chat.NoticeTurnFailed
 			break
 		}
+		untrusted = o.untrustedIn(ms)
 	}
-	cs.turn, cs.failed, cs.loaded = turn, failed, true
+	cs.turn, cs.failed, cs.untrusted, cs.loaded = turn, failed, untrusted, true
 	cs.bumpSeq(seq)
 	return nil
+}
+
+// untrustedIn reports whether a tool with the Untrusted effect has a
+// result after the user's last message in ms. A tool no longer known
+// counts as untrusted.
+func (o *Orchestrator) untrustedIn(ms []chat.Message) bool {
+	names := map[string]string{} // tool call ID to tool name
+	untrusted := false
+	for _, m := range ms {
+		switch m.Role {
+		case chat.RoleUser:
+			if slices.ContainsFunc(m.Parts, func(p chat.Part) bool { return p.Text != nil || p.Image != nil }) {
+				untrusted = false // a message from Send, not a notice
+			}
+		case chat.RoleAssistant:
+			for _, p := range m.Parts {
+				if p.ToolCall != nil {
+					names[p.ToolCall.ID] = p.ToolCall.Name
+				}
+			}
+		case chat.RoleTool:
+			for _, p := range m.Parts {
+				if p.ToolResult == nil {
+					continue
+				}
+				if tl, ok := o.d.Tools.Get(names[p.ToolResult.CallID]); !ok || tl.Spec().Effects&tool.Untrusted != 0 {
+					untrusted = true
+				}
+			}
+		}
+	}
+	return untrusted
 }
 
 // bumpSeq raises the known sequence number to s.
@@ -593,7 +629,7 @@ func (o *Orchestrator) write(ctx context.Context, cs *chatState, p *project.Proj
 	}
 	cs.bumpSeq(seq)
 	for i, part := range m.Parts {
-		o.pub.Part(chat.PartDone{Project: p.ID, Chat: m.Chat, Seq: seq, Message: m.ID, Index: i, Part: part})
+		o.pub.Part(chat.PartDone{Project: p.ID, Chat: m.Chat, Seq: seq, Message: m.ID, Turn: m.Turn, Index: i, Part: part})
 	}
 	return m, nil
 }

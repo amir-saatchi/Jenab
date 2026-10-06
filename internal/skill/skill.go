@@ -9,12 +9,14 @@ package skill
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"maps"
 	"path"
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"go.yaml.in/yaml/v3"
@@ -26,6 +28,11 @@ const (
 	MaxBodyTokens   = 3000 // longer material goes in extra files
 	MaxLoaded       = 6    // skills loaded in one chat
 	MaxLoadedTokens = 10000
+
+	// Limits on a skill's folder, checked before a file is read.
+	MaxFileBytes   = 64 << 10  // each file, SKILL.md too
+	MaxFiles       = 32        // extra files
+	MaxFolderBytes = 512 << 10 // all files together
 
 	// Main is the skill's own file in its folder.
 	Main = "SKILL.md"
@@ -63,7 +70,7 @@ func Tokens(s string) int { return (len(s) + 3) / 4 }
 
 var (
 	nameRE = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
-	toolRE = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+	toolRE = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`) // as the tool registry
 	fileRE = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*\.md$`)
 	bom    = string(rune(0xFEFF))
 )
@@ -82,14 +89,23 @@ func Parse(file string, src []byte) (Skill, error) {
 		return bad("front matter", "the file is not UTF-8")
 	}
 	s := clean(src)
-	if !strings.HasPrefix(s, "---\n") {
+	first, rest, _ := strings.Cut(s, "\n")
+	if !fence(first) {
 		return bad("front matter", "the file must start with a --- line")
 	}
-	fm, body, ok := strings.Cut(s[4:], "\n---\n")
-	if !ok {
-		if fm, ok = strings.CutSuffix(s[4:], "\n---"); !ok {
+	var fm, body string
+	closed := false
+	for off := 0; !closed; {
+		line, after, more := strings.Cut(rest[off:], "\n")
+		if fence(line) {
+			fm, body, closed = rest[:off], after, true
+		} else if !more {
 			return bad("front matter", "no --- line closes it")
 		}
+		off += len(line) + 1
+	}
+	if strings.TrimSpace(fm) == "" {
+		return bad("front matter", "empty; it needs name and description")
 	}
 	var keys map[string]yaml.Node
 	if err := yaml.Unmarshal([]byte(fm), &keys); err != nil {
@@ -132,8 +148,8 @@ func Parse(file string, src []byte) (Skill, error) {
 		return Skill{}, err
 	case d == "":
 		return bad("description", "missing")
-	case strings.ContainsAny(d, "\r\n"):
-		return bad("description", "must be one line")
+	case strings.ContainsFunc(d, notInLine):
+		return bad("description", "must be one line, without control characters")
 	case utf8.RuneCountInString(d) > MaxDescription:
 		return bad("description", "%d characters; at most %d", utf8.RuneCountInString(d), MaxDescription)
 	}
@@ -148,6 +164,8 @@ func Parse(file string, src []byte) (Skill, error) {
 			switch {
 			case !toolRE.MatchString(t):
 				return bad("load_with", "%q is not a tool name", t)
+			case t == "load_skill":
+				return bad("load_with", "load_skill can't load a skill")
 			case slices.Contains(sk.LoadWith, t):
 				return bad("load_with", "%q is listed twice", t)
 			}
@@ -166,12 +184,71 @@ func Parse(file string, src []byte) (Skill, error) {
 	return sk, nil
 }
 
+// fence is a --- line, which may end in spaces.
+func fence(line string) bool { return strings.TrimRight(line, " \t") == "---" }
+
+// notInLine is a character a one-line field can't hold.
+func notInLine(r rune) bool { return unicode.IsControl(r) || r == ' ' || r == ' ' }
+
+// errTooBig is a file over MaxFileBytes.
+var errTooBig = errors.New("too big")
+
+// readFile reads a file of at most MaxFileBytes, checking the size first.
+func readFile(fsys fs.FS, name string) ([]byte, error) {
+	f, err := fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	if st, err := f.Stat(); err != nil {
+		return nil, err
+	} else if st.Size() > MaxFileBytes {
+		return nil, errTooBig
+	}
+	b, err := io.ReadAll(io.LimitReader(f, MaxFileBytes+1))
+	if err == nil && len(b) > MaxFileBytes {
+		err = errTooBig
+	}
+	return b, err
+}
+
 // Read reads the skill in folder name of fsys: its SKILL.md and extra
-// files. The skill's name must be the folder's.
+// files. The skill's name must be the folder's. Files must be regular
+// files, not links, within the size limits.
 func Read(fsys fs.FS, name string) (Skill, error) {
 	file := path.Join(name, Main)
-	src, err := fs.ReadFile(fsys, file)
+	ents, err := fs.ReadDir(fsys, name)
 	if err != nil {
+		return Skill{}, err
+	}
+	extra := 0
+	for _, e := range ents {
+		n := e.Name()
+		f := path.Join(name, n)
+		bad := func(msg string) (Skill, error) {
+			return Skill{}, &Error{File: f, Field: "file", Msg: msg}
+		}
+		switch {
+		case e.IsDir():
+			return bad("a skill has no folders")
+		case !e.Type().IsRegular():
+			return bad("not a regular file, such as a link")
+		case strings.EqualFold(n, Main):
+		case !fileRE.MatchString(n):
+			return bad("use a .md name of lowercase letters, digits and -")
+		default:
+			if extra++; extra > MaxFiles {
+				return bad(fmt.Sprintf("a skill has at most %d extra files", MaxFiles))
+			}
+		}
+	}
+	tooBig := func(f string) (Skill, error) {
+		return Skill{}, &Error{File: f, Field: "file", Msg: fmt.Sprintf("over %d KiB", MaxFileBytes>>10)}
+	}
+	src, err := readFile(fsys, file)
+	if errors.Is(err, errTooBig) {
+		return tooBig(file)
+	} else if err != nil {
 		return Skill{}, err
 	}
 	s, err := Parse(file, src)
@@ -181,28 +258,24 @@ func Read(fsys fs.FS, name string) (Skill, error) {
 	if s.Name != name {
 		return Skill{}, &Error{File: file, Field: "name", Msg: fmt.Sprintf("%q differs from its folder %q", s.Name, name)}
 	}
-	ents, err := fs.ReadDir(fsys, name)
-	if err != nil {
-		return Skill{}, err
-	}
+	total := len(src)
 	for _, e := range ents {
 		n := e.Name()
-		if n == Main {
+		if strings.EqualFold(n, Main) {
 			continue
 		}
 		f := path.Join(name, n)
 		bad := func(msg string) (Skill, error) {
 			return Skill{}, &Error{File: f, Field: "file", Msg: msg}
 		}
-		if e.IsDir() {
-			return bad("a skill has no folders")
-		}
-		if !fileRE.MatchString(n) {
-			return bad("use a .md name of lowercase letters, digits and -")
-		}
-		b, err := fs.ReadFile(fsys, f)
-		if err != nil {
+		b, err := readFile(fsys, f)
+		if errors.Is(err, errTooBig) {
+			return tooBig(f)
+		} else if err != nil {
 			return Skill{}, err
+		}
+		if total += len(b); total > MaxFolderBytes {
+			return bad(fmt.Sprintf("the skill's files are over %d KiB together", MaxFolderBytes>>10))
 		}
 		if !utf8.Valid(b) {
 			return bad("the file is not UTF-8")

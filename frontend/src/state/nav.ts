@@ -50,6 +50,12 @@ export function used(mru: ChatRef[], c: ChatRef): ChatRef[] {
   return [ref, ...mru.filter((m) => m.chat !== c.chat || m.project !== c.project)].slice(0, 50)
 }
 
+const noCycle = { cycle: null, cycleFrom: null }
+
+function isChat(p: Place | undefined, c: ChatRef | undefined) {
+  return p?.view === "chat" && !!c && p.project === c.project && p.chat === c.chat
+}
+
 // moved is the state after back or forward: the chat landed on counts as used.
 function moved(s: { mru: ChatRef[] }, history: History) {
   const p = history.places[history.index]
@@ -60,8 +66,10 @@ interface NavState {
   history: History
   mru: ChatRef[]
   // cycle is how far back Ctrl+Tab has gone while Ctrl is held; null
-  // when not cycling.
+  // when not cycling. cycleFrom is the history when the cycle began: the
+  // chats passed on the way replace each other, so a cycle adds one place.
   cycle: number | null
+  cycleFrom: History | null
   // sidebarHidden hides the left sidebar and puts its chats into the rail,
   // as while a page is open (5.12).
   sidebarHidden: boolean
@@ -77,25 +85,31 @@ export const useNav = create<NavState>((set, get) => ({
   history: { places: [], index: -1 },
   mru: [],
   cycle: null,
+  cycleFrom: null,
   sidebarHidden: false,
+  // Opening a place, back and forward end a Ctrl+Tab cycle.
   go: (p) =>
     set((s) => ({
       history: push(s.history, p),
       mru: p.view === "chat" ? used(s.mru, p) : s.mru,
+      ...noCycle,
     })),
-  back: () => set((s) => moved(s, step(s.history, -1))),
-  forward: () => set((s) => moved(s, step(s.history, 1))),
+  back: () => set((s) => ({ ...moved(s, step(s.history, -1)), ...noCycle })),
+  forward: () => set((s) => ({ ...moved(s, step(s.history, 1)), ...noCycle })),
+  // nextChat starts from the chat shown when it is the one used last, and
+  // else from before the list, so the first Ctrl+Tab opens that chat.
   nextChat: (by) => {
-    const { mru, cycle } = get()
-    if (mru.length < 2) return
-    const at = ((cycle ?? 0) + by + mru.length) % mru.length
-    const c = mru[at]
-    set((s) => ({ cycle: at, history: push(s.history, { view: "chat", ...c }) }))
+    const { mru, cycle, history } = get()
+    const start = cycle ?? (isChat(current({ history }), mru[0]) ? 0 : -1)
+    if (mru.length === 0 || (start >= 0 && mru.length < 2)) return
+    const at = start < 0 ? (by === 1 ? 0 : mru.length - 1) : (start + by + mru.length) % mru.length
+    const from = get().cycleFrom ?? history
+    set({ cycle: at, cycleFrom: from, history: push(from, { view: "chat", ...mru[at] }) })
   },
   endCycle: () => {
     const { cycle, mru } = get()
     if (cycle === null) return
-    set({ cycle: null, mru: used(mru, mru[cycle]) })
+    set({ mru: used(mru, mru[cycle]), ...noCycle })
   },
   setSidebarHidden: (sidebarHidden) => set({ sidebarHidden }),
 }))

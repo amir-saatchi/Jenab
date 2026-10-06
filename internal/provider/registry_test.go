@@ -406,3 +406,41 @@ func TestMissingKey(t *testing.T) {
 		t.Fatalf("err = %v, want a request error for the missing key", err)
 	}
 }
+
+func TestFirstEvent(t *testing.T) {
+	if got := newSetup(t, provider.KindCompatible, 2).reg.FirstEvent("p"); got != provider.FirstEvent {
+		t.Errorf("compatible: %v", got)
+	}
+	reg := newSetup(t, provider.KindOllama, 2).reg
+	if got := reg.FirstEvent("p"); got != provider.FirstEventOllama {
+		t.Errorf("ollama: %v", got)
+	}
+	if got := reg.FirstEvent("gone"); got != provider.FirstEvent {
+		t.Errorf("unknown provider: %v", got)
+	}
+}
+
+func TestCalls(t *testing.T) {
+	s := newSetup(t, provider.KindCompatible, 2, fake.Text("one"))
+	if got := s.reg.Calls(); got != (limit.GateStats{Size: 4}) {
+		t.Errorf("idle: %+v", got)
+	}
+	seen := false
+	for ev, err := range s.reg.Stream(context.Background(), limit.Interactive, provider.Request{Model: "p/m1"}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !seen && ev.Kind != provider.EventWait {
+			seen = true
+			if got := s.reg.Calls(); got.InUse != 1 || got.Size != 4 {
+				t.Errorf("streaming: %+v", got)
+			}
+		}
+	}
+	if got := s.reg.Calls(); got.InUse != 0 {
+		t.Errorf("after: %+v", got)
+	}
+	if got := provider.NewRegistry(provider.Deps{}).Calls(); got != (limit.GateStats{}) {
+		t.Errorf("no gate: %+v", got)
+	}
+}

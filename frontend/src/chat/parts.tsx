@@ -1,6 +1,7 @@
 import * as React from "react"
 import { BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -121,12 +122,14 @@ function ToolDetail({ label, children }: { label: string; children: React.ReactN
   )
 }
 
+// SkillChip marks a skill the agent loaded. It only informs, so it is not
+// a button.
 export function SkillChip({ text }: { text: string }) {
   return (
-    <Button variant="outline" size="xs" className="pointer-events-none w-fit font-normal text-muted-foreground not-typeset">
+    <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground not-typeset">
       <SparklesIcon data-icon="inline-start" />
       <span dir="auto">{text}</span>
-    </Button>
+    </Badge>
   )
 }
 

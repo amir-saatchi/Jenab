@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 
 import type { UsageLine } from "@/lib/api"
-import { cost, limitDefault, placeholders, tokens } from "@/settings/format"
+import { cost, limitDefault, placeholders, readNumber, tokens } from "@/settings/format"
 
 const line = (c: number, unpriced = 0): UsageLine =>
   ({ input: 0, output: 0, cache_read: 0, cache_write: 0, cost: c, unpriced }) as UsageLine
@@ -23,4 +23,15 @@ test("a local Ollama gets one background call", () => {
 test("base URL placeholders are found", () => {
   expect(placeholders("https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/")).toEqual(["account_id"])
   expect(placeholders(undefined)).toEqual([])
+})
+
+test("readNumber: the same, bad, or the value to save", () => {
+  expect(readNumber(" 4 ", "4", 1)).toBe("same")
+  expect(readNumber("8", "4", 1)).toEqual({ value: 8 })
+  expect(readNumber("0", "4", 1)).toBe("bad")
+  expect(readNumber("0", "4", 0)).toEqual({ value: 0 })
+  expect(readNumber("2.5", "4", 1)).toBe("bad")
+  expect(readNumber("", "4", 0)).toBe("bad") // empty is no zero
+  expect(readNumber("", "4", 1, true)).toEqual({ value: null })
+  expect(readNumber("", "", 1, true)).toBe("same")
 })

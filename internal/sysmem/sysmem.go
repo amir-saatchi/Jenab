@@ -20,10 +20,11 @@ const (
 )
 
 // Reading is one reading. Free is 0 where the OS gives only a level
-// (macOS).
+// (macOS). Total is what Free is out of: the commit limit (RAM plus page
+// files) on Windows, the physical memory elsewhere.
 type Reading struct {
 	Free  uint64 `json:"free"`  // bytes the OS can still hand out
-	Total uint64 `json:"total"` // physical memory
+	Total uint64 `json:"total"` // bytes Free is out of
 	Level Level  `json:"level"`
 }
 
@@ -36,6 +37,19 @@ func levelOf(free uint64) Level {
 	case free < StopBytes:
 		return Critical
 	case free < LowBytes:
+		return Low
+	}
+	return OK
+}
+
+// pressureLevel maps the macOS kernel's memory pressure level: 1 (normal),
+// 2 (warn) and 4 (critical). It is here, not in the darwin file, so it is
+// tested everywhere.
+func pressureLevel(p uint32) Level {
+	switch {
+	case p >= 4:
+		return Critical
+	case p >= 2:
 		return Low
 	}
 	return OK

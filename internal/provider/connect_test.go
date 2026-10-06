@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -230,5 +231,92 @@ func TestConnectNeedsKey(t *testing.T) {
 	}
 	if len(s.rec.built()) != 0 || len(s.kr.m) != 0 {
 		t.Errorf("built %d backends, stored %v", len(s.rec.built()), s.kr.m)
+	}
+}
+
+func TestConnectBaseURLErrorsHideSecrets(t *testing.T) {
+	for _, u := range []string{
+		"https://x.test/v1/?key=sk-live-SECRET",
+		"https://bob:pa55word@x.test/v1/",
+		"http://bob:pa55word@10.0.0.5/v1/?key=sk-live-SECRET#sk-live-SECRET",
+		"https://bob:pa/55word@x.test:bad/v1/?key=sk-live-SECRET", // doesn't parse
+		"bob:pa55word@x.test",
+	} {
+		s := newConnectSetup(fake.New())
+		_, err := s.reg.Connect(context.Background(), "p", provider.KindCompatible, u, testKey, nil)
+		if !errors.Is(err, provider.ErrBadBaseURL) {
+			t.Errorf("%s: err = %v, want ErrBadBaseURL", u, err)
+			continue
+		}
+		if msg := err.Error(); strings.Contains(msg, "SECRET") || strings.Contains(msg, "55word") {
+			t.Errorf("%s: the error shows a secret: %q", u, msg)
+		}
+		if len(s.rec.built()) != 0 || len(s.kr.m) != 0 {
+			t.Errorf("%s: built %d backends, stored %v", u, len(s.rec.built()), s.kr.m)
+		}
+	}
+	// A key typed into the path is redacted like the key.
+	s := newConnectSetup(fake.New())
+	_, err := s.reg.Connect(context.Background(), "p", provider.KindCompatible, "http://10.0.0.5/"+testKey+"/", testKey, nil)
+	if !errors.Is(err, provider.ErrBadBaseURL) || strings.Contains(err.Error(), testKey) {
+		t.Errorf("err = %v", err)
+	}
+	// CheckBaseURL alone cuts them too.
+	if _, err := provider.CheckBaseURL("https://bob:pa55word@x.test/?key=sk-live-SECRET"); err == nil || strings.Contains(err.Error(), "SECRET") || strings.Contains(err.Error(), "55word") {
+		t.Errorf("CheckBaseURL err = %v", err)
+	}
+}
+
+func TestConnectInputErrors(t *testing.T) {
+	cases := []struct {
+		name, base, key string
+		kind            provider.Kind
+		fields          map[string]string
+		want            error
+	}{
+		{"", "https://x.test/v1/", testKey, provider.KindCompatible, nil, provider.ErrBadName},
+		{"a b", "https://x.test/v1/", testKey, provider.KindCompatible, nil, provider.ErrBadName},
+		{"p", "https://x.test/v1/", "", provider.KindCompatible, nil, provider.ErrNeedKey},
+		{"p", "https://x.test/v1/", strings.Repeat("k", secret.MaxSize+1), provider.KindCompatible, nil, provider.ErrKeyTooLong},
+		{"p", "http://192.168.1.5:8080/v1/", testKey, provider.KindCompatible, nil, provider.ErrBadBaseURL},
+		{"p", "", testKey, provider.KindCompatible, nil, provider.ErrBadBaseURL},
+		{"cf", cfBase, testKey, provider.KindCompatible, map[string]string{"account_id": "a/b"}, provider.ErrBadField},
+		{"cf", cfBase, testKey, provider.KindCompatible, nil, provider.ErrBadField},
+	}
+	for _, c := range cases {
+		s := newConnectSetup(fake.New())
+		_, err := s.reg.Connect(context.Background(), c.name, c.kind, c.base, c.key, c.fields)
+		if !errors.Is(err, c.want) {
+			t.Errorf("%q %q: err = %v, want %v", c.name, c.base, err, c.want)
+		}
+		if len(s.kr.m) != 0 {
+			t.Errorf("%q %q: stored %v", c.name, c.base, s.kr.m)
+		}
+	}
+}
+
+// Only a local Ollama goes without a key.
+func TestOllamaKey(t *testing.T) {
+	ctx := context.Background()
+	for base, ok := range map[string]bool{"": true, "http://127.0.0.1:11434/": true, "https://ollama.com/": false} {
+		s := newConnectSetup(fake.New())
+		_, err := s.reg.Connect(ctx, "o", provider.KindOllama, base, "", nil)
+		if ok && err != nil {
+			t.Errorf("Connect(%q) without a key: %v", base, err)
+		}
+		if !ok && !errors.Is(err, provider.ErrNeedKey) {
+			t.Errorf("Connect(%q) without a key: err = %v, want ErrNeedKey", base, err)
+		}
+
+		s.reg.Apply(config.LLMSettings{MaxParallelCalls: 4, Providers: map[string]config.ProviderSettings{
+			"o": {Kind: string(provider.KindOllama), BaseURL: base, Models: []config.ModelSettings{{ID: "m", Context: 8000}}},
+		}})
+		_, err = collect(s.reg, limit.Interactive, provider.Request{Model: "o/m"})
+		if ok && err != nil {
+			t.Errorf("Stream(%q) without a key: %v", base, err)
+		}
+		if !ok && (kindOf(err) != provider.BadRequest || len(s.rec.built()) != 0) {
+			t.Errorf("Stream(%q) without a key: err = %v, built %d", base, err, len(s.rec.built()))
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -129,27 +130,28 @@ type ConnectResult struct {
 // provider, so a first provider makes the app usable at once (SPEC 3.9).
 func (s *SettingsService) Connect(ctx context.Context, req ConnectRequest) (r ConnectResult, err error) {
 	defer s.guard("settings.connect", &err)
-	req.Name = strings.TrimSpace(req.Name)
-	c, err := s.models.Connect(ctx, req.Name, provider.Kind(req.Kind), strings.TrimSpace(req.BaseURL), strings.TrimSpace(req.Key), req.Fields)
+	req.Name, req.BaseURL = strings.TrimSpace(req.Name), strings.TrimSpace(req.BaseURL)
+	kind := provider.Kind(req.Kind)
+	// Checked before the key is stored, and again when saving.
+	if old, ok := s.settings.Get().LLM.Providers[req.Name]; ok && !sameConnection(old, kind, req.BaseURL) {
+		return r, nameTaken(req.Name)
+	}
+	c, err := s.models.Connect(ctx, req.Name, kind, req.BaseURL, strings.TrimSpace(req.Key), req.Fields)
 	if err != nil {
 		return r, err
 	}
-	next := s.settings.Get()
-	next.LLM.Providers = maps.Clone(next.LLM.Providers)
-	next.LLM.Models = maps.Clone(next.LLM.Models)
-	if next.LLM.Providers == nil {
-		next.LLM.Providers = map[string]config.ProviderSettings{}
-	}
-	if next.LLM.Models == nil {
-		next.LLM.Models = map[string]string{}
-	}
-	// A new key for a connected provider keeps the models the user chose.
-	if old, ok := next.LLM.Providers[req.Name]; ok && old.Kind == c.Settings.Kind && old.BaseURL == c.Settings.BaseURL {
-		c.Settings.Models = old.Models
-	}
-	next.LLM.Providers[req.Name] = c.Settings
-	setAliases(&next.LLM, s.models.Catalog(), req.Name, c.Settings)
-	loaded, problems, err := s.settings.save(next)
+	loaded, problems, err := s.settings.update(func(next *config.Settings) error {
+		// A new key for a connected provider keeps the models the user chose.
+		if old, ok := next.LLM.Providers[req.Name]; ok {
+			if !sameConnection(old, kind, req.BaseURL) {
+				return nameTaken(req.Name)
+			}
+			c.Settings.Models = old.Models
+		}
+		next.LLM.Providers[req.Name] = c.Settings
+		setAliases(&next.LLM, s.models.Catalog(), req.Name, c.Settings)
+		return nil
+	})
 	if err != nil {
 		return r, err
 	}
@@ -160,6 +162,17 @@ func (s *SettingsService) Connect(ctx context.Context, req ConnectRequest) (r Co
 		r.Other = append(r.Other, m.ID)
 	}
 	return r, nil
+}
+
+// sameConnection tells whether a connected provider has this kind and base
+// URL ("" being the kind's own).
+func sameConnection(old config.ProviderSettings, kind provider.Kind, baseURL string) bool {
+	or := func(u string) string { return cmp.Or(u, provider.DefaultBaseURL(kind)) }
+	return old.Kind == string(kind) && or(old.BaseURL) == or(baseURL)
+}
+
+func nameTaken(name string) error {
+	return &UIError{Kind: KindInvalid, Message: fmt.Sprintf("A provider named %q is already connected with another kind or base URL. Choose another name, or remove it first.", name)}
 }
 
 // setAliases points default and fast at the provider name's models when
@@ -193,25 +206,24 @@ func setAliases(llm *config.LLMSettings, cat *provider.Catalog, name string, ps 
 // and its key and base-URL values are deleted from the keychain.
 func (s *SettingsService) Remove(ctx context.Context, name string) (v SettingsView, err error) {
 	defer s.guard("settings.remove", &err)
-	next := s.settings.Get()
-	ps, ok := next.LLM.Providers[name]
-	if !ok {
-		return v, fmt.Errorf("%w: %q", provider.ErrUnknownProvider, name)
-	}
-	next.LLM.Providers = maps.Clone(next.LLM.Providers)
-	next.LLM.ProviderMaxParallelCalls = maps.Clone(next.LLM.ProviderMaxParallelCalls)
-	next.LLM.Models = maps.Clone(next.LLM.Models)
-	delete(next.LLM.Providers, name)
-	delete(next.LLM.ProviderMaxParallelCalls, name)
-	for alias, ref := range next.LLM.Models {
-		if p, _, _ := strings.Cut(ref, "/"); p == name {
-			delete(next.LLM.Models, alias)
+	var ps config.ProviderSettings
+	loaded, problems, err := s.settings.update(func(next *config.Settings) error {
+		var ok bool
+		if ps, ok = next.LLM.Providers[name]; !ok {
+			return fmt.Errorf("%w: %q", provider.ErrUnknownProvider, name)
 		}
-	}
-	for _, p := range slices.Sorted(maps.Keys(next.LLM.Providers)) {
-		setAliases(&next.LLM, s.models.Catalog(), p, next.LLM.Providers[p])
-	}
-	loaded, problems, err := s.settings.save(next)
+		delete(next.LLM.Providers, name)
+		delete(next.LLM.ProviderMaxParallelCalls, name)
+		for alias, ref := range next.LLM.Models {
+			if p, _, _ := strings.Cut(ref, "/"); p == name {
+				delete(next.LLM.Models, alias)
+			}
+		}
+		for _, p := range slices.Sorted(maps.Keys(next.LLM.Providers)) {
+			setAliases(&next.LLM, s.models.Catalog(), p, next.LLM.Providers[p])
+		}
+		return nil
+	})
 	if err != nil {
 		return v, err
 	}

@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"context"
 	"slices"
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/fake"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -125,4 +127,60 @@ func TestRunningToolHasItsLimit(t *testing.T) {
 	if h.o.d.Models.FirstEvent("p") != provider.FirstEvent {
 		t.Error("FirstEvent")
 	}
+}
+
+// Past the turn limit the oldest ended turn goes; a running one stays, and
+// the size counts only the turns kept.
+func TestTracesKeepRunningTurns(t *testing.T) {
+	s := &Traces{max: 2, budget: 1 << 30}
+	p, c := id.Project(id.New()), id.Chat(id.New())
+	req := provider.Request{Messages: []chat.Message{{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hello there"}}}}}}
+	running := s.begin(p, c, 1)
+	s.request(running, req, "", false)
+	ended := s.begin(p, c, 2)
+	s.request(ended, req, "", false)
+	s.end(ended)
+	s.begin(p, c, 3)
+	turns := func() []int {
+		var out []int
+		for _, t := range s.List() {
+			out = append(out, t.Turn)
+		}
+		return out
+	}
+	if got := turns(); !slices.Equal(got, []int{3, 1}) {
+		t.Errorf("turns %v, want 3 and the running 1", got)
+	}
+	s.request(running, req, "", false)
+	if want := 2 * textSize(running.Requests[0]); s.size != want {
+		t.Errorf("size %d, want %d", s.size, want)
+	}
+	s.begin(p, c, 4) // every turn runs: over max for a while
+	if got := turns(); !slices.Equal(got, []int{4, 3, 1}) {
+		t.Errorf("turns %v", got)
+	}
+}
+
+// Clear drops the chat's turns, so its new turn 1 is a new record.
+func TestClearDropsTraces(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	h.o.d.Traces = NewTraces()
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	other := h.newChat(chat.Chat{Title: "Other"})
+	h.turn(c.ID, "one")
+	h.turn(other.ID, "hi")
+	if err := h.o.Clear(context.Background(), h.pid, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	if list := h.o.d.Traces.List(); len(list) != 1 || list[0].Chat != other.ID {
+		t.Errorf("List after Clear = %+v", list)
+	}
+	h.turn(c.ID, "fresh start")
+	tr, ok := h.o.d.Traces.Turn(TraceKey{h.pid, c.ID, 1})
+	if !ok || len(tr.Requests) != 1 || tr.Ended.IsZero() {
+		t.Errorf("turn 1 after Clear: %+v", tr)
+	}
+	var nilTraces *Traces
+	nilTraces.drop(h.pid, c.ID)
 }

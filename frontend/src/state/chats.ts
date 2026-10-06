@@ -1,6 +1,7 @@
 import { create } from "zustand"
 
 import { ChatKind, ChatService, ChatState, type ChatItem, type ChatStatus, type WaitingItem } from "@/lib/api"
+import { useThreads } from "@/state/thread"
 
 // withStatus applies a chat:status event to a project's chat list. Events
 // for chats not in the list are dropped: the next List has them.
@@ -50,6 +51,8 @@ export const useChats = create<ChatsState>((set, get) => ({
   load: async (project) => {
     const items = (await ChatService.List(project)) ?? []
     set((s) => ({ byProject: { ...s.byProject, [project]: items } }))
+    // A chat no longer listed was deleted: its thread goes too.
+    useThreads.getState().gone(project, items.map((it) => it.chat.id))
   },
   loadWaiting: async () => {
     set({ waiting: (await ChatService.Waiting()) ?? [] })

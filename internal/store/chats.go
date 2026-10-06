@@ -115,6 +115,7 @@ var (
 	ErrTitleTaken = errors.New("store: another chat has this title")
 	ErrBadTitle   = errors.New("store: a title needs 1 to 100 characters on one line")
 	ErrTooLong    = errors.New("store: the text is over its token limit")
+	ErrNotPending = errors.New("store: the card was already answered or closed")
 )
 
 func estimateTokens(s string) int { return len(s) / 4 }
@@ -577,7 +578,9 @@ func (c *ChatsDB) AppendPart(ctx context.Context, m id.Message, p chat.Part) (in
 }
 
 // SetPart replaces an approval card or a question form with its answered
-// or closed form (SPEC 8.8). Other parts don't change once written.
+// or closed form (SPEC 8.8). Other parts don't change once written, and
+// neither does a card that was already answered or closed: that is
+// ErrNotPending.
 func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part) (uint64, error) {
 	if p.Kind != chat.PartApproval && p.Kind != chat.PartQuestion {
 		return 0, fmt.Errorf("store: a %s part can't be changed", p.Kind)
@@ -591,16 +594,39 @@ func (c *ChatsDB) SetPart(ctx context.Context, m id.Message, i int, p chat.Part)
 	}
 	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (uint64, error) {
 		var ch id.Chat
-		err := tx.QueryRow(`UPDATE message_parts SET content = ? WHERE message_id = ? AND seq = ? AND type = ?
-			RETURNING (SELECT chat_id FROM messages WHERE id = message_id)`, rows[0].content, m, i, p.Kind).Scan(&ch)
+		var content string
+		err := tx.QueryRow(`SELECT m.chat_id, p.content FROM message_parts p JOIN messages m ON m.id = p.message_id
+			WHERE p.message_id = ? AND p.seq = ? AND p.type = ?`, m, i, p.Kind).Scan(&ch, &content)
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, fmt.Errorf("store: message %s has no %s part %d: %w", m, p.Kind, i, ErrNotFound)
 		}
 		if err != nil {
 			return 0, err
 		}
+		old, err := decodePart(p.Kind, content)
+		if err != nil {
+			return 0, err
+		}
+		if !pendingCard(old) {
+			return 0, fmt.Errorf("store: message %s, %s part %d: %w", m, p.Kind, i, ErrNotPending)
+		}
+		if _, err := tx.Exec(`UPDATE message_parts SET content = ? WHERE message_id = ? AND seq = ?`, rows[0].content, m, i); err != nil {
+			return 0, err
+		}
 		return bump(tx, ch)
 	})
+}
+
+// pendingCard tells whether an approval card or question form still waits
+// for its answer.
+func pendingCard(p chat.Part) bool {
+	switch {
+	case p.Approval != nil:
+		return p.Approval.Answer == "" && p.Approval.AnsweredAt == nil && !p.Approval.Stopped
+	case p.Question != nil:
+		return p.Question.AnsweredAt == nil && !p.Question.Stopped
+	}
+	return false
 }
 
 // SetUsage saves an assistant message's token counts once its response has

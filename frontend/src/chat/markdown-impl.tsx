@@ -20,8 +20,9 @@ function dirOf(node?: Element): "rtl" | "ltr" {
   return node ? textDir(text(node)) : "ltr"
 }
 
-// Links open in the browser, not in the app's window.
+// Links open in the browser, not in the app's window; a middle click too.
 function open(e: React.MouseEvent<HTMLAnchorElement>) {
+  if (e.type === "auxclick" && e.button !== 1) return
   const href = e.currentTarget.href
   e.preventDefault()
   if (/^(https?|mailto):/i.test(href)) void Browser.OpenURL(href)
@@ -30,7 +31,7 @@ function open(e: React.MouseEvent<HTMLAnchorElement>) {
 const remarkPlugins = [remarkGfm]
 const rehypePlugins = [rehypeHighlight]
 const components: Components = {
-  a: ({ node: _, ...props }) => <a {...props} onClick={open} />,
+  a: ({ node: _, ...props }) => <a {...props} onClick={open} onAuxClick={open} />,
   // Only the project's own pictures load; a picture from the web would
   // tell its host the chat was read.
   img: ({ node: _, src, alt }) =>
@@ -41,6 +42,13 @@ const components: Components = {
     </div>
   ),
   p: ({ node: _, ...props }) => <p dir="auto" {...props} />,
+  h1: ({ node: _, ...props }) => <h1 dir="auto" {...props} />,
+  h2: ({ node: _, ...props }) => <h2 dir="auto" {...props} />,
+  h3: ({ node: _, ...props }) => <h3 dir="auto" {...props} />,
+  h4: ({ node: _, ...props }) => <h4 dir="auto" {...props} />,
+  h5: ({ node: _, ...props }) => <h5 dir="auto" {...props} />,
+  h6: ({ node: _, ...props }) => <h6 dir="auto" {...props} />,
+  blockquote: ({ node: _, ...props }) => <blockquote dir="auto" {...props} />,
   // Lists and items get an explicit direction, so an item that differs
   // from its list can make room for its marker (typeset.css).
   ul: ({ node, ...props }) => <ul dir={dirOf(node)} {...props} />,

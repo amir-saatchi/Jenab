@@ -1,13 +1,19 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log/slog"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/secret"
 )
 
 func TestModels(t *testing.T) {
@@ -160,5 +166,73 @@ func TestNotifyWithoutNotifier(t *testing.T) {
 	e.svc.System.notify = func(n Notification) error { got = n; return nil }
 	if err := e.svc.System.Notify(context.Background(), Notification{Chat: "c", Title: "Mother is waiting"}); err != nil || got.Title != "Mother is waiting" {
 		t.Fatalf("Notify = %v, %+v", err, got)
+	}
+}
+
+// A secret typed into the base URL reaches neither the error nor the log.
+func TestConnectBaseURLSecret(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	var buf bytes.Buffer
+	e.svc.Settings.log = slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	for _, u := range []string{"https://x.test/v1/?key=sk-live-SECRET", "https://bob:pa55word@x.test/v1/"} {
+		_, err := e.svc.Settings.Connect(ctx, ConnectRequest{Name: "x", Kind: string(provider.KindCompatible), BaseURL: u, Key: "k-0123456789"})
+		uiErr(t, err, KindInvalid)
+		ue := err.(*UIError)
+		if s := ue.Message + ue.Details + buf.String(); strings.Contains(s, "SECRET") || strings.Contains(s, "55word") {
+			t.Errorf("%s: a secret shows: %#v, log %q", u, ue, buf.String())
+		}
+	}
+}
+
+// Mistakes in the Connect form are invalid input with a useful message.
+func TestConnectInvalid(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	for _, req := range []ConnectRequest{
+		{Name: "lan", Kind: string(provider.KindCompatible), BaseURL: "http://192.168.1.5:8080/v1/", Key: "k-0123456789"},
+		{Name: "nokey", Kind: string(provider.KindCompatible), BaseURL: "https://x.test/v1/"},
+		{Name: "a/b", Kind: string(provider.KindCompatible), BaseURL: "https://x.test/v1/", Key: "k-0123456789"},
+		{Name: "long", Kind: string(provider.KindCompatible), BaseURL: "https://x.test/v1/", Key: strings.Repeat("k", secret.MaxSize+1)},
+		{Name: "cf", Kind: string(provider.KindCompatible), BaseURL: "https://x.test/{account_id}/v1/", Key: "k-0123456789"},
+	} {
+		_, err := e.svc.Settings.Connect(ctx, req)
+		var ue *UIError
+		if !errors.As(err, &ue) || ue.Kind != KindInvalid || ue.Message == "Something went wrong." {
+			t.Errorf("%s: %#v", req.Name, err)
+		}
+	}
+}
+
+// A name in use for another kind or base URL is refused before its key is
+// replaced; the same connection gets the new key and keeps its models.
+func TestConnectNameTaken(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	ss := e.svc.Settings
+	before := e.settings.Get().LLM.Providers["p"]
+	for _, req := range []ConnectRequest{
+		{Name: "p", Kind: string(provider.KindGemini), Key: "g-key-0123456789"},
+		{Name: "p", Kind: string(provider.KindCompatible), BaseURL: "https://other.test/v1/", Key: "o-key-0123456789"},
+	} {
+		_, err := ss.Connect(ctx, req)
+		uiErr(t, err, KindInvalid)
+	}
+	if v, err := e.secrets.Get(provider.KeyName("p")); err != nil || v.Reveal() != testKey {
+		t.Errorf("the key changed: %v", err)
+	}
+	if got := e.settings.Get().LLM.Providers["p"]; !reflect.DeepEqual(got, before) {
+		t.Errorf("settings changed: %+v", got)
+	}
+
+	r, err := ss.Connect(ctx, ConnectRequest{Name: "p", Kind: string(provider.KindCompatible), BaseURL: "https://example.test/v1/", Key: "new-key-0123456789"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := e.secrets.Get(provider.KeyName("p")); v.Reveal() != "new-key-0123456789" {
+		t.Error("the key was not replaced")
+	}
+	if got := r.View.Settings.LLM.Providers["p"]; !reflect.DeepEqual(got.Models, before.Models) {
+		t.Errorf("models = %+v, want %+v", got.Models, before.Models)
 	}
 }

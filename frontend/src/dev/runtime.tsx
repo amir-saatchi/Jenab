@@ -11,17 +11,25 @@ import { duration, num } from "@/dev/format"
 import { DevService, type ProjectRuntime, type ProviderStatus, type Runtime } from "@/lib/api"
 import { toUIError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
+import { useSettings } from "@/state/settings"
 
 // RuntimeView is the runtime panel (SPEC 8.4): the chats in a turn, the
 // background work, each database writer, the LLM-call slots, and anything
-// that hasn't moved for longer than its limit. It reads again every second.
+// that hasn't moved for longer than its limit. It reads again every second
+// while the window is visible and the developer tools are on.
 export function RuntimeView() {
+  const on = useSettings((s) => s.started?.dev_tools ?? false)
   const [rt, setRt] = React.useState<Runtime>()
   const [error, setError] = React.useState<string>()
   React.useEffect(() => {
+    if (!on) return
     let stop = false
+    let busy = false
     let timer: ReturnType<typeof setTimeout> | undefined
     const load = async () => {
+      timer = undefined
+      if (stop || busy || document.visibilityState !== "visible") return
+      busy = true
       try {
         const r = await DevService.Runtime()
         if (stop) return
@@ -29,15 +37,23 @@ export function RuntimeView() {
         setError(undefined)
       } catch (err) {
         if (!stop) setError(toUIError(err).message)
+      } finally {
+        busy = false
       }
-      if (!stop) timer = setTimeout(load, document.visibilityState === "visible" ? 1000 : 5000)
+      if (!stop) timer = setTimeout(load, 1000)
+    }
+    // Hidden, the next read waits until the window shows again.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !timer) void load()
     }
     void load()
+    document.addEventListener("visibilitychange", onVisibility)
     return () => {
       stop = true
       clearTimeout(timer)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
-  }, [])
+  }, [on])
 
   return (
     <DevPage title="Runtime" description="What runs now. Reads again every second.">

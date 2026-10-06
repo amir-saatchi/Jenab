@@ -553,3 +553,140 @@ func TestFetchPageAsksForTheHost(t *testing.T) {
 		}
 	})
 }
+
+// A turn that read outside data and then failed keeps Auto's mark after a
+// restart: Retry continues it, and a new host is asked for (8.8).
+func TestUntrustedAfterRestart(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		root := t.TempDir()
+		n := newNeedy()
+		h := newHarness(t, root, "", testSettings(), n, outside())
+		c := h.newChat(chat.Chat{Title: "Pages"})
+		h.setLevel(project.Auto)
+		h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"}))
+		h.turn(c.ID, "read the page")
+		h.stop()
+
+		h = newHarness(t, root, h.pid, testSettings(), n, outside())
+		defer h.stop()
+		h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), fake.Text("done"))
+		if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+			t.Fatal(err)
+		}
+		w := h.waiting(c.ID)
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+		h.wait()
+		if n.runs.Load() != 0 {
+			t.Error("the host was approved without asking")
+		}
+	})
+}
+
+// The mark comes from the history: results of untrusted or unknown tools
+// after the user's last message set it; that message, not a notice,
+// clears it.
+func TestUntrustedIn(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings(), echo(), outside())
+	defer h.stop()
+	user := func(text string) chat.Message {
+		return chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}}
+	}
+	notice := chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeApprovalLevel, Text: "[level]"}}}}
+	called := func(id, name string) []chat.Message {
+		return []chat.Message{
+			{Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: id, Name: name}}}},
+			{Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: id, Text: "x"}}}},
+		}
+	}
+	for name, tc := range map[string]struct {
+		ms   []chat.Message
+		want bool
+	}{
+		"trusted tool":         {append([]chat.Message{user("a")}, called("c1", "echo")...), false},
+		"untrusted tool":       {append([]chat.Message{user("a")}, called("c1", "outside")...), true},
+		"unknown tool":         {append([]chat.Message{user("a")}, called("c1", "gone")...), true},
+		"message after":        {append(append([]chat.Message{user("a")}, called("c1", "outside")...), user("b")), false},
+		"notice after":         {append(append([]chat.Message{user("a")}, called("c1", "outside")...), notice), true},
+		"untrusted then other": {append(append([]chat.Message{user("a")}, called("c1", "outside")...), called("c2", "echo")...), true},
+	} {
+		if got := h.o.untrustedIn(tc.ms); got != tc.want {
+			t.Errorf("%s: %v, want %v", name, got, tc.want)
+		}
+	}
+}
+
+// twoCards needs a Starlark approval, which Auto gives, and one that asks
+// at every level.
+type twoCards struct{ *needy }
+
+func (n twoCards) Preflight(context.Context, tool.Call) (tool.Needs, error) {
+	opts := []chat.ApprovalOption{{Label: "Approve", Grant: chat.GrantAlways}, {Label: "Deny", Grant: chat.GrantDeny}}
+	return tool.Needs{Approvals: []chat.Approval{
+		{ID: id.Approval(id.New()), Kind: "starlark", Target: "code", Ask: "Run the code?", Risk: "It runs code.", Options: opts},
+		{ID: id.Approval(id.New()), Kind: "migration", Target: "drop", Ask: "Drop the table?", Risk: "Data is lost.", Options: opts},
+	}}, nil
+}
+
+// A call whose card is denied records none of the level's approvals.
+func TestDeniedCallGrantsNothing(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		n := twoCards{newNeedy()}
+		h := newHarness(t, t.TempDir(), "", testSettings(), n)
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Code"})
+		h.setLevel(project.Auto)
+		h.fp.Push(fake.ToolCall("c1", "needy", needs("", "x")), fake.Text("ok"))
+		h.send(c.ID, "go")
+		w := h.waiting(c.ID)
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+		h.wait()
+		if n.runs.Load() != 0 {
+			t.Error("the tool ran")
+		}
+		if as := h.approvals(); len(as) != 1 || as[0].Kind != "migration" || as[0].Answer != chat.GrantDeny {
+			t.Errorf("records %+v", as)
+		}
+		if cs := cards(h.messages(c.ID)); len(cs) != 1 || cs[0].Kind != "migration" {
+			t.Errorf("cards %+v", cs)
+		}
+	})
+}
+
+// answerer answers each new card as soon as its PartDone arrives, like a
+// fast click.
+type answerer struct {
+	*recorder
+	o    *Orchestrator
+	pid  id.Project
+	errs chan error
+}
+
+func (a *answerer) Part(p chat.PartDone) {
+	a.recorder.Part(p)
+	if c := p.Part.Approval; c != nil && c.Answer == "" && !c.Stopped {
+		go func() {
+			a.errs <- a.o.Answer(a.pid, p.Chat, Answer{Message: p.Message, Index: p.Index, Grant: chat.GrantAlways})
+		}()
+	}
+}
+
+// The wait is set before the card goes out, so an answer at once is taken.
+func TestAnswerAsSoonAsTheCardArrives(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		n := newNeedy()
+		h := newHarness(t, t.TempDir(), "", testSettings(), n)
+		defer h.stop()
+		a := &answerer{recorder: h.pub, o: h.o, pid: h.pid, errs: make(chan error, 1)}
+		h.o.pub = safePublisher{a, h.o.d.Log}
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		h.fp.Push(fake.ToolCall("c1", "needy", needs("", "api.example.com")), fake.Text("done"))
+		h.send(c.ID, "prices?")
+		if err := <-a.errs; err != nil {
+			t.Fatal(err)
+		}
+		h.wait()
+		if n.runs.Load() != 1 {
+			t.Errorf("%d runs", n.runs.Load())
+		}
+	})
+}

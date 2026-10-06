@@ -41,6 +41,15 @@ export function rows(messages: Message[]): Row[] {
   return out
 }
 
+// splitJoining splits off the user messages at the end that join the
+// running turn at its next step. They show last, below the answer
+// streaming, and the agent's work before them is still the turn's last row.
+export function splitJoining(rs: Row[], joining: string[]): [Row[], Row[]] {
+  let i = rs.length
+  while (i > 0 && rs[i - 1].kind === "user" && joining.includes(rs[i - 1].id)) i--
+  return [rs.slice(0, i), rs.slice(i)]
+}
+
 // results are a group's tool results by call ID.
 export function results(messages: Message[]): Map<string, ToolResult> {
   const out = new Map<string, ToolResult>()
@@ -49,9 +58,10 @@ export function results(messages: Message[]): Map<string, ToolResult> {
 }
 
 // lastNotice is the newest notice of the chat, for the provider card: a
-// turn that failed because no model is set up.
+// turn that failed because no model is set up. As on the Go side, messages
+// that only note a change of the approval level don't count.
 export function lastNotice(messages: Message[]): { message: Message; kind: NoticeKind; text: string } | null {
-  const m = messages[messages.length - 1]
+  const m = messages.findLast((m) => (m.parts ?? []).some((p) => p.notice?.kind !== NoticeKind.NoticeApprovalLevel))
   const p = m?.parts?.[m.parts.length - 1]
   return m && p?.notice ? { message: m, kind: p.notice.kind, text: p.notice.text } : null
 }

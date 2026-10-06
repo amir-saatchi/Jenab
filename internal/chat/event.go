@@ -34,6 +34,10 @@ type Delta struct {
 	Part    int        `json:"part"` // the part's index in the message
 	Kind    PartKind   `json:"kind"` // text or thinking
 	Text    string     `json:"text"` // new text since the last delta
+	// Offset is where Text starts in the part's text, in UTF-16 units as
+	// JavaScript counts, so a chat opened mid-answer can skip the deltas
+	// Live.Text already holds.
+	Offset int `json:"offset"`
 }
 
 // PartDone is a finished part, as it was written to chats.db.
@@ -42,6 +46,7 @@ type PartDone struct {
 	Chat    id.Chat    `json:"chat"`
 	Seq     uint64     `json:"seq"`
 	Message id.Message `json:"message"`
+	Turn    int        `json:"turn"` // the message's turn
 	Index   int        `json:"index"`
 	Part    Part       `json:"part"`
 }

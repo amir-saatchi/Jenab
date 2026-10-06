@@ -1,11 +1,13 @@
 import * as React from "react"
+import { MenuIcon } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { InspectorView } from "@/dev/inspector"
 import { RuntimeView } from "@/dev/runtime"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { current, useNav } from "@/state/nav"
+import { current, useNav, type Place } from "@/state/nav"
 import { useUI } from "@/state/ui"
 import { BottomBar } from "@/shell/bottom-bar"
 import { ChatSidebar } from "@/shell/chat-sidebar"
@@ -34,15 +36,18 @@ export function AppShell() {
       <div className="flex min-h-0 flex-1">
         {!narrow && <Rail chats={!!chat && sidebarHidden} />}
         {!narrow && chat && !sidebarHidden && <ChatSidebar project={chat.project} />}
-        <main className="min-w-0 flex-1 overflow-hidden">
-          {!place && <Welcome />}
-          {chat && <ChatView key={chat.chat} project={chat.project} chat={chat.chat} />}
-          {place?.view === "settings" && <SettingsView section={place.section} />}
-          {place?.view === "project-settings" && <ProjectSettings project={place.project} />}
-          {place?.view === "inspector" && (
-            <InspectorView key={`${place.project}/${place.chat}/${place.turn}`} project={place.project} chat={place.chat} turn={place.turn} />
-          )}
-          {place?.view === "runtime" && <RuntimeView />}
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {narrow && !chat && <PageHeader title={pageTitle(place)} />}
+          <div className="min-h-0 flex-1">
+            {!place && <Welcome />}
+            {chat && <ChatView key={chat.chat} project={chat.project} chat={chat.chat} />}
+            {place?.view === "settings" && <SettingsView section={place.section} />}
+            {place?.view === "project-settings" && <ProjectSettings project={place.project} />}
+            {place?.view === "inspector" && (
+              <InspectorView key={`${place.project}/${place.chat}/${place.turn}`} project={place.project} chat={place.chat} turn={place.turn} />
+            )}
+            {place?.view === "runtime" && <RuntimeView />}
+          </div>
         </main>
         {!narrow && chat && <RightSidebar project={chat.project} />}
       </div>
@@ -51,6 +56,37 @@ export function AppShell() {
       <NewProject />
     </SidebarProvider>
   )
+}
+
+// PageHeader is the header of a place other than a chat below 900 px: its
+// ☰ opens the rail, as the chat header's does.
+function PageHeader({ title }: { title: string }) {
+  const set = useUI((s) => s.set)
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+      <Button variant="ghost" size="icon-sm" aria-label="Open the sidebar" onClick={() => set({ leftOverlay: true })}>
+        <MenuIcon />
+      </Button>
+      <span className="truncate font-medium">{title}</span>
+    </header>
+  )
+}
+
+export function pageTitle(place: Place | undefined) {
+  switch (place?.view) {
+    case undefined:
+      return "Jenab"
+    case "settings":
+      return "Settings"
+    case "project-settings":
+      return "Project settings"
+    case "inspector":
+      return "Turn inspector"
+    case "runtime":
+      return "Runtime"
+    case "chat":
+      return "Chat"
+  }
 }
 
 // Overlays are the rail with the chat list, and the right sidebar, below

@@ -41,6 +41,13 @@ const minEstimate = 2000
 var (
 	ErrUnknownModel    = errors.New("provider: unknown model")
 	ErrUnknownProvider = errors.New("provider: no provider by that name")
+
+	// Mistakes in the *Connect* form the user can fix.
+	ErrBadName    = errors.New("unusable provider name")
+	ErrBadBaseURL = errors.New("unusable base URL")
+	ErrBadField   = errors.New("unusable base URL field")
+	ErrNeedKey    = errors.New("an API key is needed")
+	ErrKeyTooLong = errors.New("the API key is too long")
 )
 
 // KeyName is the keychain name of a provider's key.
@@ -230,7 +237,7 @@ func (r *Registry) backendOf(c *conn) (Provider, error) {
 		switch {
 		case err == nil:
 			conn.Key = key
-		case errors.Is(err, secret.ErrNotFound) && c.kind == KindOllama:
+		case errors.Is(err, secret.ErrNotFound) && c.kind == KindOllama && localURL(c.set.BaseURL):
 			// a local Ollama needs no key
 		default:
 			return nil, &Error{Kind: BadRequest, Provider: c.name, Message: "no key is stored for this provider", Err: err}
@@ -640,24 +647,28 @@ type Connected struct {
 // are the values for its placeholders, stored in the keychain with the key.
 func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL, key string, fields map[string]string) (Connected, error) {
 	if name == "" || strings.ContainsAny(name, "/: ") {
-		return Connected{}, fmt.Errorf("provider: %q is not a usable name", name)
+		return Connected{}, fmt.Errorf("provider: %w: %q must not be empty or hold /, : or spaces", ErrBadName, name)
 	}
 	f := r.d.Backends[kind]
 	if f == nil {
 		return Connected{}, fmt.Errorf("provider: no backend for kind %q", kind)
 	}
-	if key == "" && kind != KindOllama {
+	if key == "" && (kind != KindOllama || !localURL(baseURL)) {
 		// backendOf refuses calls without a stored key, except a local
 		// Ollama's, so don't save a connection that can't be used.
-		return Connected{}, fmt.Errorf("provider %s: an API key is needed", name)
+		return Connected{}, fmt.Errorf("provider %s: %w", name, ErrNeedKey)
+	}
+	if len(key) > secret.MaxSize {
+		return Connected{}, fmt.Errorf("provider %s: %w: it has %d bytes, more than the keychain takes (%d)", name, ErrKeyTooLong, len(key), secret.MaxSize)
 	}
 	if baseURL == "" {
 		baseURL = DefaultBaseURL(kind)
 	}
 	if baseURL == "" {
-		return Connected{}, fmt.Errorf("provider: %s needs a base URL", kind)
+		return Connected{}, fmt.Errorf("provider: %w: %s needs a base URL", ErrBadBaseURL, kind)
 	}
-	var hide []secret.Value // the field values, redacted like the key
+	typed := secret.NewValue(KeyName(name), key)
+	hide := []secret.Value{typed} // the key and field values, redacted from errors
 	for _, f := range Placeholders(baseURL) {
 		hide = append(hide, secret.NewValue(FieldName(name, f), fields[f]))
 	}
@@ -668,12 +679,12 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 		return "", secret.ErrNotFound
 	})
 	if err != nil {
-		return Connected{}, fmt.Errorf("provider %s: %w", name, err)
+		return Connected{}, fmt.Errorf("provider %s: %w: %w", name, ErrBadField, err)
 	}
-	if _, err := CheckBaseURL(resolved); err != nil {
-		return Connected{}, errors.New(redactAll(err.Error(), hide))
+	if _, err := checkBaseURL(resolved, func(s string) string { return redactAll(s, hide) }); err != nil {
+		return Connected{}, err
 	}
-	conn := Connection{Name: name, Kind: kind, BaseURL: resolved, Key: secret.NewValue(KeyName(name), key)}
+	conn := Connection{Name: name, Kind: kind, BaseURL: resolved, Key: typed}
 	conn.Redact = func(s string) string {
 		if r.d.Secrets != nil {
 			s = r.d.Secrets.Redact(s)

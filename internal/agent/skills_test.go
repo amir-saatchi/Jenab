@@ -13,6 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/fake"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -278,5 +279,59 @@ func TestLoadSkillWithoutSkill(t *testing.T) {
 	_, err := tool.Run(context.Background(), loadSkill(), tool.Call{ID: "c1", Args: json.RawMessage(`{"name": "sql"}`), Env: &tool.Env{}})
 	if err == nil || err.Error() != "skills can't be loaded here" {
 		t.Errorf("err = %v", err)
+	}
+}
+
+// Loading a skill writes the chat's skills and the chip; the frontend
+// sees every sequence number, and each part has its turn.
+func TestSkillEventsHaveNoGap(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings(), loadSkill())
+	defer h.stop()
+	h.o.d.Skills = skillSet(t, sqlSkill)
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.fp.Push(fake.ToolCall("c1", "load_skill", map[string]string{"name": "sql"}), fake.Text("done"))
+	h.turn(c.ID, "write SQL")
+	h.pub.mu.Lock()
+	parts := slices.Clone(h.pub.parts)
+	h.pub.mu.Unlock()
+	for i, p := range parts {
+		if p.Turn != 1 {
+			t.Errorf("part %d: turn %d", i, p.Turn)
+		}
+		if i > 0 && p.Seq > parts[i-1].Seq+1 {
+			t.Errorf("part %d: seq %d after %d", i, p.Seq, parts[i-1].Seq)
+		}
+	}
+	if s := parts[len(parts)-1].Seq; s != h.o.Live(h.pid, c.ID).Seq {
+		t.Errorf("last part seq %d, the chat's %d", s, h.o.Live(h.pid, c.ID).Seq)
+	}
+}
+
+// A turn continued by Retry still keeps the result that carries a skill
+// from load_with whole.
+func TestLoadWithResultIsNotTrimmedAfterRetry(t *testing.T) {
+	set := testSettings()
+	set.LLM.Providers["p"].Models[0].Context = 7600 // trims past 3,800 tokens
+	h := newHarness(t, t.TempDir(), "", set, big())
+	defer h.stop()
+	h.o.d.Skills = skillSet(t, skill.Skill{Name: "data", Description: "Data.", LoadWith: []string{"big"}, Body: "Read refs in parts."})
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	for i := range 4 {
+		h.fp.Push(read(fake.ToolCall(fmt.Sprint("c", i), "big", map[string]int{"n": 20000}), 10000))
+	}
+	h.fp.Push(fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"}))
+	h.turn(c.ID, "read four")
+	h.fp.Push(read(fake.Text("done"), 10000))
+	if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	h.wait()
+	calls := h.fp.Calls()
+	for _, m := range calls[len(calls)-1].Messages {
+		for _, p := range m.Parts {
+			if r := p.ToolResult; r != nil && r.CallID == "c0" && !strings.HasSuffix(r.Text, "Skill loaded: data\n\nRead refs in parts.") {
+				t.Errorf("c0 after Retry: %q", r.Text)
+			}
+		}
 	}
 }

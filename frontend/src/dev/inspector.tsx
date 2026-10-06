@@ -29,8 +29,13 @@ export function InspectorView({ project, chat, turn }: Partial<Pick>) {
   const [pick, setPick] = React.useState<Pick | undefined>(
     project && chat && turn ? { project, chat, turn } : undefined,
   )
-  const [view, setView] = React.useState<TurnView>()
-  const [error, setError] = React.useState<string>()
+  // shown is the turn loaded, or the error, for the pick under key; for
+  // another key it is left out, so a new pick never shows the old turn.
+  const [shown, setShown] = React.useState<{ key: string; view?: TurnView; error?: string }>()
+  const [listError, setListError] = React.useState<string>()
+  const key = pick && pickKey(pick)
+  const view = shown?.key === key ? shown?.view : undefined
+  const error = shown?.key === key ? shown?.error : view ? undefined : listError
 
   const loadTurns = React.useCallback(async () => {
     const list = (await DevService.Turns()) ?? []
@@ -39,33 +44,55 @@ export function InspectorView({ project, chat, turn }: Partial<Pick>) {
   }, [])
 
   React.useEffect(() => {
-    loadTurns().catch((err) => setError(toUIError(err).message))
+    loadTurns().catch((err) => setListError(toUIError(err).message))
   }, [loadTurns])
 
-  // The turn, again every second while it runs.
+  // The turn, again every second while it runs and the window is visible.
+  // A failed load tries again, waiting twice as long each time up to 30 s.
   React.useEffect(() => {
     if (!pick) return
+    const key = pickKey(pick)
     let stop = false
+    let busy = false
+    let done = false
+    let loaded = false
+    let failures = 0
     let timer: ReturnType<typeof setTimeout> | undefined
+    const later = (ms: number) => (timer = setTimeout(load, ms))
     const load = async () => {
+      timer = undefined
+      if (stop || busy || done || document.visibilityState !== "visible") return
+      busy = true
       try {
         const v = await DevService.Turn(pick.project, pick.chat, pick.turn)
         if (stop) return
-        setView(v)
-        setError(undefined)
-        if (v.running) timer = setTimeout(load, 1000)
-        else void loadTurns().catch(() => {})
-      } catch (err) {
-        if (!stop) {
-          setView(undefined)
-          setError(toUIError(err).message)
+        loaded = true
+        failures = 0
+        setShown({ key, view: v })
+        if (v.running) later(1000)
+        else {
+          done = true
+          void loadTurns().catch(() => {})
         }
+      } catch (err) {
+        if (stop) return
+        failures++
+        // A turn on screen stays there while the load is tried again.
+        if (!loaded) setShown({ key, error: toUIError(err).message })
+        later(Math.min(1000 * 2 ** failures, 30_000))
+      } finally {
+        busy = false
       }
     }
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !timer) void load()
+    }
     void load()
+    document.addEventListener("visibilitychange", onVisibility)
     return () => {
       stop = true
       clearTimeout(timer)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
   }, [pick, loadTurns])
 
@@ -84,13 +111,17 @@ export function InspectorView({ project, chat, turn }: Partial<Pick>) {
             <EmptyDescription>{error}</EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : view && pick ? (
-        <Turn key={`${pick.project}/${pick.chat}/${pick.turn}`} view={view} />
+      ) : view ? (
+        <Turn key={key} view={view} />
       ) : (
         <Spinner />
       )}
     </DevPage>
   )
+}
+
+function pickKey(p: Pick) {
+  return `${chatKey(p.project, p.chat)}#${p.turn}`
 }
 
 function NoTurns() {
@@ -314,11 +345,19 @@ function Requests({
                   <TableRow
                     data-state={i === chosen ? "selected" : undefined}
                     className="cursor-pointer tabular-nums"
-                    tabIndex={0}
                     onClick={() => onChoose(i)}
-                    onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onChoose(i))}
                   >
-                    <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="link"
+                        className="h-auto p-0"
+                        aria-label={`Request ${i + 1}`}
+                        aria-pressed={i === chosen}
+                        onClick={() => onChoose(i)}
+                      >
+                        {i + 1}
+                      </Button>
+                    </TableCell>
                     <TableCell className="text-end">{counted(r, prompt(r))}</TableCell>
                     <TableCell className="text-end">{counted(r, r.usage.cache_read)}</TableCell>
                     <TableCell className="text-end">{counted(r, r.usage.output)}</TableCell>

@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -24,6 +26,8 @@ type Settings struct {
 	s        config.Settings
 	problems []config.Problem
 	apply    []func(config.Settings)
+
+	applying sync.Mutex // runs the OnChange functions one save at a time
 }
 
 // NewSettings holds s, as loaded from path with problems.
@@ -39,7 +43,8 @@ func (s *Settings) Get() config.Settings {
 }
 
 // OnChange adds fn, called with the new settings after each save, e.g. to
-// resize the call gates and apply provider changes.
+// resize the call gates and apply provider changes. fn runs without the
+// lock, so it may call Get, or wait on the main thread.
 func (s *Settings) OnChange(fn func(config.Settings)) {
 	s.mu.Lock()
 	s.apply = append(s.apply, fn)
@@ -49,8 +54,41 @@ func (s *Settings) OnChange(fn func(config.Settings)) {
 // save writes next to config.yaml, keeping its comments, and reads it back,
 // so values out of range come back as problems with their defaults used.
 func (s *Settings) save(next config.Settings) (config.Settings, []config.Problem, error) {
+	return s.update(func(cur *config.Settings) error {
+		*cur = next
+		return nil
+	})
+}
+
+// update changes the settings with fn and saves them, holding the lock
+// from reading to saving, so two changes never undo each other. fn gets a
+// copy whose LLM maps it may change; an error from fn saves nothing.
+func (s *Settings) update(fn func(*config.Settings) error) (config.Settings, []config.Problem, error) {
+	loaded, problems, err := s.write(fn)
+	if err != nil {
+		return loaded, problems, err
+	}
+	s.applyLatest()
+	return loaded, problems, nil
+}
+
+// write is update without the OnChange functions, under the lock.
+func (s *Settings) write(fn func(*config.Settings) error) (config.Settings, []config.Problem, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	next := s.s
+	next.LLM.Providers = maps.Clone(next.LLM.Providers)
+	next.LLM.Models = maps.Clone(next.LLM.Models)
+	next.LLM.ProviderMaxParallelCalls = maps.Clone(next.LLM.ProviderMaxParallelCalls)
+	if next.LLM.Providers == nil {
+		next.LLM.Providers = map[string]config.ProviderSettings{}
+	}
+	if next.LLM.Models == nil {
+		next.LLM.Models = map[string]string{}
+	}
+	if err := fn(&next); err != nil {
+		return s.s, s.problems, err
+	}
 	if err := config.SaveSettings(s.path, next); err != nil {
 		return s.s, s.problems, err
 	}
@@ -59,10 +97,20 @@ func (s *Settings) save(next config.Settings) (config.Settings, []config.Problem
 		return s.s, s.problems, err
 	}
 	s.s, s.problems = loaded, problems
-	for _, fn := range s.apply {
-		fn(loaded)
-	}
 	return loaded, problems, nil
+}
+
+// applyLatest calls the OnChange functions with the settings now, one save
+// at a time, so a slower earlier save never applies older settings last.
+func (s *Settings) applyLatest() {
+	s.applying.Lock()
+	defer s.applying.Unlock()
+	s.mu.Lock()
+	cur, fns := s.s, slices.Clone(s.apply)
+	s.mu.Unlock()
+	for _, fn := range fns {
+		fn(cur)
+	}
 }
 
 func (s *Settings) view() SettingsView {

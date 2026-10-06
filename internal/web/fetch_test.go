@@ -103,7 +103,7 @@ func onlySite(host string) bool { return host == "site.test" }
 
 func TestFetchArticle(t *testing.T) {
 	_, c, port := server(t)
-	p, err := c.Fetch(t.Context(), "http://site.test:"+port+"/article", onlySite)
+	p, err := c.Fetch(t.Context(), "http://site.test:"+port+"/article", Rules{Private: onlySite})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestFetchArticle(t *testing.T) {
 
 func TestFetchCharset(t *testing.T) {
 	_, c, port := server(t)
-	p, err := c.Fetch(t.Context(), "http://site.test:"+port+"/fa", onlySite)
+	p, err := c.Fetch(t.Context(), "http://site.test:"+port+"/fa", Rules{Private: onlySite})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,26 +142,26 @@ func TestFetchCharset(t *testing.T) {
 func TestFetchKinds(t *testing.T) {
 	_, c, port := server(t)
 	base := "http://site.test:" + port
-	p, err := c.Fetch(t.Context(), base+"/js", onlySite)
+	p, err := c.Fetch(t.Context(), base+"/js", Rules{Private: onlySite})
 	if err != nil || !p.NeedsJavaScript {
 		t.Errorf("js page: %+v, %v", p, err)
 	}
-	p, err = c.Fetch(t.Context(), base+"/text", onlySite)
+	p, err = c.Fetch(t.Context(), base+"/text", Rules{Private: onlySite})
 	if err != nil || p.Text != "plain words" || p.NeedsJavaScript || p.MIME != "text/plain" {
 		t.Errorf("text: %+v, %v", p, err)
 	}
-	p, err = c.Fetch(t.Context(), base+"/big", onlySite)
+	p, err = c.Fetch(t.Context(), base+"/big", Rules{Private: onlySite})
 	if err != nil || !p.Truncated || len(p.Text) != MaxBody {
 		t.Errorf("big: %d bytes, truncated %v, %v", len(p.Text), p.Truncated, err)
 	}
-	if _, err := c.Fetch(t.Context(), base+"/pdf", onlySite); !errors.Is(err, ErrNotPage) {
+	if _, err := c.Fetch(t.Context(), base+"/pdf", Rules{Private: onlySite}); !errors.Is(err, ErrNotPage) {
 		t.Errorf("pdf: %v", err)
 	}
 	var se *StatusError
-	if _, err := c.Fetch(t.Context(), base+"/missing", onlySite); !errors.As(err, &se) || se.Status != 404 {
+	if _, err := c.Fetch(t.Context(), base+"/missing", Rules{Private: onlySite}); !errors.As(err, &se) || se.Status != 404 {
 		t.Errorf("missing: %v", err)
 	}
-	if _, err := c.Fetch(t.Context(), base+"/loop", onlySite); err == nil || !strings.Contains(err.Error(), "redirects") {
+	if _, err := c.Fetch(t.Context(), base+"/loop", Rules{Private: onlySite}); err == nil || !strings.Contains(err.Error(), "redirects") {
 		t.Errorf("loop: %v", err)
 	}
 }
@@ -193,7 +193,7 @@ func TestFetchBlocked(t *testing.T) {
 		{"user in URL", "http://user:pw@site.test:" + port + "/article"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := c.Fetch(t.Context(), tc.url, onlySite)
+			_, err := c.Fetch(t.Context(), tc.url, Rules{Private: onlySite})
 			var b *BlockedError
 			if !errors.As(err, &b) {
 				t.Fatalf("got %v, want a BlockedError", err)
@@ -201,7 +201,7 @@ func TestFetchBlocked(t *testing.T) {
 		})
 	}
 	// Without the exception the test server itself is blocked.
-	if _, err := c.Fetch(t.Context(), base+"/article", nil); err == nil {
+	if _, err := c.Fetch(t.Context(), base+"/article", Rules{}); err == nil {
 		t.Error("site.test without an exception was fetched")
 	}
 }
@@ -215,7 +215,12 @@ func TestBlockedAddresses(t *testing.T) {
 		{"10.0.0.1", true}, {"172.16.5.4", true}, {"172.31.255.255", true}, {"192.168.1.1", true},
 		{"169.254.169.254", true}, {"fe80::1", true}, {"fc00::1", true}, {"fd12:3456::1", true},
 		{"0.0.0.0", true}, {"::", true}, {"::ffff:0.0.0.0", true}, {"224.0.0.1", true}, {"ff02::1", true},
+		{"100.64.0.1", true}, {"100.127.255.255", true}, {"0.1.2.3", true}, {"64:ff9b::10.0.0.1", true},
+		{"64:ff9b::7f00:1", true}, {"64:ff9b:1::1", true}, {"2002:c0a8:101::1", true}, {"2002:7f00:1::", true},
+		{"::10.0.0.1", true}, {"::192.168.1.1", true}, {"::ffff:100.64.0.1", true},
 		{"8.8.8.8", false}, {"172.32.0.1", false}, {"2001:4860:4860::8888", false}, {"::ffff:8.8.8.8", false},
+		{"100.63.255.255", false}, {"100.128.0.1", false}, {"64:ff9b::8.8.8.8", false}, {"2002:808:808::1", false},
+		{"::8.8.8.8", false},
 	} {
 		if got := blocked(netip.MustParseAddr(tc.addr)) != ""; got != tc.blocked {
 			t.Errorf("%s: blocked %v, want %v", tc.addr, got, tc.blocked)
@@ -331,21 +336,99 @@ func TestFetchRedirectsAndKinds(t *testing.T) {
 	serve("/data", "application/ld+json", `{"name": "Coins"}`)
 	base := "http://site.test:" + port
 
-	p, err := c.Fetch(t.Context(), base+"/hops/10", onlySite)
+	p, err := c.Fetch(t.Context(), base+"/hops/10", Rules{Private: onlySite})
 	if err != nil || p.Text != "arrived" || p.URL != base+"/hops/0" {
 		t.Errorf("10 redirects: %+v, %v", p, err)
 	}
-	if _, err := c.Fetch(t.Context(), base+"/hops/11", onlySite); err == nil || !strings.Contains(err.Error(), "more than 10 redirects") {
+	if _, err := c.Fetch(t.Context(), base+"/hops/11", Rules{Private: onlySite}); err == nil || !strings.Contains(err.Error(), "more than 10 redirects") {
 		t.Errorf("11 redirects: %v", err)
 	}
-	p, err = c.Fetch(t.Context(), base+"/xhtml", onlySite)
+	p, err = c.Fetch(t.Context(), base+"/xhtml", Rules{Private: onlySite})
 	if err != nil || p.Title != "Coins" || !strings.Contains(p.Text, "trading was quiet") || strings.Contains(p.Text, "<p>") {
 		t.Errorf("xhtml: %+v, %v", p, err)
 	}
 	for _, path := range []string{"/feed", "/data"} {
-		p, err := c.Fetch(t.Context(), base+path, onlySite)
+		p, err := c.Fetch(t.Context(), base+path, Rules{Private: onlySite})
 		if err != nil || p.Title != "" || !strings.Contains(p.Text, "Coins") {
 			t.Errorf("%s: %+v, %v", path, p, err)
 		}
+	}
+}
+
+func TestFetchRedirectCheck(t *testing.T) {
+	srv, c, port := server(t)
+	mux := srv.Config.Handler.(*http.ServeMux)
+	mux.HandleFunc("/to-other", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://local.test:"+port+"/article", http.StatusFound)
+	})
+	mux.HandleFunc("/to-self", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://site.test:"+port+"/text", http.StatusFound)
+	})
+	both := func(h string) bool { return h == "site.test" || h == "local.test" }
+	var asked []string
+	refuse := errors.New("not approved")
+	r := Rules{Private: both, Redirect: func(_ context.Context, to *url.URL) error {
+		asked = append(asked, to.String())
+		return refuse
+	}}
+	base := "http://site.test:" + port
+	_, err := c.Fetch(t.Context(), base+"/to-other", r)
+	var re *RedirectError
+	want := "http://local.test:" + port + "/article"
+	if !errors.As(err, &re) || re.URL != want || !errors.Is(err, refuse) || len(asked) != 1 {
+		t.Errorf("to another host: %v, asked %q", err, asked)
+	}
+	// A redirect within the host isn't asked about.
+	asked = nil
+	p, err := c.Fetch(t.Context(), base+"/to-self", r)
+	if err != nil || p.Text != "plain words" || len(asked) != 0 {
+		t.Errorf("same host: %+v, %v, asked %q", p.URL, err, asked)
+	}
+	// Allowed, it is followed.
+	r.Redirect = func(context.Context, *url.URL) error { return nil }
+	if p, err := c.Fetch(t.Context(), base+"/to-other", r); err != nil || p.URL != want {
+		t.Errorf("allowed: %+v, %v", p.URL, err)
+	}
+}
+
+func TestHost(t *testing.T) {
+	for raw, want := range map[string]string{
+		"http://EXAMPLE.com./":       "example.com",
+		"http://example.com../":      "example.com",
+		"http://bücher.de/":          "xn--bcher-kva.de",
+		"http://[0:0::1]:8080/":      "::1",
+		"http://[::1]/":              "::1",
+		"http://[2001:DB8:0::1]/":    "2001:db8::1",
+		"http://[::ffff:1.2.3.4]/":   "1.2.3.4",
+		"http://1.1.1.1./":           "1.1.1.1",
+		"http://a_b.example.org/x/y": "a_b.example.org",
+	} {
+		u, err := url.Parse(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := Host(u); got != want {
+			t.Errorf("Host(%s) = %q, want %q", raw, got, want)
+		}
+	}
+}
+
+func TestCheckURLNumericHosts(t *testing.T) {
+	for _, raw := range []string{
+		"http://16843009/", "http://0x01010101/", "http://1.1/", "http://1.1.1/", "http://010.0.0.1/",
+		"http://1.1.1.1.1/", "http://0x7f.1/", "http://a.0x/", "http://example.123/", "http://16843009./",
+	} {
+		var b *BlockedError
+		if _, err := CheckURL(raw); !errors.As(err, &b) {
+			t.Errorf("%s: %v, want a BlockedError", raw, err)
+		}
+	}
+	for _, raw := range []string{"http://1.1.1.1/", "http://[::1]/", "http://123.example.com/", "http://0xdead.example/", "http://example.com./"} {
+		if _, err := CheckURL(raw); err != nil {
+			t.Errorf("%s: %v", raw, err)
+		}
+	}
+	if _, err := CheckURL("http://./"); err == nil {
+		t.Error("a host of dots passed")
 	}
 }

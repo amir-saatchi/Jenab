@@ -254,3 +254,24 @@ func TestRetryNowIsNotAFailure(t *testing.T) {
 		h.wait()
 	})
 }
+
+// The try after a retry wait starts its own clock, so the runtime panel
+// doesn't flag it as stuck.
+func TestTryAfterWaitIsNotStuck(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		h.fp.Push(fake.Fail(rateLimited(30*time.Second)), fake.Reply{Hang: true})
+		start := time.Now()
+		h.send(c.ID, "price?")
+		time.Sleep(31 * time.Second)
+		synctest.Wait()
+		st := h.o.find(h.pid, c.ID).Status()
+		if len(st) != 1 || st[0].State != "running" || !st[0].LastActivity.Equal(start.Add(30*time.Second)) {
+			t.Errorf("activity %+v, want the last activity at the second try", st)
+		}
+		h.o.Stop(h.pid, c.ID)
+		h.wait()
+	})
+}

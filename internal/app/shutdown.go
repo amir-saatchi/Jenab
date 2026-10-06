@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"time"
 )
 
@@ -14,6 +15,9 @@ const (
 	ShutdownTimeout = 10 * time.Second
 	// WaitTimeout bounds step 2: turns and runs ending.
 	WaitTimeout = 5 * time.Second
+	// exitGrace is how long Run may go past ShutdownTimeout before the
+	// watchdog exits the app.
+	exitGrace = 2 * time.Second
 )
 
 // Shutdown is the Q30 order, run by the app root.
@@ -29,6 +33,10 @@ type Shutdown struct {
 	// removing its lock file (steps 3–4), with the rest of the time.
 	Close func(context.Context) error
 	Log   *slog.Logger
+	// Exit ends the app when Run is still going ShutdownTimeout plus a
+	// short grace after it started, e.g. stuck in a step that ignores its
+	// context. nil means os.Exit(1).
+	Exit func()
 }
 
 // Run runs the steps within ShutdownTimeout and returns what failed.
@@ -40,6 +48,22 @@ func (s Shutdown) Run() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 	defer cancel()
+	exit := s.Exit
+	if exit == nil {
+		exit = func() { os.Exit(1) }
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		t := time.NewTimer(ShutdownTimeout + exitGrace)
+		defer t.Stop()
+		select {
+		case <-t.C:
+			log.Error("app: shutdown is stuck; exiting", "took", time.Since(start))
+			exit()
+		case <-done:
+		}
+	}()
 
 	for _, fn := range s.Refuse {
 		fn()

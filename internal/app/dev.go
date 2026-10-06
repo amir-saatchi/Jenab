@@ -176,6 +176,9 @@ func (s *DevService) Block(ctx context.Context, p id.Project, c id.Chat, n, requ
 
 // BlockText is the text of block i of agent.Blocks(req, turn).
 func BlockText(req provider.Request, turn, i int) (string, bool) {
+	if i < 0 {
+		return "", false
+	}
 	if len(req.Tools) > 0 {
 		if i == 0 {
 			return toolsText(req.Tools), true

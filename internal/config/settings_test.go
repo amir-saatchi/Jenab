@@ -261,6 +261,163 @@ func TestSaveOverBrokenFile(t *testing.T) {
 	if _, probs, err := LoadSettings(path); err != nil || len(probs) != 0 {
 		t.Errorf("after a save the file loads: %v, %v", probs, err)
 	}
+	// The broken file is kept next to it; a second one doesn't replace it.
+	if b, err := os.ReadFile(path + ".broken"); err != nil || string(b) != "ui: [dark\n" {
+		t.Errorf("backup = %q, %v", b, err)
+	}
+	if err := os.WriteFile(path, []byte("- a list\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveSettings(path, Defaults()); err != nil {
+		t.Fatal(err)
+	}
+	copies, _ := filepath.Glob(path + ".broken*")
+	if len(copies) != 2 {
+		t.Errorf("backups = %v, want 2", copies)
+	}
+}
+
+func TestLoadSettingsOrDefaults(t *testing.T) {
+	for _, c := range []struct {
+		text string
+		line int
+	}{{"ui:\n  theme: dark\n  font: \"x\n", 3}, {"- a list\n", 1}} {
+		s, probs := LoadSettingsOrDefaults(writeConfig(t, c.text))
+		if diff := cmp.Diff(Defaults(), s); diff != "" {
+			t.Errorf("%q: (-want +got):\n%s", c.text, diff)
+		}
+		if len(probs) != 1 || probs[0].Line != c.line || !strings.Contains(probs[0].Msg, "config.yaml.broken") ||
+			strings.HasPrefix(probs[0].Msg, "config") {
+			t.Errorf("%q: problems = %v", c.text, probs)
+		}
+	}
+	s, probs := LoadSettingsOrDefaults(writeConfig(t, "ui:\n  theme: dark\n  size: 3\n"))
+	if s.UI.Theme != "dark" || len(probs) != 1 || probs[0].Path != "ui.size" {
+		t.Errorf("a good file loads as usual: %v, %v", s.UI, probs)
+	}
+}
+
+// Entries rejected at load stay in the file at an unrelated save; one the
+// user removes is removed.
+func TestSaveKeepsRejectedEntries(t *testing.T) {
+	path := writeConfig(t, `llm:
+  provider_max_parallel_calls:
+    gemini: 2
+    groq: 0
+  providers:
+    good:
+      kind: ollama
+      models: []
+    odd:
+      kind: bogus # from a newer version
+      models: []
+    compat:
+      kind: openai_compatible
+      models: []
+`)
+	s, probs, err := LoadSettings(path)
+	if err != nil || len(probs) != 3 {
+		t.Fatalf("LoadSettings = %v, %v", probs, err)
+	}
+	s.UI.Theme = "dark"
+	if err := SaveSettings(path, s); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(path)
+	for _, want := range []string{"groq: 0", "gemini: 2", "good:", "odd:", "kind: bogus # from a newer version", "compat:", "theme: dark"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("saved file is missing %q:\n%s", want, b)
+		}
+	}
+	got, probs2, err := LoadSettings(path)
+	if err != nil || len(probs2) != 3 {
+		t.Fatalf("reload = %v, %v", probs2, err)
+	}
+	if diff := cmp.Diff(s, got); diff != "" {
+		t.Errorf("reload (-want +got):\n%s", diff)
+	}
+
+	delete(s.LLM.Providers, "good")
+	delete(s.LLM.ProviderMaxParallelCalls, "gemini")
+	if err := SaveSettings(path, s); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(path)
+	if strings.Contains(string(b), "good:") || strings.Contains(string(b), "gemini:") {
+		t.Errorf("removed entries are still there:\n%s", b)
+	}
+	if !strings.Contains(string(b), "odd:") || !strings.Contains(string(b), "groq: 0") {
+		t.Errorf("rejected entries are gone:\n%s", b)
+	}
+}
+
+// Comments and unknown keys inside a provider and its models survive a save.
+func TestSaveKeepsCommentsInEntries(t *testing.T) {
+	path := writeConfig(t, `llm:
+  providers:
+    p:
+      kind: openai_compatible # my proxy
+      # where it runs
+      base_url: http://localhost:8080/v1
+      region: eu # not known to this version
+      models:
+        # the main one
+        - id: big
+          context: 1000 # set by hand
+        - id: old
+`)
+	s, probs, err := LoadSettings(path)
+	if err != nil || len(probs) != 0 { // unknown keys in a map entry aren't checked
+		t.Fatalf("LoadSettings = %v, %v", probs, err)
+	}
+	p := s.LLM.Providers["p"]
+	p.BaseURL = "http://localhost:9090/v1"
+	p.Models = []ModelSettings{{ID: "big", Context: 2000}, {ID: "new"}}
+	s.LLM.Providers = map[string]ProviderSettings{"p": p}
+	if err := SaveSettings(path, s); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(path)
+	text := string(b)
+	for _, want := range []string{
+		"kind: openai_compatible # my proxy",
+		"# where it runs",
+		"base_url: http://localhost:9090/v1",
+		"region: eu # not known to this version",
+		"# the main one",
+		"- id: big",
+		"context: 2000 # set by hand",
+		"- id: new",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("saved file is missing %q:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "id: old") {
+		t.Errorf("a removed model is still there:\n%s", text)
+	}
+	got, _, err := LoadSettings(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(s, got); diff != "" {
+		t.Errorf("reload (-want +got):\n%s", diff)
+	}
+
+	// An emptied omitempty field is removed, not left with its old value.
+	p.Kind, p.BaseURL = "ollama", ""
+	p.Models[0].Context = 0
+	s.LLM.Providers["p"] = p
+	if err := SaveSettings(path, s); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, _ := LoadSettings(path); !cmp.Equal(s, got) {
+		t.Errorf("reload after clearing (-want +got):\n%s", cmp.Diff(s, got))
+	}
+	b, _ = os.ReadFile(path)
+	if strings.Contains(string(b), "base_url") || strings.Contains(string(b), "context: 2000") {
+		t.Errorf("cleared fields are still there:\n%s", b)
+	}
 }
 
 func TestPaths(t *testing.T) {
