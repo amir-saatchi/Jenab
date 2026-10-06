@@ -90,12 +90,12 @@ func TestSmoke(t *testing.T) {
 		env      string
 		model    string
 		thinking bool
-		connect  bool // list the models through Connect (Ollama Cloud's native list would ask /api/show for each)
+		connect  bool // list the models through Connect
 	}{
 		{"gemini", provider.KindGemini, "", "GEMINI_API_KEY", "gemini-3.5-flash-lite", true, true},
 		{"groq", provider.KindCompatible, "https://api.groq.com/openai/v1/", "GROQ_API_KEY", "openai/gpt-oss-20b", false, true},
 		{"ollamacloud", provider.KindCompatible, "https://ollama.com/v1/", "OLLAMA_API_KEY", "gpt-oss:20b", false, true},
-		{"ollamanative", provider.KindOllama, "https://ollama.com/", "OLLAMA_API_KEY", "gpt-oss:20b", false, false},
+		{"ollamanative", provider.KindOllama, "https://ollama.com/", "OLLAMA_API_KEY", "gpt-oss:20b", false, true},
 		{"zai", provider.KindCompatible, "https://api.z.ai/api/paas/v4/", "Z_API_KEY", "glm-4.7-flash", false, true},
 		// Workers AI's OpenAI-compatible endpoint: the account ID fills a
 		// placeholder, and there is no model list.

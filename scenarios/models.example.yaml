@@ -10,8 +10,8 @@
 # -model.
 providers:
   - name: ollama-cloud
-    kind: openai_compatible
-    base_url: https://ollama.com/v1/
+    kind: ollama
+    base_url: https://ollama.com/
     key_env: OLLAMA_API_KEY
     models:
       - {id: nemotron-3-ultra, context: 262144}

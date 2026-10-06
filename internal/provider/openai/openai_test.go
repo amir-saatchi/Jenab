@@ -308,40 +308,22 @@ func TestGuardRefusesOtherHosts(t *testing.T) {
 	}
 }
 
-func TestOllamaParams(t *testing.T) {
-	if !isOllama("https://ollama.com/v1/") || !isOllama("http://localhost:11434/v1/") || isOllama("https://api.groq.com/openai/v1/") {
-		t.Fatal("isOllama")
-	}
-	a := &chatAPI{base{ollama: true}}
-	p, err := a.params(context.Background(), hello)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, _ := json.Marshal(p)
-	if !strings.Contains(string(b), `"max_tokens":100`) || strings.Contains(string(b), "max_completion_tokens") || !strings.Contains(string(b), `"reasoning_effort":"none"`) {
-		t.Errorf("Ollama request = %s", b)
-	}
-
-}
-
 // A message with only tool calls has a single space as content on every
 // endpoint: Cloudflare refuses a missing content, Z.ai refuses "", and
-// Ollama drops the calls of a [] message.
+// Ollama's /v1 drops the calls of a [] message.
 func TestToolCallsOnlyContent(t *testing.T) {
 	req := hello
 	req.Messages = append(append([]chat.Message(nil), hello.Messages...), chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{
 		{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "c1", Name: "query", Args: json.RawMessage(`{"sql":"SELECT 1"}`)}},
 	}})
-	for _, ollama := range []bool{false, true} {
-		a := &chatAPI{base{ollama: ollama}}
-		p, err := a.params(context.Background(), req)
-		if err != nil {
-			t.Fatal(err)
-		}
-		b, _ := json.Marshal(p.Messages[len(p.Messages)-1])
-		if !strings.Contains(string(b), `"content":" "`) || !strings.Contains(string(b), `"tool_calls":[`) {
-			t.Errorf("ollama %v: tool-call message = %s, want content \" \"", ollama, b)
-		}
+	a := &chatAPI{base{}}
+	p, err := a.params(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.Marshal(p.Messages[len(p.Messages)-1])
+	if !strings.Contains(string(b), `"content":" "`) || !strings.Contains(string(b), `"tool_calls":[`) {
+		t.Errorf("tool-call message = %s, want content \" \"", b)
 	}
 }
 

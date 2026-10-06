@@ -40,7 +40,7 @@ func New(c provider.Connection) (provider.Provider, error) {
 		opts = append(opts, option.WithHTTPClient(c.HTTP))
 	}
 	client := sdk.NewClient(opts...)
-	b := base{name: c.Name, kind: c.Kind, guard: g, client: &client, ollama: isOllama(c.BaseURL)}
+	b := base{name: c.Name, kind: c.Kind, guard: g, client: &client}
 	if c.Kind == provider.KindOpenAI {
 		return &responsesAPI{b}, nil
 	}
@@ -52,16 +52,11 @@ type base struct {
 	kind   provider.Kind
 	guard  *provider.Guard
 	client *sdk.Client
-	ollama bool // Ollama's OpenAI-compatible API, e.g. Ollama Cloud
 }
 
 // toolCallsOnly is the content of an assistant message with only tool
 // calls (SPEC 3.8).
 const toolCallsOnly = " "
-
-func isOllama(baseURL string) bool {
-	return strings.Contains(baseURL, "://ollama.com/") || strings.Contains(baseURL, ":11434/")
-}
 
 // Models lists the models the key can use. Gemini's IDs come as
 // "models/<id>".
@@ -246,14 +241,7 @@ func (a *chatAPI) params(ctx context.Context, req provider.Request) (sdk.ChatCom
 		}))
 	}
 	if req.MaxTokens > 0 {
-		if a.ollama {
-			p.MaxTokens = sdk.Int(int64(req.MaxTokens)) // Ollama reads max_tokens only (SPIKE-017)
-		} else {
-			p.MaxCompletionTokens = sdk.Int(int64(req.MaxTokens))
-		}
-	}
-	if !req.Thinking && a.ollama {
-		p.ReasoningEffort = "none" // Ollama's way to turn thinking off (SPEC 3.8)
+		p.MaxCompletionTokens = sdk.Int(int64(req.MaxTokens))
 	}
 	return p, nil
 }

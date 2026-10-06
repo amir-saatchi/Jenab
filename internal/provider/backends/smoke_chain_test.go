@@ -33,6 +33,7 @@ func TestSmokeChain(t *testing.T) {
 		{"gemini", string(provider.KindGemini), "https://generativelanguage.googleapis.com/v1beta/openai/", "GEMINI_API_KEY", "gemini-3.5-flash-lite", true},
 		{"groq", string(provider.KindCompatible), "https://api.groq.com/openai/v1/", "GROQ_API_KEY", "openai/gpt-oss-20b", false},
 		{"ollamacloud", string(provider.KindCompatible), "https://ollama.com/v1/", "OLLAMA_API_KEY", "gemma4:31b", false},
+		{"ollamanative", string(provider.KindOllama), "https://ollama.com/", "OLLAMA_API_KEY", "gemma4:31b", false},
 		{"zai", string(provider.KindCompatible), "https://api.z.ai/api/paas/v4/", "Z_API_KEY", "glm-4.5-flash", false},
 		{"cloudflare", string(provider.KindCompatible), "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/", "CLOUDFLARE_TOKEN", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", false},
 	}

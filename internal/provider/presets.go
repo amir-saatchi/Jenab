@@ -17,7 +17,7 @@ var Presets = []Preset{
 	{ID: "openai", Name: "OpenAI", Kind: KindOpenAI},
 	{ID: "gemini", Name: "Google Gemini", Kind: KindGemini},
 	{ID: "ollama", Name: "Ollama on this computer", Kind: KindOllama},
-	{ID: "ollama-cloud", Name: "Ollama Cloud", Kind: KindCompatible, BaseURL: "https://ollama.com/v1/"},
+	{ID: "ollama-cloud", Name: "Ollama Cloud", Kind: KindOllama, BaseURL: "https://ollama.com/"},
 	{ID: "cloudflare", Name: "Cloudflare Workers AI", Kind: KindCompatible, BaseURL: "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/"},
 	{ID: "groq", Name: "Groq", Kind: KindCompatible, BaseURL: "https://api.groq.com/openai/v1/"},
 	{ID: "openrouter", Name: "OpenRouter", Kind: KindCompatible, BaseURL: "https://openrouter.ai/api/v1/"},

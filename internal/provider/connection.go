@@ -22,8 +22,8 @@ const (
 	KindAnthropic  Kind = "anthropic"
 	KindOpenAI     Kind = "openai"
 	KindGemini     Kind = "gemini"
-	KindCompatible Kind = "openai_compatible" // any base URL: Z.ai, Groq, Ollama Cloud…
-	KindOllama     Kind = "ollama"            // a local Ollama, through its native API
+	KindCompatible Kind = "openai_compatible" // any base URL: Z.ai, Groq…
+	KindOllama     Kind = "ollama"            // Ollama's native API, local or Ollama Cloud
 )
 
 // Kinds lists every kind.

@@ -73,8 +73,9 @@ func (s *SettingsService) Presets(ctx context.Context) (ps []PresetItem, err err
 	defer s.guard("settings.presets", &err)
 	up := s.ollamaUp(ctx)
 	for _, p := range provider.Presets {
+		// Only the local Ollama, at the kind's own URL, needs no key.
 		it := PresetItem{ID: p.ID, Name: p.Name, Kind: string(p.Kind), BaseURL: p.BaseURL,
-			Fields: provider.Placeholders(p.BaseURL), NoKey: p.Kind == provider.KindOllama}
+			Fields: provider.Placeholders(p.BaseURL), NoKey: p.Kind == provider.KindOllama && p.BaseURL == ""}
 		if it.Fields == nil {
 			it.Fields = []string{}
 		}

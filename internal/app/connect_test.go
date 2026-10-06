@@ -39,9 +39,13 @@ func TestPresets(t *testing.T) {
 		if err != nil || len(ps) != len(provider.Presets) {
 			t.Fatalf("Presets = %+v, %v", ps, err)
 		}
-		i := slices.IndexFunc(ps, func(p PresetItem) bool { return p.Kind == string(provider.KindOllama) })
+		i := slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "ollama" })
 		if !ps[i].NoKey || ps[i].Running != up || (up && i != 0) || (!up && i == 0) {
 			t.Errorf("up %v: Ollama at %d: %+v", up, i, ps[i])
+		}
+		oc := ps[slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "ollama-cloud" })]
+		if oc.Kind != string(provider.KindOllama) || oc.NoKey || oc.Running {
+			t.Errorf("up %v: Ollama Cloud = %+v", up, oc)
 		}
 		cf := ps[slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "cloudflare" })]
 		if !slices.Equal(cf.Fields, []string{"account_id"}) || cf.NoKey {

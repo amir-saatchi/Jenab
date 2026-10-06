@@ -441,11 +441,10 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
   - Jenab compares the reported `prompt_tokens` with its own estimate for the request.
   - A large shortfall is a truncation error, not a normal reply. Ollama drops old messages without an error (SPIKE-017).
 - **Ollama** (SPIKE-017):
-  - `/v1` ignores `num_ctx` and uses a small default context (4,096 tokens without a GPU). Jenab uses a derived model with `num_ctx` and `num_thread` set, or the native `/api/chat`.
-  - Send `max_tokens`, not `max_completion_tokens`.
-  - Turn thinking off with `reasoning_effort: "none"`.
+  - `/v1` ignores `num_ctx` and uses a small default context (4,096 tokens without a GPU). It also reads only `max_tokens`, and turns thinking off only with `reasoning_effort: "none"`.
+  - So Jenab talks to every Ollama, local or Ollama Cloud, through the native `/api/chat`. The *Ollama* kind says so; Jenab never guesses from the URL. An Ollama added as OpenAI-compatible still works, but its output isn't capped and its thinking stays on.
   - A local Ollama's background calls go one at a time unless `provider_max_parallel_calls` sets more (7.6). Chat calls never wait (7.6), so Ollama queues them itself; the 10-minute first-event timeout covers that queue.
-  - Jenab talks to a local Ollama through the native `/api/chat`: `num_ctx` is the model's context window, `keep_alive` is 30 minutes, and `think` is sent only to models whose `/api/show` lists thinking.
+  - The native request: `num_ctx` is the model's context window, `num_predict` the output cap, `keep_alive` is 30 minutes, and `think` is sent only to models whose `/api/show` lists thinking.
 - **OpenAI-compatible providers** (SPIKE-018):
   - The stream is read to its end. Usage comes either in its own chunk after `finish_reason` or in the same chunk.
   - Errors, mapped to the kinds above:
@@ -472,9 +471,9 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
 - New models arrive with app updates (2.8). A release can also mark a model as retired: it stays usable while the provider serves it, and the model picker suggests a replacement.
 
 **Providers and keys.**
-- Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai, Groq or Ollama Cloud) and Ollama (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic uses the Anthropic SDK, Ollama its native API, and the others the OpenAI SDK (3.8).
+- Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai or Groq) and Ollama, local or Ollama Cloud (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic uses the Anthropic SDK, Ollama its native API, and the others the OpenAI SDK (3.8).
 - Nothing is set up when the app ships: users bring their own keys (decided 2026-10-04).
-  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter and Z.ai. A preset fills in only the kind and base URL; the user can edit both. Any OpenAI-compatible provider can also be added by hand.
+  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter and Z.ai. A preset fills in only the kind and base URL; the user can edit both. Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
   - Models are never preset. They come from the provider's list or from the user.
 - *Connect* stores the key in the OS keychain (6.7), reads the provider's model list and turns on every catalog model the key can use. They appear in the model picker at once.
   - A base URL can hold placeholders, such as Cloudflare's `{account_id}`. The form asks for each value, which must be letters, digits, `-` or `_`. The values are kept in the keychain as `provider:<name>:<field>` and hidden in logs and errors like keys; the settings file keeps the placeholder.
