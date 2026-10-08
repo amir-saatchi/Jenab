@@ -1,0 +1,35 @@
+id: extract-de
+kind: extract
+lang: de
+schema: event.json
+instruction: Entnimm die Angaben zur Veranstaltung. Übernimm Textwerte so, wie sie in der Eingabe stehen.
+input: |
+  Hamburger KI-Stammtisch März 2027
+
+  Veranstalter: Elbe Code e.V.
+
+  Am Mittwoch, 10. März 2027, ab 19 Uhr im Betahaus Hamburg, Eifflerstraße 43, 22769 Hamburg, Deutschland.
+  Hybrid: vor Ort und per Livestream.
+
+  Eintritt: 12,50 € (Studierende frei). Maximal 80 Plätze.
+
+  Vorträge
+  - Jana Schulz (Otto): Empfehlungen mit kleinen Sprachmodellen
+  - Mehmet Kaya (freiberuflich): Agenten im Kundenservice
+
+  Anmeldung über https://elbecode.example/maerz
+expect:
+  name: Hamburger KI-Stammtisch März 2027
+  organizer: Elbe Code e.V.
+  date: "2027-03-10"
+  city: Hamburg
+  country: {$any: [Deutschland, Germany]}
+  format: hybrid
+  price: 12.5
+  currency: EUR
+  capacity: 80
+  speakers:
+    - {name: Jana Schulz, company: Otto}
+    - {name: Mehmet Kaya, company: null}
+  registration_url: https://elbecode.example/maerz
+  contact_email: null

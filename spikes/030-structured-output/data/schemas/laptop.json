@@ -1,0 +1,291 @@
+{
+  "type": "object",
+  "properties": {
+    "model_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "brand": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sku": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "release_year": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "color": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cpu": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cpu_cores": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "cpu_base_ghz": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "cpu_boost_ghz": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "gpu": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ram_gb": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "ram_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ram_upgradable": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "storage_gb": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "storage_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "screen_inches": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "screen_resolution": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "width x height in pixels, e.g. 1920x1080"
+    },
+    "screen_refresh_hz": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "screen_touch": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "screen_nits": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "battery_wh": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "battery_hours": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "charger_watts": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "weight_kg": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "thickness_mm": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "usb_c_ports": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "usb_a_ports": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "hdmi": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "sd_card_reader": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "wifi": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bluetooth": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "webcam": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fingerprint_reader": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "keyboard_backlit": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "os": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "warranty_years": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "price": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISO 4217 code"
+    },
+    "in_stock": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "release_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "YYYY-MM-DD"
+    }
+  },
+  "required": [
+    "model_name",
+    "brand",
+    "sku",
+    "release_year",
+    "color",
+    "cpu",
+    "cpu_cores",
+    "cpu_base_ghz",
+    "cpu_boost_ghz",
+    "gpu",
+    "ram_gb",
+    "ram_type",
+    "ram_upgradable",
+    "storage_gb",
+    "storage_type",
+    "screen_inches",
+    "screen_resolution",
+    "screen_refresh_hz",
+    "screen_touch",
+    "screen_nits",
+    "battery_wh",
+    "battery_hours",
+    "charger_watts",
+    "weight_kg",
+    "thickness_mm",
+    "usb_c_ports",
+    "usb_a_ports",
+    "hdmi",
+    "sd_card_reader",
+    "wifi",
+    "bluetooth",
+    "webcam",
+    "fingerprint_reader",
+    "keyboard_backlit",
+    "os",
+    "warranty_years",
+    "price",
+    "currency",
+    "in_stock",
+    "release_date"
+  ],
+  "additionalProperties": false
+}

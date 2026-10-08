@@ -1,0 +1,66 @@
+id: wide-en
+kind: extract
+lang: en
+schema: laptop.json
+instruction: Extract the laptop's specifications. Copy text values as they are written in the input.
+input: |
+  Aerolite Nimbus Pro 14 — technical data
+
+  Item number: NP14-2027-SLV · Colour: Silver · Launched in 2027
+
+  Processor: Orion X7 with 12 cores, 2.4 GHz base clock, up to 5.1 GHz boost
+  Graphics: integrated Orion Graphics
+  Memory: 32 GB LPDDR6, soldered (not upgradable)
+  Storage: 1024 GB NVMe SSD
+  Display: 14.2-inch, 3024 x 1964 pixels, 120 Hz, not a touch screen
+  Battery: 72 Wh; a 96 W USB-C charger is in the box
+  Weight: 1.42 kg
+  Ports: 3 × USB-C (Thunderbolt 5), HDMI 2.1, no USB-A
+  Wireless: Wi-Fi 7, Bluetooth 5.4
+  Camera: 1080p
+  Security: fingerprint reader in the power button
+  Keyboard: backlit
+  Operating system: Windows 12 Home
+  Warranty: 2 years
+  Price: 1,899 EUR
+expect:
+  model_name: {$any: [Nimbus Pro 14, Aerolite Nimbus Pro 14]}
+  brand: Aerolite
+  sku: NP14-2027-SLV
+  release_year: 2027
+  color: Silver
+  cpu: {$any: [Orion X7, Orion X7 12-core]}
+  cpu_cores: 12
+  cpu_base_ghz: 2.4
+  cpu_boost_ghz: 5.1
+  gpu: {$any: [integrated Orion Graphics, Orion Graphics]}
+  ram_gb: 32
+  ram_type: LPDDR6
+  ram_upgradable: false
+  storage_gb: 1024
+  storage_type: {$any: [NVMe SSD, SSD]}
+  screen_inches: 14.2
+  screen_resolution: 3024x1964
+  screen_refresh_hz: 120
+  screen_touch: false
+  screen_nits: null
+  battery_wh: 72
+  battery_hours: null
+  charger_watts: 96
+  weight_kg: 1.42
+  thickness_mm: null
+  usb_c_ports: 3
+  usb_a_ports: 0
+  hdmi: true
+  sd_card_reader: null
+  wifi: {$any: [Wi-Fi 7, WiFi 7]}
+  bluetooth: {$any: ["5.4", Bluetooth 5.4]}
+  webcam: {$any: [1080p, 1080p camera]}
+  fingerprint_reader: true
+  keyboard_backlit: true
+  os: Windows 12 Home
+  warranty_years: 2
+  price: 1899
+  currency: EUR
+  in_stock: null
+  release_date: null

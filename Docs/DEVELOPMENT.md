@@ -92,6 +92,14 @@ On Windows, CI builds with `CGO_ENABLED=0`, so a dependency that needs cgo fails
 - The spikes read keys from `.env` at the repository root. It is git-ignored; never commit it, and never paste a key into an issue or a log.
 - Only synthetic prompts go to cloud models during development.
 
+## Reference models
+
+Spikes and tests run on two models (decided in SPIKE-030):
+- **Gemini `gemini-3.5-flash-lite`**, the main one. It is fast and has a full JSON-schema mode. The free tier allows about 1,500 requests a day, reset at midnight Pacific time, and Google may use free-tier prompts.
+- **Ollama Cloud `gemma4:31b`**, for the Ollama backend. Ollama Cloud uses monthly credits; the free plan runs 1 request at a time.
+
+A failure on any other model is recorded, not worked around. Fixes are made the same way for every model (SPEC 1).
+
 ## Commits
 
 - Sign off every commit with `git commit -s` ([CONTRIBUTING](../CONTRIBUTING.md)).

@@ -1,0 +1,46 @@
+id: nested-en
+kind: extract
+lang: en
+schema: invoice.json
+instruction: Extract the invoice. Copy text values as they are written in the input. A line without options has an empty options list.
+input: |
+  INVOICE 2027-0042
+  Date: 12 February 2027
+
+  Bill to:
+  Nordlicht Café
+  Hafenstraße 7
+  24103 Kiel
+  Germany
+
+  Items
+  1. Espresso beans "Dark Roast", SKU EB-DR-1KG: 4 × 1 kg bag at 18.50 EUR each. Options: grind = whole bean
+  2. Paper cups, SKU PC-250: 10 packs at 6.20 EUR each. Options: size = 250 ml; print = logo
+  3. Oat milk, SKU OM-1L: 12 × 1 L at 2.10 EUR each. No options.
+
+  Total: 161.20 EUR
+expect:
+  invoice_no: {$any: [2027-0042, INVOICE 2027-0042]}
+  date: "2027-02-12"
+  customer:
+    name: Nordlicht Café
+    address:
+      street: Hafenstraße 7
+      postcode: "24103"
+      city: Kiel
+      country: Germany
+  lines:
+    - sku: EB-DR-1KG
+      qty: 4
+      unit_price: 18.5
+      options: [{name: grind, value: whole bean}]
+    - sku: PC-250
+      qty: 10
+      unit_price: 6.2
+      options: [{name: size, value: 250 ml}, {name: print, value: logo}]
+    - sku: OM-1L
+      qty: 12
+      unit_price: 2.1
+      options: []
+  total: 161.2
+  currency: EUR

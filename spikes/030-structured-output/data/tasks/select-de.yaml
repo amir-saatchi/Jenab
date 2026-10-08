@@ -1,0 +1,37 @@
+id: select-de
+kind: select
+lang: de
+count: 5
+instruction: Wähle die 5 Meldungen über Ethereum (ETH), die neueste zuerst. Gib zu jeder ihren Index und einen kurzen Grund an.
+input: |
+  [0] 2027-03-02 · CoinDesk · Bitcoin steigt über 140.000 $, ETF-Zuflüsse wachsen
+  [1] 2027-03-05 · Reuters · Äthiopiens Kaffeeexporte erreichen einen Rekord
+  [2] 2027-02-27 · The Block · Ethereum-Entwickler legen den Termin für das nächste Netzwerk-Upgrade fest
+  [3] 2027-03-01 · Bloomberg · Solana-Ausfall stoppt den Handel für drei Stunden
+  [4] 2027-03-04 · Wired · Ethernet wird 54: wie ein Laborkabel die Welt eroberte
+  [5] 2027-03-06 · Decrypt · Ether-Staking-Einlagen erreichen ein neues Hoch
+  [6] 2027-02-25 · FT · Europäische Banken testen einen gemeinsamen Stablecoin
+  [7] 2027-03-03 · Chemistry World · Mangel an Diethylether trifft Universitätslabore
+  [8] 2027-02-28 · CoinDesk · ETH-Gasgebühren fallen auf ein Zweijahrestief
+  [9] 2027-03-02 · Reuters · Ölpreise nach OPEC-Treffen stabil
+  [10] 2027-03-05 · Cointelegraph · Dogecoin springt nach Promi-Post um 20 %
+  [11] 2027-02-26 · The Verge · Ethan Hawke spielt in einem Film über frühe Hacker
+  [12] 2027-03-07 · Bloomberg · Spot-Ethereum-ETFs verbuchen ihren größten Wochenzufluss
+  [13] 2027-03-01 · AP · Starker Schneefall schließt Schulen in Hokkaido
+  [14] 2027-02-24 · CoinDesk · Cardano-Gründer kündigt ein neues Forschungslabor an
+  [15] 2027-03-03 · TechCrunch · Start-up sammelt 30 Mio. $ für KI-Chips ein
+  [16] 2027-03-06 · Reuters · Bitcoin-Miner verkaufen mehr Coins, da die Gebühren sinken
+  [17] 2027-02-27 · BBC · Ethiopian Airlines bestellt 20 neue Jets
+  [18] 2027-03-04 · The Block · Vitalik Buterin schlägt ein einfacheres Gebührenmodell für Ethereum vor
+  [19] 2027-03-02 · Wired · Warum dein WLAN langsam ist und wie du es behebst
+  [20] 2027-03-05 · FT · Gold auf Rekordhoch, der Dollar schwächelt
+  [21] 2027-02-28 · Decrypt · Polygon baut 15 % der Stellen ab
+  [22] 2027-03-01 · CNBC · XRP gewinnt ein Urteil in einem langen Rechtsstreit
+  [23] 2027-03-03 · Reuters · EZB lässt die Zinsen unverändert
+  [24] 2027-02-26 · CoinDesk · Litecoin-Halving ist noch ein Jahr entfernt
+  [25] 2027-03-06 · AP · Neue U-Bahn-Linie in Mexiko-Stadt eröffnet
+  [26] 2027-03-04 · Bloomberg · Tether meldet Rekordgewinn im Quartal
+  [27] 2027-02-25 · The Block · Bitcoin-Layer-2-Netzwerk geht live
+  [28] 2027-03-07 · BBC · Ethikrat prüft den Einsatz von KI im Krankenhaus
+  [29] 2027-03-05 · CoinDesk · Chainlink bietet Preisfeeds für tokenisierte Anleihen an
+expect: [12, 5, 18, 8, 2]

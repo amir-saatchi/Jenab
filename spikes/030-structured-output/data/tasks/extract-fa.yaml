@@ -1,0 +1,38 @@
+id: extract-fa
+kind: extract
+lang: fa
+schema: event.json
+instruction: جزئیات رویداد را استخراج کن. مقدارهای متنی را همان‌طور که در ورودی نوشته شده‌اند بنویس.
+input: |
+  همایش هوش مصنوعی تهران
+
+  برگزارکننده: شرکت داده‌پردازان پارس
+
+  زمان: پنجشنبه ۳۰ اردیبهشت ۱۴۰۶ (۲۰ مه ۲۰۲۷)، ساعت ۹ تا ۱۷
+  مکان: مرکز همایش‌های برج میلاد، تهران، ایران
+  شرکت حضوری است و همه‌ی سخنرانی‌ها به‌صورت آنلاین هم پخش می‌شوند.
+
+  هزینه‌ی ورود: ۲٬۵۰۰٬۰۰۰ ریال
+  ظرفیت: ۳۰۰ نفر
+
+  سخنرانان
+  - دکتر سارا احمدی (دانشگاه صنعتی شریف)
+  - علی رضایی
+
+  ثبت‌نام: https://tehran-ai.example/sabtenam
+  پرسش‌ها: info@tehran-ai.example
+expect:
+  name: همایش هوش مصنوعی تهران
+  organizer: {$any: [شرکت داده‌پردازان پارس, داده‌پردازان پارس]}
+  date: "2027-05-20"
+  city: {$any: [تهران, Tehran]}
+  country: {$any: [ایران, Iran]}
+  format: hybrid
+  price: 2500000
+  currency: IRR
+  capacity: 300
+  speakers:
+    - {name: {$any: [دکتر سارا احمدی, سارا احمدی]}, company: {$any: [دانشگاه صنعتی شریف, دانشگاه شریف]}}
+    - {name: علی رضایی, company: null}
+  registration_url: https://tehran-ai.example/sabtenam
+  contact_email: info@tehran-ai.example

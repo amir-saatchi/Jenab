@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {"type": "string", "description": "The event's name"},
+    "organizer": {"type": ["string", "null"], "description": "Who organizes it"},
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "The day it takes place, YYYY-MM-DD"},
+    "city": {"type": ["string", "null"]},
+    "country": {"type": ["string", "null"]},
+    "format": {"type": "string", "enum": ["in_person", "online", "hybrid"]},
+    "price": {"type": ["number", "null"], "description": "The regular ticket price, as a number"},
+    "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$", "description": "ISO 4217 code of the price"},
+    "capacity": {"type": ["integer", "null"], "description": "The most people who can attend"},
+    "speakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "company": {"type": ["string", "null"], "description": "The speaker's company or institution; null if none"}
+        },
+        "required": ["name", "company"],
+        "additionalProperties": false
+      }
+    },
+    "registration_url": {"type": ["string", "null"]},
+    "contact_email": {"type": ["string", "null"]}
+  },
+  "required": ["name", "organizer", "date", "city", "country", "format", "price", "currency", "capacity", "speakers", "registration_url", "contact_email"],
+  "additionalProperties": false
+}

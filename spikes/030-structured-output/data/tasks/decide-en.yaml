@@ -1,0 +1,50 @@
+id: decide-en
+kind: decide
+lang: en
+instruction: |
+  For each customer message, answer three questions:
+  - complaint: is the customer complaining about something that went wrong?
+  - topic: billing, delivery, product, account or other.
+  - urgency: how soon it needs an answer, from 1 (can wait) to 5 (right away).
+input: |
+  [0] I was charged twice for my March order. Please refund one of the payments.
+  [1] Can I change the email address on my account?
+  [2] The package arrived three days late and the box was crushed.
+  [3] Thanks, the new headphones sound great!
+  [4] My card was charged but the order doesn't show up anywhere.
+  [5] Do you ship to Norway?
+  [6] Someone logged into my account from another country and changed my password!
+  [7] The blender stopped working after two days.
+  [8] What are your opening hours on public holidays?
+  [9] I still haven't received my refund after five weeks. This is unacceptable.
+  [10] Could you send me an invoice with my company's VAT number?
+  [11] The tracking page has said "out for delivery" for four days.
+  [12] Is the jacket available in size XL?
+  [13] I can't log in; the reset email never arrives and I need my tickets for tonight's concert.
+  [14] Your courier left my parcel in the rain and everything inside is wet.
+  [15] I'd like to close my account, please.
+  [16] The charger you sent smells of burning plastic when I plug it in.
+  [17] Will there be a summer sale this year?
+  [18] Please add my new address to my account for future orders.
+  [19] The coffee beans I bought taste stale and the bag was already open.
+expect:
+  - [true, billing, 4]
+  - [false, account, 2]
+  - [true, delivery, 3]
+  - [false, product, 1]
+  - [true, billing, 4]
+  - [false, delivery, 1]
+  - [true, account, 5]
+  - [true, product, 3]
+  - [false, other, 1]
+  - [true, billing, 4]
+  - [false, billing, 2]
+  - [true, delivery, 3]
+  - [false, product, 1]
+  - [true, account, 5]
+  - [true, delivery, 3]
+  - [false, account, 2]
+  - [true, product, 5]
+  - [false, other, 1]
+  - [false, account, 1]
+  - [true, product, 3]

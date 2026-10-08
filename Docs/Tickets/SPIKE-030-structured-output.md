@@ -1,6 +1,6 @@
 # SPIKE-030 — Structured output: JSON that matches a schema, from any model
 **Type:** Spike
-**Status:** Open (before Phase 2)
+**Status:** Done
 **Gate:** 3
 
 ## Question
@@ -50,3 +50,52 @@ Every method has results on every model for every task, with at least 3 reps. Th
 - whether the provider's own mode is used where it exists, or one method for all
 - whether `provider.Request` gets a field to require a tool call
 - the retry rule: what the retry message holds, and whether one retry is enough
+
+## Result
+Runs of 2026-10-06; tables in `spikes/030-structured-output/results.md`.
+- **Complete:** gemini-3.5-flash-lite, gemma4:31b and nemotron-3-ultra, every method and task, 3 reps, thinking off (468 runs), and `native` with thinking on (117 runs).
+- **Partial:** glm-4.5-flash, 101 of 156 runs. Z.ai answered `429` code 1302 to many requests, and to all 4 requests of a later check while nothing else was running. GLM took 30 to 180 s per call, and some calls went past the 5-minute limit.
+
+Thinking off, all models:
+
+| Method | Valid first | Valid after retry | Right | Made-up values |
+|---|---|---|---|---|
+| tool | 88% | 90% | 65% | 7 |
+| tool-forced | 81% | 83% | 56% | 6 |
+| text | 94% | 97% | 71% | 0 |
+| native | 97% | 97% | 71% | 3 |
+
+Without GLM, every method is 97–100% valid after the retry. `native` was valid on the first try in every run. `text` failed the first try 5 times (a wrong type, a wrong item count), and the retry fixed all 5.
+
+- **Tools are worse:**
+  - They have the fewest right answers and the most made-up values.
+  - Ollama's `/api/chat` has no `tool_choice`.
+  - On the extract, wide and inject tasks, all 12 of GLM's tool calls had arguments that were not valid JSON. Its other calls on those tasks hit rate limits or timeouts. Those are the schemas with nullable fields.
+- **Text around the JSON:** Gemma and GLM put text around the JSON in every `text` and `native` answer, even with `format` set. The lenient parser reads them.
+- **Wrong answers** come from the content, not the format:
+  - one speaker's company: 29 of 36 runs wrote "freiberuflich" instead of `null`;
+  - `sd_card_reader` given as `false` where the page says nothing;
+  - long-en's date order.
+- **Thinking on (`native`):**
+  - Gemini: 85% → 92% right, at the same time.
+  - Gemma: 74% → 79%, at 3× the time.
+  - Nemotron: 67% → 69%.
+  - 5 of the Ollama runs went past 5 minutes.
+- **Long input:** long-en is about 15,000 tokens, not near `max_input_tokens`.
+
+Two app problems showed up:
+- A tool call whose arguments are not valid JSON is a `Transport` error (SPEC 3.8). The request is sent again unchanged, and the model never learns what was wrong.
+- The backends check the arguments before the finish reason. A tool call cut off by `max_tokens` is reported as invalid JSON, not as a max-tokens stop.
+
+## Decision
+**Decided (2026-10-08):**
+- **Method:** `llm.select`, `llm.extract` and `llm.decide` put the schema in the prompt. `provider.Request` gets an output schema, and each backend maps it to the API's JSON mode: `response_format` `json_schema`, or Ollama's `format`. A backend without a JSON mode ignores it. The prompt is the same for every model; only the provider layer differs.
+- **Reading the answer:** Go reads the first JSON value even with text around it, and checks it against the schema and the index checks.
+- **When the API rejects the JSON mode,** the backend drops it and remembers that for the endpoint and model. The prompt alone carries the schema from then on, as Hermes Agent does.
+- **No `tool_choice` field** in `provider.Request`.
+- **Retry:** one retry is enough. The retry message lists the schema errors with their paths, at most 8.
+- **Broken responses** are handled in the same general way for every model, in TASK-003. Bad tool-call JSON, unknown tools and invalid arguments go back to the model as a tool error. A tool call cut off at `max_tokens` is reported as max tokens.
+- **GLM stays partial.** Its failures were rate limits, slow calls and broken JSON, and Jenab doesn't tune for them.
+- **Reference models** for spikes and tests are now Gemini `gemini-3.5-flash-lite` and Ollama Cloud `gemma4:31b` (DEVELOPMENT.md). This replaces the SPIKE-018 choice. The research behind it:
+  - OpenCode, OpenClaw and Hermes Agent all keep one generic loop, and all three send bad tool calls back to the model as errors. All three also added prompt text per model family; Jenab doesn't.
+  - Gemini's free tier allows about 1,500 requests a day; a third-party figure, since Google now shows the limits only in AI Studio. Ollama Cloud now uses monthly credits, and its free plan runs 1 request at a time.

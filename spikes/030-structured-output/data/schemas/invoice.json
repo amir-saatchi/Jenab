@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "properties": {
+    "invoice_no": {"type": "string"},
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$", "description": "YYYY-MM-DD"},
+    "customer": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "address": {
+          "type": "object",
+          "properties": {
+            "street": {"type": "string"},
+            "postcode": {"type": "string"},
+            "city": {"type": "string"},
+            "country": {"type": "string"}
+          },
+          "required": ["street", "postcode", "city", "country"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "address"],
+      "additionalProperties": false
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sku": {"type": "string"},
+          "qty": {"type": "integer", "minimum": 1},
+          "unit_price": {"type": "number"},
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "value": {"type": "string"}
+              },
+              "required": ["name", "value"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["sku", "qty", "unit_price", "options"],
+        "additionalProperties": false
+      }
+    },
+    "total": {"type": "number"},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$", "description": "ISO 4217 code"}
+  },
+  "required": ["invoice_no", "date", "customer", "lines", "total", "currency"],
+  "additionalProperties": false
+}

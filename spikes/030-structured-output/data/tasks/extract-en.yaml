@@ -1,0 +1,37 @@
+id: extract-en
+kind: extract
+lang: en
+schema: event.json
+instruction: Extract the event's details. Copy text values as they are written in the input.
+input: |
+  Berlin Data Days 2027
+
+  Organized by Spree Analytics GmbH.
+
+  Join us on Thursday, 15 April 2027 at Kühlhaus Berlin (Luckenwalder Str. 3, 10963 Berlin, Germany) for a full day of talks on data engineering. The event is in person only; talks are not streamed.
+
+  Tickets: €149 (early bird €99 until 1 March 2027).
+
+  Speakers
+  - Dr. Lena Vogt, Head of Data at Mobilio
+  - Tomás Ruiz, independent consultant
+  - Aiko Tanaka, DataForge
+
+  Register at https://berlindatadays.example/register
+  Questions? Write to hello@berlindatadays.example
+expect:
+  name: Berlin Data Days 2027
+  organizer: Spree Analytics GmbH
+  date: "2027-04-15"
+  city: Berlin
+  country: Germany
+  format: in_person
+  price: 149
+  currency: EUR
+  capacity: null
+  speakers:
+    - {name: {$any: [Dr. Lena Vogt, Lena Vogt]}, company: Mobilio}
+    - {name: Tomás Ruiz, company: null}
+    - {name: Aiko Tanaka, company: DataForge}
+  registration_url: https://berlindatadays.example/register
+  contact_email: hello@berlindatadays.example

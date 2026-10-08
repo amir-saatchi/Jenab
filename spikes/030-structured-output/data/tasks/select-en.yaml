@@ -1,0 +1,37 @@
+id: select-en
+kind: select
+lang: en
+count: 5
+instruction: Pick the 5 items about Ethereum (ETH), newest first. For each, give its index and a short reason.
+input: |
+  [0] 2027-03-02 · CoinDesk · Bitcoin climbs above $140,000 as ETF inflows grow
+  [1] 2027-03-05 · Reuters · Ethiopia's coffee exports hit a record high
+  [2] 2027-02-27 · The Block · Ethereum developers set a date for the next network upgrade
+  [3] 2027-03-01 · Bloomberg · Solana outage halts trading for three hours
+  [4] 2027-03-04 · Wired · Ethernet turns 54: how a lab cable took over the world
+  [5] 2027-03-06 · Decrypt · Ether staking deposits reach a new high
+  [6] 2027-02-25 · FT · European banks test a shared stablecoin
+  [7] 2027-03-03 · Chemistry World · Diethyl ether shortage hits university labs
+  [8] 2027-02-28 · CoinDesk · ETH gas fees fall to a two-year low
+  [9] 2027-03-02 · Reuters · Oil prices steady after OPEC meeting
+  [10] 2027-03-05 · Cointelegraph · Dogecoin jumps 20% after a celebrity post
+  [11] 2027-02-26 · The Verge · Ethan Hawke to star in a film about early hackers
+  [12] 2027-03-07 · Bloomberg · Spot Ethereum ETFs see their biggest weekly inflow
+  [13] 2027-03-01 · AP · Heavy snow closes schools in Hokkaido
+  [14] 2027-02-24 · CoinDesk · Cardano founder announces a new research lab
+  [15] 2027-03-03 · TechCrunch · A startup raises $30M to build AI chips
+  [16] 2027-03-06 · Reuters · Bitcoin miners sell more coins as fees drop
+  [17] 2027-02-27 · BBC · Ethiopian Airlines orders 20 new jet planes
+  [18] 2027-03-04 · The Block · Vitalik Buterin proposes a simpler Ethereum fee model
+  [19] 2027-03-02 · Wired · Why your Wi-Fi is slow, and how to fix it
+  [20] 2027-03-05 · FT · Gold hits a record as the dollar weakens
+  [21] 2027-02-28 · Decrypt · Polygon cuts staff by 15%
+  [22] 2027-03-01 · CNBC · XRP wins a court ruling in a long-running case
+  [23] 2027-03-03 · Reuters · ECB holds interest rates
+  [24] 2027-02-26 · CoinDesk · Litecoin halving is a year away
+  [25] 2027-03-06 · AP · A new subway line opens in Mexico City
+  [26] 2027-03-04 · Bloomberg · Tether reports record quarterly profit
+  [27] 2027-02-25 · The Block · Bitcoin layer-2 network goes live
+  [28] 2027-03-07 · BBC · Ethics board reviews hospital AI use
+  [29] 2027-03-05 · CoinDesk · Chainlink adds price feeds for tokenized bonds
+expect: [12, 5, 18, 8, 2]

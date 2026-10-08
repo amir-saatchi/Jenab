@@ -36,7 +36,7 @@ type Request struct {
 	Tools     []ToolDef
 	MaxTokens int
 	// Thinking asks for the model's thinking where it has it. False turns
-	// it off where the API allows (Ollama: reasoning_effort "none").
+	// it off where the API allows (Ollama: think false).
 	Thinking bool
 	// Known is the model's catalog entry, set by the Registry; nil for a
 	// model the catalog doesn't know. Backends read protocol facts from it.

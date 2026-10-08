@@ -1,0 +1,50 @@
+id: decide-de
+kind: decide
+lang: de
+instruction: |
+  Beantworte für jede Kundennachricht drei Fragen:
+  - complaint: Beschwert sich der Kunde über etwas, das schiefgelaufen ist?
+  - topic: billing, delivery, product, account oder other.
+  - urgency: wie schnell sie eine Antwort braucht, von 1 (kann warten) bis 5 (sofort).
+input: |
+  [0] Mir wurde meine Bestellung vom März doppelt berechnet. Bitte erstatten Sie eine der Zahlungen.
+  [1] Kann ich die E-Mail-Adresse in meinem Konto ändern?
+  [2] Das Paket kam drei Tage zu spät und der Karton war zerdrückt.
+  [3] Danke, die neuen Kopfhörer klingen super!
+  [4] Meine Karte wurde belastet, aber die Bestellung taucht nirgends auf.
+  [5] Liefern Sie nach Norwegen?
+  [6] Jemand hat sich aus einem anderen Land in mein Konto eingeloggt und mein Passwort geändert!
+  [7] Der Mixer hat nach zwei Tagen den Geist aufgegeben.
+  [8] Wie sind Ihre Öffnungszeiten an Feiertagen?
+  [9] Ich habe meine Erstattung nach fünf Wochen immer noch nicht. Das ist inakzeptabel.
+  [10] Könnten Sie mir eine Rechnung mit der USt-IdNr. meiner Firma schicken?
+  [11] Die Sendungsverfolgung zeigt seit vier Tagen „in Zustellung“.
+  [12] Gibt es die Jacke in Größe XL?
+  [13] Ich kann mich nicht einloggen, die Mail zum Zurücksetzen kommt nie an, und ich brauche meine Tickets für das Konzert heute Abend.
+  [14] Ihr Kurier hat mein Paket im Regen abgestellt und alles darin ist nass.
+  [15] Ich möchte mein Konto bitte schließen.
+  [16] Das Ladegerät, das Sie geschickt haben, riecht nach verbranntem Plastik, wenn ich es einstecke.
+  [17] Gibt es dieses Jahr einen Sommerschlussverkauf?
+  [18] Bitte hinterlegen Sie meine neue Adresse in meinem Konto für künftige Bestellungen.
+  [19] Die Kaffeebohnen, die ich gekauft habe, schmecken alt und die Tüte war schon offen.
+expect:
+  - [true, billing, 4]
+  - [false, account, 2]
+  - [true, delivery, 3]
+  - [false, product, 1]
+  - [true, billing, 4]
+  - [false, delivery, 1]
+  - [true, account, 5]
+  - [true, product, 3]
+  - [false, other, 1]
+  - [true, billing, 4]
+  - [false, billing, 2]
+  - [true, delivery, 3]
+  - [false, product, 1]
+  - [true, account, 5]
+  - [true, delivery, 3]
+  - [false, account, 2]
+  - [true, product, 5]
+  - [false, other, 1]
+  - [false, account, 1]
+  - [true, product, 3]
