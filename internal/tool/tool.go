@@ -145,6 +145,10 @@ type Error struct {
 func (e *Error) Error() string { return e.Msg }
 func (e *Error) Unwrap() error { return e.Err }
 
+// ErrArgs is wrapped by the error for arguments that are not valid JSON or
+// don't match the tool's schema. The agent counts such calls (SPEC 8.3).
+var ErrArgs = errors.New("wrong arguments")
+
 // Errorf returns an *Error.
 func Errorf(format string, a ...any) *Error {
 	err := fmt.Errorf(format, a...)
@@ -217,13 +221,13 @@ func decodeArgs[A any](sch *jsonschema.Schema, raw json.RawMessage) (A, error) {
 	}
 	v, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
 	if err != nil {
-		return a, Errorf("the arguments are not valid JSON: %v", err)
+		return a, &Error{Msg: fmt.Sprintf("the arguments are not valid JSON: %v", err), Err: ErrArgs}
 	}
 	if err := sch.Validate(v); err != nil {
-		return a, &Error{Msg: "wrong arguments:" + schemaErrors(err), Err: err}
+		return a, &Error{Msg: "wrong arguments:" + schemaErrors(err), Err: errors.Join(ErrArgs, err)}
 	}
 	if err := json.Unmarshal(raw, &a); err != nil {
-		return a, Errorf("wrong arguments: %v", err)
+		return a, &Error{Msg: fmt.Sprintf("wrong arguments: %v", err), Err: errors.Join(ErrArgs, err)}
 	}
 	return a, nil
 }

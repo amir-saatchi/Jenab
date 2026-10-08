@@ -61,6 +61,10 @@ type ToolCall struct {
 	// JSON kept as a string: encoding/json compacts and escapes a RawMessage,
 	// and a string comes back byte for byte.
 	Extra string `json:"extra,omitempty"`
+	// Invalid is the arguments as the model sent them, when they were not
+	// valid JSON. Args is then {}, so every API takes the call back. The
+	// call is not run: its result tells the model what was wrong (SPEC 3.8).
+	Invalid string `json:"invalid,omitempty"`
 }
 
 // ToolResult is a tool's answer to one call. A large output is stored in the

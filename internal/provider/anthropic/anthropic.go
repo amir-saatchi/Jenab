@@ -295,14 +295,7 @@ func (b *backend) part(o *open) (*chat.Part, error) {
 	case "redacted_thinking":
 		return &chat.Part{Kind: chat.PartThinking, Thinking: &chat.Thinking{Redacted: o.data.String()}}, nil
 	case "tool_use":
-		args := o.args.String()
-		if strings.TrimSpace(args) == "" {
-			args = "{}"
-		}
-		if !json.Valid([]byte(args)) {
-			return nil, provider.TransportError(b.name, fmt.Sprintf("tool call %s: the arguments are not valid JSON", o.name), provider.ErrCutOff)
-		}
-		return &chat.Part{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: o.id, Name: o.name, Args: json.RawMessage(args)}}, nil
+		return &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(o.id, o.name, o.args.String(), "")}, nil
 	}
 	return nil, nil // server tools and other blocks Jenab doesn't use
 }

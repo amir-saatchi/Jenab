@@ -173,15 +173,10 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			parts = append(parts, chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: text.String()}})
 		}
 		for i, c := range calls {
-			args, err := toolArgs(c.args.String())
-			if err != nil {
-				yield(provider.Event{}, provider.TransportError(a.name, fmt.Sprintf("tool call %s: the arguments are not valid JSON", c.name), provider.ErrCutOff))
-				return
-			}
 			if c.id == "" {
 				c.id = fmt.Sprintf("call_%d", i)
 			}
-			parts = append(parts, chat.Part{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: c.id, Name: c.name, Args: args, Extra: c.extra}})
+			parts = append(parts, chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(c.id, c.name, c.args.String(), c.extra)})
 		}
 		for i := range parts {
 			if !yield(provider.Event{Kind: provider.EventPart, Part: &parts[i]}, nil) {
@@ -197,25 +192,14 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 
 func stopOf(finish string, calls bool) provider.StopReason {
 	switch {
+	case finish == "length": // also with calls: the last one may be cut off
+		return provider.StopMaxTokens
 	case calls || finish == "tool_calls" || finish == "function_call":
 		return provider.StopToolUse
-	case finish == "length":
-		return provider.StopMaxTokens
 	case finish == "content_filter":
 		return provider.StopRefused
 	}
 	return provider.StopEnd
-}
-
-// toolArgs checks a call's arguments; none means an empty object.
-func toolArgs(s string) (json.RawMessage, error) {
-	if strings.TrimSpace(s) == "" {
-		return json.RawMessage(`{}`), nil
-	}
-	if !json.Valid([]byte(s)) {
-		return nil, fmt.Errorf("invalid JSON")
-	}
-	return json.RawMessage(s), nil
 }
 
 func (a *chatAPI) params(ctx context.Context, req provider.Request) (sdk.ChatCompletionNewParams, error) {

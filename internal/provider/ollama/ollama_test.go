@@ -247,6 +247,7 @@ func TestEnds(t *testing.T) {
 		kind   provider.ErrorKind
 	}{
 		{"length", 200, `{"message":{"role":"assistant","content":"par"},"done":false}` + "\n" + `{"message":{"role":"assistant","content":""},"done":true,"done_reason":"length","prompt_eval_count":10,"eval_count":400}`, provider.StopMaxTokens, ""},
+		{"length in a call", 200, `{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"query","arguments":{"sql":"SEL"}}}]},"done":false}` + "\n" + `{"message":{"role":"assistant","content":""},"done":true,"done_reason":"length","prompt_eval_count":10,"eval_count":400}`, provider.StopMaxTokens, ""},
 		{"cut off", 200, `{"message":{"role":"assistant","content":"par"},"done":false}` + "\n", "", provider.Transport},
 		{"broken line", 200, `{"message":{"role":"assistant","content":"par"` + "\n", "", provider.Transport},
 		{"error in stream", 200, `{"message":{"role":"assistant","content":"par"},"done":false}` + "\n" + `{"error":"llama runner process has terminated"}`, "", provider.Transport},

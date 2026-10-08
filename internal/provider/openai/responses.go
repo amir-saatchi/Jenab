@@ -3,7 +3,6 @@ package openai
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"iter"
 
 	"github.com/openai/openai-go/v3/option"
@@ -197,11 +196,7 @@ func (a *responsesAPI) part(it rItem) (*chat.Part, error) {
 		}
 		return &chat.Part{Kind: chat.PartThinking, Thinking: &chat.Thinking{Text: text, Signature: string(sig)}}, nil
 	case "function_call":
-		args, err := toolArgs(it.Arguments)
-		if err != nil {
-			return nil, provider.TransportError(a.name, fmt.Sprintf("tool call %s: the arguments are not valid JSON", it.Name), provider.ErrCutOff)
-		}
-		return &chat.Part{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: it.CallID, Name: it.Name, Args: args}}, nil
+		return &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(it.CallID, it.Name, it.Arguments, "")}, nil
 	}
 	return nil, nil
 }

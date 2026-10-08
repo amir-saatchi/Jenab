@@ -243,18 +243,14 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			}
 			for _, tc := range c.Message.ToolCalls {
 				args := tc.Function.Arguments
-				if len(bytes.TrimSpace(args)) == 0 || string(args) == "null" {
-					args = json.RawMessage("{}")
-				}
-				if !json.Valid(args) {
-					yield(provider.Event{}, provider.TransportError(b.name, fmt.Sprintf("tool call %s: the arguments are not valid JSON", tc.Function.Name), provider.ErrCutOff))
-					return
+				if string(args) == "null" {
+					args = nil
 				}
 				id := tc.ID
 				if id == "" {
 					id = newCallID()
 				}
-				calls = append(calls, chat.Part{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: id, Name: tc.Function.Name, Args: args}})
+				calls = append(calls, chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, tc.Function.Name, string(args), "")})
 			}
 			if !c.Done {
 				continue
@@ -274,10 +270,10 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			}
 			stop := provider.StopEnd
 			switch {
+			case c.DoneReason == "length": // also with calls: the last one may be cut off
+				stop = provider.StopMaxTokens
 			case len(calls) > 0:
 				stop = provider.StopToolUse
-			case c.DoneReason == "length":
-				stop = provider.StopMaxTokens
 			}
 			yield(provider.Event{Kind: provider.EventDone, Stop: stop, Usage: &chat.Usage{Input: c.PromptEvalCount, Output: c.EvalCount}}, nil)
 			return

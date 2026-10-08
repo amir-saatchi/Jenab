@@ -192,6 +192,86 @@ func TestToolFailures(t *testing.T) {
 	validHistory(t, ms)
 }
 
+// say returns its text, which it needs.
+func say() tool.Tool {
+	return tool.Func(tool.Spec{Name: "say", Description: "Says it back.", Schema: json.RawMessage(`{"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}`)},
+		func(_ context.Context, _ *tool.Env, a struct{ Text string }) (tool.Result, error) {
+			return tool.Result{Text: a.Text}, nil
+		})
+}
+
+// badJSON is an answer with one call whose arguments are not valid JSON.
+func badJSON(id string, stop provider.StopReason) fake.Reply {
+	return fake.Reply{Events: []provider.Event{
+		{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, "say", `{"text":`, "")}},
+		fake.Done(stop, chat.Usage{Input: 10, Output: 5}),
+	}}
+}
+
+// TestBadToolJSON: a call with arguments that are not valid JSON is not
+// run; the model gets the parser's error and the next call runs (SPEC 3.8).
+func TestBadToolJSON(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings(), say())
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Echo"})
+	h.fp.Push(badJSON("a", provider.StopToolUse), fake.ToolCall("b", "say", map[string]string{"text": "hi"}), fake.Text("done"))
+	h.turn(c.ID, "go")
+	ms := h.messages(c.ID)
+	if len(ms) != 6 {
+		t.Fatalf("%d messages, want 6", len(ms))
+	}
+	if r := ms[2].Parts[0].ToolResult; !r.IsError || r.Text != "the arguments are not valid JSON: unexpected end of JSON input, at byte 8 of 8. Send the call again with valid JSON." {
+		t.Errorf("result = %+v", r)
+	}
+	if r := ms[4].Parts[0].ToolResult; r.IsError || r.Text != "hi" {
+		t.Errorf("second result = %+v", r)
+	}
+	sent := h.fp.Calls()[1].Messages[1].Parts[0].ToolCall
+	if sent == nil || string(sent.Args) != "{}" || sent.Invalid != `{"text":` {
+		t.Errorf("the bad call sent back as %+v, want Args {} and the raw text kept", sent)
+	}
+	validHistory(t, ms)
+}
+
+// TestCutToolCall: a call cut off at the output limit is dropped, and the
+// turn shows its cut notice.
+func TestCutToolCall(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings(), say())
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Echo"})
+	h.fp.Push(badJSON("a", provider.StopMaxTokens), fake.Text("unused"))
+	h.turn(c.ID, "go")
+	ms := h.messages(c.ID)
+	if len(ms) != 2 || ms[1].Parts[0].Notice == nil || ms[1].Parts[0].Notice.Kind != chat.NoticeAnswerCut {
+		t.Fatalf("messages %+v, want the question and the cut notice", ms)
+	}
+	if n := len(h.fp.Calls()); n != 1 {
+		t.Errorf("%d requests, want 1", n)
+	}
+}
+
+// TestBadCallsStop: 3 requests in a row whose calls all fail to run stop
+// the turn; a call that runs resets the count (8.3).
+func TestBadCallsStop(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings(), say())
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Echo"})
+	unknown := fake.ToolCall("u", "nothing", struct{}{})
+	wrong := fake.ToolCall("w", "say", struct{}{})
+	good := fake.ToolCall("g", "say", map[string]string{"text": "hi"})
+	h.fp.Push(badJSON("a", provider.StopToolUse), unknown, good, wrong, badJSON("b", provider.StopToolUse), unknown, fake.Text("unused"))
+	h.turn(c.ID, "go")
+	if n := len(h.fp.Calls()); n != 6 {
+		t.Errorf("%d requests, want 6", n)
+	}
+	ms := h.messages(c.ID)
+	n := ms[len(ms)-1].Parts[0].Notice
+	if n == nil || n.Kind != chat.NoticeTurnFailed || !strings.Contains(n.Text, "couldn't run, 3 times in a row") {
+		t.Errorf("last message = %+v, want the turn_failed notice", ms[len(ms)-1])
+	}
+	validHistory(t, ms)
+}
+
 func TestInTurnTrimming(t *testing.T) {
 	set := testSettings()
 	set.LLM.Providers["p"].Models[0].Context = 7600 // trims past 3,800 tokens

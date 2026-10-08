@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"runtime/debug"
@@ -53,6 +54,7 @@ type turn struct {
 	window   int // the model's context window; 0 if unknown
 	requests int
 	seen     id.Message // the newest user message in the last request
+	bad      int        // requests in a row whose tool calls all failed to run
 	trace    *TurnTrace // nil with the developer tools off
 }
 
@@ -137,6 +139,9 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 			}
 		}
 		return false, err
+	}
+	if resp.stop == provider.StopMaxTokens {
+		resp.dropCutCalls()
 	}
 	if len(resp.parts) > 0 {
 		m := chat.Message{ID: resp.id, Chat: t.ch.ID, Turn: t.n, Role: chat.RoleAssistant, Model: t.model, Usage: resp.usage, Parts: resp.parts}
@@ -230,6 +235,17 @@ func (resp *response) part(p chat.Part) {
 	resp.kind = ""
 	resp.text.Reset()
 	resp.u16 = 0
+}
+
+// dropCutCalls drops tool calls whose arguments are not valid JSON from an
+// answer that reached the output limit: they were cut off, not mistaken.
+// Without other calls, the turn shows its cut notice (SPEC 3.8).
+func (resp *response) dropCutCalls() {
+	resp.mu.Lock()
+	defer resp.mu.Unlock()
+	resp.parts = slices.DeleteFunc(resp.parts, func(p chat.Part) bool {
+		return p.ToolCall != nil && p.ToolCall.Invalid != ""
+	})
 }
 
 // stopped is what is kept after Stop: the finished text parts and the
@@ -414,10 +430,13 @@ func (r *runner) setRetry(rt *chat.Retry, now func()) {
 // tools, are closed without running.
 func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) error {
 	tm := &toolMsg{r: r, t: t, id: resp.toolID}
+	allBad := !last
 	for i, c := range calls {
 		parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: "not run: the turn reached its request limit", IsError: true}}}
 		if !last {
-			parts = r.runTool(ctx, t, tm, resp.id, i, c)
+			var bad bool
+			parts, bad = r.runTool(ctx, t, tm, resp.id, i, c)
+			allBad = allBad && bad
 		}
 		for _, part := range parts {
 			if _, err := tm.add(ctx, part); err != nil {
@@ -425,8 +444,22 @@ func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []
 			}
 		}
 	}
+	if !allBad {
+		t.bad = 0
+		return nil
+	}
+	if t.bad++; t.bad >= maxBadRequests {
+		return errBadCalls
+	}
 	return nil
 }
+
+// maxBadRequests is how many requests in a row may have only tool calls
+// that couldn't run (bad JSON, an unknown tool, wrong arguments) before
+// the turn stops (8.3). The model gets each error and may fix the call.
+const maxBadRequests = 3
+
+var errBadCalls = fmt.Errorf("the model sent tool calls that couldn't run in %d requests in a row", maxBadRequests)
 
 // toolMsg is an answer's tool message: the results of its calls, and the
 // cards and forms they wait for (8.8). It is written with its first part.
@@ -497,27 +530,30 @@ func (m *toolMsg) publish(seq uint64, i int, p chat.Part) {
 // runTool runs one call: its approvals first (8.8), then the tool. Every
 // outcome is a result the model can read; a panic or a system failure is
 // logged too.
-func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Message, n int, c chat.ToolCall) []chat.Part {
+func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Message, n int, c chat.ToolCall) ([]chat.Part, bool) {
 	result := func(text string) []chat.Part {
 		return []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: text, IsError: true}}}
 	}
-	failed := func(err error) []chat.Part {
+	failed := func(err error) ([]chat.Part, bool) {
 		var te *tool.Error
 		switch {
 		case ctx.Err() != nil:
-			return result(cancelled(ctx))
+			return result(cancelled(ctx)), false
 		case errors.As(err, &te):
-			return result(te.Msg)
+			return result(te.Msg), errors.Is(err, tool.ErrArgs)
 		}
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
-		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
+		return result(fmt.Sprintf("%s failed: %v", c.Name, err)), false
 	}
 	if ctx.Err() != nil {
-		return result(cancelled(ctx))
+		return result(cancelled(ctx)), false
+	}
+	if c.Invalid != "" {
+		return result(invalidArgs(c.Invalid)), true
 	}
 	tl, ok := r.o.d.Tools.Get(c.Name)
 	if !ok || tl.Spec().Mother && t.ch.Kind != chat.KindMother {
-		return result("there is no tool named " + c.Name)
+		return result("there is no tool named " + c.Name), true
 	}
 	env := &tool.Env{
 		Project: r.p, Chat: t.ch.ID, Message: msg, Source: id.SourceOf("message", string(msg)),
@@ -548,7 +584,7 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 			return failed(err)
 		}
 		if p.Approval.Answer == chat.GrantDeny {
-			return result(denied(p.Approval))
+			return result(denied(p.Approval)), false
 		}
 	}
 	// The level's approvals are recorded once the cards are approved, so a
@@ -580,14 +616,15 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	}
 	if err != nil && ctx.Err() != nil {
 		r.o.d.Traces.tool(t.trace, ToolTrace{CallID: c.ID, Name: c.Name, Started: start, Took: time.Since(start), Bytes: len(res.Text), Error: true})
-		return result(cancelled(ctx))
+		return result(cancelled(ctx)), false
 	}
+	bad := errors.Is(err, tool.ErrArgs)
 	out, err := tool.Output(context.WithoutCancel(ctx), call, c.Name, n, res, err)
 	r.o.d.Traces.tool(t.trace, ToolTrace{CallID: c.ID, Name: c.Name, Started: start, Took: time.Since(start),
 		Bytes: max(len(res.Text), len(out.Text)), Ref: out.Ref, Error: err != nil || out.IsError})
 	if err != nil {
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
-		return result(fmt.Sprintf("%s failed: %v", c.Name, err))
+		return result(fmt.Sprintf("%s failed: %v", c.Name, err)), false
 	}
 	out.Text += r.loadWith(ctx, t, tm, c.Name)
 	parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &out}}
@@ -596,7 +633,19 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 			parts = append(parts, chat.Part{Kind: chat.PartImage, Image: &img})
 		}
 	}
-	return parts
+	return parts, bad
+}
+
+// invalidArgs is the result for a call whose arguments are not valid JSON,
+// with the parser's error and where it is, so the model can fix the call.
+func invalidArgs(raw string) string {
+	var v any
+	err := json.Unmarshal([]byte(raw), &v)
+	var se *json.SyntaxError
+	if errors.As(err, &se) {
+		return fmt.Sprintf("the arguments are not valid JSON: %v, at byte %d of %d. Send the call again with valid JSON.", se, se.Offset, len(raw))
+	}
+	return fmt.Sprintf("the arguments are not valid JSON: %v. Send the call again with valid JSON.", err)
 }
 
 // moving starts a request or a tool call that may go limit without
@@ -686,6 +735,9 @@ func failure(err error, t *turn) string {
 		default:
 			return fmt.Sprintf("[the turn stopped: %s refused the request: %s. Check the provider's settings, or pick another model.]", pe.Provider, short(pe.Message))
 		}
+	}
+	if errors.Is(err, errBadCalls) {
+		return fmt.Sprintf("[the turn stopped: the model sent tool calls that couldn't run, %d times in a row. Use Retry to try again, or pick another model.]", maxBadRequests)
 	}
 	if errors.Is(err, provider.ErrUnknownModel) || errors.Is(err, provider.ErrUnknownProvider) {
 		return fmt.Sprintf("[the turn stopped: the model %q is not set up. Connect a provider in Settings, or pick another model.]", t.ch.Model)

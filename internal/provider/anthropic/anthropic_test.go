@@ -268,7 +268,7 @@ func TestEnds(t *testing.T) {
 		{"max tokens", events(start, `{"type":"message_delta","delta":{"stop_reason":"max_tokens"},"usage":{"output_tokens":5}}`, `{"type":"message_stop"}`), provider.StopMaxTokens, ""},
 		{"refusal", events(start, `{"type":"message_delta","delta":{"stop_reason":"refusal"},"usage":{"output_tokens":5}}`, `{"type":"message_stop"}`), provider.StopRefused, ""},
 		{"cut off", events(start, `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`, `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"par"}}`), "", provider.Transport},
-		{"bad tool JSON", events(start, `{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`, `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"sql\":"}}`, `{"type":"content_block_stop","index":0}`), "", provider.Transport},
+		{"cut off in a call", events(start, `{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`, `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"sql\":"}}`, `{"type":"content_block_stop","index":0}`), "", provider.Transport},
 		{"overloaded in stream", events(start, `{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}`), "", provider.Overloaded},
 	}
 	for _, tt := range tests {
@@ -283,6 +283,32 @@ func TestEnds(t *testing.T) {
 			}
 			if err != nil || evs[len(evs)-1].Stop != tt.stop {
 				t.Fatalf("err = %v, events %+v", err, evs)
+			}
+		})
+	}
+}
+
+// TestBadToolJSON: arguments that are not valid JSON in a complete stream
+// make a call marked Invalid; with max_tokens the stop is max tokens.
+func TestBadToolJSON(t *testing.T) {
+	for reason, stop := range map[string]provider.StopReason{"tool_use": provider.StopToolUse, "max_tokens": provider.StopMaxTokens} {
+		t.Run(reason, func(t *testing.T) {
+			s := newServer(t, 200, events(start,
+				`{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`,
+				`{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"sql\":"}}`,
+				`{"type":"content_block_stop","index":0}`,
+				`{"type":"message_delta","delta":{"stop_reason":"`+reason+`"},"usage":{"output_tokens":5}}`,
+				`{"type":"message_stop"}`))
+			evs, err := run(newBackend(t, s), hello)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ps := parts(evs)
+			if len(ps) != 1 || ps[0].ToolCall == nil || ps[0].ToolCall.Invalid != `{"sql":` || string(ps[0].ToolCall.Args) != "{}" {
+				t.Fatalf("parts = %+v", ps)
+			}
+			if got := evs[len(evs)-1].Stop; got != stop {
+				t.Errorf("stop = %s, want %s", got, stop)
 			}
 		})
 	}

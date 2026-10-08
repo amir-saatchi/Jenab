@@ -409,7 +409,8 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
 - **Complete streams only:**
   - A stream counts as complete only after `message_stop` (Anthropic) or a `finish_reason` (OpenAI). Otherwise it is a truncation error. The SDKs return no error for a stream cut off early.
   - `ctx.Err()` is checked after the stream, so a cancelled partial message never looks complete.
-  - Tool-call arguments must be valid JSON when the call ends.
+  - A tool call cut off at the output limit is reported as a `max_tokens` stop, not as a broken call.
+- **Broken tool calls** (TASK-003): a complete stream whose tool-call arguments are not valid JSON gives a normal call, with the raw text kept and `{}` as its arguments, so every API takes it back. The call is not run; its result gives the parser's error and asks for the call again (8.3). This is the same for every model.
 - **Timeouts:** a request fails as stalled if its first event doesn't arrive within 2 minutes (10 minutes for Ollama), or if 60 s pass between two events. There is no limit on the whole answer, so long answers are fine. Starting values, tuned with the benchmark.
 - **Message shapes:**
   - Anthropic: all tool results of a turn go in one user message.
@@ -1489,7 +1490,8 @@ Decided in SPIKE-023.
   - The error card is a `turn_failed` notice. *Retry* continues the same turn, after a restart too, with a new `turn_max_requests`.
   - **Subagents** try up to 3 times within 2 minutes, then fail. The parent agent gets the error with its kind and wait, e.g. `rate_limited, retry after 60 s`, and decides whether to wait, try again or do the work itself.
   - `quota` and `request` errors are never retried. The chat says what the user can do, e.g. add credit or pick another model.
-- **Answers that end early:** when an answer without tool calls stops at the output limit, is refused, or has no text, an `answer_cut` notice says so.
+- **Answers that end early:** when an answer without tool calls stops at the output limit, is refused, or has no text, an `answer_cut` notice says so. A tool call cut off at the output limit is dropped first.
+- **Tool calls that can't run:** a call with arguments that are not valid JSON (3.8), an unknown tool, or arguments that don't match the schema gets an error result, and the model can fix the call on its next request. After 3 requests in a row whose calls all failed this way, the turn stops with a `turn_failed` notice. A call that runs resets the count. Nothing is repaired or guessed.
 - **Finish notice:**
   - When a background task the agent started finishes or fails, the orchestrator starts a new turn in that chat with a notice part: `[task t_12 finished: …]`.
   - If the chat is in a turn, the notice waits until that turn ends.

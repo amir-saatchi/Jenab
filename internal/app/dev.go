@@ -233,6 +233,9 @@ func partText(p chat.Part) string {
 		}
 		return "[thinking]\n" + p.Thinking.Text
 	case p.ToolCall != nil:
+		if p.ToolCall.Invalid != "" {
+			return fmt.Sprintf("[tool call %s · %s · not valid JSON, sent back as {}]\n%s", p.ToolCall.Name, p.ToolCall.ID, p.ToolCall.Invalid)
+		}
 		return fmt.Sprintf("[tool call %s · %s]\n%s", p.ToolCall.Name, p.ToolCall.ID, p.ToolCall.Args)
 	case p.ToolResult != nil:
 		head := "[tool result · " + p.ToolResult.CallID

@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"iter"
+	"strings"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
@@ -18,10 +19,10 @@ import (
 //
 // Stream sends one request and yields its events: deltas while text and
 // thinking arrive, each part once it is finished (in message order), and
-// EventDone last. A stream that ends without the API's end marker, or whose
-// tool-call arguments are not valid JSON, ends with a Transport error
-// instead (SPEC 3.8). Stream never retries; it yields at most one error, and
-// nothing after it.
+// EventDone last. A stream that ends without the API's end marker ends with
+// a Transport error instead (SPEC 3.8). A tool call whose arguments are not
+// valid JSON is still a call, made by ToolCall. Stream never retries; it
+// yields at most one error, and nothing after it.
 type Provider interface {
 	Stream(ctx context.Context, req Request) iter.Seq2[Event, error]
 	// Models lists the models the key can use.
@@ -104,6 +105,22 @@ const (
 	StopMaxTokens StopReason = "max_tokens" // cut at MaxTokens
 	StopRefused   StopReason = "refused"    // a content filter or refusal
 )
+
+// ToolCall makes a call from the arguments a model sent. No arguments are
+// an empty object. Arguments that are not valid JSON go in Invalid, with
+// Args {}: the agent tells the model, or drops the call if the answer was
+// cut at MaxTokens (SPEC 3.8).
+func ToolCall(id, name, args, extra string) *chat.ToolCall {
+	c := &chat.ToolCall{ID: id, Name: name, Args: json.RawMessage(`{}`), Extra: extra}
+	switch {
+	case strings.TrimSpace(args) == "":
+	case json.Valid([]byte(args)):
+		c.Args = json.RawMessage(args)
+	default:
+		c.Invalid = args
+	}
+	return c
+}
 
 // ModelInfo is a model the provider lists, with what it reports about it.
 // Zero means not reported.

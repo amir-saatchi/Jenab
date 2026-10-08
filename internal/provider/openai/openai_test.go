@@ -212,8 +212,8 @@ func TestChatToolCallsGemini(t *testing.T) {
 
 func TestChatCutOff(t *testing.T) {
 	for name, body := range map[string]string{
-		"no finish_reason": sse(`{"choices":[{"index":0,"delta":{"content":"par"}}]}`),
-		"bad tool JSON":    sse(`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"q","arguments":"{\"sql\":"}}]},"finish_reason":"tool_calls"}]}`),
+		"no finish_reason":         sse(`{"choices":[{"index":0,"delta":{"content":"par"}}]}`),
+		"no finish_reason in call": sse(`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"q","arguments":"{\"sql\":"}}]}}]}`),
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := newServer(t, 200, body)
@@ -222,6 +222,38 @@ func TestChatCutOff(t *testing.T) {
 				t.Fatalf("err = %v", err)
 			}
 		})
+	}
+}
+
+// TestBadToolJSON: arguments that are not valid JSON in a complete stream
+// make a call marked Invalid; with "length" the stop is max tokens (SPEC 3.8).
+func TestChatBadToolJSON(t *testing.T) {
+	for finish, stop := range map[string]provider.StopReason{"tool_calls": provider.StopToolUse, "length": provider.StopMaxTokens} {
+		t.Run(finish, func(t *testing.T) {
+			s := newServer(t, 200, sse(`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"q","arguments":"{\"sql\":"}}]},"finish_reason":"`+finish+`"}]}`))
+			evs, err := run(backend(t, s, provider.KindCompatible), hello)
+			if err != nil {
+				t.Fatal(err)
+			}
+			checkInvalid(t, evs, `{"sql":`, stop)
+		})
+	}
+}
+
+func checkInvalid(t *testing.T, evs []provider.Event, raw string, stop provider.StopReason) {
+	t.Helper()
+	ps := parts(evs)
+	if len(ps) != 1 || ps[0].ToolCall == nil {
+		t.Fatalf("parts = %+v", ps)
+	}
+	if c := ps[0].ToolCall; c.Invalid != raw || string(c.Args) != "{}" {
+		t.Errorf("call = %+v, want Invalid %q and Args {}", c, raw)
+	}
+	if err := ps[0].Validate(); err != nil {
+		t.Error(err)
+	}
+	if got := last(evs).Stop; got != stop {
+		t.Errorf("stop = %s, want %s", got, stop)
 	}
 }
 
@@ -426,6 +458,27 @@ func TestResponsesEnds(t *testing.T) {
 			if err != nil || last(evs).Stop != tt.stop {
 				t.Fatalf("err = %v, last = %+v", err, last(evs))
 			}
+		})
+	}
+}
+
+func TestResponsesBadToolJSON(t *testing.T) {
+	call := `{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"query","arguments":"{\"sql\":","status":"completed"}}`
+	for name, end := range map[string]string{
+		"completed":  `{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`,
+		"max tokens": `{"type":"response.incomplete","response":{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"usage":{"input_tokens":10,"output_tokens":100}}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := newServer(t, 200, events(call, end))
+			evs, err := run(backend(t, s, provider.KindOpenAI), hello)
+			if err != nil {
+				t.Fatal(err)
+			}
+			stop := provider.StopToolUse
+			if name == "max tokens" {
+				stop = provider.StopMaxTokens
+			}
+			checkInvalid(t, evs, `{"sql":`, stop)
 		})
 	}
 }
