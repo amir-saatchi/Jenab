@@ -1,5 +1,6 @@
 // Package provider is Jenab's side of the LLM APIs (SPEC 3.8). Each backend
-// (provider/anthropic, provider/openai, provider/ollama, provider/fake)
+// (provider/anthropic, provider/openai, provider/gemini, provider/ollama,
+// provider/fake)
 // implements Provider and handles its own protocol only. The Registry adds
 // the rules every provider shares: the limits, the pause per provider, the
 // stall timeouts, the truncation check and secret redaction.

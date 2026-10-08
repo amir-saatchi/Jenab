@@ -156,7 +156,7 @@ func TestChatToolCallsGemini(t *testing.T) {
 		`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c2","type":"function","function":{"name":"describe_table","arguments":"{\"table\":"}}]}}]}`,
 		`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"btc\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":50,"completion_tokens":9}}`,
 		`[DONE]`))
-	p := backend(t, s, provider.KindGemini)
+	p := backend(t, s, provider.KindCompatible)
 	evs, err := run(p, hello)
 	if err != nil {
 		t.Fatal(err)
@@ -272,7 +272,7 @@ func TestChatErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newServer(t, tt.status, tt.body)
-			_, err := run(backend(t, s, provider.KindGemini), hello)
+			_, err := run(backend(t, s, provider.KindCompatible), hello)
 			var pe *provider.Error
 			if !errors.As(err, &pe) || pe.Kind != tt.kind || pe.Status != tt.status {
 				t.Fatalf("err = %v, want %s", err, tt.kind)
@@ -361,7 +361,7 @@ func TestToolCallsOnlyContent(t *testing.T) {
 
 func TestModelsList(t *testing.T) {
 	s := newServer(t, 200, `{"object":"list","data":[{"id":"models/gemini-3.8-flash","object":"model","created":0,"owned_by":"google"},{"id":"gemma-4-31b-it","object":"model","created":0,"owned_by":"google"}]}`)
-	ms, err := backend(t, s, provider.KindGemini).Models(context.Background())
+	ms, err := backend(t, s, provider.KindCompatible).Models(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

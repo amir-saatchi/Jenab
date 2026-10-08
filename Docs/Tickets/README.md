@@ -37,7 +37,7 @@
 | [SPIKE-029](SPIKE-029-subjects.md) | Subjects: a chat's work, kept as objects | Spike | Open (before Phase 2) | 3 |
 | [SPIKE-030](SPIKE-030-structured-output.md) | Structured output: JSON that matches a schema, from any model | Spike | Done | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
-| [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Open | 3 |
+| [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 
 ## Phase 1
 

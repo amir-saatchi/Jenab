@@ -38,7 +38,7 @@ func DefaultBaseURL(k Kind) string {
 	case KindOpenAI:
 		return "https://api.openai.com/v1/"
 	case KindGemini:
-		return "https://generativelanguage.googleapis.com/v1beta/openai/"
+		return "https://generativelanguage.googleapis.com/v1beta/"
 	case KindOllama:
 		return "http://localhost:11434/"
 	}

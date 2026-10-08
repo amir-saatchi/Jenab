@@ -5,6 +5,7 @@ package backends
 import (
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/anthropic"
+	"github.com/amir-saatchi/jenab/internal/provider/gemini"
 	"github.com/amir-saatchi/jenab/internal/provider/ollama"
 	"github.com/amir-saatchi/jenab/internal/provider/openai"
 )
@@ -14,7 +15,7 @@ func All() map[provider.Kind]provider.Factory {
 	return map[provider.Kind]provider.Factory{
 		provider.KindAnthropic:  anthropic.New,
 		provider.KindOpenAI:     openai.New,
-		provider.KindGemini:     openai.New,
+		provider.KindGemini:     gemini.New,
 		provider.KindCompatible: openai.New,
 		provider.KindOllama:     ollama.New,
 	}

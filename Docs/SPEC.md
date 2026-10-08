@@ -402,12 +402,12 @@ These sizes are starting values, to be tuned with the benchmark.
 
 ### 3.8 Provider layer
 
-The orchestrator owns the agent loop. LLM providers are reached through the official SDKs, `anthropics/anthropic-sdk-go` and `openai/openai-go/v3`, behind Jenab's own `Provider` interface. The interface streams text, tool calls, thinking, usage and the stop reason. OpenAI uses the Responses API; Gemini and OpenAI-compatible APIs use Chat Completions with their base URL; a local Ollama uses its native `/api/chat`. No agent framework is used (SPIKE-012).
+The orchestrator owns the agent loop. LLM providers are reached behind Jenab's own `Provider` interface, which streams text, tool calls, thinking, usage and the stop reason. Anthropic and OpenAI use their official SDKs, `anthropics/anthropic-sdk-go` and `openai/openai-go/v3`. Gemini and Ollama use small clients for their REST APIs: Google's Go SDK would add 13 MB and grpc (TASK-004). OpenAI uses the Responses API, Gemini its Interactions API, OpenAI-compatible APIs Chat Completions with their base URL, and every Ollama its native `/api/chat`. No agent framework is used (SPIKE-012).
 
 - **Protocol only:** the provider layer handles each API's protocol details, such as message shapes, field names, error codes, stream ends and rate limits. It never changes what the agent is told or what it may do (1, model-neutral).
 - **Tools:** the provider layer never runs tools. The assistant message and its `tool_call` parts are written to `chats.db` before any tool runs (2.3).
 - **Complete streams only:**
-  - A stream counts as complete only after `message_stop` (Anthropic) or a `finish_reason` (OpenAI). Otherwise it is a truncation error. The SDKs return no error for a stream cut off early.
+  - A stream counts as complete only after `message_stop` (Anthropic), a `finish_reason` (OpenAI) or `interaction.completed` (Gemini). Otherwise it is a truncation error. The SDKs return no error for a stream cut off early.
   - `ctx.Err()` is checked after the stream, so a cancelled partial message never looks complete.
   - A tool call cut off at the output limit is reported as a `max_tokens` stop, not as a broken call.
 - **Broken tool calls** (TASK-003): a complete stream whose tool-call arguments are not valid JSON gives a normal call, with the raw text kept and `{}` as its arguments, so every API takes it back. The call is not run; its result gives the parser's error and asks for the call again (8.3). This is the same for every model.
@@ -446,6 +446,13 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
   - So Jenab talks to every Ollama, local or Ollama Cloud, through the native `/api/chat`. The *Ollama* kind says so; Jenab never guesses from the URL. An Ollama added as OpenAI-compatible still works, but its output isn't capped and its thinking stays on.
   - A local Ollama's background calls go one at a time unless `provider_max_parallel_calls` sets more (7.6). Chat calls never wait (7.6), so Ollama queues them itself; the 10-minute first-event timeout covers that queue.
   - The native request: `num_ctx` is the model's context window, `num_predict` the output cap, `keep_alive` is 30 minutes, and `think` is sent only to models whose `/api/show` lists thinking.
+- **Gemini** (TASK-004):
+  - Requests go to `/interactions` with `store: false`, so the whole history is sent each time, as steps: `user_input`, `thought`, `model_output`, `function_call` and `function_result`. Tool images go inside their `function_result`.
+  - Thought signatures are kept as `{"google":{"thought_signature":…}}` on thinking parts and tool calls, and sent back unchanged. Other backends leave them out, and the Gemini backend leaves out other providers' thinking.
+  - **Thinking on:** the model's own level, with thought summaries. **Off:** the lowest level the model takes: `minimal`, then `low`, then none. A 400 about the level moves to the next one, remembered per model. No model names are checked (1).
+  - The end status decides the stop: `completed` or `requires_action` is a normal end or tool use, `incomplete` is `max_tokens`, and `failed` maps its error code to the kinds above.
+  - Output tokens include thought tokens; cached tokens count as cache reads.
+  - The model list holds the models that take `generateContent`, with their input and output limits.
 - **OpenAI-compatible providers** (SPIKE-018):
   - The stream is read to its end. Usage comes either in its own chunk after `finish_reason` or in the same chunk.
   - Errors, mapped to the kinds above:
@@ -455,7 +462,7 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
   - Waits follow the rules above. Ollama Cloud and Z.ai send no rate-limit headers, so the pause per provider is their only pacing.
   - An assistant message with only tool calls is sent with a single space as `content`, to every provider. Each empty form breaks one of them: Cloudflare Workers AI refuses a message without `content`, Z.ai refuses `""` or `null` (with a 429 "overloaded"), and Ollama turns `[]` into no message and attaches the calls to the message before, so every call after the first is lost and the model repeats it. `TestSmokeChain` checks this on each provider.
   - Clients are built with explicit options and an allow-list of outgoing headers. The SDKs' `OPENAI_*` and `ANTHROPIC_*` environment variables are ignored, so they never reach another host.
-  - Gemini:
+  - Gemini's compatible API (the `gemini` kind uses the native one):
     - Tool calls carry `extra_content` (a thought signature), which is sent back unchanged. Without it, Gemini returns a 400.
     - Error bodies are JSON arrays.
     - In a stream, a new tool-call id starts a new call even if the index repeats.
@@ -472,7 +479,7 @@ The orchestrator owns the agent loop. LLM providers are reached through the offi
 - New models arrive with app updates (2.8). A release can also mark a model as retired: it stays usable while the provider serves it, and the model picker suggests a replacement.
 
 **Providers and keys.**
-- Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai or Groq) and Ollama, local or Ollama Cloud (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic uses the Anthropic SDK, Ollama its native API, and the others the OpenAI SDK (3.8).
+- Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai or Groq) and Ollama, local or Ollama Cloud (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic and OpenAI use their SDKs, Gemini and Ollama their native APIs, and OpenAI-compatible providers the OpenAI SDK (3.8).
 - Nothing is set up when the app ships: users bring their own keys (decided 2026-10-04).
   - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter and Z.ai. A preset fills in only the kind and base URL; the user can edit both. Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
   - Models are never preset. They come from the provider's list or from the user.

@@ -1,6 +1,7 @@
 // Package openai is the backend for the APIs the OpenAI SDK speaks: OpenAI
-// itself through the Responses API, and Gemini and any OpenAI-compatible
-// provider through Chat Completions (SPEC 3.8).
+// itself through the Responses API, and any OpenAI-compatible provider
+// through Chat Completions (SPEC 3.8). Gemini's compatible API still works
+// as one; the gemini kind uses provider/gemini.
 package openai
 
 import (

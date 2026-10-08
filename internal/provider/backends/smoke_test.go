@@ -93,6 +93,8 @@ func TestSmoke(t *testing.T) {
 		connect  bool // list the models through Connect
 	}{
 		{"gemini", provider.KindGemini, "", "GEMINI_API_KEY", "gemini-3.5-flash-lite", true, true},
+		{"gemininothink", provider.KindGemini, "", "GEMINI_API_KEY", "gemini-3.5-flash-lite", false, false},
+		{"geminicompat", provider.KindCompatible, "https://generativelanguage.googleapis.com/v1beta/openai/", "GEMINI_API_KEY", "gemini-3.5-flash-lite", true, true},
 		{"groq", provider.KindCompatible, "https://api.groq.com/openai/v1/", "GROQ_API_KEY", "openai/gpt-oss-20b", false, true},
 		{"ollamacloud", provider.KindCompatible, "https://ollama.com/v1/", "OLLAMA_API_KEY", "gpt-oss:20b", false, true},
 		{"ollamanative", provider.KindOllama, "https://ollama.com/", "OLLAMA_API_KEY", "gpt-oss:20b", false, true},

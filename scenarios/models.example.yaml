@@ -9,6 +9,11 @@
 # catalog doesn't know. Models of a paid provider run only when named with
 # -model.
 providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
   - name: ollama-cloud
     kind: ollama
     base_url: https://ollama.com/
