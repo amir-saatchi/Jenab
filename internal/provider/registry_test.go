@@ -371,6 +371,28 @@ func TestSilentTruncation(t *testing.T) {
 	}
 }
 
+// Thinking is not counted: Chat Completions drops it, so a long
+// reasoning_content before the request is no truncation (SPIKE-031: "the
+// provider read 1730 input tokens of about 20205").
+func TestThinkingIsNotATruncation(t *testing.T) {
+	long := strings.Repeat("Let me weigh each option in turn. ", 2400) // about 20,000 tokens
+	req := provider.Request{Model: "p/m1", Thinking: true, Messages: []chat.Message{
+		{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "Pick one."}}}},
+		{Role: chat.RoleAssistant, Parts: []chat.Part{
+			{Kind: chat.PartThinking, Thinking: &chat.Thinking{Text: long}},
+			{Kind: chat.PartText, Text: &chat.Text{Text: "The second."}},
+		}},
+		{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "Why?"}}}},
+	}}
+	if n := provider.EstimateTokens(req); n < 20000 {
+		t.Fatalf("EstimateTokens = %d, want the thinking counted", n)
+	}
+	s := newSetup(t, provider.KindCompatible, 1, fake.Reply{Events: []provider.Event{fake.Done(provider.StopEnd, chat.Usage{Input: 1730})}})
+	if _, err := collect(s.reg, limit.Interactive, req); err != nil {
+		t.Fatalf("err = %v, want none", err)
+	}
+}
+
 func TestBackgroundTakesProviderSlotFirst(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		s := newSetup(t, provider.KindCompatible, 1,

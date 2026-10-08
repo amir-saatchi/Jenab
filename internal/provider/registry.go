@@ -509,7 +509,10 @@ func truncated(provider string, req Request, u *chat.Usage) *Error {
 		return nil
 	}
 	got := u.Input + u.CacheRead + u.CacheWrite
-	est := EstimateTokens(req)
+	// Without thinking: every backend drops some of it (Chat Completions
+	// all of it, the others another provider's), so counting it would
+	// flag a request that was sent whole.
+	est := estimate(req, false)
 	if got == 0 || est < minEstimate || got*2 >= est {
 		return nil
 	}
@@ -518,8 +521,11 @@ func truncated(provider string, req Request, u *chat.Usage) *Error {
 }
 
 // EstimateTokens is a rough count of a request's input tokens: 4 bytes a
-// token over every text the model reads. Images are not counted.
-func EstimateTokens(req Request) int {
+// token over every text the model reads, thinking included. Images are
+// not counted.
+func EstimateTokens(req Request) int { return estimate(req, true) }
+
+func estimate(req Request, thinking bool) int {
 	n := 0
 	for _, b := range req.System {
 		n += len(b.Text)
@@ -533,7 +539,9 @@ func EstimateTokens(req Request) int {
 			case p.Text != nil:
 				n += len(p.Text.Text)
 			case p.Thinking != nil:
-				n += len(p.Thinking.Text)
+				if thinking {
+					n += len(p.Thinking.Text)
+				}
 			case p.ToolCall != nil:
 				n += len(p.ToolCall.Name) + len(p.ToolCall.Args)
 			case p.ToolResult != nil:
