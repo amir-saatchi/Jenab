@@ -124,7 +124,7 @@ func TestChatComplete(t *testing.T) {
 		`{"choices":[{"index":0,"delta":{"role":"assistant","reasoning":"Short answer."}}]}`,
 		`{"choices":[{"index":0,"delta":{"content":"سلام"}}]}`,
 		`{"choices":[{"index":0,"delta":{"content":" there"},"finish_reason":"stop"}]}`,
-		`{"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":7,"total_tokens":127,"prompt_tokens_details":{"cached_tokens":100}}}`,
+		`{"choices":[],"usage":{"prompt_tokens":120,"completion_tokens":7,"total_tokens":127,"prompt_tokens_details":{"cached_tokens":100},"completion_tokens_details":{"reasoning_tokens":3}}}`,
 		`[DONE]`))
 	evs, err := run(backend(t, s, provider.KindCompatible), hello)
 	if err != nil {
@@ -135,7 +135,7 @@ func TestChatComplete(t *testing.T) {
 		t.Fatalf("parts = %+v", ps)
 	}
 	d := last(evs)
-	if d.Kind != provider.EventDone || d.Stop != provider.StopEnd || *d.Usage != (chat.Usage{Input: 20, Output: 7, CacheRead: 100}) {
+	if d.Kind != provider.EventDone || d.Stop != provider.StopEnd || *d.Usage != (chat.Usage{Input: 20, Output: 7, CacheRead: 100, Thought: 3}) {
 		t.Fatalf("done = %+v usage %+v", d, d.Usage)
 	}
 	var body map[string]any
@@ -401,7 +401,7 @@ func TestResponsesToolCallAndReasoning(t *testing.T) {
 	if len(ps) != 3 || ps[0].Thinking == nil || ps[1].Text.Text != "Checking." || ps[2].ToolCall.ID != "call_1" {
 		t.Fatalf("parts = %+v", ps)
 	}
-	if d := last(evs); d.Stop != provider.StopToolUse || *d.Usage != (chat.Usage{Input: 200, Output: 40, CacheRead: 800}) {
+	if d := last(evs); d.Stop != provider.StopToolUse || *d.Usage != (chat.Usage{Input: 200, Output: 40, CacheRead: 800, Thought: 20}) {
 		t.Errorf("done = %+v %+v", d, d.Usage)
 	}
 	var first map[string]any

@@ -128,13 +128,13 @@ func TransportError(provider, msg string, err error) *Error {
 var ErrCutOff = errors.New("the stream ended before the provider finished")
 
 var (
-	reRetryDelay = regexp.MustCompile(`"retryDelay"\s*:\s*"([0-9.]+)s"`)      // Gemini, in the body
-	reTryAgainIn = regexp.MustCompile(`(?i)try again in ([0-9.]+)(ms|s|m)\b`) // Groq, in the message
+	reRetryDelay = regexp.MustCompile(`"retryDelay"\s*:\s*"([0-9.]+)s"`)                // Gemini, in the body
+	reTryAgainIn = regexp.MustCompile(`(?i)(?:try again|retry) in ([0-9.]+)(ms|s|m)\b`) // Groq and Gemini, in the message
 )
 
 // retryAfter reads the provider's wait: the retry-after-ms or retry-after
-// header (seconds or a date), Gemini's retryDelay or "try again in" in the
-// body.
+// header (seconds or a date), Gemini's retryDelay, or "try again in" or
+// "retry in" in the body.
 func retryAfter(h http.Header, body string) (time.Duration, bool) {
 	if h != nil {
 		if v := h.Get("retry-after-ms"); v != "" {

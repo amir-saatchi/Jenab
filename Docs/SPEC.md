@@ -421,6 +421,7 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 - **Caching and usage:**
   - Cache points follow 3.1.
   - Cache write and read tokens are stored with the message.
+  - Thinking tokens are part of the output tokens. When the provider reports them (Gemini, OpenAI), the usage also gives them on their own; they are not stored yet.
   - OpenAI streams set `include_usage`.
 - **Errors and retries:**
   - Jenab sets the SDK retry count itself and caps `retry-after`, which the SDKs do not cap.
@@ -449,7 +450,8 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 - **Gemini** (TASK-004):
   - Requests go to `/interactions` with `store: false`, so the whole history is sent each time, as steps: `user_input`, `thought`, `model_output`, `function_call` and `function_result`. Tool images go inside their `function_result`.
   - Thought signatures are kept as `{"google":{"thought_signature":…}}` on thinking parts and tool calls, and sent back unchanged. Other backends leave them out, and the Gemini backend leaves out other providers' thinking.
-  - **Thinking on:** the model's own level, with thought summaries. **Off:** the lowest level the model takes: `minimal`, then `low`, then none. A 400 about the level moves to the next one, remembered per model. No model names are checked (1).
+  - **Thinking on:** `medium`, then `high`, then `low`, with thought summaries. `medium` is most models' default; some, like `gemini-3.5-flash-lite`, default to `minimal`, which doesn't think. **Off:** the lowest level the model takes: `minimal`, then `low`. A 400 about the level moves to the next one, remembered per model; past the last one, no level is sent. No model names are checked (1).
+  - Thought summaries aren't guaranteed: a thought can come back with only its signature.
   - The end status decides the stop: `completed` or `requires_action` is a normal end or tool use, `incomplete` is `max_tokens`, and `failed` maps its error code to the kinds above.
   - Output tokens include thought tokens; cached tokens count as cache reads.
   - The model list holds the models that take `generateContent`, with their input and output limits.

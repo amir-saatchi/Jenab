@@ -106,7 +106,8 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			ch := st.Current()
 			if ch.JSON.Usage.Valid() && (ch.Usage.PromptTokens > 0 || ch.Usage.CompletionTokens > 0) {
 				cached := int(ch.Usage.PromptTokensDetails.CachedTokens)
-				usage = &chat.Usage{Input: int(ch.Usage.PromptTokens) - cached, Output: int(ch.Usage.CompletionTokens), CacheRead: cached}
+				usage = &chat.Usage{Input: int(ch.Usage.PromptTokens) - cached, Output: int(ch.Usage.CompletionTokens), CacheRead: cached,
+					Thought: int(ch.Usage.CompletionTokensDetails.ReasoningTokens)}
 			}
 			if len(ch.Choices) == 0 {
 				continue

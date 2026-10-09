@@ -100,6 +100,9 @@ type rEvent struct {
 				CachedTokens     int `json:"cached_tokens"`
 				CacheWriteTokens int `json:"cache_write_tokens"`
 			} `json:"input_tokens_details"`
+			OutputTokensDetails struct {
+				ReasoningTokens int `json:"reasoning_tokens"`
+			} `json:"output_tokens_details"`
 		} `json:"usage"`
 	} `json:"response"`
 }
@@ -217,7 +220,8 @@ func (a *responsesAPI) done(ev rEvent, calls bool) provider.Event {
 	u := &chat.Usage{}
 	if r := ev.Response.Usage; r != nil {
 		d := r.InputTokensDetails
-		u = &chat.Usage{Input: max(r.InputTokens-d.CachedTokens-d.CacheWriteTokens, 0), Output: r.OutputTokens, CacheRead: d.CachedTokens, CacheWrite: d.CacheWriteTokens}
+		u = &chat.Usage{Input: max(r.InputTokens-d.CachedTokens-d.CacheWriteTokens, 0), Output: r.OutputTokens, CacheRead: d.CachedTokens, CacheWrite: d.CacheWriteTokens,
+			Thought: r.OutputTokensDetails.ReasoningTokens}
 	}
 	return provider.Event{Kind: provider.EventDone, Usage: u, Stop: stop}
 }

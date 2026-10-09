@@ -179,7 +179,7 @@ func TestComplete(t *testing.T) {
 	if got := ps[0].Thinking.Signature; got != `{"google":{"thought_signature":"EsQICsEI"}}` {
 		t.Errorf("signature = %s", got)
 	}
-	if d := last(evs); d.Stop != provider.StopEnd || *d.Usage != (chat.Usage{Input: 200, Output: 231, CacheRead: 800}) {
+	if d := last(evs); d.Stop != provider.StopEnd || *d.Usage != (chat.Usage{Input: 200, Output: 231, CacheRead: 800, Thought: 204}) {
 		t.Errorf("done = %+v %+v", d, d.Usage)
 	}
 	deltas := 0
@@ -197,8 +197,8 @@ func TestComplete(t *testing.T) {
 		t.Errorf("body = %v", b)
 	}
 	gc := b["generation_config"].(map[string]any)
-	if gc["max_output_tokens"] != 400.0 || gc["thinking_summaries"] != "auto" || gc["thinking_level"] != nil {
-		t.Errorf("generation_config = %v, want the model's own level with summaries", gc)
+	if gc["max_output_tokens"] != 400.0 || gc["thinking_summaries"] != "auto" || gc["thinking_level"] != "medium" {
+		t.Errorf("generation_config = %v, want medium with summaries", gc)
 	}
 	if s.keys[0] != testKey || strings.Contains(s.queries[0], testKey) {
 		t.Errorf("the key must go only in x-goog-api-key: header %q, query %q", s.keys[0], s.queries[0])
@@ -369,6 +369,37 @@ func TestThinkingOff(t *testing.T) {
 		levels = append(levels, fmt.Sprint(gc["thinking_level"], "/", gc["thinking_summaries"]))
 	}
 	if got := strings.Join(levels, " "); got != "minimal/none low/none low/none minimal/none" {
+		t.Errorf("levels = %s", got)
+	}
+}
+
+// TestThinkingOn: thinking on asks for medium, then high, then low; the
+// choice is kept per model, apart from the level for thinking off.
+func TestThinkingOn(t *testing.T) {
+	rejected := func(l string) reply {
+		return reply{400, `{"error":{"message":"Thinking level THINKING_LEVEL_` + l + ` is not supported for this model.","code":"invalid_request"}}`}
+	}
+	ok := reply{200, sse(start, completed("completed"))}
+	s := newServer(t, rejected("MEDIUM"), ok, ok, ok, rejected("MINIMAL"), ok)
+	p := newBackend(t, s)
+	on := hello
+	on.Model = "gemini-3-pro-preview"
+	for range 2 {
+		if _, err := run(p, on); err != nil {
+			t.Fatal(err)
+		}
+	}
+	other := on
+	other.Model = "gemini-3.5-flash-lite"
+	run(p, other)
+	off := on
+	off.Thinking = false
+	run(p, off)
+	var levels []string
+	for i := range 6 {
+		levels = append(levels, fmt.Sprint(s.body(t, i)["generation_config"].(map[string]any)["thinking_level"]))
+	}
+	if got := strings.Join(levels, " "); got != "medium high high medium minimal low" {
 		t.Errorf("levels = %s", got)
 	}
 }

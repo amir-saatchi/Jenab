@@ -52,6 +52,9 @@ type Usage struct {
 	Output     int `json:"output"`
 	CacheRead  int `json:"cache_read"`
 	CacheWrite int `json:"cache_write"`
+	// Thought is the part of Output spent on thinking, when the provider
+	// reports it. It is not stored yet.
+	Thought int `json:"thought,omitempty"`
 }
 
 // Message is one message with its parts (SPEC 2.3). A turn is one user

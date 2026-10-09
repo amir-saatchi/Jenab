@@ -34,6 +34,8 @@ func TestClassify(t *testing.T) {
 			RateLimited, 12 * time.Second},
 		{"groq try again in, no header", 429, nil,
 			`{"error":{"message":"Please try again in 850ms."}}`, RateLimited, 850 * time.Millisecond},
+		{"gemini retry in, no header", 429, nil,
+			`{"error":{"message":"Rate limit exceeded for model gemini-3.5-flash-lite (limit: 15 requests per minute on Free Tier). Please retry in 22s or upgrade your tier at https://ai.dev/rate-limit.","code":"too_many_requests"}}`, RateLimited, 22 * time.Second},
 		{"groq tokens per day", 429, nil,
 			`{"error":{"message":"Rate limit reached on tokens per day (TPD): Limit 200000"}}`, Quota, 0},
 		{"zai overloaded", 429, nil, `{"code":"1305","message":"The service may be temporarily overloaded, please try again later"}`, RateLimited, 0},

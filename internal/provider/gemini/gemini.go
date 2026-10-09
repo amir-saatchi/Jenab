@@ -43,7 +43,7 @@ func New(c provider.Connection) (provider.Provider, error) {
 	if hc == nil {
 		hc = &http.Client{}
 	}
-	return &backend{name: c.Name, base: strings.TrimSuffix(c.BaseURL, "/"), key: c.Key, guard: g, http: hc, low: map[string]int{}}, nil
+	return &backend{name: c.Name, base: strings.TrimSuffix(c.BaseURL, "/"), key: c.Key, guard: g, http: hc, skip: map[ladderKey]int{}}, nil
 }
 
 type backend struct {
@@ -52,15 +52,32 @@ type backend struct {
 	guard      *provider.Guard
 	http       *http.Client
 
-	mu  sync.Mutex
-	low map[string]int // model → index in lowLevels of the lowest level it takes
+	mu   sync.Mutex
+	skip map[ladderKey]int // the first level of the ladder the model takes
 }
 
-// lowLevels are the thinking levels tried, lowest first, when thinking is
-// off. Not every model has every level, and the API says so with a 400;
-// the next level is then tried and remembered for the model. Past the
-// last one, no level is sent and the model uses its default.
-var lowLevels = []string{"minimal", "low"}
+type ladderKey struct {
+	model    string
+	thinking bool
+}
+
+// The thinking levels tried, in order. Off asks for the least thinking.
+// On asks for medium: the default of most models, and real thinking on
+// models whose default is minimal. Not every model has every level, and
+// the API says so with a 400; the next level is then tried and remembered
+// for the model. Past the last one, no level is sent and the model uses
+// its default. No model names are checked (SPEC 1).
+var (
+	offLevels = []string{"minimal", "low"}
+	onLevels  = []string{"medium", "high", "low"}
+)
+
+func ladder(thinking bool) []string {
+	if thinking {
+		return onLevels
+	}
+	return offLevels
+}
 
 // do sends a request through the Guard. An error answer is returned as an
 // *provider.Error.
@@ -339,17 +356,18 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 	}
 }
 
-// send posts the request. With thinking off, a thinking level the model
-// rejects is replaced by the next one, which is kept for the model.
+// send posts the request. A thinking level the model rejects is replaced
+// by the next one on its ladder, which is kept for the model.
 func (b *backend) send(ctx context.Context, req provider.Request, body *request) (*http.Response, error) {
+	k := ladderKey{req.Model, req.Thinking}
 	for {
 		resp, err := b.do(ctx, "POST", "/interactions", body)
 		if err == nil || body.GenerationConfig.ThinkingLevel == "" || !levelRejected(err) {
 			return resp, err
 		}
 		b.mu.Lock()
-		b.low[req.Model] = max(b.low[req.Model], slices.Index(lowLevels, body.GenerationConfig.ThinkingLevel)+1)
-		body.GenerationConfig.ThinkingLevel = level(b.low[req.Model])
+		b.skip[k] = max(b.skip[k], slices.Index(ladder(req.Thinking), body.GenerationConfig.ThinkingLevel)+1)
+		body.GenerationConfig.ThinkingLevel = b.level(k)
 		b.mu.Unlock()
 	}
 }
@@ -359,9 +377,10 @@ func levelRejected(err error) bool {
 	return errors.As(err, &pe) && pe.Status == http.StatusBadRequest && strings.Contains(strings.ToLower(pe.Message), "thinking level")
 }
 
-func level(i int) string {
-	if i < len(lowLevels) {
-		return lowLevels[i]
+// level is the level to send for k; b.mu must be held.
+func (b *backend) level(k ladderKey) string {
+	if l := ladder(k.thinking); b.skip[k] < len(l) {
+		return l[b.skip[k]]
 	}
 	return ""
 }
@@ -415,7 +434,7 @@ func (b *backend) done(ev event, calls bool) (provider.Event, error) {
 	u := &chat.Usage{}
 	if r := in.Usage; r != nil {
 		// Thought tokens are billed as output but counted apart.
-		*u = chat.Usage{Input: r.Input - r.Cached, Output: r.Output + r.Thought, CacheRead: r.Cached}
+		*u = chat.Usage{Input: r.Input - r.Cached, Output: r.Output + r.Thought, CacheRead: r.Cached, Thought: r.Thought}
 	}
 	return provider.Event{Kind: provider.EventDone, Stop: stop, Usage: u}, nil
 }
@@ -447,11 +466,10 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 		GenerationConfig: genConfig{MaxOutputTokens: req.MaxTokens, ThinkingSummaries: "none"}}
 	if req.Thinking {
 		r.GenerationConfig.ThinkingSummaries = "auto"
-	} else {
-		b.mu.Lock()
-		r.GenerationConfig.ThinkingLevel = level(b.low[req.Model])
-		b.mu.Unlock()
 	}
+	b.mu.Lock()
+	r.GenerationConfig.ThinkingLevel = b.level(ladderKey{req.Model, req.Thinking})
+	b.mu.Unlock()
 	var sys []string
 	for _, s := range req.System {
 		sys = append(sys, s.Text)
