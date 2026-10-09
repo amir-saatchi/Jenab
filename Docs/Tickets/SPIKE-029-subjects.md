@@ -1,6 +1,6 @@
 # SPIKE-029 — Subjects: a chat's work, kept as objects
 **Type:** Spike
-**Status:** Open (before Phase 2)
+**Status:** In progress (round 1 done; round 2 proposed)
 **Gate:** 3
 
 ## Question
@@ -53,3 +53,20 @@ Each condition has results per model, with at least 3 reps per cell. There is a 
 - on the app's check (8.3)
 - whether *Refresh memory* (3.5) writes subjects in its merge step
 - on how subjects relate to SPIKE-028's request list
+
+## Result
+**Round 1** ran on 2026-10-08 on gemma4:31b and gpt-oss:120b (Ollama Cloud, reserve key): 2 chats of 14 messages × 4 conditions × 3 reps, 48 runs. The harness is in [`spikes/029-subjects/`](../../spikes/029-subjects/README.md), the findings in its [`results.md`](../../spikes/029-subjects/results.md). It changes no app code: the rule and the index go into block 4 through `agent.Deps.Card`, and the app's check is sent as the next message.
+
+- **Compliance is high.** 83–94% of work turns updated a subject without help, and the app's check raised it to 96–98%. A subject was almost never made for a plain question (3 in 36 runs, 2 of them caused by the check).
+- **The main failure: subjects become a log of actions.** Models name a subject after the step they just took ("Update daily_btc schedule"), so a change to existing work gets a new subject. Changes that updated the existing subject: 24–28% without the index, 41–61% with it.
+- **The index is needed but not enough.** It raised gemma's correct statuses from 78% to 96%. In 3 runs out of 3, gpt-oss missed that a URL belonged to a `blocked` subject that was listed in its context.
+- **The payoff is in follow-ups.** Follow-ups answered right: gemma 75% in the baseline and 100% with subjects; gpt-oss 83% and 92%. Calls that needed earlier turns were right as often without subjects, since the card and `get_config` cover them. History reads did not go down.
+- **The cost depends on how a model places its calls.** With the index: +7% requests for gemma, which sends `update_subject` together with its last real call, and +26% for gpt-oss, which sends every one alone. Prompt tokens grew 29–60%.
+
+**Proposed decisions:**
+- Subjects become the structure of the session notes, with the index in block 5.
+- No app check for now.
+- *Refresh memory* (3.5) is the place to merge duplicates.
+- SPIKE-028 stays as planned.
+
+Whether subjects replace the notes' free text waits for **round 2**: a rule that names subjects as the work itself and forbids a new subject for a change, on conditions 2 and 3. Success is 80% of changes updating the existing subject.

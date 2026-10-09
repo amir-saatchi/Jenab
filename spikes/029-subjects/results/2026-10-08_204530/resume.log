@@ -1,0 +1,6 @@
+2026/10/08 22:36:39 4 runs to go, results in results/2026-10-08_204530
+2026/10/08 22:41:00 [1/4] ollama-cloud-gpt-oss-120b_crypto_c1_r2 261s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 22:41:16 [2/4] ollama-cloud-gemma4-31b_crypto_c3_r2 277s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:41:21 [3/4] ollama-cloud-gemma4-31b_crypto_c2_r2 282s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:41:23 [4/4] ollama-cloud-gpt-oss-120b_crypto_c2_r2 284s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 22:41:23 wrote results\2026-10-08_204530\results.md

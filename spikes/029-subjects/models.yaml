@@ -1,0 +1,14 @@
+# SPIKE-029 runs on the reserve Ollama Cloud key (OLLAMA_API_KEY_II), so it
+# doesn't share a quota with other work. The key comes from ../../.env.
+providers:
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY_II
+    models:
+      - {id: gemma4:31b, context: 262144}
+      - {id: gpt-oss:120b, context: 131072}
+      - {id: gpt-oss:20b, context: 131072}
+      - {id: nemotron-3-nano:30b, context: 262144}
+      - {id: nemotron-3-super, context: 262144}
+      - {id: nemotron-3-ultra, context: 262144}

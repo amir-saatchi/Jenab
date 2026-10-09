@@ -1,0 +1,50 @@
+2026/10/08 20:45:30 48 runs to go, results in results\2026-10-08_204530
+2026/10/08 20:48:36 [1/48] ollama-cloud-gemma4-31b_crypto_c1_r1 186s subj 0/9 nudges 0 answers 0/2 calls 3/3 status 0/0 · ok
+2026/10/08 20:49:06 [2/48] ollama-cloud-gemma4-31b_crypto_c2_r1 215s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 20:49:08 [3/48] ollama-cloud-gpt-oss-120b_crypto_c1_r1 218s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 20:49:25 [4/48] ollama-cloud-gpt-oss-120b_crypto_c2_r1 235s subj 7/9 nudges 0 answers 1/2 calls 3/3 status 5/5 · ok
+2026/10/08 20:52:03 [5/48] ollama-cloud-gemma4-31b_crypto_c3_r1 206s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 20:52:43 [6/48] ollama-cloud-gemma4-31b_crypto_c4_r1 215s subj 9/9 nudges 1 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 20:53:01 [7/48] ollama-cloud-gpt-oss-120b_crypto_c3_r1 236s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 20:53:41 [8/48] ollama-cloud-gpt-oss-120b_crypto_c4_r1 256s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 20:54:52 [9/48] ollama-cloud-gemma4-31b_jobs_c1_r1 169s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 20:55:20 [10/48] ollama-cloud-gpt-oss-120b_jobs_c1_r1 157s subj 0/9 nudges 0 answers 2/2 calls 2/3 status 0/0 · ok
+2026/10/08 20:56:10 [11/48] ollama-cloud-gemma4-31b_jobs_c2_r1 189s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/08 20:56:56 [12/48] ollama-cloud-gpt-oss-120b_jobs_c2_r1 195s subj 7/9 nudges 0 answers 1/2 calls 2/3 status 2/4 · ok
+2026/10/08 20:57:54 [13/48] ollama-cloud-gemma4-31b_jobs_c3_r1 182s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/08 20:59:56 [14/48] ollama-cloud-gpt-oss-120b_jobs_c3_r1 276s subj 9/9 nudges 0 answers 1/2 calls 2/3 status 4/4 · ok
+2026/10/08 21:00:03 [15/48] ollama-cloud-gemma4-31b_jobs_c4_r1 233s subj 7/9 nudges 2 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 21:01:12 [16/48] ollama-cloud-gemma4-31b_crypto_c1_r2 198s subj 0/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/08 21:01:40 [17/48] ollama-cloud-gpt-oss-120b_jobs_c4_r1 284s subj 8/9 nudges 1 answers 1/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:13:29 [18/48] ollama-cloud-gpt-oss-120b_crypto_c2_r2 4336s subj 4/9 nudges 0 answers 0/2 calls 0/3 status 2/5 · error: message 5: the run took longer than 30m0s
+2026/10/08 22:13:30 [19/48] ollama-cloud-gemma4-31b_crypto_c2_r2 4406s subj 8/9 nudges 0 answers 0/2 calls 3/3 status 4/5 · error: message 12: the run took longer than 30m0s
+2026/10/08 22:13:30 [20/48] ollama-cloud-gpt-oss-120b_crypto_c1_r2 4414s subj 0/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · error: message 13: the run took longer than 30m0s
+2026/10/08 22:13:30 [21/48] ollama-cloud-gemma4-31b_crypto_c3_r2 4310s subj 4/9 nudges 0 answers 0/2 calls 0/3 status 2/5 · error: message 6: the run took longer than 30m0s
+2026/10/08 22:16:47 [22/48] ollama-cloud-gemma4-31b_jobs_c1_r2 197s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 22:17:03 [23/48] ollama-cloud-gemma4-31b_crypto_c4_r2 213s subj 8/9 nudges 1 answers 2/2 calls 2/3 status 4/5 · ok
+2026/10/08 22:17:15 [24/48] ollama-cloud-gpt-oss-120b_crypto_c3_r2 227s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:17:35 [25/48] ollama-cloud-gpt-oss-120b_crypto_c4_r2 245s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 22:19:03 [26/48] ollama-cloud-gpt-oss-120b_jobs_c1_r2 136s subj 0/9 nudges 0 answers 2/2 calls 2/3 status 0/0 · ok
+2026/10/08 22:19:25 [27/48] ollama-cloud-gemma4-31b_jobs_c2_r2 142s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:19:48 [28/48] ollama-cloud-gemma4-31b_jobs_c3_r2 133s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:20:08 [29/48] ollama-cloud-gpt-oss-120b_jobs_c2_r2 173s subj 9/9 nudges 0 answers 2/2 calls 2/3 status 4/4 · ok
+2026/10/08 22:22:12 [30/48] ollama-cloud-gemma4-31b_jobs_c4_r2 167s subj 7/9 nudges 2 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:22:45 [31/48] ollama-cloud-gpt-oss-120b_jobs_c3_r2 222s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+2026/10/08 22:22:51 [32/48] ollama-cloud-gemma4-31b_crypto_c1_r3 163s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 22:23:16 [33/48] ollama-cloud-gpt-oss-120b_jobs_c4_r2 208s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 3/4 · ok
+2026/10/08 22:25:40 [34/48] ollama-cloud-gpt-oss-120b_crypto_c1_r3 208s subj 0/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/08 22:26:18 [35/48] ollama-cloud-gemma4-31b_crypto_c2_r3 213s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 22:27:05 [36/48] ollama-cloud-gemma4-31b_crypto_c3_r3 229s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:27:41 [37/48] ollama-cloud-gpt-oss-120b_crypto_c2_r3 290s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:29:46 [38/48] ollama-cloud-gpt-oss-120b_crypto_c3_r3 246s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 22:30:03 [39/48] ollama-cloud-gemma4-31b_crypto_c4_r3 224s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/08 22:30:32 [40/48] ollama-cloud-gemma4-31b_jobs_c1_r3 171s subj 0/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/08 22:30:56 [41/48] ollama-cloud-gpt-oss-120b_crypto_c4_r3 231s subj 8/9 nudges 1 answers 2/2 calls 3/3 status 4/5 · ok
+2026/10/08 22:32:55 [42/48] ollama-cloud-gpt-oss-120b_jobs_c1_r3 190s subj 0/9 nudges 0 answers 1/2 calls 2/3 status 0/0 · ok
+2026/10/08 22:33:05 [43/48] ollama-cloud-gemma4-31b_jobs_c2_r3 183s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/08 22:34:02 [44/48] ollama-cloud-gemma4-31b_jobs_c3_r3 186s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:34:28 [45/48] ollama-cloud-gpt-oss-120b_jobs_c2_r3 236s subj 9/9 nudges 0 answers 2/2 calls 2/3 status 4/4 · ok
+2026/10/08 22:35:26 [46/48] ollama-cloud-gpt-oss-120b_jobs_c3_r3 151s subj 7/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+2026/10/08 22:35:49 [47/48] ollama-cloud-gemma4-31b_jobs_c4_r3 164s subj 7/9 nudges 2 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/08 22:36:06 [48/48] ollama-cloud-gpt-oss-120b_jobs_c4_r3 125s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 3/4 · ok
+2026/10/08 22:36:06 wrote results\2026-10-08_204530\results.md
