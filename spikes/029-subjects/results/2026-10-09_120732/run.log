@@ -1,0 +1,30 @@
+2026/10/09 12:07:32 24 runs to go, results in results\2026-10-09_120732
+time=2026-10-09T12:07:41.889+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=transport status=0 retry_after=0s err="Internal Server Error (ref: 2dc45208-bfdc-49e9-a677-2e1030c70c00)"
+time=2026-10-09T12:09:19.996+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=overloaded status=500 retry_after=11.010930604s err="{\"error\":\"Internal Server Error (ref: 6f8086a5-7db8-4896-b7c8-c7667cc1cc59)\"}"
+2026/10/09 12:10:35 [1/24] ollama-cloud-gemma4-31b_crypto_c2_r1_v2 183s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:10:38 [2/24] ollama-cloud-gemma4-31b_crypto_c3_r1_v2 186s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:11:43 [3/24] ollama-cloud-gpt-oss-120b_crypto_c2_r1_v2 251s subj 9/9 nudges 0 answers 1/2 calls 3/3 status 4/5 · ok
+2026/10/09 12:11:59 [4/24] ollama-cloud-gpt-oss-120b_crypto_c3_r1_v2 267s subj 9/9 nudges 0 answers 1/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:13:37 [5/24] ollama-cloud-gemma4-31b_jobs_c2_r1_v2 182s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/09 12:14:11 [6/24] ollama-cloud-gpt-oss-120b_jobs_c2_r1_v2 213s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+time=2026-10-09T12:14:43.592+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=transport status=0 retry_after=0s err="Internal Server Error (ref: 4dd5299c-8e53-44d3-b956-5209de8a1dba)"
+2026/10/09 12:14:45 [7/24] ollama-cloud-gemma4-31b_jobs_c3_r1_v2 182s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/09 12:16:18 [8/24] ollama-cloud-gpt-oss-120b_jobs_c3_r1_v2 259s subj 7/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+2026/10/09 12:16:44 [9/24] ollama-cloud-gemma4-31b_crypto_c2_r2_v2 187s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:17:24 [10/24] ollama-cloud-gemma4-31b_crypto_c3_r2_v2 159s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 4/5 · ok
+time=2026-10-09T12:18:05.349+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=transport status=0 retry_after=0s err="Internal Server Error (ref: c5c73a34-b7db-4c19-b175-09b484ab27dc)"
+2026/10/09 12:18:44 [11/24] ollama-cloud-gpt-oss-120b_crypto_c2_r2_v2 273s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 4/5 · ok
+2026/10/09 12:19:05 [12/24] ollama-cloud-gemma4-31b_jobs_c2_r2_v2 141s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 12:20:08 [13/24] ollama-cloud-gpt-oss-120b_crypto_c3_r2_v2 230s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:21:12 [14/24] ollama-cloud-gpt-oss-120b_jobs_c2_r2_v2 228s subj 8/9 nudges 0 answers 1/2 calls 2/3 status 1/4 · ok
+2026/10/09 12:21:23 [15/24] ollama-cloud-gemma4-31b_jobs_c3_r2_v2 159s subj 6/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 12:23:17 [16/24] ollama-cloud-gpt-oss-120b_jobs_c3_r2_v2 253s subj 7/9 nudges 0 answers 1/2 calls 3/3 status 2/4 · ok
+2026/10/09 12:23:33 [17/24] ollama-cloud-gemma4-31b_crypto_c2_r3_v2 205s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:24:28 [18/24] ollama-cloud-gemma4-31b_crypto_c3_r3_v2 186s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:25:15 [19/24] ollama-cloud-gpt-oss-120b_crypto_c2_r3_v2 243s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:25:37 [20/24] ollama-cloud-gemma4-31b_jobs_c2_r3_v2 125s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/09 12:26:36 [21/24] ollama-cloud-gpt-oss-120b_crypto_c3_r3_v2 199s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 12:27:22 [22/24] ollama-cloud-gpt-oss-120b_jobs_c2_r3_v2 173s subj 7/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+2026/10/09 12:27:29 [23/24] ollama-cloud-gemma4-31b_jobs_c3_r3_v2 134s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/09 12:27:45 [24/24] ollama-cloud-gpt-oss-120b_jobs_c3_r3_v2 128s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/09 12:27:45 wrote results\2026-10-09_120732\results.md

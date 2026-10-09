@@ -1,6 +1,6 @@
 # SPIKE-029 results
 
-48 runs. Conditions: 1 baseline, 2 tool, 3 tool + index, 4 tool + index + the app's check.
+48 runs, prompt rule v1. Conditions: 1 baseline, 2 tool, 3 tool + index, 4 tool + index + the app's check.
 
 ## Keeping the subjects
 

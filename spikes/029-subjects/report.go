@@ -125,7 +125,13 @@ func report(runs []runResult) string {
 	}
 	var b strings.Builder
 	b.WriteString("# SPIKE-029 results\n\n")
-	fmt.Fprintf(&b, "%d runs. Conditions: 1 baseline, 2 tool, 3 tool + index, 4 tool + index + the app's check.\n\n", len(runs))
+	var rules []string
+	for _, r := range runs {
+		if !slices.Contains(rules, r.rule()) {
+			rules = append(rules, r.rule())
+		}
+	}
+	fmt.Fprintf(&b, "%d runs, prompt rule %s. Conditions: 1 baseline, 2 tool, 3 tool + index, 4 tool + index + the app's check.\n\n", len(runs), strings.Join(rules, ", "))
 
 	b.WriteString("## Keeping the subjects\n\n")
 	b.WriteString("| model | condition | runs | work turns with a subject, on their own | with the app's check | nudges | subjects at the end, per run | made for questions | changes that updated the existing subject | duplicates | update_subject alone in its response |\n|---|---|---|---|---|---|---|---|---|---|---|\n")

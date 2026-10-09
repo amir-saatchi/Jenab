@@ -14,6 +14,7 @@ go run . -models ollama-cloud/gemma4:31b -scenarios crypto -conds 3 -reps 1   # 
 go run . -models ollama-cloud/gemma4:31b,ollama-cloud/gpt-oss:120b -reps 3    # main run
 go run . -resume results/<stamp>                                               # runs that are missing or failed
 go run . -report results/<stamp>/runs.jsonl                                    # results.md again
+go run . -rule v1 ...                                                          # round 1's prompt rule (v2 is the default)
 ```
 
 Keys come from `../../.env`. `models.yaml` uses the reserve Ollama Cloud key,

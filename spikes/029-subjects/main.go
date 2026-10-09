@@ -7,6 +7,7 @@
 //	go run . -models ollama-cloud/gemma4:31b,ollama-cloud/gpt-oss:120b -reps 3   # the main run
 //	go run . -resume results/<stamp>                                              # run what is missing or failed
 //	go run . -report results/<stamp>/runs.jsonl                                   # results.md again
+//	go run . -rule v1 ...                                                          # round 1's prompt rule
 package main
 
 import (
@@ -49,6 +50,7 @@ func main() {
 		resume     = flag.String("resume", "", "a results folder to continue: runs without a line or with an error run again")
 		reportOnly = flag.String("report", "", "write results.md from these runs.jsonl files (comma-separated) and stop")
 		keep       = flag.Bool("keep", false, "keep the runs' projects")
+		rule       = flag.String("rule", "v2", "the prompt rule: v1 (round 1) or v2 (round 2)")
 	)
 	flag.Parse()
 	if *reportOnly != "" {
@@ -67,6 +69,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	if _, ok := subjectRules[*rule]; !ok {
+		log.Fatalf("no rule %q", *rule)
+	}
+	ruleTag := *rule
+	if ruleTag == "v1" {
+		ruleTag = "" // round 1's runs have no rule field
+	}
 	models := split(*modelList)
 	var conds []int
 	for _, c := range split(*condList) {
@@ -126,7 +135,7 @@ func main() {
 		for _, sc := range scs {
 			for _, c := range conds {
 				for _, m := range models {
-					j := job{Model: m, Scenario: sc.ID, Cond: c, Rep: rep}
+					j := job{Model: m, Scenario: sc.ID, Cond: c, Rep: rep, Rule: ruleTag}
 					if !done[j] {
 						jobs = append(jobs, j)
 					}

@@ -1,6 +1,8 @@
-# SPIKE-029 — Round 1 results
+# SPIKE-029 — Results
 
-Run on 2026-10-08 on Ollama Cloud (reserve key) with gemma4:31b and gpt-oss:120b: 2 scenarios × 4 conditions × 3 reps, 48 runs of 14 messages each. Four runs stopped during a 70-minute provider stall and were run again with `-resume`. The full tables, the checks one by one and a transcript per run are in [`results/2026-10-08_204530/`](results/2026-10-08_204530/results.md).
+Round 1 is below; [round 2](#round-2) is at the end.
+
+Round 1 ran on 2026-10-08 on Ollama Cloud (reserve key) with gemma4:31b and gpt-oss:120b: 2 scenarios × 4 conditions × 3 reps, 48 runs of 14 messages each. Four runs stopped during a 70-minute provider stall and were run again with `-resume`. The full tables, the checks one by one and a transcript per run are in [`results/2026-10-08_204530/`](results/2026-10-08_204530/results.md).
 
 Each cell is small: 12 follow-ups, 18 calls and 27 status checks per model and condition. A difference of one or two is noise.
 
@@ -41,6 +43,50 @@ Each cell is small: 12 follow-ups, 18 calls and 27 status checks per model and c
 - ***Refresh memory* writes subjects:** untested here. Its merge step (3.5) is a natural place to merge duplicates, which is the main failure, so round 2 or the Phase 2 work should try it.
 - **SPIKE-028:** nothing here changes its plan. A request list per turn and subjects across turns still fit together.
 
-## Round 2 (proposed)
+## Round 2
 
-Change the rule and the tool description so a subject is the work itself, named with a noun ("BTC price tracking"), and so a change to existing work updates its subject: "never create a subject for a change to work that already has one". Then run conditions 2 and 3 again on the same models, with 3 reps. Success: at least 80% of changes update the existing subject, with no loss in compliance.
+Round 2 tests a fix for finding 2. The rule (`v2` in `subjects.go`) and the `update_subject` description now say:
+- a subject is the work itself, such as a table, a pipeline or a decision, named with a noun ("BTC price pipeline"), never after a step
+- a change, a fix or a cancellation updates the work's subject by its id, and never creates a second one
+
+It ran on 2026-10-09 on the same models, chats and settings, conditions 2 and 3 only, 3 reps: 24 runs, with no runs lost. The tables and transcripts are in [`results/2026-10-09_120732/`](results/2026-10-09_120732/results.md).
+
+### Round 1 → round 2
+
+| | gemma4:31b, tool | gemma4:31b, tool + index | gpt-oss:120b, tool | gpt-oss:120b, tool + index |
+|---|---|---|---|---|
+| **Changes that updated the existing subject** | 28% → **72%** | 61% → **76%** | 24% → 24% | 41% → **88%** |
+| Duplicates, in 6 runs | 12 → 4 | 5 → **0** | 11 → 12 | 7 → 3 |
+| Subjects at the end, per run | 7.5 → 6.8 | 6.5 → 5.8 | 7.2 → 8.0 | 6.7 → 6.7 |
+| Work turns that updated a subject | 93% → 96% | 94% → **85%** | 91% → 91% | 83% → 91% |
+| Subject status right | 78% → 93% | 96% → 81% | 78% → 67% | 74% → 81% |
+| Follow-ups right | 100% → 100% | 100% → 100% | 83% → 83% | 92% → 83% |
+| Calls that needed earlier turns right | 100% → 100% | 100% → 94% | 83% → 78% | 83% → 94% |
+| Requests per run | 32.5 → 32.3 | 32.3 → 31.8 | 39.3 → 44.8 | 39.7 → 44.3 |
+| Prompt tokens per run | 105k → 105k | 97k → 103k | 91k → 123k | 95k → 113k |
+
+With the index, both models together updated the existing subject in 28 of 34 changes (82%). The target was 80%.
+
+### Findings
+
+8. **The new rule fixes the naming.** Subjects are now named after the work ("daily_btc pipeline", "applications table"), and changes update them. With the index, gemma made no duplicates in 6 runs, and gpt-oss went from 41% to 88% of changes. gemma got most of the gain even without the index (28% → 72%).
+
+9. **gpt-oss still needs the index.** Without it, gpt-oss didn't look the subject up and created a new one for each change, as in round 1 (24%). It even named one after the rule's example, "BTC price pipeline", next to its own "daily_btc pipeline". So the index stays needed, and the rule's example should not come from a test chat's domain.
+
+10. **gpt-oss now links the Zalando URL to its blocked subject.** In round 1 it put the link into the applications table in 3 runs out of 3. With the index it now finishes the Zalando pipeline in 2 of 3.
+
+11. **The rule narrowed what counts as work.** "Such as a table, a pipeline or a decision" made both models skip two kinds of work turn:
+    - a convention saved to project memory ("rejected means closed; remember this"): no subject in 10 of 12 runs, up from 6 of 12 in round 1
+    - a row change ("N26 rejected me"): gemma with the index skipped it in 3 of 3
+
+    That is all of gemma's drop in compliance with the index (94% → 85%), and most of its drop in correct statuses, since the status check needs a subject. Whether these turns need a subject is open. The convention is already in project memory, which the card shows. The row change belongs to the table's subject, so it would only update that subject's outcome.
+
+12. **gpt-oss costs more.** It still sends every `update_subject` call alone (114 of 114). It also made more of them and read subjects more often, so it used about 5 more requests a run than in round 1 (+12–14%) and 19–35% more prompt tokens. gemma's cost didn't change.
+
+### Decisions (proposed)
+
+- **The rule: v2**, with the example taken out of any test chat's domain, and one more line saying a convention or a row change updates the subject it belongs to.
+- **Subjects become the structure of the session notes, next to a short free-text part, and don't replace it.** With the index they reach the target, but 9–15% of work turns still get no subject, and gpt-oss still makes a few duplicates. A free-text part holds what a subject misses, and *Refresh memory* (3.5) merges duplicates.
+- **The index in block 5: yes.** Round 2 shows it is needed for gpt-oss.
+- **The app's check: no.** Round 2 needed none to reach the target.
+- **SPIKE-028:** no change.

@@ -40,6 +40,7 @@ type subjects struct {
 	events []subjectEvent
 	cur    int
 	nudge  bool
+	rule   string // "v1" (round 1) or "v2" (round 2)
 }
 
 func (s *subjects) at(msg int, nudge bool) {
@@ -92,17 +93,37 @@ func (s *subjects) log() []subjectEvent {
 	return slices.Clone(s.events)
 }
 
-// The prompt rule, the same for every model (SPEC 1).
-const subjectRule = `Subjects keep this chat's work across turns: one per piece of work, with its status and outcome.
-When your work creates, changes or decides something, call update_subject: update the matching subject from the list, or create one if none matches. Call it together with your last tool call. Skip it for plain questions.`
+// The prompt rules, the same for every model (SPEC 1). Round 1's rule let
+// models name subjects after steps ("Update daily_btc schedule"), so a
+// change got a new subject; round 2's names the work and says a change
+// updates its subject.
+var subjectRules = map[string]string{
+	"v1": `Subjects keep this chat's work across turns: one per piece of work, with its status and outcome.
+When your work creates, changes or decides something, call update_subject: update the matching subject from the list, or create one if none matches. Call it together with your last tool call. Skip it for plain questions.`,
+	"v2": `Subjects keep this chat's work across turns: one per piece of work, such as a table, a pipeline or a decision, with its status and outcome.
+Name a subject after the work itself, with a noun ("BTC price pipeline"), never after a step ("Update the schedule").
+When your work creates, changes or decides something, call update_subject. If the work already has a subject, update that one by its id, also for a change, a fix or a cancellation: never create a second subject for the same work. Create one only for new work. Call it together with your last tool call. Skip it for plain questions.`,
+}
 
-// subjectBlock is what conditions 2–4 add to the card: the rule, and in
+// updateDescriptions are update_subject's descriptions, by rule.
+var updateDescriptions = map[string]string{
+	"v1": "Create or update a subject: one piece of this chat's work, kept across turns with its status and outcome. " +
+		"Without id it creates a subject, and subject is needed; with id it updates that one, and fields you leave out stay as they are. " +
+		"outcome says what was done or decided, and why. open lists questions that are still open.",
+	"v2": "Create or update a subject: one piece of this chat's work, such as a table, a pipeline or a decision, kept across turns with its status and outcome. " +
+		"With id it updates that subject, and fields you leave out stay as they are: use it for every change to work that has a subject. " +
+		"Without id it creates a subject for new work; subject is then needed, named after the work, not the step. " +
+		"outcome says the work's current state: what was done or decided, and why. open lists questions that are still open.",
+}
+
+// block is what conditions 2–4 add to the card: the rule, and in
 // conditions 3 and 4 the index.
 func (s *subjects) block(withIndex bool) string {
+	rule := subjectRules[s.rule]
 	if !withIndex {
-		return "Subjects\n" + subjectRule
+		return "Subjects\n" + rule
 	}
-	return "Subjects\n" + subjectRule + "\n\nSubjects in this chat (as of the last cut):\n" + s.index()
+	return "Subjects\n" + rule + "\n\nSubjects in this chat (as of the last cut):\n" + s.index()
 }
 
 func (s *subjects) tools() []tool.Tool {
@@ -117,10 +138,8 @@ func (s *subjects) tools() []tool.Tool {
 		ID string `json:"id"`
 	}
 	update := tool.Func(tool.Spec{
-		Name: "update_subject",
-		Description: "Create or update a subject: one piece of this chat's work, kept across turns with its status and outcome. " +
-			"Without id it creates a subject, and subject is needed; with id it updates that one, and fields you leave out stay as they are. " +
-			"outcome says what was done or decided, and why. open lists questions that are still open.",
+		Name:        "update_subject",
+		Description: updateDescriptions[s.rule],
 		Schema: json.RawMessage(`{
 			"type":"object","required":["status"],"additionalProperties":false,
 			"properties":{

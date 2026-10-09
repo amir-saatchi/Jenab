@@ -37,10 +37,22 @@ type job struct {
 	Scenario string `json:"scenario"`
 	Cond     int    `json:"cond"`
 	Rep      int    `json:"rep"`
+	Rule     string `json:"rule,omitempty"` // the prompt rule; "" is round 1's, v1
 }
 
 func (j job) name() string {
-	return fmt.Sprintf("%s_%s_c%d_r%d", strings.NewReplacer("/", "-", ":", "-").Replace(j.Model), j.Scenario, j.Cond, j.Rep)
+	n := fmt.Sprintf("%s_%s_c%d_r%d", strings.NewReplacer("/", "-", ":", "-").Replace(j.Model), j.Scenario, j.Cond, j.Rep)
+	if j.rule() != "v1" {
+		n += "_" + j.rule()
+	}
+	return n
+}
+
+func (j job) rule() string {
+	if j.Rule == "" {
+		return "v1"
+	}
+	return j.Rule
 }
 
 // call is one tool call of a turn.
@@ -97,7 +109,7 @@ type harness struct {
 func (h *harness) run(ctx context.Context, j job, sc scenarioDef) (res runResult) {
 	res = runResult{job: j, Started: time.Now().UTC()}
 	defer func() { res.Seconds = time.Since(res.Started).Seconds() }()
-	r := &run{h: h, j: j, sc: sc, w: &world{}, s: &subjects{}}
+	r := &run{h: h, j: j, sc: sc, w: &world{}, s: &subjects{rule: j.rule()}}
 	err := r.play(ctx, &res)
 	if err != nil {
 		res.Error = h.redact(err.Error())

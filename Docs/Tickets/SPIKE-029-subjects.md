@@ -1,6 +1,6 @@
 # SPIKE-029 — Subjects: a chat's work, kept as objects
 **Type:** Spike
-**Status:** In progress (round 1 done; round 2 proposed)
+**Status:** In progress (rounds 1 and 2 done; decisions proposed)
 **Gate:** 3
 
 ## Question
@@ -63,10 +63,23 @@ Each condition has results per model, with at least 3 reps per cell. There is a 
 - **The payoff is in follow-ups.** Follow-ups answered right: gemma 75% in the baseline and 100% with subjects; gpt-oss 83% and 92%. Calls that needed earlier turns were right as often without subjects, since the card and `get_config` cover them. History reads did not go down.
 - **The cost depends on how a model places its calls.** With the index: +7% requests for gemma, which sends `update_subject` together with its last real call, and +26% for gpt-oss, which sends every one alone. Prompt tokens grew 29–60%.
 
-**Proposed decisions:**
+**Proposed decisions after round 1:**
 - Subjects become the structure of the session notes, with the index in block 5.
 - No app check for now.
 - *Refresh memory* (3.5) is the place to merge duplicates.
 - SPIKE-028 stays as planned.
 
-Whether subjects replace the notes' free text waits for **round 2**: a rule that names subjects as the work itself and forbids a new subject for a change, on conditions 2 and 3. Success is 80% of changes updating the existing subject.
+**Round 2** ran on 2026-10-09: a rule that names a subject after the work itself and says a change updates its subject, on conditions 2 and 3, 24 runs.
+
+- **The target is met with the index.** Changes that updated the existing subject went from 61% to 76% on gemma and from 41% to 88% on gpt-oss, 82% for both together. gemma made no duplicates.
+- **Without the index, gpt-oss didn't improve** (24%). The index is needed.
+- **The rule narrowed what counts as work.** Both models skipped a convention saved to memory, and gemma skipped a row change, so gemma's compliance with the index fell from 94% to 85%.
+- **gpt-oss costs more:** +12–14% requests and +19–35% prompt tokens over round 1, since it sends every `update_subject` call alone and now makes more of them.
+
+**Proposed decisions** (they replace round 1's):
+- the round 2 rule, with an example from outside the test chats and one more line for conventions and row changes
+- subjects become the structure of the session notes, next to a short free-text part, and don't replace it
+- the index in block 5
+- no app check
+- *Refresh memory* (3.5) merges duplicates
+- SPIKE-028 stays as planned
