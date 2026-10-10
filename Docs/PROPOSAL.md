@@ -78,7 +78,7 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 |---|---|
 | Frontend (webview) | Left sidebar (projects, chats); main area with the chat, or an open page with the chat docked beside it; right sidebar (pages; Files and Links); block registry (table, chart, stat, form; heading, text, card, filter, button, image); light and dark theme |
 | Orchestration | Orchestrator (owns each turn, change log, undo), context builder (project card, memory, history window), main agent in each chat, Mother chat that directs chats with roles, schema agent, subagents |
-| Execution | Tool registry, pipeline runner, scheduler, sandboxed Starlark escape hatch |
+| Execution | Tool registry, pipeline runner, scheduler; a sandboxed Starlark escape hatch later |
 | Data | Async data layer: one writer goroutine and a read-only pool per database file, WAL mode; object store for the bucket |
 | Providers | LLM interface (OpenAI-compatible, Anthropic, local via Ollama/LM Studio), search and extract interfaces |
 | Storage | `config.yaml`, `registry.db` (project list, user memory), one folder per project; API keys in the OS keychain |
@@ -110,7 +110,7 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 | Scheduling | `adhocore/gronx` for cron, with our own syntax check and DST rule, plus a wall-clock check for missed runs and OS resume events (SPIKE-014, SPIKE-004) |
 | Web pages to text | `readeck/go-readability/v2` + `html-to-markdown/v2` (SPIKE-015) |
 | Expressions in pipelines | `expr-lang/expr` (SPIKE-005) |
-| Script escape hatch | `go.starlark.net`, run in a child process with a memory cap (SPIKE-016) |
+| Script escape hatch (later) | `go.starlark.net`, run in a child process with a memory cap (SPIKE-016) |
 | App updates | Wails `pkg/updater` (endpoint provider) with our own fail-closed ed25519 check, per-user install (SPIKE-019) |
 | Secrets | `zalando/go-keyring` (SPIKE-006) |
 | MCP client | To be chosen in SPIKE-024 (the official Go SDK is the first candidate) |
@@ -183,7 +183,7 @@ App builders generate whole applications from a prompt; this project stays a har
 - API connections with the user's own keys (a key in a header or query), used from chat and pipelines
 - A read-only code workspace: one linked folder the agent can list, read and search
 - LLM providers: OpenAI-compatible, Anthropic, local models
-- Search providers: Tavily or Brave with the user's key, or the user's own SearXNG; keyless RSS/Atom feeds, Wikipedia, Hacker News and GDELT news
+- Search providers: Tavily with the user's key, or the user's own SearXNG; keyless RSS/Atom feeds, Wikipedia and Hacker News
 - User config file and OS keychain for secrets
 - One simple subagent tool, used for reading long pages
 - A Mother chat per project, chat titles and roles; Mother can start and continue chats
@@ -200,6 +200,7 @@ App builders generate whole applications from a prompt; this project stays a har
 - `http.post`, and API auth other than a key in a header or query (e.g. OAuth)
 - Automatic memory review when a chat goes idle
 - Schema graph view (planned for v1.1)
+- Brave search, GDELT news and the Starlark script step (later; Gate 1, 2026-10-10)
 
 ---
 

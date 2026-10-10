@@ -1,5 +1,5 @@
 # Gate-1 — Requirements
-**Status:** Draft (ready for review)
+**Status:** Ready for sign-off (targets and priorities decided 2026-10-10)
 
 ## Purpose
 A numbered list of what v1 must do, so design, tickets and tests can refer to it.
@@ -12,6 +12,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
   - **Later:** after v1, listed so the design leaves room for it.
 - **Phase:** the PROPOSAL §9 phase that delivers it.
 - **Source:** the PROPOSAL or SPEC section with the details.
+- Non-functional requirements (`N-xx`) are all Must.
 
 ## Functional requirements
 
@@ -22,7 +23,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-01 | Each project lives in one folder with `project.db`, `chats.db` and a bucket; backup, export and delete work on the folder | Must | 1 | SPEC 2.1 |
 | R-02 | A registry lists projects and holds user memory and connections; it can be rebuilt from the project folders | Must | 1 | SPEC 2.4 |
 | R-03 | Export makes a consistent copy of an open project (`VACUUM INTO` with the safe-copy rule) | Must | 2 | SPEC 2.1, 7.5 |
-| R-04 | Jenab warns when the data folder is on a network drive or in a cloud-synced folder | Should | 1 | SPEC 2.1 |
+| R-04 | Jenab warns when the data folder is on a network drive or in a cloud-synced folder | Must | 1 | SPEC 2.1 |
 | R-05 | After a crash, opening a project checks both databases, marks interrupted runs and cleans temp files | Must | 1 | SPEC 2.7 |
 | R-06 | Each database has a storage format version; newer apps migrate with a backup, older apps refuse newer files | Must | 1 | SPEC 2.8 |
 
@@ -93,7 +94,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 |---|---|---|---|---|
 | R-50 | YAML pipelines with the v1 step catalog, inputs, `if`, `for_each`, retries and timeouts | Must | 4 | SPEC 6.1–6.5 |
 | R-51 | Sandboxed expressions in pipelines | Must | 4 | SPEC 6.4 |
-| R-52 | `script.starlark` as an escape hatch, approved by the user per code hash | Should | 4 | SPEC 6.5 |
+| R-52 | `script.starlark` as an escape hatch, approved by the user per code hash | Later | – | SPEC 6.5 |
 | R-53 | Every view, page, form and pipeline is validated before saving, with all errors and their paths returned together | Must | 3–4 | SPEC 10 |
 | R-54 | The repair loop: up to 4 more attempts per config, YAML fix hints, one notice after an unfixed failed save | Must | 2–4 | SPEC 10 |
 | R-55 | Dry runs on a copy of the project database | Must | 4 | SPEC 6.8 |
@@ -110,9 +111,9 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-61 | `call_api` in chat and `api.get` in pipelines use a connection by name; secrets are used nowhere else | Must | 4 | SPEC 6.7, 6.9 |
 | R-62 | Every literal host needs the user's approval once per project; private network addresses are blocked | Must | 4 | SPEC 6.7 |
 | R-63 | `fetch_page` and `html.extract` turn web pages into readable text | Must | 1 | SPEC 3.7 |
-| R-64 | Web search through Tavily or Brave with the user's key, or the user's SearXNG; a clear error when none is set up | Must | 4 | SPEC 6.5 |
+| R-64 | Web search through Tavily with the user's key, or the user's SearXNG; Brave later; a clear error when none is set up | Must | 4 | SPEC 6.5 |
 | R-65 | Keyless sources: RSS/Atom feeds (`feed.read`, `read_feed`), Wikipedia, Hacker News | Must | 4 | SPEC 6.5 |
-| R-66 | GDELT news as a best-effort keyless source | Should | 4 | SPEC 6.5 |
+| R-66 | GDELT news as a best-effort keyless source | Later | – | SPEC 6.5 |
 
 **Bucket and links**
 
@@ -128,7 +129,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 |---|---|---|---|---|
 | R-80 | One subagent tool for heavy reading; subagents can't change memory or the schema | Must | 5 | SPEC 8.1 |
 | R-81 | A read-only workspace: one linked folder with `list_files`, `read_file` and `search_code`, blocked credential files | Should | 4 | SPEC 8.5 |
-| R-82 | MCP client: servers the user adds, tools through `mcp_describe` and `mcp_call`, approval per tool | Should | 5 | SPEC 8.7 |
+| R-82 | MCP client: servers the user adds, tools through `mcp_describe` and `mcp_call`, approval per tool | Must | 5 | SPEC 8.7 |
 | R-83 | Skills: Markdown instructions that a chat loads when needed (`load_skill`), or automatically with a tool (`load_with`); built-in skills for configs, pipelines, database design, migrations, SQL, web research and delegation | Must | 1–2 | SPEC 8.9 |
 | R-84 | Chats and subagents can start with skills; Mother picks them in `create_chat`; the schema agent is built on skills | Must | 2, 5 | SPEC 8.9 |
 | R-85 | User and project skills, written or accepted by the user; never downloaded | Should | 5 | SPEC 8.9 |
@@ -144,7 +145,7 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-91 | Settings in `config.yaml`; all keys in the OS keychain | Must | 1 | SPEC 2.1, 6.7 |
 | R-92 | Self-update with signed releases, a user choice of automatic, notify only or off | Must | 5 | SPEC 2.8 |
 | R-93 | Scenario runner: the same agent scenarios on every test model, with a report | Must | 1 | SPEC 8.4, TASK-001 |
-| R-94 | Turn inspector behind *Settings → Developer* | Should | 1 | SPEC 8.4 |
+| R-94 | Turn inspector behind *Settings → Developer* | Must | 1 | SPEC 8.4 |
 | R-95 | Installer builds for Windows and macOS; an AppImage for Linux (beta) | Must | 5 | PROPOSAL 9, SPEC 2.8 |
 
 **Later (not v1)**
@@ -163,22 +164,22 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 
 ## Non-functional requirements
 
-Numbers with "measured" come from the spikes. Numbers marked *proposed* are new targets for you to confirm.
+Numbers with "measured" come from the spikes and the Phase 1 bench.
 
 **Responsiveness**
 
 | ID | Requirement | Source |
 |---|---|---|
 | N-01 | Chat streams at 60 fps at 100 tokens/s, with key → paint under 50 ms while streaming (measured 14 ms, max 44 ms) | SPEC 5.8, SPIKE-022 |
-| N-02 | Opening a chat with 200 messages doesn't block input for more than 100 ms (*proposed*; measured one task of 67–154 ms without virtualising) | SPEC 5.8 |
+| N-02 | Opening a chat with 200 messages doesn't block input for more than 100 ms (measured 74–85 ms in the built app, only on the first open) | SPEC 5.8, P1-18 |
 | N-03 | Tables of 10,000 rows scroll at 60 fps; a 500-row page arrives from Go in under 50 ms (measured 8–10 ms) | SPEC 5.3 |
 | N-04 | A chart with 10,000 result rows draws in under 1 s (measured 126–333 ms with the size rules) | SPEC 5.4 |
 | N-05 | A page with 6 blocks paints in under 1.5 s | SPEC 5.9 |
 | N-06 | View queries time out after 2 s per block and never wait for the writer | SPEC 5.7, 7.1 |
-| N-07 | Cold start to first paint under 1.5 s (*proposed*; measured 0.83 s) | SPIKE-022 |
+| N-07 | Cold start to first paint under 1.5 s, not counting the first start, when WebView2 makes its profile (measured 0.90–0.95 s) | SPIKE-022, P1-18 |
 | N-08 | A 5,000-row upsert with the change log takes under 1 s; undoing a 5,000-row run under 1 s (measured 0.3 s) | SPEC 2.6 |
 | N-09 | History search p95 under 50 ms at 100,000 messages (measured 25 ms) | SPEC 2.3 |
-| N-10 | After waking from sleep, due runs start within 2 minutes (*proposed*; the minute check fired within 1.5 s of waking) | SPEC 6.2 |
+| N-10 | After waking from sleep, due runs start within 2 minutes (the minute check fired within 1.5 s of waking) | SPEC 6.2 |
 
 **Security**
 
@@ -186,9 +187,9 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 |---|---|---|
 | N-20 | All agent SQL passes the three guard layers; the agent can't read internal tables or attach files | SPEC 2.2 |
 | N-21 | Keys never appear in configs, prompts, logs, previews, URLs or the project folder; values are redacted everywhere | SPEC 6.7, 6.9 |
-| N-22 | New hosts, destructive migrations, Starlark code and MCP tools need the user's approval; approvals are recorded | SPEC 6.7, 7.5, 8.7 |
+| N-22 | New hosts, destructive migrations, Starlark code (when it comes, R-52) and MCP tools need the user's approval; approvals are recorded | SPEC 6.7, 7.5, 8.7 |
 | N-23 | Web pages, files, workspace contents and MCP results are treated as untrusted data | SPEC 3.7, 4.7, 8.5, 8.7 |
-| N-24 | Scripts run in a child process with a 256 MB memory cap and a step limit; expressions have size and cost limits | SPEC 6.4, 6.5 |
+| N-24 | Starlark scripts (when they come, R-52) run in a child process with a 256 MB memory cap and a step limit; expressions have size and cost limits | SPEC 6.4, 6.5 |
 | N-25 | Downloaded files are never run or rendered as HTML; SVG only through `<img>` | SPEC 4.7 |
 | N-26 | Updates install only with a valid ed25519 signature over https; anything else is rejected | SPEC 2.8 |
 
@@ -207,7 +208,7 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 | ID | Requirement | Source |
 |---|---|---|
 | N-40 | Model-neutral: prompts, tools, schemas and the repair loop are the same for every model | SPEC 1 |
-| N-41 | At least 80 % of configs are valid within the repair limit on the test models (*proposed*; measured 81 %) | SPIKE-021 |
+| N-41 | At least 80 % of configs are valid within the repair limit on the reference models (measured 81 % on three other models; measured again on the reference models when the config tools are built) | SPIKE-021 |
 | N-42 | Fewer tokens per turn and more accurate answers than a plain chat harness in the benchmark | PROPOSAL 11 |
 | N-43 | Background LLM calls, pipeline runs, background tasks and subagents stay within the limits; chat calls never wait for a slot; a changed limit applies without a restart | SPEC 7.6, 8.3 |
 | N-44 | Rate limits and overloads are retried with the provider's wait and one pause per provider; quota and request errors are never retried; a waiting chat shows the wait | SPEC 3.8, 8.3 |
@@ -218,9 +219,9 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 |---|---|---|
 | N-50 | Windows 11 and macOS; Linux x64 as a beta; per-user install without admin rights | SPEC 2.8 |
 | N-51 | No cgo in our code or dependencies; Windows builds need no C compiler. Wails itself uses cgo on macOS and Linux | Gate-2, P1-01 |
-| N-52 | Idle memory under 350 MB, and the app's own process under 100 MB. The rest is WebView2, whose GPU process alone takes about 120 MB (measured 278–310 MB, the app 60 MB). With a 200-message chat open, under 500 MB (*proposed*; measured 410–460 MB), and opening a chat again and again doesn't make memory grow | SPIKE-022, P1-18, TASK-005 |
+| N-52 | Idle memory under 350 MB, and the app's own process under 100 MB. The rest is WebView2, whose GPU process alone takes about 120 MB (measured 278–310 MB, the app 60 MB). With a 200-message chat open, under 500 MB (measured 410–460 MB), and opening a chat again and again doesn't make memory grow | SPIKE-022, P1-18, TASK-005 |
 | N-53 | Text meets WCAG AA contrast (4.5:1) in both themes, including every tone | SPEC 5.11 |
-| N-54 | Minimum system: 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. With every limit in use, Jenab stays under 1.5 GB (*proposed*). Local models need their own memory on top | SPEC 7.6, P1-18 |
+| N-54 | Minimum system: 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. With every limit in use, Jenab stays under 1.5 GB (measured a peak of 555–572 MB with 10 chats answering; later phases add pipelines and background calls). Local models need their own memory on top | SPEC 7.6, P1-18 |
 
 ## Coverage of PROPOSAL §8
 
@@ -231,7 +232,8 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 | Context builder | R-20–R-23 |
 | User memory, project memory, session notes, *Refresh memory* | R-24–R-26 |
 | Bucket, lifecycle, links, saved links | R-70–R-72 |
-| Views, image and file columns, row actions, pages | R-40–R-49, R-110–R-115 |
+| Views, image and file columns, row actions, pages | R-40–R-49, R-110–R-114 |
+| Light, dark and system theme | R-115 |
 | YAML pipelines, validation, dry runs | R-50–R-55 |
 | Scheduler, run log, retries, catch-up, notifications | R-56, R-57, R-120 |
 | Background/tray mode | R-58 |
@@ -250,6 +252,5 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 - [ ] Every requirement has an ID, priority and source
 - [ ] Non-functional requirements listed (responsiveness, security, storage limits)
 
-## Open items
-- Confirm the *proposed* targets: N-02, N-07, N-10, N-41, and the open chat in N-52.
-- Confirm the Should items: R-04, R-52, R-66, R-81, R-82, R-94, R-112.
+## Decisions
+- 2026-10-10: the targets N-02, N-07, N-10, N-41, N-52 and N-54 are confirmed. R-04, R-94 and R-82 move from Should to Must; R-52 and R-66 move to Later; R-81 and R-112 stay Should.

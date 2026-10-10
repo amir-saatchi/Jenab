@@ -20,7 +20,7 @@ P1-18's bench found that opening the 200-message chat adds about 170 MB: the ren
 The cost of an open chat is explained by part, cheap fixes are in and measured, and a target is proposed.
 
 ## Result
-The open chat costs 120–170 MB, grows with the number of elements, and comes back when the chat closes, except for about 40 MB that the renderer keeps for reuse. It is not a leak. No cheap fix is worth taking. Proposed target: under 500 MB with the 200-message chat open (in N-52).
+The open chat costs 120–170 MB, grows with the number of elements, and comes back when the chat closes, except for about 40 MB that the renderer keeps for reuse. It is not a leak. No cheap fix is worth taking. Target: under 500 MB with the 200-message chat open, in N-52 (confirmed 2026-10-10).
 
 - **By content.** The bench's new `-history` flag seeds the 30 turns as short answers, prose, the mix, or code. The renderer grows with the elements, and code costs no more than the mix, so highlight.js is not the cost:
 

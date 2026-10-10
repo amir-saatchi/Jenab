@@ -6,7 +6,7 @@
 **Requirements:** R-94
 
 ## Goal
-See what the agent sent and what is running (SPEC 8.4). R-94 is a Should item.
+See what the agent sent and what is running (SPEC 8.4). R-94 was a Should item; it became Must on 2026-10-10, once built.
 
 ## Scope
 - **Turn inspector:**

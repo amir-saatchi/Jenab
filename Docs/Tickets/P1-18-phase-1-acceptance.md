@@ -54,7 +54,7 @@ The scenario passes on two development models, the restart test passes in CI, an
     | 10 s after switching to an empty chat | 384 | 114 | 142 | 62 | 66 |
     | after garbage collection | 331 | 89 | 114 | 63 | 66 |
 
-    The open chat costs about 170 MB, mostly in the renderer, though the JS heap is only 12 MB: it is the page (60 rows of Markdown and code), not data. 41 MB stays after closing it, in the renderer. The memory-pressure signal frees nothing more. TASK-005 found what the open chat holds: no leak, and a proposed target of 500 MB with it open.
+    The open chat costs about 170 MB, mostly in the renderer, though the JS heap is only 12 MB: it is the page (60 rows of Markdown and code), not data. 41 MB stays after closing it, in the renderer. The memory-pressure signal frees nothing more. TASK-005 found what the open chat holds: no leak, and a target of 500 MB with it open, confirmed in Gate 1.
   - **N-54** uses 10 chats answering at once in place of 8 background calls and 2 busy chats; Phase 1 has no background calls.
 - **Open:**
   - The restart test in CI, once the billing lock is lifted.

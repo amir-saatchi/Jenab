@@ -14,8 +14,8 @@ const (
 	targetStartMs    = 1500 // cold start to first paint
 	targetIdleMB     = 350  // idle memory, private
 	targetAppIdleMB  = 100  // the app's own process, idle
-	targetOpenMB     = 500  // with the 200-message chat open (proposed)
-	targetLoadMB     = 1500 // every limit in use (proposed)
+	targetOpenMB     = 500  // with the 200-message chat open
+	targetLoadMB     = 1500 // every limit in use
 )
 
 func mark(ok bool) string {
@@ -56,8 +56,8 @@ func (rep *report) markdown() string {
 	}
 	fmt.Fprintf(&b, "| N-52 idle memory | %.0f MB private, the app %.0f MB | %d MB, the app %d MB | %s |\n", rep.Idle.PrivateMB, rep.Idle.AppPrivateMB,
 		targetIdleMB, targetAppIdleMB, mark(rep.Idle.PrivateMB < targetIdleMB && rep.Idle.AppPrivateMB < targetAppIdleMB))
-	fmt.Fprintf(&b, "| N-52 with the chat open | %.0f MB private | %d MB (proposed) | %s |\n", rep.AfterOpens.PrivateMB, targetOpenMB, mark(rep.AfterOpens.PrivateMB < targetOpenMB))
-	fmt.Fprintf(&b, "| N-54 memory under load | peak %.0f MB private, %d answers at once | %d MB (proposed) | %s |\n",
+	fmt.Fprintf(&b, "| N-52 with the chat open | %.0f MB private | %d MB | %s |\n", rep.AfterOpens.PrivateMB, targetOpenMB, mark(rep.AfterOpens.PrivateMB < targetOpenMB))
+	fmt.Fprintf(&b, "| N-54 memory under load | peak %.0f MB private, %d answers at once | %d MB | %s |\n",
 		rep.Load.Peak.PrivateMB, rep.Load.Streams, targetLoadMB, mark(rep.Load.Peak.PrivateMB < targetLoadMB))
 
 	b.WriteString("\n## Start-up\n\nFrom the process start to the shell's first paint. Starts where WebView2 opened no DevTools port are not counted; the first start with a new profile is always one of them.\n\n| Start | Navigation ms | First paint ms |\n|---|---|---|\n")
