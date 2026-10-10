@@ -1,0 +1,64 @@
+# P1-18: Phase 1 acceptance (PROPOSAL 9). A normal chat with tool calls
+# that survives a restart, and the agent finds something said 22 turns
+# earlier through history search.
+#
+# The Bitcoin project of SPEC 9, as in skill-loading. fetch_page is a fake
+# here, so a run never reaches the network.
+title: Bitcoin tracker
+card: ../fixtures/bitcoin/card.md
+fixture: ../fixtures/bitcoin/fixture.sql
+configs: ../fixtures/bitcoin/configs
+skills: ../skills
+
+tools:
+  - name: describe_table
+    description: Columns, types, keys, indexes and row count of a table.
+    schema: {type: object, properties: {name: {type: string}}, required: [name]}
+    kind: describe
+    arg: name
+    delay: 200ms
+  - name: query
+    description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
+    schema:
+      type: object
+      properties:
+        sql: {type: string}
+        params: {type: object, description: "values for named parameters (:name)"}
+      required: [sql]
+    kind: sql
+    arg: sql
+    delay: 200ms
+  - name: get_config
+    description: Read the saved YAML of a view or pipeline by id.
+    schema: {type: object, properties: {id: {type: string}}, required: [id]}
+    kind: config
+    arg: id
+    delay: 200ms
+  - name: web_search
+    description: Search the web or the news; returns titles, URLs, dates and snippets.
+    schema:
+      type: object
+      properties:
+        query: {type: string}
+        limit: {type: integer}
+        freshness: {type: string, enum: [day, week, month, any]}
+        source: {type: string, enum: [web, news, wikipedia, hn]}
+      required: [query]
+    delay: 1s
+  - name: fetch_page
+    description: Fetch a web page and return its readable text.
+    schema: {type: object, properties: {url: {type: string}}, required: [url]}
+    delay: 1s
+
+rules:
+  web_search:
+    - match: '(?i)etf'
+      result: |
+        1. "Two more spot Bitcoin ETFs approved" - https://news.example.com/etf-1 - 2026-10-06 - Regulators approved two more funds on Monday.
+        2. "ETF inflows reach a monthly high" - https://news.example.com/etf-2 - 2026-10-05 - Funds took in 1.2 billion USD in a week.
+    - match: '(?i)difficulty|mining'
+      result: |
+        1. "Mining difficulty rises 3 percent" - https://news.example.com/mining-1 - 2026-10-04 - The network adjusted difficulty to 112.4 T on Saturday.
+    - result: "No results."
+  fetch_page:
+    - result: "The page says the same as the search snippet. Nothing more."

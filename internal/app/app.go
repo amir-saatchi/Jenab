@@ -25,6 +25,9 @@ type Deps struct {
 	// WebviewData is where WebView2 keeps its cache and storage on
 	// Windows; empty means Wails' default, %APPDATA%\<exe name>.
 	WebviewData string
+	// BrowserArgs are extra WebView2 arguments on Windows. Only the bench
+	// build sets them (cmd/desktop/bench.go).
+	BrowserArgs []string
 	Log         *slog.Logger
 }
 
@@ -51,7 +54,7 @@ func New(d Deps) *App {
 		// Wails logs every asset request at Info; the log gets its
 		// warnings and errors only.
 		Logger:  slog.New(minLevel{d.Log.Handler(), slog.LevelWarn}),
-		Windows: application.WindowsOptions{WebviewUserDataPath: d.WebviewData},
+		Windows: application.WindowsOptions{WebviewUserDataPath: d.WebviewData, AdditionalBrowserArgs: d.BrowserArgs},
 	})
 	a.pub = &Publisher{emit: func(name string, data any) { a.w.Event.Emit(name, data) }}
 	return a

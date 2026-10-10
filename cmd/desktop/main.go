@@ -29,6 +29,9 @@ import (
 // appName is the one place the app's name is set (Q1).
 const appName = "Jenab"
 
+// benchArgs gives extra WebView2 arguments; only the bench build sets it.
+var benchArgs = func() []string { return nil }
+
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		if errors.Is(err, errRunning) {
@@ -106,7 +109,7 @@ func run(_ []string) (err error) {
 	})
 
 	wapp := app.New(app.Deps{Name: appName, Assets: assets, Log: log, // first, so events can be sent
-		WebviewData: filepath.Join(paths.Root, "webview")})
+		WebviewData: filepath.Join(paths.Root, "webview"), BrowserArgs: benchArgs()})
 	projects := project.NewManager(project.Deps{Paths: paths, Registry: registry, Log: log, Events: wapp.Publisher(),
 		Level: func() project.Level {
 			l, err := project.ParseLevel(live.Get().Approvals.DefaultLevel)

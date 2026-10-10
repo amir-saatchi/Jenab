@@ -1,0 +1,47 @@
+id: P1_restart_history
+title: A 25-turn chat with a restart, then a question about turn 3
+tests: ["restart", "history"]
+context: main
+why: >
+  Answer each message, with tools where they help. After the restart the
+  chat goes on where it was. At turn 25 the purchase from turn 3 is out of
+  the history window, so the agent finds it with search_history.
+messages:
+  - text: Hi! Can you give me a quick overview of what's in this project?
+  - text: What was the Bitcoin price on 2026-10-01?
+  - text: >
+      Some background: I bought my first 0.35 BTC on 12 March 2021 for
+      48,200 euros, on the exchange Bitstamp. What would 0.35 BTC be worth
+      at the latest price in the table?
+  - text: Which day in the price table had the highest price?
+  - text: And the lowest?
+  - text: What is the average price over the whole table?
+  - text: Show me the news headlines we have stored.
+  - text: Search the web for news about Bitcoin ETFs this week.
+  - text: Which keywords are we watching for news?
+  - text: How many rows does each table have?
+  - text: Explain in two sentences what a moving average is.
+  - text: List the prices from 2026-10-01 to 2026-10-05, one per line.
+  - text: Add those five prices up for me.
+    restart: true
+  - text: Write a short Markdown summary of the October prices to the bucket as notes/october.md.
+  - text: What is in the bucket now?
+  - text: What does the daily_btc pipeline do?
+  - text: When is it scheduled to run?
+  - text: Search the web for the current Bitcoin mining difficulty.
+  - text: How much BTC would 1,000 USD buy at the latest price in the table?
+  - text: Did the price go up or down over the days in the table, and by how many percent?
+  - text: Which stored news story is the newest?
+  - text: Read back the note you saved in the bucket.
+  - text: Is any day missing in the price table between 26 September and 5 October?
+  - text: Thanks. One more thing, what is a satoshi?
+  - text: Earlier I told you about my first Bitcoin purchase. What did I pay for it, and on which exchange?
+asserts:
+  # The chat survives the restart: turn 13 adds up the list from turn 12.
+  - {type: answer_contains, test: restart, turn: "13", match: '301[,.\s ]?500'}
+  # Turn 25 finds turn 3 through history search.
+  - {type: tool_called, test: history, tool: search_history, turn: "25"}
+  - {type: answer_contains, test: history, turn: "25", match: '48[,.\s ]?200'}
+  - {type: answer_contains, test: history, turn: "25", match: '(?i)bitstamp'}
+  - {type: max_turns, test: info, n: 25}
+  - {type: answer_delivered, test: info}

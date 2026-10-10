@@ -488,6 +488,13 @@ export interface ToolCall {
      * and a string comes back byte for byte.
      */
     "extra"?: string;
+
+    /**
+     * Invalid is the arguments as the model sent them, when they were not
+     * valid JSON. Args is then {}, so every API takes the call back. The
+     * call is not run: its result tells the model what was wrong (SPEC 3.8).
+     */
+    "invalid"?: string;
 }
 
 /**
@@ -517,6 +524,12 @@ export interface Usage {
     "output": number;
     "cache_read": number;
     "cache_write": number;
+
+    /**
+     * Thought is the part of Output spent on thinking, when the provider
+     * reports it. It is not stored yet.
+     */
+    "thought"?: number;
 }
 
 /**

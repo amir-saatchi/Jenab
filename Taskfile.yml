@@ -50,6 +50,15 @@ tasks:
     vars:
       FLAGS: '{{if eq .DEV "true"}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production -trimpath -buildvcs=false -ldflags="-w -s{{if eq OS "windows"}} -H windowsgui{{end}}"{{end}}'
 
+  bench:
+    summary: Builds the app with the bench tag, which can open WebView2's DevTools port, and measures it (P1-18)
+    platforms: [windows]
+    deps: [build:frontend]
+    cmds:
+      - task: syso
+      - go build -tags production,bench -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui" -o "{{.BIN_DIR}}/jenab-bench-app.exe" ./cmd/desktop
+      - go run ./cmd/jenab-bench -app "{{.BIN_DIR}}/jenab-bench-app.exe"
+
   run:
     summary: Runs the built app
     cmds:

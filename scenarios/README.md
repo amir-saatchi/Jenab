@@ -25,6 +25,7 @@ Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one tr
 | `multi-part` | SPIKE-023 | Requests with several parts, messages during a turn, and Mother's delegation. Scenarios that need background work (8.3) are skipped until the app has it. |
 | `skill-loading` | SPIKE-025 T-load | The chat loads the right skill before it acts, and no others. |
 | `role-skills` | SPIKE-025 T-roles | Mother gives a new chat the skills its role needs. |
+| `acceptance` | P1-18 | Phase 1's "done when": a chat of 25 turns with tool calls survives a restart, and turn 25 finds turn 3 with `search_history`. |
 
 SPIKE-021's config tasks (T1–T4) come with Phase 2, when the app can check configs.
 
@@ -33,7 +34,7 @@ SPIKE-021's config tasks (T1–T4) come with Phase 2, when the app can check con
 A set is a folder:
 
 - `_set.yaml`: the project title, its card and fixture database, stored configs, skills, other chats, the fake tools and their rules.
-- One YAML file per scenario: the context (`main` or `mother`), the messages (one with `at` is sent during a turn), and the asserts.
+- One YAML file per scenario: the context (`main` or `mother`), the messages (one with `at` is sent during a turn; one with `restart: true` comes after the app closes and opens again), and the asserts. An assert's `turn` is `first`, `last`, `finish`, `any` or a turn number.
 
 A fake tool answers with the first rule whose `match` regex fits the call's arguments as JSON. The scenario's own rules come first. Tools of kind `sql`, `describe` and `config` read the fixture. An assert with `test: info` is reported but never fails a run.
 

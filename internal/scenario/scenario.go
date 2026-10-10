@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,10 +133,13 @@ type Scenario struct {
 
 // Message is a scripted user message. Without At it is sent once the chat
 // is idle; with At, that long after the scenario's start, also during a
-// turn, where it joins the running turn (8.3).
+// turn, where it joins the running turn (8.3). With Restart the app
+// restarts before it: the chat is idle, the app closes its projects and
+// opens them again from disk.
 type Message struct {
-	Text string    `yaml:"text"`
-	At   *Duration `yaml:"at"`
+	Text    string    `yaml:"text"`
+	At      *Duration `yaml:"at"`
+	Restart bool      `yaml:"restart"`
 }
 
 // Assert is one check on a finished run. Each type uses some fields.
@@ -150,7 +154,7 @@ type Assert struct {
 	ArgsMatch   string   `yaml:"args_match"`
 	ArgsNot     string   `yaml:"args_not_match"`
 	AnswerMatch string   `yaml:"answer_match"`
-	Turn        string   `yaml:"turn"` // first, last, finish or any (the default)
+	Turn        string   `yaml:"turn"` // first, last, finish, any (the default) or a turn number
 	N           int      `yaml:"n"`
 	MaxOverlap  float64  `yaml:"max_overlap"`
 	Markers     []string `yaml:"markers"`
@@ -392,9 +396,12 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		if strings.TrimSpace(m.Text) == "" {
 			return nil, fmt.Errorf("messages[%d]: no text", i)
 		}
+		if m.Restart && m.At != nil {
+			return nil, fmt.Errorf("messages[%d]: a restart waits until the chat is idle, so it has no at", i)
+		}
 	}
-	if sc.Messages[0].At != nil {
-		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at")
+	if sc.Messages[0].At != nil || sc.Messages[0].Restart {
+		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at or restart")
 	}
 	for name := range sc.Delays {
 		if s.tool(name) == nil {
@@ -423,8 +430,8 @@ func (s *Set) checkAssert(a Assert) error {
 	if len(a.Other) > 0 {
 		return fmt.Errorf("unknown field %s", slices.Sorted(maps.Keys(a.Other))[0])
 	}
-	if !slices.Contains(turnNames, a.Turn) {
-		return fmt.Errorf("turn must be first, last, finish or any")
+	if n, err := strconv.Atoi(a.Turn); !slices.Contains(turnNames, a.Turn) && (err != nil || n < 1) {
+		return fmt.Errorf("turn must be first, last, finish, any or a turn number")
 	}
 	for _, re := range append([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch}, a.Markers...) {
 		if _, err := regexp.Compile(re); err != nil {

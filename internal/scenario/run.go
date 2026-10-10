@@ -140,8 +140,14 @@ type run struct {
 	model  string // "provider/id"
 	db     *sql.DB
 
-	pm  *project.Manager
-	o   *agent.Orchestrator
+	// The app: opened at the start and again after a restart.
+	paths  config.Paths
+	traces *agent.Traces // kept across restarts, so the record has every request
+	reg    *store.Registry
+	pm     *project.Manager
+	o      *agent.Orchestrator
+	stop   context.CancelFunc
+
 	pid id.Project
 	cid id.Chat
 }
@@ -186,44 +192,73 @@ func (r *run) play(ctx context.Context) (*record, error) {
 		}
 		defer r.db.Close()
 	}
-	paths := config.Paths{Root: root, Registry: filepath.Join(root, "registry.db")}.WithDataFolder(filepath.Join(root, "data"))
-	reg, err := store.OpenRegistry(ctx, paths.Registry)
-	if err != nil {
+	r.paths = config.Paths{Root: root, Registry: filepath.Join(root, "registry.db")}.WithDataFolder(filepath.Join(root, "data"))
+	r.traces = agent.NewTraces()
+	if err := r.open(ctx); err != nil {
 		return nil, err
 	}
-	defer reg.Close()
-	r.pm = project.NewManager(project.Deps{Paths: paths, Registry: reg, Log: r.opt.Log})
-	defer r.pm.CloseAll(context.WithoutCancel(ctx))
+	defer func() { r.close(context.WithoutCancel(ctx)) }()
 	if r.pid, err = r.pm.Create(ctx, r.sc.set.Title); err != nil {
 		return nil, err
 	}
 	if err := r.setup(ctx); err != nil {
 		return nil, err
 	}
+	sent, err := r.send(ctx)
+	rec, rerr := r.record(context.WithoutCancel(ctx), r.traces, sent)
+	return rec, errors.Join(err, rerr)
+}
+
+// open starts the app: the registry, the projects and the orchestrator.
+func (r *run) open(ctx context.Context) error {
+	reg, err := store.OpenRegistry(ctx, r.paths.Registry)
+	if err != nil {
+		return err
+	}
+	r.reg = reg
+	r.pm = project.NewManager(project.Deps{Paths: r.paths, Registry: reg, Log: r.opt.Log})
 	set := r.settings()
 	models := provider.NewRegistry(provider.Deps{
 		Settings: set.LLM, Secrets: secret.New(r.opt.Models.keyring()), Gate: limit.NewGate(set.LLM.MaxParallelCalls),
 		Backends: r.opt.Backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,
 	})
-	traces := agent.NewTraces()
 	appCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
+	r.stop = stop
 	r.o = agent.New(agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },
-		Skills: r.skills, Traces: traces, Log: r.opt.Log,
+		Skills: r.skills, Traces: r.traces, Log: r.opt.Log,
 		Card: func(context.Context, id.Project) (string, error) { return r.sc.set.Card, nil },
 	})
-	defer func() {
-		r.o.Refuse()
-		stop()
-		wctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := r.o.Wait(wctx); err != nil {
-			r.opt.Log.Warn("scenario: turns still running at the end", "scenario", r.sc.ID, "err", err)
-		}
-	}()
-	sent, err := r.send(ctx)
-	rec, rerr := r.record(context.WithoutCancel(ctx), traces, sent)
-	return rec, errors.Join(err, rerr)
+	return nil
+}
+
+// close shuts the app down as it does on quit: no new turns, running ones
+// stopped, then the projects and the registry closed. A closed app is
+// closed again without effect.
+func (r *run) close(ctx context.Context) error {
+	if r.o == nil {
+		return nil
+	}
+	defer func() { r.o = nil }()
+	r.o.Refuse()
+	r.stop()
+	wctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if err := r.o.Wait(wctx); err != nil {
+		r.opt.Log.Warn("scenario: turns still running at the end", "scenario", r.sc.ID, "err", err)
+	}
+	return errors.Join(r.pm.CloseAll(ctx), r.reg.Close())
+}
+
+// restart closes the app and opens it again from disk.
+func (r *run) restart(ctx context.Context) error {
+	if err := r.close(ctx); err != nil {
+		return fmt.Errorf("restart: %w", err)
+	}
+	if err := r.open(ctx); err != nil {
+		return fmt.Errorf("restart: %w", err)
+	}
+	return nil
 }
 
 // setup adds the set's other chats and the chat under test.
@@ -294,8 +329,8 @@ type sent struct {
 }
 
 // send plays the messages: one without a time waits until the chat is
-// idle; one with a time is sent then, also during a turn. At the end it
-// waits until the chat is idle.
+// idle; one with a time is sent then, also during a turn. A restart comes
+// once the chat is idle. At the end it waits until the chat is idle.
 func (r *run) send(ctx context.Context) ([]sent, error) {
 	start := time.Now()
 	var out []sent
@@ -306,6 +341,11 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 			}
 		} else if err := r.sleep(ctx, time.Duration(*m.At)-time.Duration(float64(time.Since(start))/r.opt.Scale)); err != nil {
 			return out, err
+		}
+		if m.Restart {
+			if err := r.restart(ctx); err != nil {
+				return out, err
+			}
 		}
 		mid, err := r.o.Send(ctx, r.pid, r.cid, agent.UserMessage{Text: m.Text})
 		if err != nil {

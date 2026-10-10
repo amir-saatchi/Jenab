@@ -6,6 +6,7 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -255,7 +256,7 @@ func canonical(args string) string {
 }
 
 // inTurns returns the turns sel picks: first, last (the last with the
-// agent's text), finish (turns a notice started), or any.
+// agent's text), finish (turns a notice started), a turn number, or any.
 func (rec *record) inTurns(sel string) func(int) bool {
 	switch sel {
 	case "first":
@@ -271,6 +272,9 @@ func (rec *record) inTurns(sel string) func(int) bool {
 	case "finish":
 		fin := rec.finishTurns()
 		return func(t int) bool { return slices.Contains(fin, t) }
+	}
+	if n, err := strconv.Atoi(sel); err == nil {
+		return func(t int) bool { return t == n }
 	}
 	return func(int) bool { return true }
 }

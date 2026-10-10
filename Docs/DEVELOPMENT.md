@@ -40,6 +40,7 @@ It has [Task](https://taskfile.dev) built in, so `wails3 task <name>` runs the t
 | `wails3 task bindings` | regenerates `frontend/bindings` after a service or event changes |
 | `wails3 task check:bindings` | fails if the committed bindings differ from fresh ones (CI runs it) |
 | `wails3 task test` | `go vet` and `go test` |
+| `wails3 task bench` | Windows: builds the app with the `bench` tag and measures it (`cmd/jenab-bench`, P1-18) |
 
 - The Go build embeds `frontend/dist`. `wails3 task build` builds the frontend and the bindings first.
 - `frontend/bindings` is generated but committed, so the frontend builds without Go. Commit it with the Go change that made it.
@@ -74,6 +75,8 @@ WAILS_SERVER_HOST=127.0.0.1 WAILS_SERVER_PORT=9310 bin/jenab-server.exe
 ```
 
 It uses your real data folder. For a scratch one, point `LOCALAPPDATA` and `USERPROFILE` (Windows) or `HOME` somewhere else.
+
+`wails3 task bench` measures the built app: start-up, idle memory, opening a chat of 200 messages, streaming while you type, and memory with ten answers at once. It uses its own user folder and a local fake model, so no keys are needed, and writes a report to `bin/bench`. A build with the `bench` tag opens WebView2's DevTools port when `JENAB_DEVTOOLS_PORT` is set; shipped builds don't. Keep the app's window visible and leave the machine alone during a run (about 3 minutes).
 
 ## CI
 
