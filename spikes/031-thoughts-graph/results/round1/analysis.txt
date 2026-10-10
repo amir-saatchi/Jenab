@@ -1,0 +1,55 @@
+## States by mode
+one       done      18
+one       expanded  57
+one       open      56
+siblings  dead_end  1
+siblings  done      23
+siblings  expanded  42
+siblings  open      84
+
+## Weight against Used (thoughts after #1)
+w <0.70       13 thoughts,   6 used (46%)
+w 0.70-0.79   42 thoughts,  25 used (60%)
+w 0.80-0.89  142 thoughts,  67 used (47%)
+w >=0.90      84 thoughts,  74 used (88%)
+solution      40 thoughts,  21 used (52%)
+step         195 thoughts, 113 used (58%)
+critique      45 thoughts,  37 used (82%)
+merge          1 thoughts,   1 used (100%)
+
+## Invalid next
+one: names a done thought                          3
+one: names a thought at max depth                  57
+
+## Answer and baseline length (characters)
+b1-exam      ollama-cloud/gemma4:31b    one       answer  2730  baseline  3896
+b1-exam      ollama-cloud/gemma4:31b    siblings  answer  2777  baseline  4048
+b1-exam      zai/glm-4.5-flash          one       answer  3737  baseline  3807
+b1-exam      zai/glm-4.5-flash          siblings  answer  3387  baseline  3264
+bakery       ollama-cloud/gemma4:31b    one       answer  2614  baseline  3122
+bakery       ollama-cloud/gemma4:31b    siblings  answer  2383  baseline  3338
+bakery       zai/glm-4.5-flash          one       answer  2649  baseline  1816
+bakery       zai/glm-4.5-flash          siblings  answer  2709  baseline  2143
+db-move      ollama-cloud/gemma4:31b    one       answer  3002  baseline  4114
+db-move      ollama-cloud/gemma4:31b    siblings  answer  2842  baseline  3619
+db-move      zai/glm-4.5-flash          one       answer  3082  baseline  3449
+db-move      zai/glm-4.5-flash          siblings  answer  4179  baseline  2481
+report-page  ollama-cloud/gemma4:31b    one       answer  2613  baseline  3763
+report-page  ollama-cloud/gemma4:31b    siblings  answer  2601  baseline  3509
+report-page  zai/glm-4.5-flash          one       answer  2138  baseline  3869
+report-page  zai/glm-4.5-flash          siblings  answer  2200  baseline  2891
+umzug        ollama-cloud/gemma4:31b    one       answer  3069  baseline  4001
+umzug        ollama-cloud/gemma4:31b    siblings  answer  2905  baseline  3917
+umzug        zai/glm-4.5-flash          one       answer  3721  baseline  3697
+umzug        zai/glm-4.5-flash          siblings  answer  2940  baseline  2567
+
+## Cost: the graph (define, expand, conclude) against the baseline, mean per graph
+ollama-cloud/gemma4:31b    one       graph  22361 in   3368 out    47s · baseline    87 in  1044 out   13s
+ollama-cloud/gemma4:31b    siblings  graph   9671 in   2750 out    24s · baseline    87 in  1065 out    8s
+zai/glm-4.5-flash          one       graph  28134 in  12998 out   420s · baseline    76 in  2227 out   64s
+zai/glm-4.5-flash          siblings  graph  10224 in   5835 out   229s · baseline    76 in  1865 out   63s
+
+## Calls with errors
+graph 3 expand #3 tries 2 [no_tool_call,no_tool_call] prompt 2906 chars, out 264 tokens: Answer by calling record_thoughts, with arguments as its schema says.
+graph 9 expand #2 tries 2 [no_tool_call,no_tool_call] prompt 2876 chars, out 329 tokens: Answer by calling record_thoughts, with arguments as its schema says.
+graph 14 expand #7 tries 2 [max_tokens,no_tool_call] prompt 3361 chars, out 16384 tokens: zai: too_large: the provider read 1730 input tokens of about 20205; the rest was dropped without an error

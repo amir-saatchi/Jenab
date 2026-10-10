@@ -1,0 +1,20 @@
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY_II
+    models:
+      - {id: gemma4:31b, context: 262144}
+      - {id: nemotron-3-ultra, context: 262144}
+      - {id: gpt-oss:120b, context: 131072}
+  - name: zai
+    kind: openai_compatible
+    base_url: https://api.z.ai/api/paas/v4/
+    key_env: Z_API_KEY_II
+    models:
+      - {id: glm-4.5-flash, context: 128000}

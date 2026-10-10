@@ -1,0 +1,92 @@
+[
+  {
+    "pair": "pair-01",
+    "problem": "db-move",
+    "model": "gemini/gemini-3.5-flash-lite",
+    "a": "index",
+    "b": "plain",
+    "AID": 9,
+    "BID": 14
+  },
+  {
+    "pair": "pair-02",
+    "problem": "bakery",
+    "model": "gemini/gemini-3.5-flash-lite",
+    "a": "index",
+    "b": "plain",
+    "AID": 33,
+    "BID": 36
+  },
+  {
+    "pair": "pair-03",
+    "problem": "umzug",
+    "model": "gemini/gemini-3.5-flash-lite",
+    "a": "index",
+    "b": "plain",
+    "AID": 25,
+    "BID": 30
+  },
+  {
+    "pair": "pair-04",
+    "problem": "b1-exam",
+    "model": "ollama-cloud/gemma4:31b",
+    "a": "thinking",
+    "b": "index",
+    "AID": 24,
+    "BID": 20
+  },
+  {
+    "pair": "pair-05",
+    "problem": "db-move",
+    "model": "ollama-cloud/gemma4:31b",
+    "a": "thinking",
+    "b": "index",
+    "AID": 16,
+    "BID": 10
+  },
+  {
+    "pair": "pair-06",
+    "problem": "report-page",
+    "model": "ollama-cloud/gemma4:31b",
+    "a": "index",
+    "b": "thinking",
+    "AID": 2,
+    "BID": 8
+  },
+  {
+    "pair": "pair-07",
+    "problem": "umzug",
+    "model": "ollama-cloud/gemma4:31b",
+    "a": "thinking",
+    "b": "index",
+    "AID": 32,
+    "BID": 26
+  },
+  {
+    "pair": "pair-08",
+    "problem": "report-page",
+    "model": "gemini/gemini-3.5-flash-lite",
+    "a": "index",
+    "b": "plain",
+    "AID": 1,
+    "BID": 6
+  },
+  {
+    "pair": "pair-09",
+    "problem": "bakery",
+    "model": "ollama-cloud/gemma4:31b",
+    "a": "index",
+    "b": "thinking",
+    "AID": 34,
+    "BID": 40
+  },
+  {
+    "pair": "pair-10",
+    "problem": "b1-exam",
+    "model": "gemini/gemini-3.5-flash-lite",
+    "a": "index",
+    "b": "plain",
+    "AID": 17,
+    "BID": 19
+  }
+]

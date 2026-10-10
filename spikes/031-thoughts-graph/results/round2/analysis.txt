@@ -1,0 +1,86 @@
+## States by mode
+index     dead_end  1
+index     done      12
+index     expanded  52
+index     open      85
+path      dead_end  2
+path      done      32
+path      expanded  45
+path      open      71
+
+## Weight against Used (thoughts after #1)
+w <0.70       43 thoughts,  13 used (30%)
+w 0.70-0.79   54 thoughts,  22 used (41%)
+w 0.80-0.89  116 thoughts,  79 used (68%)
+w >=0.90      87 thoughts,  69 used (79%)
+solution      59 thoughts,  31 used (53%)
+step         160 thoughts,  98 used (61%)
+critique      79 thoughts,  53 used (67%)
+merge          2 thoughts,   1 used (50%)
+
+## Invalid next
+index: names a done thought                        1
+index: names a thought at max depth                5
+
+## Answers: length in characters
+b1-exam      gemini/gemini-3.5-flash-lite       index       3249 
+b1-exam      gemini/gemini-3.5-flash-lite       path        3141 
+b1-exam      gemini/gemini-3.5-flash-lite       plain       5050 
+b1-exam      gemini/gemini-3.5-flash-lite       thinking    4884 
+b1-exam      ollama-cloud/gemma4:31b            index       3003 
+b1-exam      ollama-cloud/gemma4:31b            path        2283 
+b1-exam      ollama-cloud/gemma4:31b            plain       3681 
+b1-exam      ollama-cloud/gemma4:31b            thinking    4471 
+bakery       gemini/gemini-3.5-flash-lite       index       2912 
+bakery       gemini/gemini-3.5-flash-lite       path        2432 
+bakery       gemini/gemini-3.5-flash-lite       plain       4253 
+bakery       gemini/gemini-3.5-flash-lite       thinking    3951 
+bakery       ollama-cloud/gemma4:31b            index       2042 
+bakery       ollama-cloud/gemma4:31b            path        2404 
+bakery       ollama-cloud/gemma4:31b            plain       3349 
+bakery       ollama-cloud/gemma4:31b            thinking    3611 
+db-move      gemini/gemini-3.5-flash-lite       index       2645 
+db-move      gemini/gemini-3.5-flash-lite       path        3473 
+db-move      gemini/gemini-3.5-flash-lite       plain       4905 
+db-move      gemini/gemini-3.5-flash-lite       thinking    4087 
+db-move      ollama-cloud/gemma4:31b            index       2620 
+db-move      ollama-cloud/gemma4:31b            path        2658 
+db-move      ollama-cloud/gemma4:31b            plain       3651 
+db-move      ollama-cloud/gemma4:31b            thinking    4340 
+report-page  gemini/gemini-3.5-flash-lite       index       2273 
+report-page  gemini/gemini-3.5-flash-lite       path        2485 
+report-page  gemini/gemini-3.5-flash-lite       plain       4877 
+report-page  gemini/gemini-3.5-flash-lite       thinking    3926 
+report-page  ollama-cloud/gemma4:31b            index       2358 
+report-page  ollama-cloud/gemma4:31b            path        2087 
+report-page  ollama-cloud/gemma4:31b            plain       3411 
+report-page  ollama-cloud/gemma4:31b            thinking    4331 
+umzug        gemini/gemini-3.5-flash-lite       index       3091 
+umzug        gemini/gemini-3.5-flash-lite       path        3127 
+umzug        gemini/gemini-3.5-flash-lite       plain       4947 
+umzug        gemini/gemini-3.5-flash-lite       thinking    4985 
+umzug        ollama-cloud/gemma4:31b            index       3143 
+umzug        ollama-cloud/gemma4:31b            path        2812 
+umzug        ollama-cloud/gemma4:31b            plain       3819 
+umzug        ollama-cloud/gemma4:31b            thinking    4131 
+
+## Cost per answer, mean
+gemini/gemini-3.5-flash-lite       index      5 answers:   12856 in   3300 out (    0 thought),      0 thinking chars,    28s
+gemini/gemini-3.5-flash-lite       path       5 answers:    7591 in   2946 out (    0 thought),      0 thinking chars,    34s
+gemini/gemini-3.5-flash-lite       plain      5 answers:      71 in   1342 out (    0 thought),      0 thinking chars,     6s
+gemini/gemini-3.5-flash-lite       thinking   5 answers:      71 in   2221 out (  986 thought),   1053 thinking chars,     8s
+ollama-cloud/gemma4:31b            index      5 answers:   21090 in   6493 out (    0 thought),      0 thinking chars,    35s
+ollama-cloud/gemma4:31b            path       5 answers:    6650 in   3036 out (    0 thought),      0 thinking chars,    20s
+ollama-cloud/gemma4:31b            plain      5 answers:      87 in   1018 out (    0 thought),      0 thinking chars,     7s
+ollama-cloud/gemma4:31b            thinking   5 answers:      85 in   1863 out (    0 thought),   2488 thinking chars,    15s
+
+## Judge calls
+ollama-cloud/gpt-oss:120b           80 calls,  80 valid,   0 retried,   378 out,   1259 thinking chars,    2s
+ollama-cloud/nemotron-3-ultra       80 calls,  80 valid,   0 retried,  1140 out,   4543 thinking chars,   34s
+
+## Calls with errors
+graph 6 expand #6 tries 2 [schema,check] prompt 3149 chars, out 969 tokens: Not accepted: thoughts[2]: merge_with has #15, which isn't in the graph Answer again with the whole JSON object, fixed.
+graph 10 expand #5 tries 2 [schema,schema] prompt 2851 chars, out 1175 tokens: The JSON doesn't match the schema: - at /: missing properties 'thoughts', 'next' Answer again with the whole JSON object, fixed.
+graph 10 expand #11 tries 2 [schema,schema] prompt 3738 chars, out 862 tokens: The JSON doesn't match the schema: - at /: missing properties 'thoughts', 'next' Answer again with the whole JSON object, fixed.
+graph 10 expand #4 tries 2 [schema,schema] prompt 2842 chars, out 2636 tokens: The JSON doesn't match the schema: - at /: missing properties 'thoughts', 'next' Answer again with the whole JSON object, fixed.
+graph 18 expand #11 tries 2 [schema,schema] prompt 3115 chars, out 1065 tokens: The JSON doesn't match the schema: - at /: missing property 'thoughts' Answer again with the whole JSON object, fixed.
