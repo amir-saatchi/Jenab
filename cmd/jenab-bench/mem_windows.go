@@ -32,7 +32,7 @@ func treeMemory(root int) (memory, error) {
 	if err != nil {
 		return memory{}, err
 	}
-	var m memory
+	m := memory{ByTypeMB: map[string]float64{}}
 	for pid, name := range pids {
 		h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_VM_READ, false, pid)
 		if err != nil {
@@ -53,9 +53,46 @@ func treeMemory(root int) (memory, error) {
 			m.AppPrivateMB = priv
 		} else if strings.EqualFold(name, "msedgewebview2.exe") {
 			m.WebviewPrivateMB += priv
+			m.ByTypeMB[webviewType(pid)] += priv
 		}
 	}
 	return m, nil
+}
+
+// webviewType names a WebView2 process by its --type: browser, renderer,
+// gpu-process, or the utility's service, such as network.
+func webviewType(pid uint32) string {
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return "unknown"
+	}
+	defer windows.CloseHandle(h)
+	buf := make([]byte, 64<<10)
+	var n uint32
+	if windows.NtQueryInformationProcess(h, windows.ProcessCommandLineInformation, unsafe.Pointer(&buf[0]), uint32(len(buf)), &n) != nil {
+		return "unknown"
+	}
+	line := (*windows.NTUnicodeString)(unsafe.Pointer(&buf[0])).String()
+	arg := func(name string) string {
+		for _, f := range strings.Fields(line) {
+			if v, ok := strings.CutPrefix(f, name+"="); ok {
+				return strings.Trim(v, `"`)
+			}
+		}
+		return ""
+	}
+	switch t := arg("--type"); t {
+	case "":
+		return "browser"
+	case "utility":
+		sub := arg("--utility-sub-type")
+		if i := strings.IndexByte(sub, '.'); i > 0 {
+			sub = sub[:i]
+		}
+		return "utility " + sub
+	default:
+		return t
+	}
 }
 
 // tree is root and its descendants, by PID, with their exe names.

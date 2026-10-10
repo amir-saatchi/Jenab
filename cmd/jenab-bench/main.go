@@ -140,6 +140,9 @@ func run() (err error) {
 		log("open %d: %d rows, first rows %.0f ms, all %.0f ms, longest task %.0f ms, LoAF %.0f ms", i+1, r.Rows, r.FirstRowsMs, r.AllRowsMs, r.LongTaskMaxMs, r.LoafMaxMs)
 		time.Sleep(500 * time.Millisecond)
 	}
+	if rep.AfterOpens, err = a.memorySamples(3, time.Second); err != nil {
+		return err
+	}
 
 	// N-01: stream an answer into the open chat and type meanwhile.
 	if rep.Stream, err = a.stream(ctx); err != nil {
@@ -155,6 +158,14 @@ func run() (err error) {
 		return fmt.Errorf("load: %w", err)
 	}
 	log("load: %d answers at once, peak %.0f MB private", rep.Load.Streams, rep.Load.Peak.PrivateMB)
+
+	// Does memory come back after use? Leave for an empty chat, then
+	// collect garbage, then tell WebView2 memory is short, which drops
+	// its caches. What stays after that is held.
+	if rep.Settle, err = a.settle(ctx); err != nil {
+		return fmt.Errorf("settle: %w", err)
+	}
+	log("settle: %.0f MB after leaving, %.0f MB after memory pressure", rep.Settle.Left.PrivateMB, rep.Settle.Pressure.PrivateMB)
 
 	if err := a.quit(); err != nil {
 		log("quit: %v", err)
@@ -433,7 +444,38 @@ func (a *app) load(ctx context.Context, model *fakeModel) (loadResult, error) {
 	return r, err
 }
 
+func (a *app) settle(ctx context.Context) (settleResult, error) {
+	var r settleResult
+	var err error
+	if err = a.page.eval(ctx, switchJS(busyChat), nil); err != nil {
+		return r, err
+	}
+	time.Sleep(10 * time.Second)
+	if r.Left, err = a.memorySamples(3, time.Second); err != nil {
+		return r, err
+	}
+	if err = a.page.call(ctx, "HeapProfiler.collectGarbage", map[string]any{}, nil); err != nil {
+		return r, err
+	}
+	time.Sleep(3 * time.Second)
+	if r.Collected, err = a.memorySamples(3, time.Second); err != nil {
+		return r, err
+	}
+	if err = a.page.call(ctx, "Memory.simulatePressureNotification", map[string]any{"level": "critical"}, nil); err != nil {
+		return r, err
+	}
+	time.Sleep(5 * time.Second)
+	r.Pressure, err = a.memorySamples(3, time.Second)
+	return r, err
+}
+
 // Results.
+
+type settleResult struct {
+	Left      memory `json:"left"`      // 10 s after switching to an empty chat
+	Collected memory `json:"collected"` // after a garbage collection
+	Pressure  memory `json:"pressure"`  // after a critical memory-pressure signal
+}
 
 type memory struct {
 	PrivateMB        float64 `json:"private_mb"`
@@ -442,6 +484,8 @@ type memory struct {
 	WebviewPrivateMB float64 `json:"webview_private_mb"`
 	JSHeapMB         float64 `json:"js_heap_mb"`
 	Processes        int     `json:"processes"`
+	// ByTypeMB splits WebView2's private bytes by process type.
+	ByTypeMB map[string]float64 `json:"by_type_mb"`
 }
 
 type startResult struct {
@@ -496,8 +540,10 @@ type report struct {
 	Idle        memory        `json:"idle"`
 	Opens       []openResult  `json:"opens"`
 	Stream      streamResult  `json:"stream"`
+	AfterOpens  memory        `json:"after_opens"`
 	AfterStream memory        `json:"after_stream"`
 	Load        loadResult    `json:"load"`
+	Settle      settleResult  `json:"settle"`
 }
 
 func (rep *report) write(dir string) (string, error) {

@@ -77,9 +77,44 @@ func (rep *report) markdown() string {
 	row := func(name string, m memory) {
 		fmt.Fprintf(&b, "| %s | %.0f | %.0f | %.0f | %.0f | %.0f | %d |\n", name, m.PrivateMB, m.AppPrivateMB, m.WebviewPrivateMB, m.WorkingSetMB, m.JSHeapMB, m.Processes)
 	}
-	row("idle", rep.Idle)
-	row("after streaming in the 200-message chat", rep.AfterStream)
-	row(fmt.Sprintf("peak, %d answers streaming", rep.Load.Streams), rep.Load.Peak)
-	row("after the load", rep.Load.After)
+	rows := []struct {
+		name string
+		m    memory
+	}{
+		{"idle", rep.Idle},
+		{"after opening the 200-message chat", rep.AfterOpens},
+		{"after streaming in it", rep.AfterStream},
+		{fmt.Sprintf("peak, %d answers streaming", rep.Load.Streams), rep.Load.Peak},
+		{"after the load", rep.Load.After},
+		{"10 s after leaving for an empty chat", rep.Settle.Left},
+		{"after garbage collection", rep.Settle.Collected},
+		{"after a memory-pressure signal", rep.Settle.Pressure},
+	}
+	for _, r := range rows {
+		row(r.name, r.m)
+	}
+
+	// WebView2 by process type.
+	var types []string
+	for _, r := range rows {
+		for t := range r.m.ByTypeMB {
+			if !slices.Contains(types, t) {
+				types = append(types, t)
+			}
+		}
+	}
+	slices.Sort(types)
+	b.WriteString("\n### WebView2 by process type, private MB\n\n| When |")
+	for _, t := range types {
+		fmt.Fprintf(&b, " %s |", t)
+	}
+	b.WriteString("\n|---|" + strings.Repeat("---|", len(types)) + "\n")
+	for _, r := range rows {
+		fmt.Fprintf(&b, "| %s |", r.name)
+		for _, t := range types {
+			fmt.Fprintf(&b, " %.0f |", r.m.ByTypeMB[t])
+		}
+		b.WriteString("\n")
+	}
 	return b.String()
 }
