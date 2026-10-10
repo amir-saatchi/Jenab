@@ -218,7 +218,7 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 |---|---|---|
 | N-50 | Windows 11 and macOS; Linux x64 as a beta; per-user install without admin rights | SPEC 2.8 |
 | N-51 | No cgo in our code or dependencies; Windows builds need no C compiler. Wails itself uses cgo on macOS and Linux | Gate-2, P1-01 |
-| N-52 | Idle memory under 300 MB (*proposed*; measured 245 MB) | SPIKE-022 |
+| N-52 | Idle memory under 350 MB, and the app's own process under 100 MB. The rest is WebView2, whose GPU process alone takes about 120 MB (measured 278–310 MB, the app 60 MB). With a 200-message chat open, under 500 MB (*proposed*; measured 410–460 MB), and opening a chat again and again doesn't make memory grow | SPIKE-022, P1-18, TASK-005 |
 | N-53 | Text meets WCAG AA contrast (4.5:1) in both themes, including every tone | SPEC 5.11 |
 | N-54 | Minimum system: 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. With every limit in use, Jenab stays under 1.5 GB (*proposed*). Local models need their own memory on top | SPEC 7.6, P1-18 |
 
@@ -251,5 +251,5 @@ Numbers with "measured" come from the spikes. Numbers marked *proposed* are new 
 - [ ] Non-functional requirements listed (responsiveness, security, storage limits)
 
 ## Open items
-- Confirm the *proposed* targets: N-02, N-07, N-10, N-41, N-52.
+- Confirm the *proposed* targets: N-02, N-07, N-10, N-41, and the open chat in N-52.
 - Confirm the Should items: R-04, R-52, R-66, R-81, R-82, R-94, R-112.

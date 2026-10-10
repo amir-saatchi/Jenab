@@ -14,13 +14,23 @@ import (
 )
 
 // cdp is a minimal Chrome DevTools Protocol client for the app's WebView2
-// page: commands and their answers, events are ignored.
+// page: commands and their answers, and the events someone waits for.
 type cdp struct {
 	conn    *websocket.Conn
 	next    atomic.Int64
 	mu      sync.Mutex
 	waiting map[int64]chan cdpAnswer
+	events  map[string]chan json.RawMessage
 	done    chan struct{}
+}
+
+// on returns a channel that gets the params of the next event of method.
+func (c *cdp) on(method string) <-chan json.RawMessage {
+	ch := make(chan json.RawMessage, 1)
+	c.mu.Lock()
+	c.events[method] = ch
+	c.mu.Unlock()
+	return ch
 }
 
 type cdpAnswer struct {
@@ -45,7 +55,7 @@ func dialPage(ctx context.Context, port int) (*cdp, error) {
 				return nil, err
 			}
 			conn.SetReadLimit(64 << 20)
-			c := &cdp{conn: conn, waiting: map[int64]chan cdpAnswer{}, done: make(chan struct{})}
+			c := &cdp{conn: conn, waiting: map[int64]chan cdpAnswer{}, events: map[string]chan json.RawMessage{}, done: make(chan struct{})}
 			go c.read()
 			return c, nil
 		}
@@ -87,11 +97,23 @@ func (c *cdp) read() {
 			return
 		}
 		var m struct {
-			ID int64 `json:"id"`
+			ID     int64           `json:"id"`
+			Method string          `json:"method"`
+			Params json.RawMessage `json:"params"`
 			cdpAnswer
 		}
-		if json.Unmarshal(b, &m) != nil || m.ID == 0 {
-			continue // an event
+		if json.Unmarshal(b, &m) != nil {
+			continue
+		}
+		if m.ID == 0 {
+			c.mu.Lock()
+			ch := c.events[m.Method]
+			delete(c.events, m.Method)
+			c.mu.Unlock()
+			if ch != nil {
+				ch <- m.Params
+			}
+			continue
 		}
 		c.mu.Lock()
 		ch := c.waiting[m.ID]

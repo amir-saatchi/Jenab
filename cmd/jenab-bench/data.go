@@ -103,11 +103,24 @@ var tokenRe = regexp.MustCompile(`\n+|[ \t]*[^\s]{1,4}`)
 func tokenize(s string) []string { return tokenRe.FindAllString(s, -1) }
 func countTokens(s string) int   { return len(tokenize(s)) }
 
+// historyKinds are what the seeded chat's answers hold: mixed is lists,
+// code, tables and prose, as SPIKE-022; prose is paragraphs only; short is
+// one sentence; code always has a code block.
+var historyKinds = []string{"mixed", "prose", "short", "code"}
+
 // historyMessage is message i of a seeded chat: user questions and
-// Markdown answers in turn.
-func historyMessage(r *rand.Rand, i int) string {
+// answers of the kind in turn.
+func historyMessage(r *rand.Rand, i int, kind string) string {
 	if i%2 == 0 {
 		return sentence(r, 8+r.IntN(25))
+	}
+	switch kind {
+	case "prose":
+		return para(r) + "\n\n" + para(r)
+	case "short":
+		return sentence(r, 8+r.IntN(10))
+	case "code":
+		return para(r) + "\n\n" + tsCode + "\n\n" + para(r)
 	}
 	parts := []string{para(r)}
 	switch r.IntN(4) {

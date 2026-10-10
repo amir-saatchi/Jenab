@@ -35,11 +35,12 @@ func main() {
 }
 
 type options struct {
-	app    string
-	out    string
-	starts int
-	rate   float64
-	opens  int
+	app     string
+	out     string
+	starts  int
+	rate    float64
+	opens   int
+	history string
 }
 
 func run() (err error) {
@@ -50,8 +51,13 @@ func run() (err error) {
 	flag.Float64Var(&o.rate, "rate", 100, "tokens a second the fake model streams")
 	flag.IntVar(&o.opens, "opens", 5, "times the 200-message chat is opened")
 	keep := flag.Bool("keep", false, "keep the app's user folder")
+	dumps := flag.Bool("dumps", false, "also take memory-infra dumps: idle, with the chat open, and after it closed")
 	temp := flag.String("temp", "", "where the app's user folder goes; default: the system's temp folder")
+	flag.StringVar(&o.history, "history", "mixed", "what the 200-message chat's answers hold: "+strings.Join(historyKinds, ", "))
 	flag.Parse()
+	if !slices.Contains(historyKinds, o.history) {
+		return fmt.Errorf("-history must be one of %s", strings.Join(historyKinds, ", "))
+	}
 	if _, err := os.Stat(o.app); err != nil {
 		return fmt.Errorf("the app: %w (task bench builds it)", err)
 	}
@@ -75,13 +81,13 @@ func run() (err error) {
 	if err := h.writeSettings(model.url); err != nil {
 		return err
 	}
-	if err := h.seed(ctx); err != nil {
+	if err := h.seed(ctx, o.history); err != nil {
 		return fmt.Errorf("seed: %w", err)
 	}
 	if err := os.MkdirAll(o.out, 0o755); err != nil {
 		return err
 	}
-	rep := &report{Started: time.Now().UTC(), App: o.app, Rate: o.rate, Reply: len(model.reply)}
+	rep := &report{Started: time.Now().UTC(), App: o.app, Rate: o.rate, Reply: len(model.reply), History: o.history}
 	log := func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
 
 	// Start-up: each start ends with a normal quit.
@@ -125,6 +131,20 @@ func run() (err error) {
 		return err
 	}
 	log("idle: %.0f MB private", rep.Idle.PrivateMB)
+	dump := func(when string) error {
+		if !*dumps {
+			return nil
+		}
+		d, err := a.page.memoryDump(ctx)
+		if err != nil {
+			return fmt.Errorf("memory dump %s: %w", when, err)
+		}
+		rep.Dumps = append(rep.Dumps, namedDump{when, d})
+		return nil
+	}
+	if err := dump("idle"); err != nil {
+		return err
+	}
 
 	// N-02: open the 200-message chat, from an empty one each time.
 	for i := range o.opens {
@@ -143,6 +163,13 @@ func run() (err error) {
 	if rep.AfterOpens, err = a.memorySamples(3, time.Second); err != nil {
 		return err
 	}
+	if err := dump("the chat open"); err != nil {
+		return err
+	}
+	if rep.OpenDOM, err = a.dom(ctx); err != nil {
+		return err
+	}
+	log("the open chat: %d elements in %d rows; %d DOM nodes in the renderer", rep.OpenDOM.Elements, rep.OpenDOM.Rows, rep.OpenDOM.Nodes)
 
 	// N-01: stream an answer into the open chat and type meanwhile.
 	if rep.Stream, err = a.stream(ctx); err != nil {
@@ -166,6 +193,9 @@ func run() (err error) {
 		return fmt.Errorf("settle: %w", err)
 	}
 	log("settle: %.0f MB after leaving, %.0f MB after memory pressure", rep.Settle.Left.PrivateMB, rep.Settle.Pressure.PrivateMB)
+	if err := dump("after it closed"); err != nil {
+		return err
+	}
 
 	if err := a.quit(); err != nil {
 		log("quit: %v", err)
@@ -444,6 +474,20 @@ func (a *app) load(ctx context.Context, model *fakeModel) (loadResult, error) {
 	return r, err
 }
 
+// dom counts the open page: elements and rows in the document, and the
+// renderer's own counters, which include nodes no longer in it.
+func (a *app) dom(ctx context.Context) (domResult, error) {
+	var r domResult
+	if err := a.page.eval(ctx, `({elements: document.getElementsByTagName("*").length, rows: window.__bench.rows()})`, &r); err != nil {
+		return r, err
+	}
+	if err := a.page.call(ctx, "HeapProfiler.collectGarbage", map[string]any{}, nil); err != nil {
+		return r, err
+	}
+	err := a.page.call(ctx, "Memory.getDOMCounters", map[string]any{}, &r)
+	return r, err
+}
+
 func (a *app) settle(ctx context.Context) (settleResult, error) {
 	var r settleResult
 	var err error
@@ -465,16 +509,53 @@ func (a *app) settle(ctx context.Context) (settleResult, error) {
 		return r, err
 	}
 	time.Sleep(5 * time.Second)
-	r.Pressure, err = a.memorySamples(3, time.Second)
-	return r, err
+	if r.Pressure, err = a.memorySamples(3, time.Second); err != nil {
+		return r, err
+	}
+
+	// A leak grows with each open: open the 200-message chat and leave
+	// it ten times, with a garbage collection after each.
+	for range 10 {
+		if err = a.page.eval(ctx, openJS(historyChat), nil); err != nil {
+			return r, err
+		}
+		if err = a.page.eval(ctx, switchJS(busyChat), nil); err != nil {
+			return r, err
+		}
+		if err = a.page.call(ctx, "HeapProfiler.collectGarbage", map[string]any{}, nil); err != nil {
+			return r, err
+		}
+		time.Sleep(time.Second)
+		m, err := a.memory()
+		if err != nil {
+			return r, err
+		}
+		r.Cycles = append(r.Cycles, m.PrivateMB)
+	}
+	return r, nil
 }
 
 // Results.
+
+type namedDump struct {
+	When string     `json:"when"`
+	Dump allocators `json:"dump"`
+}
+
+type domResult struct {
+	Elements  int `json:"elements"`
+	Rows      int `json:"rows"`
+	Documents int `json:"documents"`
+	Nodes     int `json:"nodes"`
+	Listeners int `json:"jsEventListeners"`
+}
 
 type settleResult struct {
 	Left      memory `json:"left"`      // 10 s after switching to an empty chat
 	Collected memory `json:"collected"` // after a garbage collection
 	Pressure  memory `json:"pressure"`  // after a critical memory-pressure signal
+	// Cycles is private MB after each of ten opens and closes.
+	Cycles []float64 `json:"cycles_mb"`
 }
 
 type memory struct {
@@ -536,14 +617,17 @@ type report struct {
 	App         string        `json:"app"`
 	Rate        float64       `json:"rate"`
 	Reply       int           `json:"reply_tokens"`
+	History     string        `json:"history"`
 	Starts      []startResult `json:"starts"`
 	Idle        memory        `json:"idle"`
 	Opens       []openResult  `json:"opens"`
 	Stream      streamResult  `json:"stream"`
 	AfterOpens  memory        `json:"after_opens"`
+	OpenDOM     domResult     `json:"open_dom"`
 	AfterStream memory        `json:"after_stream"`
 	Load        loadResult    `json:"load"`
 	Settle      settleResult  `json:"settle"`
+	Dumps       []namedDump   `json:"dumps,omitempty"`
 }
 
 func (rep *report) write(dir string) (string, error) {

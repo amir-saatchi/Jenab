@@ -37,12 +37,12 @@ The scenario passes on two development models, the restart test passes in CI, an
     | N-01 streaming | 59.9 fps; key → paint p50 22 ms, max 37 ms | 59.9 fps; p50 21 ms, max 42 ms | 60 fps; under 50 ms |
     | N-02 opening the 200-message chat | longest task 74 ms (frame 104 ms) | 82 ms (frame 113 ms) | 100 ms |
     | N-07 start to first paint | median 953 ms | median 900 ms | 1.5 s |
-    | N-52 idle | 303 MB | 278 MB | 300 MB |
+    | N-52 idle | 303 MB, the app 61 MB | 278 MB, the app 60 MB | 350 MB, the app 100 MB |
     | N-54 10 answers streaming at once | peak 563 MB | peak 555 MB | 1.5 GB |
 
   - **N-02:** only the first open has a long task; opens 2–5 have none, and their first rows paint in 55–85 ms. The chat loads its last 30 turns (60 rows), so a longer history doesn't cost more.
   - **N-07** counts from the process start to the shell's first frame, with the WebView2 profile already made. The first start with a new profile opens no DevTools port, so it can't be measured this way.
-  - **N-52** is on the line: 278–310 MB over five runs, about 60 MB the app and the rest WebView2's 7 processes. SPIKE-022 measured 245 MB on a smaller page.
+  - **N-52:** 278–310 MB over six runs, about 60 MB the app and the rest WebView2's 7 processes; its GPU process alone takes about 120 MB. The target was 300 MB, from SPIKE-022's 245 MB on a smaller page. On 2026-10-10 it became 350 MB, with the app's own process under 100 MB: most of the total is WebView2's, and turning off its GPU process would cost N-01.
   - **Memory after use:** the growth is the open 200-message chat, not streaming, and it comes back when the chat closes. The bench splits WebView2 by process type and, after the load, switches to an empty chat, collects garbage and sends a memory-pressure signal (2026-10-10):
 
     | When | Total MB | Renderer | GPU | Other WebView2 | App |
@@ -54,10 +54,8 @@ The scenario passes on two development models, the restart test passes in CI, an
     | 10 s after switching to an empty chat | 384 | 114 | 142 | 62 | 66 |
     | after garbage collection | 331 | 89 | 114 | 63 | 66 |
 
-    The open chat costs about 170 MB, mostly in the renderer, though the JS heap is only 12 MB: it is the page (60 rows of Markdown and code), not data. 41 MB stays after closing it, in the renderer. The memory-pressure signal frees nothing more.
+    The open chat costs about 170 MB, mostly in the renderer, though the JS heap is only 12 MB: it is the page (60 rows of Markdown and code), not data. 41 MB stays after closing it, in the renderer. The memory-pressure signal frees nothing more. TASK-005 found what the open chat holds: no leak, and a proposed target of 500 MB with it open.
   - **N-54** uses 10 chats answering at once in place of 8 background calls and 2 busy chats; Phase 1 has no background calls.
 - **Open:**
-  - N-52's target: 300 MB, or raise it.
-  - An open 200-message chat costs about 170 MB in WebView2's renderer: find what holds it (likely the rendered Markdown and code), and whether a target for an open chat is needed.
   - The restart test in CI, once the billing lock is lifted.
   - macOS and Linux numbers, when available.

@@ -70,7 +70,8 @@ func (h home) writeSettings(modelURL string) error {
 }
 
 // seed makes the project "Bench" with its chats, before the app starts.
-func (h home) seed(ctx context.Context) error {
+// kind is what the 200-message chat holds (historyKinds).
+func (h home) seed(ctx context.Context, kind string) error {
 	p := h.paths()
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return err
@@ -110,7 +111,7 @@ func (h home) seed(ctx context.Context) error {
 	for i := range 200 {
 		role := chat.RoleUser
 		m := chat.Message{Chat: ch.ID, Turn: i/2 + 1, Role: role, CreatedAt: at.Add(time.Duration(i) * time.Minute),
-			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: historyMessage(r, i)}}}}
+			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: historyMessage(r, i, kind)}}}}
 		if i%2 == 1 {
 			m.Role, m.Model = chat.RoleAssistant, "bench/"+modelName
 		}
