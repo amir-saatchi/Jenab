@@ -1,6 +1,6 @@
 # TASK-012 — The untrusted mark and messages that join a turn
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 
 ## Goal
@@ -27,3 +27,10 @@ Proposal: (b). It closes the case within a turn and keeps the rule's meaning.
 - The decision is in SPEC 8.8.
 - A test with Auto shows the decided behaviour: `fetch_page`, then a message that joins the turn, then a new host. It also holds after a restart.
 - `go test ./...` passes.
+
+## Result
+Option (b): only a new turn clears the mark.
+- `Send` clears `cs.untrusted` only when the message starts a turn. A message that joins a running turn leaves it set.
+- `untrustedIn` reads the last turn's messages and no longer clears at a user message, so a restart gives the same answer.
+- SPEC 8.8's footnote says so.
+- `TestJoiningMessageKeepsUntrusted` runs the outside tool with Auto, then a joining message, then a new host: the card is shown, in the turn and after a restart and Retry. Both cases fail with the old code. `TestUntrustedIn`'s "message after" case now expects the mark.

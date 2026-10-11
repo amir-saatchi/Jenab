@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -582,9 +583,66 @@ func TestUntrustedAfterRestart(t *testing.T) {
 	})
 }
 
-// The mark comes from the history: results of untrusted or unknown tools
-// after the user's last message set it; that message, not a notice,
-// clears it.
+// A message that joins a turn after it read outside data leaves Auto's
+// mark set: the page is still in the context, so a new host is asked for.
+// It holds after a restart too (TASK-012).
+func TestJoiningMessageKeepsUntrusted(t *testing.T) {
+	join := func(t *testing.T, h *harness, c id.Chat, next fake.Reply) {
+		t.Helper()
+		next.Wait = time.Second
+		h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), next)
+		h.send(c, "read the page")
+		time.Sleep(500 * time.Millisecond) // the next answer is streaming
+		h.send(c, "also add ETH")
+	}
+	t.Run("in the turn", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			n := newNeedy()
+			h := newHarness(t, t.TempDir(), "", testSettings(), n, outside())
+			defer h.stop()
+			c := h.newChat(chat.Chat{Title: "Pages"})
+			h.setLevel(project.Auto)
+			join(t, h, c.ID, fake.ToolCall("c", "needy", needs("", "t.example")))
+			time.Sleep(3 * time.Second) // the call arrives
+			w := h.waiting(c.ID)
+			h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+			h.wait()
+			if n.runs.Load() != 0 {
+				t.Error("the host was approved without asking")
+			}
+		})
+	})
+	t.Run("after a restart", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			root := t.TempDir()
+			n := newNeedy()
+			h := newHarness(t, root, "", testSettings(), n, outside())
+			c := h.newChat(chat.Chat{Title: "Pages"})
+			h.setLevel(project.Auto)
+			fail := fake.Reply{Events: []provider.Event{{Kind: provider.EventDelta, PartKind: chat.PartText, Text: "Reading"}},
+				Err: &provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"}}
+			join(t, h, c.ID, fail)
+			h.wait()
+			h.stop()
+
+			h = newHarness(t, root, h.pid, testSettings(), n, outside())
+			defer h.stop()
+			h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), fake.Text("done"))
+			if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+				t.Fatal(err)
+			}
+			w := h.waiting(c.ID)
+			h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+			h.wait()
+			if n.runs.Load() != 0 {
+				t.Error("the host was approved without asking")
+			}
+		})
+	})
+}
+
+// The mark comes from the last turn's history: results of untrusted or
+// unknown tools set it; a message that joined the turn doesn't clear it.
 func TestUntrustedIn(t *testing.T) {
 	h := newHarness(t, t.TempDir(), "", testSettings(), echo(), outside())
 	defer h.stop()
@@ -605,7 +663,7 @@ func TestUntrustedIn(t *testing.T) {
 		"trusted tool":         {append([]chat.Message{user("a")}, called("c1", "echo")...), false},
 		"untrusted tool":       {append([]chat.Message{user("a")}, called("c1", "outside")...), true},
 		"unknown tool":         {append([]chat.Message{user("a")}, called("c1", "gone")...), true},
-		"message after":        {append(append([]chat.Message{user("a")}, called("c1", "outside")...), user("b")), false},
+		"message after":        {append(append([]chat.Message{user("a")}, called("c1", "outside")...), user("b")), true},
 		"notice after":         {append(append([]chat.Message{user("a")}, called("c1", "outside")...), notice), true},
 		"untrusted then other": {append(append([]chat.Message{user("a")}, called("c1", "outside")...), called("c2", "echo")...), true},
 	} {

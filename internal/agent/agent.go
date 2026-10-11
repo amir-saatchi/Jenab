@@ -130,8 +130,9 @@ type chatState struct {
 	retry    *chat.Retry
 	resp     *response // the answer streaming now
 	waiting  *pending  // the card or form the turn waits for (8.8)
-	// untrusted: the chat read outside data since the user's last
-	// message, so Auto asks where the rules say so (8.8).
+	// untrusted: the chat read outside data since the user's message
+	// that started the turn, so Auto asks where the rules say so (8.8).
+	// A message that joins the turn leaves it set.
 	untrusted bool
 	failed    bool // the last turn stopped on an error; Retry continues it
 	titling   bool // a title request is running
@@ -240,7 +241,10 @@ func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m User
 	if err != nil {
 		return "", err
 	}
-	cs.lastUser, cs.untrusted = msg.ID, false
+	cs.lastUser = msg.ID
+	if !join {
+		cs.untrusted = false // only a new turn clears the mark (8.8)
+	}
 	if w := cs.waiting; w != nil {
 		a := Answer{Message: w.w.Message, Index: w.w.Index, Note: strings.TrimSpace(m.Text)}
 		if w.part.Approval != nil {
@@ -582,17 +586,14 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 }
 
 // untrustedIn reports whether a tool with the Untrusted effect has a
-// result after the user's last message in ms. A tool no longer known
-// counts as untrusted.
+// result in ms, the last turn's messages. Only a new turn clears the
+// mark, so a message that joined the turn doesn't (8.8). A tool no longer
+// known counts as untrusted.
 func (o *Orchestrator) untrustedIn(ms []chat.Message) bool {
 	names := map[string]string{} // tool call ID to tool name
 	untrusted := false
 	for _, m := range ms {
 		switch m.Role {
-		case chat.RoleUser:
-			if slices.ContainsFunc(m.Parts, func(p chat.Part) bool { return p.Text != nil || p.Image != nil }) {
-				untrusted = false // a message from Send, not a notice
-			}
 		case chat.RoleAssistant:
 			for _, p := range m.Parts {
 				if p.ToolCall != nil {

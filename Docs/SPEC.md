@@ -1745,7 +1745,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | An MCP tool that changes something | Ask every time; no *Always* | Ask; *Always* allowed | Auto* |
 | A command (Phase 6) | Ask | Ask for each new pattern | Ask for each new pattern |
 
-\* Only if the turn hasn't read untrusted content (web pages, files, MCP results) since the user's last message; otherwise it asks. This keeps a web page from steering the agent into sending data somewhere.
+\* Only if the turn hasn't read untrusted content (web pages, files, MCP results) since the user's message that started the turn; otherwise it asks. A message that joins a running turn doesn't clear it, since the page is still in the context. This keeps a web page from steering the agent into sending data somewhere.
 
 - **The same at every level:**
   - Connections: the user pastes the key in the card.
