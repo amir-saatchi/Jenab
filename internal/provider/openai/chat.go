@@ -101,6 +101,7 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			text, thinking strings.Builder
 			finish         string
 			usage          *chat.Usage
+			hb             provider.Heartbeat
 		)
 		for st.Next() {
 			ch := st.Current()
@@ -149,6 +150,9 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 				if x, ok := d.JSON.ExtraFields["extra_content"]; ok && x.Raw() != "" && x.Raw() != "null" {
 					cl.extra = x.Raw() // Gemini's thought signature, sent back unchanged
 				}
+			}
+			if len(c.Delta.ToolCalls) > 0 && !hb.Beat(yield) {
+				return
 			}
 			if c.FinishReason != "" {
 				finish = c.FinishReason

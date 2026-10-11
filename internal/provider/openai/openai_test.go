@@ -596,3 +596,48 @@ func TestResponsesReasoning(t *testing.T) {
 		}
 	}
 }
+
+// TestHeartbeat: argument chunks, which wait for the call's end, yield a
+// heartbeat for the stall watchdog (TASK-006).
+func TestHeartbeat(t *testing.T) {
+	t.Run("chat", func(t *testing.T) {
+		s := newServer(t, 200, sse(
+			`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"q","arguments":"{\"sql\":"}}]}}]}`,
+			`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"SELECT 1\"}"}}]},"finish_reason":"tool_calls"}]}`))
+		evs, err := run(backend(t, s, provider.KindCompatible), hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !beatsBeforeCall(evs) {
+			t.Fatalf("no heartbeat before the call: %+v", evs)
+		}
+	})
+	t.Run("responses", func(t *testing.T) {
+		s := newServer(t, 200, events(
+			`{"type":"response.function_call_arguments.delta","item_id":"fc_1","output_index":0,"delta":"{\"sql\":"}`,
+			`{"type":"response.function_call_arguments.delta","item_id":"fc_1","output_index":0,"delta":"\"SELECT 1\"}"}`,
+			`{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"q","arguments":"{\"sql\":\"SELECT 1\"}","status":"completed"}}`,
+			`{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`))
+		evs, err := run(backend(t, s, provider.KindOpenAI), hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !beatsBeforeCall(evs) {
+			t.Fatalf("no heartbeat before the call: %+v", evs)
+		}
+	})
+}
+
+// beatsBeforeCall reports whether an EventAlive comes before the first
+// tool call.
+func beatsBeforeCall(evs []provider.Event) bool {
+	for _, ev := range evs {
+		switch {
+		case ev.Kind == provider.EventAlive:
+			return true
+		case ev.Kind == provider.EventPart && ev.Part.ToolCall != nil:
+			return false
+		}
+	}
+	return false
+}

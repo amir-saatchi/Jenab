@@ -22,7 +22,8 @@ import (
 // Stall timeouts (SPEC 3.8): the first event must come within FirstEvent
 // (FirstEventOllama for a local Ollama, which queues requests and loads
 // models), and then no more than Between may pass between two events.
-// Starting values, tuned with the benchmark.
+// EventAlive counts, so a long tool call is not a stall. Starting values,
+// tuned with the benchmark.
 const (
 	FirstEvent       = 2 * time.Minute
 	FirstEventOllama = 10 * time.Minute

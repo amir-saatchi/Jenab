@@ -202,6 +202,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 		blocks := map[int]*open{}
 		u := chat.Usage{}
 		stop := ""
+		var hb provider.Heartbeat
 		for st.Next() {
 			var ev event
 			if err := json.Unmarshal([]byte(st.Current().RawJSON()), &ev); err != nil {
@@ -233,8 +234,14 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 					}
 				case "signature_delta":
 					o.sig.WriteString(ev.Delta.Signature)
+					if !hb.Beat(yield) {
+						return
+					}
 				case "input_json_delta":
 					o.args.WriteString(ev.Delta.PartialJSON)
+					if !hb.Beat(yield) {
+						return
+					}
 				}
 			case "content_block_stop":
 				o := blocks[ev.Index]

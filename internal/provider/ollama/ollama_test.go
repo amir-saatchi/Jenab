@@ -320,3 +320,30 @@ func TestNonObjectArgs(t *testing.T) {
 		}
 	}
 }
+
+// TestHeartbeat: Ollama sends a call whole, after nothing while it is
+// generated (Ollama Cloud, 2026-10-11), so only the lines without text
+// yield a heartbeat (TASK-006).
+func TestHeartbeat(t *testing.T) {
+	evs, err := run(newBackend(t, newServer(t, 200, calls, qwenShow), ""), hello)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !beatsBeforeCall(evs) {
+		t.Fatalf("no heartbeat before the call: %+v", evs)
+	}
+}
+
+// beatsBeforeCall reports whether an EventAlive comes before the first
+// tool call.
+func beatsBeforeCall(evs []provider.Event) bool {
+	for _, ev := range evs {
+		switch {
+		case ev.Kind == provider.EventAlive:
+			return true
+		case ev.Kind == provider.EventPart && ev.Part.ToolCall != nil:
+			return false
+		}
+	}
+	return false
+}

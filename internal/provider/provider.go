@@ -83,6 +83,11 @@ const (
 	// sent. Wait 0 means the wait is over and the request is sent now.
 	// Only the Registry sends it.
 	EventWait EventKind = "wait"
+	// EventAlive: the provider sent data the backend keeps until a part is
+	// finished, such as tool-call arguments. It carries nothing; it tells
+	// the Registry's stall watchdog the stream is moving. Backends send it
+	// through a Heartbeat.
+	EventAlive EventKind = "alive"
 )
 
 // Event is one streamed event.

@@ -211,6 +211,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 
 		var text, think strings.Builder
 		var calls []chat.Part
+		var hb provider.Heartbeat
 		sc := bufio.NewScanner(resp.Body)
 		sc.Buffer(make([]byte, 64<<10), 16<<20)
 		for sc.Scan() {
@@ -251,6 +252,11 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 				calls = append(calls, chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, tc.Function.Name, string(args), "")})
 			}
 			if !c.Done {
+				// A line with no text, e.g. while a tool call is held
+				// back until it is whole.
+				if c.Message.Thinking == "" && c.Message.Content == "" && !hb.Beat(yield) {
+					return
+				}
 				continue
 			}
 			var parts []chat.Part

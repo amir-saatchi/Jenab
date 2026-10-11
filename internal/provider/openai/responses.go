@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"iter"
+	"strings"
 
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/responses"
@@ -119,6 +120,7 @@ func (a *responsesAPI) Stream(ctx context.Context, req provider.Request) iter.Se
 		defer st.Close()
 
 		calls, refused := false, false
+		var hb provider.Heartbeat
 		for st.Next() {
 			var ev rEvent
 			if err := json.Unmarshal([]byte(st.Current().RawJSON()), &ev); err != nil {
@@ -165,6 +167,12 @@ func (a *responsesAPI) Stream(ctx context.Context, req provider.Request) iter.Se
 			case "error":
 				yield(provider.Event{}, a.failed(ev.Code, ev.Message))
 				return
+			default:
+				// Tool-call arguments, reasoning text and the like, kept
+				// until their item is done.
+				if strings.HasSuffix(ev.Type, ".delta") && !hb.Beat(yield) {
+					return
+				}
 			}
 		}
 		if err := st.Err(); err != nil {

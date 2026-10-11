@@ -279,6 +279,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 
 		var cur *open
 		calls := false
+		var hb provider.Heartbeat
 		sc := bufio.NewScanner(resp.Body)
 		sc.Buffer(make([]byte, 64<<10), 16<<20)
 		for sc.Scan() {
@@ -313,8 +314,14 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 					}
 				case "thought_signature":
 					cur.Signature = ev.Delta.Signature
+					if !hb.Beat(yield) {
+						return
+					}
 				case "arguments_delta":
 					cur.args.WriteString(ev.Delta.Arguments)
+					if !hb.Beat(yield) {
+						return
+					}
 				}
 			case "step.stop":
 				if cur == nil {

@@ -275,3 +275,29 @@ func TestTryAfterWaitIsNotStuck(t *testing.T) {
 		h.wait()
 	})
 }
+
+// A long tool call's heartbeats move the turn's last activity and are not
+// stored (TASK-006).
+func TestHeartbeatsMoveTheTurn(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings(), echo())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		call := fake.ToolCall("c1", "echo", map[string]string{"text": "hi"})
+		alive := provider.Event{Kind: provider.EventAlive}
+		h.fp.Push(fake.Reply{Wait: 40 * time.Second, Events: append([]provider.Event{alive, alive, alive}, call.Events...)}, fake.Text("done"))
+		start := time.Now()
+		h.send(c.ID, "price?")
+		time.Sleep(85 * time.Second)
+		synctest.Wait()
+		st := h.o.find(h.pid, c.ID).Status()
+		if len(st) != 1 || !st[0].LastActivity.Equal(start.Add(80*time.Second)) {
+			t.Errorf("activity %+v, want the last activity at the second heartbeat", st)
+		}
+		h.wait()
+		ms := h.messages(c.ID)
+		if len(ms) != 4 || len(ms[1].Parts) != 1 || ms[1].Parts[0].ToolCall == nil || ms[3].Parts[0].Text == nil || ms[3].Parts[0].Text.Text != "done" {
+			t.Fatalf("messages = %+v", ms)
+		}
+	})
+}

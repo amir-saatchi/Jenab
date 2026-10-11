@@ -471,3 +471,36 @@ func TestCallsFromOtherProviders(t *testing.T) {
 		t.Errorf("a valid ID changed to %q", uses[2].ID)
 	}
 }
+
+// TestHeartbeat: argument chunks, which wait for the block's end, yield a
+// heartbeat for the stall watchdog (TASK-006).
+func TestHeartbeat(t *testing.T) {
+	s := newServer(t, 200, events(start,
+		`{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`,
+		`{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"sql\":"}}`,
+		`{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\"SELECT 1\"}"}}`,
+		`{"type":"content_block_stop","index":0}`,
+		`{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":5}}`,
+		`{"type":"message_stop"}`))
+	evs, err := run(newBackend(t, s), hello)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !beatsBeforeCall(evs) {
+		t.Fatalf("no heartbeat before the call: %+v", evs)
+	}
+}
+
+// beatsBeforeCall reports whether an EventAlive comes before the first
+// tool call.
+func beatsBeforeCall(evs []provider.Event) bool {
+	for _, ev := range evs {
+		switch {
+		case ev.Kind == provider.EventAlive:
+			return true
+		case ev.Kind == provider.EventPart && ev.Part.ToolCall != nil:
+			return false
+		}
+	}
+	return false
+}

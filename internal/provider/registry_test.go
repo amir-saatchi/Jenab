@@ -300,6 +300,8 @@ func TestStallTimeouts(t *testing.T) {
 		{"no first event, Ollama", provider.KindOllama, fake.Reply{Hang: true}, provider.FirstEventOllama},
 		{"silent mid-stream", provider.KindCompatible, fake.Reply{Wait: 50 * time.Second, Events: []provider.Event{
 			{Kind: provider.EventDelta, Text: "a"}, {Kind: provider.EventDelta, Text: "b"}}, Hang: true}, 100*time.Second + provider.Between},
+		{"silent after heartbeats", provider.KindCompatible, fake.Reply{Wait: 50 * time.Second, Events: []provider.Event{
+			{Kind: provider.EventAlive}, {Kind: provider.EventAlive}}, Hang: true}, 100*time.Second + provider.Between},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -316,6 +318,29 @@ func TestStallTimeouts(t *testing.T) {
 			})
 		})
 	}
+}
+
+// TestLongToolCallIsNotAStall: a call whose arguments take longer than
+// Between in all, with heartbeats less than Between apart, ends with the
+// call (TASK-006).
+func TestLongToolCallIsNotAStall(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		call := fake.ToolCall("c1", "save_view", map[string]string{"spec": "..."})
+		alive := provider.Event{Kind: provider.EventAlive}
+		reply := fake.Reply{Wait: provider.Between * 2 / 3, Events: append([]provider.Event{alive, alive, alive, alive}, call.Events...)}
+		s := newSetup(t, provider.KindCompatible, 1, reply)
+		start := time.Now()
+		evs, err := collect(s.reg, limit.Interactive, provider.Request{Model: "p/m1"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d := time.Since(start); d <= 2*provider.Between {
+			t.Fatalf("took %s, want more than %s", d, 2*provider.Between)
+		}
+		if n := len(evs); n != 6 || evs[0].Kind != provider.EventAlive || evs[4].Part.ToolCall.ID != "c1" || evs[5].Stop != provider.StopToolUse {
+			t.Fatalf("events = %+v", evs)
+		}
+	})
 }
 
 func TestSlowCallerIsNotAStall(t *testing.T) {

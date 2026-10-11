@@ -483,3 +483,35 @@ func TestNonObjectArgs(t *testing.T) {
 		}
 	}
 }
+
+// TestHeartbeat: argument chunks, which wait for the step's end, yield a
+// heartbeat for the stall watchdog (TASK-006).
+func TestHeartbeat(t *testing.T) {
+	s := newServer(t, reply{200, sse(start,
+		`{"index":0,"step":{"id":"c1","type":"function_call","name":"query","arguments":{}},"event_type":"step.start"}`,
+		`{"index":0,"delta":{"arguments":"{\"sql\":","type":"arguments_delta"},"event_type":"step.delta"}`,
+		`{"index":0,"delta":{"arguments":"\"SELECT 1\"}","type":"arguments_delta"},"event_type":"step.delta"}`,
+		`{"index":0,"event_type":"step.stop"}`,
+		completed("requires_action"))})
+	evs, err := run(newBackend(t, s), hello)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !beatsBeforeCall(evs) {
+		t.Fatalf("no heartbeat before the call: %+v", evs)
+	}
+}
+
+// beatsBeforeCall reports whether an EventAlive comes before the first
+// tool call.
+func beatsBeforeCall(evs []provider.Event) bool {
+	for _, ev := range evs {
+		switch {
+		case ev.Kind == provider.EventAlive:
+			return true
+		case ev.Kind == provider.EventPart && ev.Part.ToolCall != nil:
+			return false
+		}
+	}
+	return false
+}
