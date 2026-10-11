@@ -9,7 +9,7 @@ messages:
   - text: "also run it for ETH"
     at: 12s
 asserts:
-  - {type: after_message, test: "3", args_match: '(?is)run_pipeline.*eth'}
+  - {type: after_message, test: "3", when: during, args_match: '(?is)run_pipeline.*eth'}
   - {type: max_calls, test: "3", tool: run_pipeline, args_not_match: '(?i)eth', n: 1}
   - {type: answer_contains, test: "3", turn: finish, match: '2[,.]?587'}
   - {type: answer_contains, test: "3", turn: finish, match: '64[,.]?210'}

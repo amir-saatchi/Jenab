@@ -69,6 +69,17 @@ func TestLoadErrors(t *testing.T) {
 		"bad duration":             {"_set.yaml": tool, "a.yaml": sc + "delays: {web_search: soon}\n"},
 		"bad skill":                {"_set.yaml": "skills: skills\n" + tool, "a.yaml": sc, "skills/x/SKILL.md": "no front matter"},
 		"unknown mother skill":     {"_set.yaml": "skills: skills\nmother_skills: [x]\n" + tool, "a.yaml": sc, "skills/y/SKILL.md": "---\nname: y\ndescription: Y.\n---\nBody.\n"},
+		"typo in a skipped one":    {"_set.yaml": tool, "a.yaml": sc + "needs: [background]\nasserts: [{type: backgroud_started, test: x, tools: [run]}]\n"},
+		"planned without its need": {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: background_started, test: x, tools: [run]}]\n"},
+		"bad when":                 {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: after_message, test: x, when: later}]\n"},
+		"when on another check":    {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: answer_delivered, test: x, when: during}]\n"},
+		"share above 1":            {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: cache_read_share, min: 2}]\n"},
+		"settings providers":       {"_set.yaml": tool, "a.yaml": sc + "settings: {llm: {providers: {p: {kind: openai}}}}\n"},
+		"settings other section":   {"_set.yaml": tool, "a.yaml": sc + "settings: {ui: {theme: dark}}\n"},
+		"settings unknown key":     {"_set.yaml": tool, "a.yaml": sc + "settings: {llm: {turn_max_request: 2}}\n"},
+		"settings bad value":       {"_set.yaml": tool, "a.yaml": sc + "settings: {llm: {turn_max_requests: many}}\n"},
+		"set settings models":      {"_set.yaml": tool + "settings: {llm: {models: {default: p/m}}}\n", "a.yaml": sc},
+		"bad false_running":        {"_set.yaml": tool + "false_running: ['(']\n", "a.yaml": sc},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := Load(writeSet(t, files)); err == nil {

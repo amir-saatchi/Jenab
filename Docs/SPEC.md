@@ -1551,7 +1551,9 @@ The scenario runner and the turn inspector use the real orchestrator, context bu
     - scripted user messages, with an optional `at` time for messages sent during a turn
     - fake or recorded tool results, with delays
     - assertions, e.g. `text_before_tool`, `tool_called`, `config_valid`, `max_prompt_tokens`
-  - It runs every scenario on the test model set: the free development models, plus any frontier model the developer has a key for. It reports pass rates, repair rounds, tokens and time per model.
+  - A scenario can set `context` and `llm` settings, such as the request cap (TASK-013).
+  - It runs every scenario on the test model set: the free development models, plus any frontier model the developer has a key for. It reports pass rates, repair rounds, tokens with the share read from the cache, and time per model. With 3 or more reps it shows the spread of pass rates (TASK-013).
+  - Scripted answers can stand in for a model, so a regression run needs no keys (TASK-013).
   - The SPIKE-021 config tasks and the Phase 2 benchmark (PROPOSAL 11) are scenario sets for it.
 - **Turn inspector** (in the app, behind *Settings → Developer*):
   - For each turn it shows:

@@ -313,27 +313,38 @@ asserts:
 	}
 }
 
-// A run that doesn't end in time is stopped and reported as broken.
+// A run that doesn't end in time is stopped and reported as broken,
+// wherever the time ran out.
 func TestRunTimeout(t *testing.T) {
-	s, err := Load(writeSet(t, map[string]string{
-		"_set.yaml": "title: Prices\n",
-		"a.yaml":    "id: a\ncontext: main\nmessages: [{text: hi}]\nasserts: [{type: answer_delivered, test: x}]\n",
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fp := fake.New(fake.Reply{Hang: true})
-	models := Static([]ProviderSpec{{Name: "p", Kind: "openai_compatible", BaseURL: "https://example.test/v1/", Models: []config.ModelSettings{{ID: "m", Context: 32000}}}}, map[string]string{"p": "test-key-0123456789"}, "p/m")
-	rep, err := RunSet(context.Background(), s, Options{
-		Models: models, Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: fp.Factory()},
-		Timeout: 300 * time.Millisecond, Temp: t.TempDir(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := rep.Runs[0]
-	if !strings.Contains(r.Error, "took longer") || r.Passed() || rep.Summary[0].Errors != 1 {
-		t.Errorf("run %+v", r)
+	for name, c := range map[string]struct {
+		messages string
+		reply    fake.Reply
+	}{
+		"in a turn":             {"[{text: hi}]", fake.Reply{Hang: true}},
+		"waiting for a message": {"[{text: hi}, {text: ho, at: 10s}]", reply("Hello.", nil)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s, err := Load(writeSet(t, map[string]string{
+				"_set.yaml": "title: Prices\n",
+				"a.yaml":    "id: a\ncontext: main\nmessages: " + c.messages + "\nasserts: [{type: answer_delivered, test: x}]\n",
+			}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			fp := fake.New(c.reply)
+			models := Static([]ProviderSpec{{Name: "p", Kind: "openai_compatible", BaseURL: "https://example.test/v1/", Models: []config.ModelSettings{{ID: "m", Context: 32000}}}}, map[string]string{"p": "test-key-0123456789"}, "p/m")
+			rep, err := RunSet(context.Background(), s, Options{
+				Models: models, Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: fp.Factory()},
+				Timeout: 300 * time.Millisecond, Temp: t.TempDir(),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Runs[0]
+			if !strings.Contains(r.Error, "took longer than 300ms") || r.Passed() || rep.Summary[0].Errors != 1 {
+				t.Errorf("run %+v", r)
+			}
+		})
 	}
 }
 

@@ -10,6 +10,6 @@ messages:
   - text: "also add ETH"
     at: 6s
 asserts:
-  - {type: after_message, test: "3", args_match: '(?i)\beth\b|ethereum|ether', answer_match: '(?i)\beth\b|ethereum|ether'}
+  - {type: after_message, test: "3", when: during, args_match: '(?i)\beth\b|ethereum|ether', answer_match: '(?i)\beth\b|ethereum|ether'}
   - {type: answer_contains, test: "3", turn: any, match: '(?i)etf|hashrate|sec'}
   - {type: no_background, test: info}

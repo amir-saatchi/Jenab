@@ -134,16 +134,26 @@ func LoadSettings(path string) (Settings, []Problem, error) {
 	if err != nil {
 		return Defaults(), nil, fmt.Errorf("config: %w", err)
 	}
+	s, probs, err := ParseSettings(src)
+	if err != nil {
+		return s, nil, fmt.Errorf("config: %s: %w", filepath.Base(path), err)
+	}
+	return s, probs, nil
+}
+
+// ParseSettings reads settings from YAML as LoadSettings reads
+// config.yaml, for callers that build them, such as the scenario runner.
+func ParseSettings(src []byte) (Settings, []Problem, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(src, &doc); err != nil {
-		return Defaults(), nil, fmt.Errorf("config: %s: %w", filepath.Base(path), err)
+		return Defaults(), nil, err
 	}
 	root := docRoot(&doc)
 	if root == nil {
 		return Defaults(), nil, nil
 	}
 	if root.Kind != yaml.MappingNode {
-		return Defaults(), nil, fmt.Errorf("config: %s: line %d: expected settings, found %s", filepath.Base(path), root.Line, kindName(root))
+		return Defaults(), nil, fmt.Errorf("line %d: expected settings, found %s", root.Line, kindName(root))
 	}
 	return decode(root)
 }
@@ -174,7 +184,7 @@ func decode(root *yaml.Node) (Settings, []Problem, error) {
 	if err := root.Decode(&s); err != nil {
 		var te *yaml.TypeError
 		if !errors.As(err, &te) {
-			return Defaults(), nil, fmt.Errorf("config: %w", err)
+			return Defaults(), nil, err
 		}
 		for _, msg := range te.Errors { // "line 3: cannot unmarshal …"; the field keeps its default
 			probs = append(probs, typeProblem(msg))

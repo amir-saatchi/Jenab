@@ -11,5 +11,5 @@ messages:
     at: 6s
 asserts:
   # v2 of this assertion: a later EUR call is not required (a model that already fetched both currencies can answer at once)
-  - {type: after_message, test: "3", answer_match: '55[,.]?190|(?i)eur.{0,20}55|€\s?55'}
+  - {type: after_message, test: "3", when: during, answer_match: '55[,.]?190|(?i)eur.{0,20}55|€\s?55'}
   - {type: no_background, test: info}

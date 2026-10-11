@@ -80,7 +80,7 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillText:
 				continue // the skill's text, which the chip stands for
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillLoaded:
-				e.kind, e.text, e.skill = evSkill, p.Notice.Text, strings.TrimSpace(strings.TrimPrefix(p.Notice.Text, "Skill loaded:"))
+				e.kind, e.text, e.skill = evSkill, p.Notice.Text, p.Notice.Skill
 			case p.Notice != nil:
 				e.kind, e.text, e.notice = evNotice, p.Notice.Text, p.Notice.Kind
 			default:
@@ -117,6 +117,18 @@ func (rec *record) turns() int {
 
 // promptOf is a request's prompt size: the input, cached or not.
 func promptOf(u chat.Usage) int { return u.Input + u.CacheRead + u.CacheWrite }
+
+// usage is the requests' usage added up.
+func (rec *record) usage() chat.Usage {
+	var u chat.Usage
+	for _, q := range rec.requests {
+		u.Input += q.Usage.Input
+		u.CacheRead += q.Usage.CacheRead
+		u.CacheWrite += q.Usage.CacheWrite
+		u.Output += q.Usage.Output
+	}
+	return u
+}
 
 func (rec *record) prompt() int {
 	n := 0
@@ -183,9 +195,10 @@ func (rec *record) transcript() string {
 		}
 	}
 	if len(rec.requests) > 0 {
-		fmt.Fprintf(&b, "\n## Requests\n\n| # | prompt | output | took | error |\n|---|---|---|---|---|\n")
+		fmt.Fprintf(&b, "\n## Requests\n\n| # | input | cache read | cache write | output | stop | took | error |\n|---|---|---|---|---|---|---|---|\n")
 		for i, q := range rec.requests {
-			fmt.Fprintf(&b, "| %d | %d | %d | %.1f s | %s |\n", i+1, promptOf(q.Usage), q.Usage.Output, q.Took.Seconds(), clip(q.Err, 120))
+			u := q.Usage
+			fmt.Fprintf(&b, "| %d | %d | %d | %d | %d | %s | %.1f s | %s |\n", i+1, u.Input, u.CacheRead, u.CacheWrite, u.Output, q.Stop, q.Took.Seconds(), clip(q.Err, 120))
 		}
 	}
 	return b.String()

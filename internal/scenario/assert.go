@@ -48,6 +48,9 @@ var assertFields = map[string][]string{
 	"no_background":       nil,
 	"max_turns":           {"n"},
 	"no_false_running":    nil,
+	"max_requests":        {"n"},
+	"no_turn_failed":      nil,
+	"cache_read_share":    {"min"},
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -63,7 +66,8 @@ func check(rec *record, sc *Scenario) []Result {
 }
 
 // Text that says work goes on after the answer. no_false_running fails
-// on it when nothing was started (SPIKE-023).
+// on it when nothing was started (SPIKE-023). A set in another language
+// brings its own with false_running.
 var reFalseRunning = regexp.MustCompile(`(?i)(in the background|still running|is running|(will|'ll) (let you know|report back|get back|notify|update you|follow up)|` +
 	`once (it|the run|the task|the pipeline) (finishes|completes|is done)|as soon as (it|the run|the task)|in the meantime|meanwhile)`)
 
@@ -231,10 +235,34 @@ func (rec *record) check(a Assert) (string, string, float64) {
 				return Pass, "background work was started", 0
 			}
 		}
-		if m := reFalseRunning.FindString(rec.text("")); m != "" {
+		re := reFalseRunning
+		if rec.sc.set.FalseRunning != nil {
+			re = rec.sc.set.FalseRunning
+		}
+		if m := re.FindString(rec.text("")); m != "" {
 			return Fail, "says: " + m, 0
 		}
 		return Pass, "", 0
+	case "max_requests":
+		n := len(rec.requests)
+		st, why, _ := pf(n <= a.N, fmt.Sprintf("%d requests", n))
+		return st, why, float64(n)
+	case "no_turn_failed":
+		for _, e := range rec.events {
+			if e.kind == evNotice && e.notice == chat.NoticeTurnFailed {
+				return Fail, fmt.Sprintf("turn %d failed: %s", e.turn, clip(e.text, 120)), 0
+			}
+		}
+		return Pass, "", 0
+	case "cache_read_share":
+		u := rec.usage()
+		p := promptOf(u)
+		if p == 0 {
+			return Skip, "the provider reported no prompt tokens", 0
+		}
+		share := float64(u.CacheRead) / float64(p)
+		st, why, _ := pf(share >= a.Min, fmt.Sprintf("%.0f %% of the prompt read from the cache", share*100))
+		return st, why, share
 	}
 	return Fail, "unknown assertion", 0
 }
@@ -422,9 +450,13 @@ func (rec *record) afterMessage(a Assert) (string, string, float64) {
 	if at < 0 {
 		return Fail, "the message never arrived", 0
 	}
-	how := "between turns"
+	how, when := "between turns", whenBetween
 	if slices.ContainsFunc(rec.events[:at], func(e event) bool { return e.turn == rec.events[at].turn }) {
-		how = "during a turn"
+		how, when = "during a turn", whenDuring
+	}
+	if a.When != "" && a.When != when {
+		want := map[string]string{whenDuring: "during a turn", whenBetween: "between turns"}[a.When]
+		return Fail, "arrived " + how + ", not " + want, 0
 	}
 	var args, txt strings.Builder
 	for _, e := range rec.events[at+1:] {

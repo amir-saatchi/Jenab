@@ -7,7 +7,8 @@
 //
 // A dir is a set (a folder with _set.yaml) or a folder of sets. Keys come
 // from the environment, or a .env file given with -env; they are never
-// printed or written to a report.
+// printed or written to a report. -model scripted:<file> plays a script's
+// answers instead of a model, with no keys (TASK-013).
 package main
 
 import (
@@ -151,14 +152,15 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 	}
 	var (
 		modelsFile = fs.String("models", filepath.Join("scenarios", "models.yaml"), "the models file (see scenarios/models.example.yaml)")
-		modelList  = fs.String("model", "", "models to run, as provider/id, comma-separated; default: every model of a provider that isn't paid")
+		modelList  = fs.String("model", "", "models to run, as provider/id, comma-separated; default: every model of a provider that isn't paid. scripted:<file> plays the file's answers instead, with no keys")
 		envFile    = fs.String("env", "", "a .env file with the keys; its values win over the environment")
 		only       = fs.String("scenario", "", "scenario IDs to run, comma-separated; default: all")
 		reps       = fs.Int("reps", 1, "runs of each scenario on each model")
 		scale      = fs.Float64("scale", 1, "multiplies tool delays and message times")
 		timeout    = fs.Duration("timeout", scenario.DefaultTimeout, "the longest one run may take")
 		parallel   = fs.Int("parallel", 1, "runs at a time")
-		out        = fs.String("out", "", "where reports go; default: <set>/results")
+		out        = fs.String("out", "", "where reports go; default: <set>/results, and <set>/results/scripted for a script")
+		baseline   = fs.String("baseline", "", "a report's JSON file to compare with; default: the newest report where this one goes")
 		keep       = fs.Bool("keep", false, "keep each run's project folder")
 		verbose    = fs.Bool("v", false, "log the app's messages to stderr")
 	)
@@ -169,19 +171,16 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	mf, err := scenario.ReadModels(*modelsFile)
-	if errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("no models file at %s: copy scenarios/models.example.yaml there and list your providers, or give one with -models", *modelsFile)
-	} else if err != nil {
-		return err
-	}
-	env := scenario.Env{}
-	if *envFile != "" {
-		if env.File, err = scenario.ReadEnvFile(*envFile); err != nil {
+	var base *scenario.Report
+	if *baseline != "" {
+		if len(ss) > 1 {
+			return errors.New("-baseline compares one set; give one dir")
+		}
+		if base, err = scenario.ReadReport(*baseline); err != nil {
 			return err
 		}
 	}
-	models, err := mf.Select(split(*modelList), env)
+	models, script, err := pick(split(*modelList), *modelsFile, *envFile)
 	if err != nil {
 		return err
 	}
@@ -206,21 +205,26 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		fmt.Fprintf(w, "\n%s (%s)\n", s.Dir, s.Title)
 		rep, runErr := scenario.RunSet(ctx, s, scenario.Options{
 			Models: models, Backends: backends.All(), Reps: *reps, Scale: *scale, Timeout: *timeout,
-			Parallel: *parallel, Only: ids, Keep: *keep, Log: log,
+			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
 		})
 		if rep == nil {
 			return runErr
 		}
 		dir := *out
-		if dir == "" {
+		switch {
+		case dir == "" && script != nil:
+			dir = filepath.Join(s.Dir, "results", "scripted") // apart, so real runs don't compare with it
+		case dir == "":
 			dir = filepath.Join(s.Dir, "results")
-		} else if len(ss) > 1 {
+		case len(ss) > 1:
 			dir = filepath.Join(dir, filepath.Base(s.Dir))
 		}
-		prev, err := scenario.Previous(dir)
-		if err != nil {
-			fmt.Fprintf(w, "  the previous report can't be read, so no changes are shown: %v\n", err)
+		prev := base
+		if prev == nil {
+			if prev, err = scenario.Previous(dir); err != nil {
+				fmt.Fprintf(w, "  the previous report can't be read, so no changes are shown: %v\n", err)
+			}
 		}
 		md, err := rep.Write(dir, prev)
 		if err != nil {
@@ -235,6 +239,39 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// pick reads the models to run: from the models file and the keys, or a
+// script for scripted:<file>, which needs neither and runs alone.
+func pick(names []string, modelsFile, envFile string) (*scenario.Models, *scenario.Script, error) {
+	for _, n := range names {
+		file, ok := strings.CutPrefix(n, "scripted:")
+		if !ok {
+			continue
+		}
+		if len(names) > 1 {
+			return nil, nil, errors.New("scripted:<file> runs alone; give no other models")
+		}
+		s, err := scenario.ReadScript(file)
+		if err != nil {
+			return nil, nil, err
+		}
+		return scenario.ScriptedModels(s), s, nil
+	}
+	mf, err := scenario.ReadModels(modelsFile)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, fmt.Errorf("no models file at %s: copy scenarios/models.example.yaml there and list your providers, or give one with -models", modelsFile)
+	} else if err != nil {
+		return nil, nil, err
+	}
+	env := scenario.Env{}
+	if envFile != "" {
+		if env.File, err = scenario.ReadEnvFile(envFile); err != nil {
+			return nil, nil, err
+		}
+	}
+	models, err := mf.Select(names, env)
+	return models, nil, err
 }
 
 // mine are the IDs that are scenarios of s.

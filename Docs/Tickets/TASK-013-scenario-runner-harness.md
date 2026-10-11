@@ -1,6 +1,6 @@
 # TASK-013 — Scenario runner: measure the harness, not only the model
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-001
 
@@ -43,3 +43,29 @@ In order:
 - The skill-loading set runs with `-model scripted:` and no keys.
 - One real run of multi-part and skill-loading on the reference models shows the cache-read share in the report.
 - `go test ./...` passes.
+
+## Result
+All eight items, each with a test in `internal/scenario`.
+1. **Tokens.** Each run records input, cache read and cache write. The transcript's request table has a column for each, and the report's model table has a Cache read column.
+2. **Settings.** `settings` in `_set.yaml` and in a scenario takes `context` and `llm` keys of config.yaml; the scenario's go over the set's. `llm.providers` and `llm.models` are refused, and so is a bad key or value (`config.ParseSettings`).
+3. **Checks.** `max_requests`, `no_turn_failed` and `cache_read_share` (`min`; `test: info` unless given).
+4. **`after_message`** takes `when: during | between`. The four t3 scenarios use `when: during`.
+5. **Language-neutral.** `skill_loaded` reads the skill_loaded notice's skill. A set's `false_running` regexes replace the English ones.
+6. **Report.** With 3 or more reps, runs and checks show the least and the most of a rep's pass share. `-baseline <report.json>` picks what the changes compare with.
+7. **Offline.** `-model scripted:<file>` plays a script's replies through the real orchestrator, with no models file and no keys. Reports go to `<set>/results/scripted`. `scenarios/skill-loading/_offline.yaml` passes 12/12 (`TestOfflineScript`).
+8. **Skipped scenarios.** Every assertion type is checked. A check that comes with a later feature (`background_started` and the like) needs that feature in `needs`.
+
+Also: a run out of time reports "took longer" wherever it hit, also while the project opens or while waiting for a message's time.
+
+Real run on the reference models (reps 1):
+
+| Set | Model | Passed | Cache read |
+|---|---|---|---|
+| multi-part | gemini-3.5-flash-lite | 9/9 (11 skipped) | 3 % |
+| multi-part | gemma4:31b | 9/9 (11 skipped) | 0 % |
+| skill-loading | gemini-3.5-flash-lite | 11/12 | 46 % |
+| skill-loading | gemma4:31b | 11/12 | 0 % |
+
+- t3_a, t3_b and t3_d pass `when: during` on both, so their second message does join the turn.
+- L04 fails on both, as on the old code (TASK-011).
+- Ollama Cloud reports no cache tokens, so gemma shows 0 %. gemini's 3 % on multi-part isn't explained yet; each run is a new project with few requests, so few can reuse a cached prefix. Worth a look when cache use matters.

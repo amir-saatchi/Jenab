@@ -43,3 +43,19 @@ func TestLine(t *testing.T) {
 		}
 	}
 }
+
+// scripted:<file> needs no models file and no keys, and runs alone.
+func TestPickScripted(t *testing.T) {
+	script := "scripted:" + filepath.Join("..", "..", "scenarios", "skill-loading", "_offline.yaml")
+	none := filepath.Join(t.TempDir(), "models.yaml")
+	models, s, err := pick([]string{script}, none, "")
+	if err != nil || s == nil || s.Name != "offline" || len(models.Run) != 1 || models.Run[0] != "scripted/offline" {
+		t.Fatalf("pick: %v %v %v", models, s, err)
+	}
+	if _, _, err := pick([]string{script, "gemini/x"}, none, ""); err == nil {
+		t.Error("picked a script with another model")
+	}
+	if _, _, err := pick([]string{"gemini/x"}, none, ""); err == nil || !strings.Contains(err.Error(), "no models file") {
+		t.Errorf("no models file: %v", err)
+	}
+}

@@ -20,6 +20,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/skill"
 )
 
@@ -28,17 +29,21 @@ const SetFile = "_set.yaml"
 
 // Set is a folder of scenarios and what they share.
 type Set struct {
-	Dir       string
-	Title     string
-	Card      string            // the project card (3.2), block 4
-	Today     time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
-	Fixture   string            // a SQL script for the fixture database
-	Configs   map[string]string // stored configs by id, for config tools
-	Skills    []skill.Skill     // the set's own skills, besides the built-in ones
-	Chats     []ChatSpec        // other chats in the project
-	Tools     []*ToolSpec
-	Rules     map[string][]*Rule // fake results every scenario starts from
-	Scenarios []*Scenario
+	Dir      string
+	Title    string
+	Card     string            // the project card (3.2), block 4
+	Today    time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
+	Fixture  string            // a SQL script for the fixture database
+	Configs  map[string]string // stored configs by id, for config tools
+	Skills   []skill.Skill     // the set's own skills, besides the built-in ones
+	Chats    []ChatSpec        // other chats in the project
+	Tools    []*ToolSpec
+	Rules    map[string][]*Rule // fake results every scenario starts from
+	Settings map[string]any     // the context and llm settings every scenario starts from
+	// FalseRunning is text that says work goes on after the answer, for
+	// no_false_running; nil is the English default.
+	FalseRunning *regexp.Regexp
+	Scenarios    []*Scenario
 }
 
 // setFile is _set.yaml.
@@ -53,6 +58,8 @@ type setFile struct {
 	Chats        []ChatSpec         `yaml:"chats"`
 	Tools        []*ToolSpec        `yaml:"tools"`
 	Rules        map[string][]*Rule `yaml:"rules"`
+	Settings     map[string]any     `yaml:"settings"`      // context and llm keys of config.yaml
+	FalseRunning []string           `yaml:"false_running"` // regexes, for a set in another language
 }
 
 // ChatSpec is a chat the fixture project has besides the one under test,
@@ -128,9 +135,13 @@ type Scenario struct {
 	Messages []Message           `yaml:"messages"`
 	Delays   map[string]Duration `yaml:"delays"`
 	Rules    map[string][]*Rule  `yaml:"rules"`
-	Asserts  []Assert            `yaml:"asserts"`
-	File     string              `yaml:"-"`
+	// Settings are context and llm keys of config.yaml over the set's,
+	// such as llm.turn_max_requests.
+	Settings map[string]any `yaml:"settings"`
+	Asserts  []Assert       `yaml:"asserts"`
+	File     string         `yaml:"-"`
 	set      *Set
+	settings config.Settings // the app settings of its runs, before the models
 }
 
 // Message is a scripted user message. Without At it is sent once the chat
@@ -163,13 +174,35 @@ type Assert struct {
 	Skill       string   `yaml:"skill"`
 	Skills      []string `yaml:"skills"`
 	Allow       []string `yaml:"allow"`
-	// Other holds fields only checks the runner doesn't know yet use,
-	// in scenarios that are skipped for their needs.
+	Min         float64  `yaml:"min"`  // cache_read_share: the least share, from 0 to 1
+	When        string   `yaml:"when"` // after_message: during or between (turns)
+	// Other holds fields only planned checks use.
 	Other map[string]any `yaml:",inline"`
 }
 
 // Needs the runner knows. Each is skipped until the app has it.
 var knownNeeds = []string{"background"}
+
+// plannedAsserts are checks that come with an app feature, by the need
+// they come with. A scenario that uses one needs that feature, so it is
+// skipped; their fields aren't checked yet.
+var plannedAsserts = map[string]string{
+	"background_started":                "background",
+	"slow_started":                      "background",
+	"mentions_running":                  "background",
+	"quick_before_finish":               "background",
+	"no_resend_after_notice":            "background",
+	"no_restart":                        "background",
+	"created_chat_only_for_lasting_job": "background",
+	"right_target":                      "background",
+	"used_subagent_for_one_off":         "background",
+}
+
+// after_message's places for the message.
+const (
+	whenDuring  = "during"
+	whenBetween = "between"
+)
 
 var turnNames = []string{"", "any", "first", "last", "finish"}
 
@@ -231,6 +264,17 @@ func Load(dir string) (*Set, error) {
 	}
 	if err := compileRules(s.Rules, s.tool); err != nil {
 		return nil, fmt.Errorf("%s: %w", SetFile, err)
+	}
+	s.Settings = f.Settings
+	if _, err := parseSettings(s.Settings); err != nil {
+		return nil, fmt.Errorf("%s: settings: %w", SetFile, err)
+	}
+	if len(f.FalseRunning) > 0 {
+		re, err := regexp.Compile(`(?i)(` + strings.Join(f.FalseRunning, "|") + `)`)
+		if err != nil {
+			return nil, fmt.Errorf("%s: false_running: %w", SetFile, err)
+		}
+		s.FalseRunning = re
 	}
 	files, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
 	if err != nil {
@@ -418,15 +462,73 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 	if err := compileRules(sc.Rules, s.tool); err != nil {
 		return nil, err
 	}
+	if sc.settings, err = parseSettings(mergeMaps(s.Settings, sc.Settings)); err != nil {
+		return nil, fmt.Errorf("settings: %w", err)
+	}
 	for i, a := range sc.Asserts {
-		if _, ok := assertFields[a.Type]; !ok && len(sc.Needs) > 0 {
-			continue // a check for what the scenario needs comes with it
+		if need, ok := plannedAsserts[a.Type]; ok {
+			if !slices.Contains(sc.Needs, need) {
+				return nil, fmt.Errorf("asserts[%d] (%s): the check comes with %s, so the scenario needs [%s]", i, a.Type, need, need)
+			}
+			continue
 		}
 		if err := s.checkAssert(a); err != nil {
 			return nil, fmt.Errorf("asserts[%d] (%s): %w", i, a.Type, err)
 		}
+		if a.Type == "cache_read_share" && a.Test == "" {
+			sc.Asserts[i].Test = "info" // a model's cache use is no pass or fail by default
+		}
 	}
 	return &sc, nil
+}
+
+// parseSettings checks settings as config.yaml's context and llm keys and
+// returns the app settings with them. The runner sets the providers and
+// models itself.
+func parseSettings(m map[string]any) (config.Settings, error) {
+	for k, v := range m {
+		if k != "context" && k != "llm" {
+			return config.Settings{}, fmt.Errorf("%s: only context and llm can be set", k)
+		}
+		if l, ok := v.(map[string]any); ok && k == "llm" {
+			for _, own := range []string{"providers", "models"} {
+				if _, ok := l[own]; ok {
+					return config.Settings{}, fmt.Errorf("llm.%s: the runner sets it", own)
+				}
+			}
+		}
+	}
+	b, err := yaml.Marshal(m)
+	if err != nil {
+		return config.Settings{}, err
+	}
+	s, probs, err := config.ParseSettings(b)
+	if err != nil {
+		return config.Settings{}, err
+	}
+	if len(probs) > 0 {
+		msg := strings.TrimSuffix(strings.TrimSuffix(probs[0].Msg, "; the default is used"), ", ignored")
+		return config.Settings{}, fmt.Errorf("%s: %s", probs[0].Path, msg)
+	}
+	return s, nil
+}
+
+// mergeMaps is a with b's keys over it, nested maps merged.
+func mergeMaps(a, b map[string]any) map[string]any {
+	out := maps.Clone(a)
+	if out == nil {
+		out = map[string]any{}
+	}
+	for k, v := range b {
+		am, ok1 := out[k].(map[string]any)
+		bm, ok2 := v.(map[string]any)
+		if ok1 && ok2 {
+			out[k] = mergeMaps(am, bm)
+		} else {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 func (s *Set) checkAssert(a Assert) error {
@@ -445,9 +547,15 @@ func (s *Set) checkAssert(a Assert) error {
 			return err
 		}
 	}
+	if a.When != "" && (a.Type != "after_message" || a.When != whenDuring && a.When != whenBetween) {
+		return fmt.Errorf("when is for after_message, and is during or between")
+	}
+	if a.Min < 0 || a.Min > 1 {
+		return fmt.Errorf("min is a share from 0 to 1")
+	}
 	has := map[string]bool{
 		"match": a.Match != "", "tools": a.Tool != "" || len(a.Tools) > 0, "n": a.N > 0,
-		"skills": a.Skill != "" || len(a.Skills) > 0,
+		"skills": a.Skill != "" || len(a.Skills) > 0, "min": a.Min > 0,
 	}
 	for _, f := range need {
 		if !has[f] {

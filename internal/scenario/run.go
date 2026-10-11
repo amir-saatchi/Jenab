@@ -19,6 +19,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/provider/fake"
 	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -37,8 +38,12 @@ type Options struct {
 	Keep     bool     // keep the runs' projects
 	Log      *slog.Logger
 	Progress func(Run) // called after each run
-	// Settings changes the app settings of every run, such as limits.
+	// Settings changes the app settings of every run, after the set's
+	// and the scenario's.
 	Settings func(*config.Settings)
+	// Script plays scripted answers instead of a model, for runs without
+	// keys; Models are then ScriptedModels.
+	Script *Script
 }
 
 // DefaultTimeout bounds one run.
@@ -139,6 +144,7 @@ type run struct {
 	skills *skill.Set
 	model  string // "provider/id"
 	db     *sql.DB
+	fp     *fake.Provider // the scripted model, with Options.Script
 
 	// The app: opened at the start and again after a restart.
 	paths  config.Paths
@@ -166,6 +172,8 @@ func (r *run) do(ctx context.Context, rep int) Run {
 	}
 	if rec != nil {
 		out.Turns, out.Requests, out.Prompt, out.PeakPrompt, out.Output = rec.turns(), len(rec.requests), rec.prompt(), rec.peak(), rec.output()
+		u := rec.usage()
+		out.Input, out.CacheRead, out.CacheWrite = u.Input, u.CacheRead, u.CacheWrite
 		if e := rec.failure(); e != "" && out.Error == "" {
 			out.Error = r.opt.Models.redact(e)
 		}
@@ -179,6 +187,14 @@ func (r *run) do(ctx context.Context, rep int) Run {
 func (r *run) play(ctx context.Context) (*record, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.opt.Timeout)
 	defer cancel()
+	// late reports a run out of time as such, wherever it hit: setting up,
+	// waiting for the chat, for a message's time, or in a restart.
+	late := func(err error) error {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("the run took longer than %s", r.opt.Timeout)
+		}
+		return err
+	}
 	root, err := os.MkdirTemp(r.opt.Temp, "jenab-scenario-")
 	if err != nil {
 		return nil, err
@@ -188,23 +204,29 @@ func (r *run) play(ctx context.Context) (*record, error) {
 	}
 	if r.sc.set.Fixture != "" {
 		if r.db, err = openFixture(ctx, r.sc.set.Fixture); err != nil {
-			return nil, err
+			return nil, late(err)
 		}
 		defer r.db.Close()
 	}
 	r.paths = config.Paths{Root: root, Registry: filepath.Join(root, "registry.db")}.WithDataFolder(filepath.Join(root, "data"))
 	r.traces = agent.NewTraces()
+	if r.opt.Script != nil {
+		r.fp = fake.New(r.opt.Script.replies(r.sc.ID)...) // one per run, so a restart goes on with it
+	}
 	if err := r.open(ctx); err != nil {
-		return nil, err
+		return nil, late(err)
 	}
 	defer func() { r.close(context.WithoutCancel(ctx)) }()
 	if r.pid, err = r.pm.Create(ctx, r.sc.set.Title); err != nil {
-		return nil, err
+		return nil, late(err)
 	}
 	if err := r.setup(ctx); err != nil {
-		return nil, err
+		return nil, late(err)
 	}
 	sent, err := r.send(ctx)
+	if err = late(err); ctx.Err() != nil && r.o != nil {
+		r.o.Stop(r.pid, r.cid)
+	}
 	rec, rerr := r.record(context.WithoutCancel(ctx), r.traces, sent)
 	return rec, errors.Join(err, rerr)
 }
@@ -218,9 +240,13 @@ func (r *run) open(ctx context.Context) error {
 	r.reg = reg
 	r.pm = project.NewManager(project.Deps{Paths: r.paths, Registry: reg, Log: r.opt.Log})
 	set := r.settings()
+	backends := r.opt.Backends
+	if r.fp != nil {
+		backends = map[provider.Kind]provider.Factory{scriptedKind: r.fp.Factory()}
+	}
 	models := provider.NewRegistry(provider.Deps{
 		Settings: set.LLM, Secrets: secret.New(r.opt.Models.keyring()), Gate: limit.NewGate(set.LLM.MaxParallelCalls),
-		Backends: r.opt.Backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,
+		Backends: backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,
 	})
 	appCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
 	r.stop = stop
@@ -321,10 +347,11 @@ func (r *run) setup(ctx context.Context) error {
 	return nil
 }
 
-// settings are the app's defaults with the model under test as default
-// and fast, so a title request, if any, goes to it too.
+// settings are the app's defaults with the set's and the scenario's
+// settings, and the model under test as default and fast, so a title
+// request, if any, goes to it too.
 func (r *run) settings() config.Settings {
-	s := config.Defaults()
+	s := r.sc.settings
 	s.LLM.Providers = r.opt.Models.settings()
 	s.LLM.Models = map[string]string{"default": r.model, "fast": r.model}
 	if r.opt.Settings != nil {
@@ -389,8 +416,7 @@ func (r *run) idle(ctx context.Context) error {
 		}
 		select {
 		case <-ctx.Done():
-			r.o.Stop(r.pid, r.cid)
-			return fmt.Errorf("the run took longer than %s", r.opt.Timeout)
+			return ctx.Err()
 		case <-t.C:
 		}
 	}

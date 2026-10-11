@@ -18,5 +18,5 @@ rules:
         4. "Fed minutes weigh on risk assets; BTC slips 2%" - reuters.example, 2026-09-27.
         5. "BTC jumped 4% on 2026-09-12 after low US inflation data" - reuters.example, 2026-09-13: the largest daily move this month.
 asserts:
-  - {type: after_message, test: "3", args_match: '(?i)\b7\b|seven|2026-09-2[123]|-7 day|-6 day', answer_match: '65[,.]?230'}
+  - {type: after_message, test: "3", when: during, args_match: '(?i)\b7\b|seven|2026-09-2[123]|-7 day|-6 day', answer_match: '65[,.]?230'}
   - {type: no_background, test: info}

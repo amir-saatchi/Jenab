@@ -1,0 +1,48 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/skill-loading/_offline.yaml scenarios/skill-loading
+# Each scenario gets the replies a model that passes would give, in order.
+# It tests the runner and the orchestrator, not a model (TASK-013).
+scenarios:
+  L01_news_view:
+    - calls: [{name: load_skill, args: {name: config-guide}}]
+      usage: {input: 3000, cache_write: 2000, output: 20}
+    - calls: [{name: save_view, args: {yaml: "id: news_last_week\ntype: table\n"}}]
+      usage: {input: 1200, cache_read: 5000, output: 120}
+    - text: I added the table view news_last_week.
+      usage: {input: 100, cache_read: 6300, output: 15}
+  L02_schedule:
+    - calls: [{name: load_skill, args: {name: pipelines}}]
+    - calls: [{name: get_config, args: {id: daily_btc}}]
+    - calls: [{name: save_pipeline, args: {yaml: "id: daily_btc\nschedule: \"30 7 * * *\"\n"}}]
+    - text: daily_btc now runs at 07:30 UTC.
+  L03_add_column:
+    - calls: [{name: load_skill, args: {name: migrations}}]
+    - calls: [{name: apply_migration, args: {steps: [{op: add_column, table: btc_prices, column: volume, type: real}]}}]
+    - text: btc_prices has an optional volume column now.
+  L04_sql_fails:
+    - calls: [{name: load_skill, args: {name: sql-queries}}]
+    - text: Tables that start with _jenab_ are internal and can't be queried.
+  L05_design_table:
+    - calls: [{name: load_skill, args: {name: database-design}}]
+    - text: "A table exchanges: name (text, key), country, website and fee_percent (a number)."
+  L06_etf_news:
+    - calls: [{name: load_skill, args: {name: web-research}}]
+    - calls: [{name: web_search, args: {query: bitcoin ETF news, freshness: week, source: news}}]
+    - text: Inflows into spot ETFs, a delayed decision on staking ETFs, and fee cuts.
+  L07_chart:
+    - calls: [{name: load_skill, args: {name: config-guide}}]
+    - calls: [{name: save_view, args: {yaml: "id: news_per_day\ntype: chart\n"}}]
+    - text: I added the bar chart news_per_day.
+  L08_form:
+    - calls: [{name: load_skill, args: {name: config-guide}}]
+    - calls: [{name: save_form, args: {yaml: "id: add_news\ntype: form\n"}}]
+    - text: I added the form add_news.
+  L09_moving_average:
+    - text: A moving average is the mean of the last few values. It smooths out short swings.
+  L10_price_yesterday:
+    - calls: [{name: query, args: {sql: "SELECT close FROM btc_prices ORDER BY day DESC LIMIT 2"}}]
+    - text: Yesterday BTC closed near the last saved price.
+  L11_what_tracked:
+    - text: This project tracks the bitcoin price and news about bitcoin.
+  L12_two_plus_two:
+    - text: "4"

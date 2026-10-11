@@ -36,7 +36,10 @@ type Run struct {
 	Seconds    float64  `json:"seconds"`
 	Turns      int      `json:"turns"`
 	Requests   int      `json:"requests"`
-	Prompt     int      `json:"prompt_tokens"` // all requests
+	Prompt     int      `json:"prompt_tokens"` // all requests: input, cache read and cache write
+	Input      int      `json:"input_tokens"`  // not read from or written to the cache
+	CacheRead  int      `json:"cache_read_tokens"`
+	CacheWrite int      `json:"cache_write_tokens"`
 	PeakPrompt int      `json:"peak_prompt_tokens"`
 	Output     int      `json:"output_tokens"`
 	Asserts    []Result `json:"asserts"`
@@ -68,7 +71,25 @@ type Summary struct {
 	Prompt  int             `json:"avg_prompt_tokens"`
 	Output  int             `json:"avg_output_tokens"`
 	Seconds float64         `json:"avg_seconds"`
+	// CacheRead is the share of all prompt tokens read from the cache.
+	CacheRead float64 `json:"cache_read_share"`
+	// Spread is, with 3 or more reps, the least and the most of each rep's
+	// pass share: of the runs ("runs") and of each check.
+	Spread map[string]Range `json:"spread,omitempty"`
 }
+
+// Range is the least and the most of a share across reps.
+type Range struct {
+	Min float64 `json:"min"`
+	Max float64 `json:"max"`
+}
+
+func (r Range) String() string {
+	return fmt.Sprintf("%.0f–%.0f %%", r.Min*100, r.Max*100)
+}
+
+// spreadFrom is the minimum number of reps for a spread.
+const spreadFrom = 3
 
 // Rate counts one check's results.
 type Rate struct {
@@ -88,7 +109,7 @@ func (rep *Report) summarize() {
 	rep.Summary = nil
 	for _, m := range rep.Models {
 		s := Summary{Model: m, Checks: map[string]Rate{}}
-		var prompt, output int
+		var prompt, output, cached int
 		var secs float64
 		for _, r := range rep.Runs {
 			if r.Model != m {
@@ -105,7 +126,7 @@ func (rep *Report) summarize() {
 			if r.Error != "" {
 				s.Errors++
 			}
-			prompt, output, secs = prompt+r.Prompt, output+r.Output, secs+r.Seconds
+			prompt, output, cached, secs = prompt+r.Prompt, output+r.Output, cached+r.CacheRead, secs+r.Seconds
 			for _, a := range r.Asserts {
 				if a.Test == "info" {
 					continue
@@ -125,8 +146,63 @@ func (rep *Report) summarize() {
 		if s.Runs > 0 {
 			s.Prompt, s.Output, s.Seconds = prompt/s.Runs, output/s.Runs, secs/float64(s.Runs)
 		}
+		if prompt > 0 {
+			s.CacheRead = float64(cached) / float64(prompt)
+		}
+		if rep.Reps >= spreadFrom {
+			s.Spread = rep.spread(m)
+		}
 		rep.Summary = append(rep.Summary, s)
 	}
+}
+
+// spread is each rep's pass share of the runs and of each check, as the
+// least and the most across the reps.
+func (rep *Report) spread(model string) map[string]Range {
+	out := map[string]Range{}
+	add := func(key string, share float64) {
+		r, ok := out[key]
+		if !ok {
+			r = Range{Min: share, Max: share}
+		}
+		r.Min, r.Max = min(r.Min, share), max(r.Max, share)
+		out[key] = r
+	}
+	for k := 1; k <= rep.Reps; k++ {
+		runs, passed := 0, 0
+		checks := map[string]Rate{}
+		for _, r := range rep.Runs {
+			if r.Model != model || r.Rep != k || r.Skipped != "" {
+				continue
+			}
+			runs++
+			if r.Passed() {
+				passed++
+			}
+			for _, a := range r.Asserts {
+				if a.Test == "info" {
+					continue
+				}
+				c := checks[a.Type]
+				switch a.Status {
+				case Pass:
+					c.Pass++
+				case Fail:
+					c.Fail++
+				}
+				checks[a.Type] = c
+			}
+		}
+		if runs > 0 {
+			add("runs", float64(passed)/float64(runs))
+		}
+		for t, c := range checks {
+			if c.Pass+c.Fail > 0 {
+				add(t, float64(c.Pass)/float64(c.Pass+c.Fail))
+			}
+		}
+	}
+	return out
 }
 
 func (rep *Report) summary(model string) (Summary, bool) {
@@ -241,11 +317,18 @@ func (rep *Report) Markdown(prev *Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Scenario report: %s\n\n", rep.Set)
 	fmt.Fprintf(&b, "Started %s, took %.0f s. Reps %d, time scale %g.\n", rep.Started.Format(time.RFC3339), rep.Took, rep.Reps, rep.Scale)
-	b.WriteString("\n## Models\n\n| Model | Runs passed | Broke | Skipped | Prompt tokens | Output tokens | Time |\n|---|---|---|---|---|---|---|\n")
+	b.WriteString("\n## Models\n\n| Model | Runs passed | Broke | Skipped | Prompt tokens | Cache read | Output tokens | Time |\n|---|---|---|---|---|---|---|---|\n")
 	for _, s := range rep.Summary {
-		fmt.Fprintf(&b, "| %s | %d/%d | %d | %d | %d | %d | %.0f s |\n", s.Model, s.Passed, s.Runs, s.Errors, s.Skipped, s.Prompt, s.Output, s.Seconds)
+		passed := fmt.Sprintf("%d/%d", s.Passed, s.Runs)
+		if r, ok := s.Spread["runs"]; ok {
+			passed += " (" + r.String() + ")"
+		}
+		fmt.Fprintf(&b, "| %s | %s | %d | %d | %d | %.0f %% | %d | %.0f s |\n", s.Model, passed, s.Errors, s.Skipped, s.Prompt, s.CacheRead*100, s.Output, s.Seconds)
 	}
-	b.WriteString("\nTokens and time are averages per run.\n")
+	b.WriteString("\nTokens and time are averages per run. Cache read is the share of all prompt tokens read from the provider's cache.\n")
+	if rep.Reps >= spreadFrom {
+		b.WriteString("In brackets: the least and the most of a rep's pass share.\n")
+	}
 	if types := rep.checkTypes(); len(types) > 0 {
 		b.WriteString("\n## Checks\n\nPassed of counted; skipped checks are left out.\n\n| Check |")
 		for _, m := range rep.Models {
@@ -256,7 +339,11 @@ func (rep *Report) Markdown(prev *Report) string {
 			b.WriteString("| " + t + " |")
 			for _, m := range rep.Models {
 				s, _ := rep.summary(m)
-				b.WriteString(" " + s.Checks[t].String() + " |")
+				cell := s.Checks[t].String()
+				if r, ok := s.Spread[t]; ok {
+					cell += " (" + r.String() + ")"
+				}
+				b.WriteString(" " + cell + " |")
 			}
 			b.WriteString("\n")
 		}
@@ -348,13 +435,19 @@ func Previous(dir string) (*Report, error) {
 		return nil, err
 	}
 	slices.Sort(files)
-	b, err := os.ReadFile(files[len(files)-1])
+	return ReadReport(files[len(files)-1])
+}
+
+// ReadReport reads a report's JSON file, such as a baseline to compare
+// with.
+func ReadReport(path string) (*Report, error) {
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	var rep Report
 	if err := json.Unmarshal(b, &rep); err != nil {
-		return nil, fmt.Errorf("%s: %w", files[len(files)-1], err)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return &rep, nil
 }
