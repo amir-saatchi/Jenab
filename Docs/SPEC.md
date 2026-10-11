@@ -268,7 +268,7 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 
 Every request of the main agent is assembled in this order, from most stable to most changing:
 
-1. System prompt, plus the chat's role if it has one (8.6), its loaded skills and the list of available skills (8.9)
+1. System prompt, plus today's date, the chat's role if it has one (8.6), its loaded skills and the list of available skills (8.9)
 2. User memory
 3. Project memory
 4. Project card (3.2), plus the chat list in the Mother chat (8.6)
@@ -289,6 +289,10 @@ Anything else that changes in between (another chat edits memory, a pipeline run
 ```
 
 For providers with explicit cache control (Anthropic), cache points are placed after block 5 and at the end of the latest message.
+
+Block 1 (TASK-011):
+- **Date:** today's date and the user's time zone, as a UTC offset, since Windows has no IANA name for it. It has no time, so it changes only on a new day, and it is built at each cut. A cut comes after 5 minutes idle (3.6), so a new day almost always starts with one.
+- **Only what the tools can do:** lines about a kind of work come only with the tools that do it. The prompt rule for requests with several parts (8.3) comes with a tool that starts background work, and Mother's delegation guidance (8.6) with `create_chat`.
 
 ### 3.2 Project card
 
@@ -1535,6 +1539,7 @@ Decided in SPIKE-023.
   3. Say what is still running.
   4. Give the rest in the finish turn, without repeating what was already answered.
   - The rule is the same for every model (1). In SPIKE-023 it raised the finish-turn pass rate from 65 % to 88 % and cut the mean prompt tokens per run by 20 %.
+  - It is in the system prompt only when a tool can start background work, so the model isn't told to start work it can't (3.1).
 
 ### 8.4 Developer tools
 
@@ -1651,7 +1656,7 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 - **Busy chats:** if the target chat is in a turn, the message waits until the turn ends.
 - **Reading:** every chat can still read the others with `list_chats`, `search_history(scope: project)` and `read_messages`.
 - **Model-neutral:** the guidance on when to delegate is part of Mother's system prompt and is the same for every model (1).
-- **Delegation guidance v1** (SPIKE-023):
+- **Delegation guidance v1** (SPIKE-023), in Mother's system prompt only with `create_chat` (3.1):
   - Answer yourself when the project card, the chat list or a quick tool call is enough.
   - If an existing chat's role covers the job, send it there with `send_to_chat`, with the context it needs: what to do, which pipeline, view or data, and what to report back.
   - Create a chat with a role only for a lasting job: something done again and again, or that the user wants to follow.
@@ -1813,7 +1818,7 @@ Each bad field gives its own error, naming the file and the field.
   - Jenab never downloads skills. Importing a file shows it in an approval card (8.8) first.
   - Later, the agent may propose a skill, e.g. from *Refresh memory*. It is saved only when the user accepts it.
 - **How a chat gets a skill:**
-  1. **Skill list:** block 1 (3.1) ends with a `## Skills` list, one line per skill: `- name: description` (about 45 tokens each). It shows only the skills this chat can use, so `delegation` is in Mother only. It changes only when skills are added or removed.
+  1. **Skill list:** block 1 (3.1) ends with a `## Skills` list, one line per skill: `- name: description` (about 45 tokens each). It shows only the skills this chat can use, so `delegation` is in Mother only, and a skill whose `load_with` tools are all missing from this build is left out (TASK-011). It changes only when skills are added or removed.
   2. **`load_skill(name)`:** the agent loads a skill when it needs one. The text arrives as the tool result, never cut to a preview (3.7), and ends with the list of extra files. `load_skill(name, file)` returns an extra file like any tool result; it doesn't count as a loaded skill.
   3. **`load_with`:** the first call to one of those tools in a chat also loads the skill, if it isn't loaded yet, and adds its text to the tool's result, also when the call failed. Over the limit it is skipped without an error. It is a safety net for models that don't load a skill on their own, and costs nothing when they do.
      - When `request_schema_change` touches dependent pipelines or views, it also loads `pipelines` and `config-guide`.

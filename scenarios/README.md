@@ -33,7 +33,7 @@ SPIKE-021's config tasks (T1–T4) come with Phase 2, when the app can check con
 
 A set is a folder:
 
-- `_set.yaml`: the project title, its card and fixture database, stored configs, skills, other chats, the fake tools and their rules.
+- `_set.yaml`: the project title, its card and fixture database, the fixture's day (`today`, shown as the date in block 1), stored configs, skills, other chats, the fake tools and their rules.
 - One YAML file per scenario: the context (`main` or `mother`), the messages (one with `at` is sent during a turn; one with `restart: true` comes after the app closes and opens again), and the asserts. An assert's `turn` is `first`, `last`, `finish`, `any` or a turn number.
 
 A fake tool answers with the first rule whose `match` regex fits the call's arguments as JSON. The scenario's own rules come first. Tools of kind `sql`, `describe` and `config` read the fixture. An assert with `test: info` is reported but never fails a run.

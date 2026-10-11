@@ -228,8 +228,20 @@ func (r *run) open(ctx context.Context) error {
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },
 		Skills: r.skills, Traces: r.traces, Log: r.opt.Log,
 		Card: func(context.Context, id.Project) (string, error) { return r.sc.set.Card, nil },
+		Now:  r.now,
 	})
 	return nil
+}
+
+// now is the clock: the set's day at the time of day now, so block 1's
+// date matches the fixture's card.
+func (r *run) now() time.Time {
+	n := time.Now()
+	day := r.sc.set.Today
+	if day.IsZero() {
+		return n
+	}
+	return time.Date(day.Year(), day.Month(), day.Day(), n.Hour(), n.Minute(), n.Second(), n.Nanosecond(), time.Local)
 }
 
 // close shuts the app down as it does on quit: no new turns, running ones

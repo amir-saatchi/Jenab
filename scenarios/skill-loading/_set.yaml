@@ -8,6 +8,7 @@
 # validation (T1-T4) come with Phase 2.
 title: Bitcoin tracker
 card: ../fixtures/bitcoin/card.md
+today: 2026-10-06   # the fixture's day, for the date in block 1
 fixture: ../fixtures/bitcoin/fixture.sql
 configs: ../fixtures/bitcoin/configs
 skills: ../skills

@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -14,15 +15,17 @@ import (
 )
 
 // The system prompt (3.1, block 1). The text is the same for every model
-// (1). Mother's delegation guidance comes with create_chat and
-// send_to_chat (Phase 5).
+// (1). Lines about a kind of work come only with the tools that do it, so
+// the model isn't told of work it can't start.
 var (
 	//go:embed prompts/base.md
 	basePrompt string
 	//go:embed prompts/rule.md
-	rulePrompt string // the prompt rule for requests with several parts (8.3, SPIKE-023)
+	rulePrompt string // the prompt rule for requests with several parts (8.3, SPIKE-023); with a background tool
 	//go:embed prompts/mother.md
 	motherPrompt string
+	//go:embed prompts/delegate.md
+	delegatePrompt string // Mother's delegation guidance (8.6); with create_chat
 )
 
 // cacheIdle is how long a provider keeps a prompt cache. After a longer
@@ -78,7 +81,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	w.system = sys
 	w.skills = map[string]bool{}
 	for _, name := range t.ch.Skills {
-		if _, ok := r.o.d.Skills.Get(t.ch.Kind, name); ok {
+		if _, ok := r.o.skills().Get(t.ch.Kind, name); ok {
 			w.skills[name] = true
 		}
 	}
@@ -229,20 +232,28 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 }
 
 // system is blocks 1–5 of the context (3.1) for the window. Phase 1 has the
-// system prompt, the role, the skills and Mother's chat list. The cache
-// point is after the last block.
+// system prompt, the date, the role, the skills and Mother's chat list.
+// The cache point is after the last block.
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) {
+	tools := r.o.d.Tools.For(t.ch.Kind)
 	var b strings.Builder
-	b.WriteString(strings.TrimSpace(basePrompt) + "\n\n" + strings.TrimSpace(rulePrompt))
+	b.WriteString(strings.TrimSpace(basePrompt))
+	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
+		b.WriteString("\n\n" + strings.TrimSpace(rulePrompt))
+	}
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + strings.TrimSpace(motherPrompt))
+		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {
+			b.WriteString("\n\n" + strings.TrimSpace(delegatePrompt))
+		}
 	}
+	b.WriteString("\n\n" + today(r.o.d.Now()))
 	if role := strings.TrimSpace(t.ch.Role); role != "" {
 		b.WriteString("\n\nThis chat's role:\n" + role)
 	}
 	// The loaded skills come after the role, and the skill list ends the
 	// block (8.9).
-	if s := r.o.d.Skills.Block(t.ch.Kind, t.ch.Skills); s != "" {
+	if s := r.o.skills().Block(t.ch.Kind, t.ch.Skills); s != "" {
 		b.WriteString("\n\n" + s)
 	}
 	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
@@ -264,6 +275,13 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 	}
 	blocks[len(blocks)-1].Cache = true
 	return blocks, nil
+}
+
+// today is block 1's date line. It has the date and not the time, so it
+// changes only on a new day, and the next cut picks it up (3.1). The
+// offset stands for the time zone, as Windows has no IANA name for it.
+func today(now time.Time) string {
+	return fmt.Sprintf("Today is %s, %s, in the user's time zone (UTC%s).", now.Weekday(), now.Format(time.DateOnly), now.Format("-07:00"))
 }
 
 // earlierTurns is the line after the first cut (3.6).

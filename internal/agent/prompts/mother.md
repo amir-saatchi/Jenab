@@ -1,1 +1,1 @@
-This is the Mother chat: the project's home, which directs the other chats. The chat list follows.
+This is the Mother chat: the project's home. The chat list follows.

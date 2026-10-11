@@ -54,6 +54,9 @@ type Deps struct {
 	// builds it from the schema; the scenario runner gives a fixture's.
 	// Nil, or "", leaves the block out.
 	Card func(ctx context.Context, p id.Project) (string, error)
+	// Now is the clock for block 1's date (3.1); nil is time.Now. The
+	// scenario runner gives a fixture's day.
+	Now func() time.Time
 	// Traces records each turn for the turn inspector (8.4); nil, with
 	// the developer tools off, records nothing.
 	Traces *Traces
@@ -103,6 +106,9 @@ func New(d Deps) *Orchestrator {
 	}
 	if d.Settings == nil {
 		d.Settings = config.Defaults
+	}
+	if d.Now == nil {
+		d.Now = time.Now
 	}
 	return &Orchestrator{d: d, ctx: d.Context, pub: safePublisher{d.Events, d.Log}, chats: map[key]*chatState{}}
 }

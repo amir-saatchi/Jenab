@@ -39,7 +39,8 @@ func (r *run) tools() *tool.Registry {
 
 // fake makes a fake tool. Its calls take the tool's delay, scaled.
 func (r *run) fake(t *ToolSpec) tool.Tool {
-	spec := tool.Spec{Name: t.Name, Description: t.Description, Schema: t.schema, Mother: t.Mother}
+	spec := tool.Spec{Name: t.Name, Description: t.Description, Schema: t.schema, Mother: t.Mother,
+		Background: t.Background || t.BackgroundArg != ""}
 	if t.Kind != KindRules {
 		spec.Effects = tool.ReadsDB
 	}

@@ -2,14 +2,94 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/skill"
+	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/web"
 )
+
+// Block 1 tells the model only of work its tools can do (TASK-011). With
+// the Phase 1 tools, the prompt rule, Mother's delegation lines and the
+// config-guide skill are left out.
+func TestBlockOnePhase1(t *testing.T) {
+	tools := append(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})}), Tools()...)
+	h := newHarness(t, t.TempDir(), "", testSettings(), tools...)
+	defer h.stop()
+	var err error
+	if h.o.d.Skills, err = skill.Builtin(); err != nil {
+		t.Fatal(err)
+	}
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.turn(c.ID, "hi")
+	h.turn(h.mother().ID, "hi")
+	for i, req := range h.fp.Calls() {
+		sys := req.System[0].Text
+		if strings.Contains(sys, "Requests with several parts") || strings.Contains(sys, "You direct the other chats") ||
+			strings.Contains(sys, "config-guide") {
+			t.Errorf("request %d, block 1:\n%s", i, sys)
+		}
+	}
+}
+
+// The lines come back with the tools: the prompt rule with a background
+// tool, the delegation lines with create_chat, and a skill with a tool in
+// its load_with.
+func TestBlockOneFollowsTools(t *testing.T) {
+	noop := func(s tool.Spec) tool.Tool {
+		s.Description, s.Schema = "Test.", json.RawMessage(`{"type": "object"}`)
+		return tool.Func(s, func(context.Context, *tool.Env, struct{}) (tool.Result, error) { return tool.Result{}, nil })
+	}
+	h := newHarness(t, t.TempDir(), "", testSettings(), loadSkill(),
+		noop(tool.Spec{Name: "subagent", Background: true}), noop(tool.Spec{Name: "create_chat", Mother: true}), noop(tool.Spec{Name: "save_view"}))
+	defer h.stop()
+	var err error
+	if h.o.d.Skills, err = skill.Builtin(); err != nil {
+		t.Fatal(err)
+	}
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.turn(c.ID, "hi")
+	h.turn(h.mother().ID, "hi")
+	calls := h.fp.Calls()
+	if sys := calls[0].System[0].Text; !strings.Contains(sys, strings.TrimSpace(rulePrompt)) ||
+		strings.Contains(sys, "You direct the other chats") || !strings.Contains(sys, "\n- config-guide: ") {
+		t.Errorf("block 1:\n%s", sys)
+	}
+	if sys := calls[1].System[0].Text; !strings.Contains(sys, strings.TrimSpace(rulePrompt)) || !strings.Contains(sys, strings.TrimSpace(delegatePrompt)) {
+		t.Errorf("Mother's block 1:\n%s", sys)
+	}
+}
+
+// Block 1 has today's date, and a cut on a new day changes it.
+func TestDateAtCut(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		day1 := today(time.Now())
+		h.turn(c.ID, "hi")
+		time.Sleep(time.Minute)
+		h.turn(c.ID, "and now?") // no cut: the date stays
+		time.Sleep(24 * time.Hour)
+		day2 := today(time.Now())
+		h.turn(c.ID, "and today?")
+		var got []bool
+		for _, req := range h.fp.Calls() {
+			got = append(got, strings.Contains(req.System[0].Text, day1))
+		}
+		if !slices.Equal(got, []bool{true, true, false}) || day1 == day2 || !strings.Contains(h.fp.Calls()[2].System[0].Text, day2) {
+			t.Errorf("day 1 in block 1: %v; day 2 %q", got, day2)
+		}
+	})
+}
 
 func TestCutOnTokens(t *testing.T) {
 	set := testSettings()

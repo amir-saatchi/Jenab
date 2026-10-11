@@ -40,6 +40,10 @@ type Spec struct {
 	Effects     Effects
 	Timeout     time.Duration // 0 means DefaultTimeout
 	Mother      bool          // only the Mother chat gets it (8.6)
+	// Background: the tool can start work that goes on after the call
+	// returns (8.3). The prompt rule for requests with several parts
+	// comes with such a tool.
+	Background bool
 }
 
 // DefaultTimeout bounds a tool call whose Spec sets none.

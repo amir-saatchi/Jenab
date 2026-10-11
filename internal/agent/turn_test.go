@@ -161,7 +161,7 @@ func TestMotherContext(t *testing.T) {
 	if len(req.System) != 2 || req.System[0].Cache || !req.System[1].Cache {
 		t.Fatalf("system blocks %+v", req.System)
 	}
-	if !strings.Contains(req.System[0].Text, strings.TrimSpace(motherPrompt)) || !strings.Contains(req.System[0].Text, "Requests with several parts") {
+	if !strings.Contains(req.System[0].Text, strings.TrimSpace(motherPrompt)) {
 		t.Errorf("block 1: %s", req.System[0].Text)
 	}
 	list := req.System[1].Text

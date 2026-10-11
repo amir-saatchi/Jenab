@@ -49,7 +49,7 @@ func loadSkill() tool.Tool {
 // loadSkill loads a skill into the chat, or reads one of its extra files.
 // Files don't count as loaded skills: they are previewed like any result.
 func (r *runner) loadSkill(ctx context.Context, t *turn, tm *toolMsg, name, file string) (tool.Result, error) {
-	set := r.o.d.Skills
+	set := r.o.skills()
 	s, ok := set.Get(t.ch.Kind, name)
 	if !ok {
 		return tool.Result{}, tool.Errorf("there is no skill named %q; the skills are: %s", name, names(set.For(t.ch.Kind)))
@@ -76,7 +76,7 @@ func (r *runner) loadSkill(ctx context.Context, t *turn, tm *toolMsg, name, file
 // net for models that don't load skills themselves (8.9), so a skill over
 // the chat's limit is left out.
 func (r *runner) loadWith(ctx context.Context, t *turn, tm *toolMsg, name string) {
-	for _, s := range r.o.d.Skills.With(t.ch.Kind, name) {
+	for _, s := range r.o.skills().With(t.ch.Kind, name) {
 		if slices.Contains(t.ch.Skills, s.Name) {
 			continue
 		}
@@ -96,7 +96,7 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 	n, tokens := 1, skill.Tokens(s.Body)
 	var loaded []string
 	for _, name := range t.ch.Skills {
-		if l, ok := r.o.d.Skills.Get(t.ch.Kind, name); ok {
+		if l, ok := r.o.skills().Get(t.ch.Kind, name); ok {
 			n, tokens = n+1, tokens+skill.Tokens(l.Body)
 			loaded = append(loaded, name)
 		}
@@ -132,6 +132,15 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 	}
 	tm.publish(textSeq, i, text)
 	return nil
+}
+
+// skills is the skill set without the skills that come with tools this
+// build lacks (8.9).
+func (o *Orchestrator) skills() *skill.Set {
+	return o.d.Skills.Usable(func(name string) bool {
+		_, ok := o.d.Tools.Get(name)
+		return ok
+	})
 }
 
 func names(ss []skill.Skill) string {

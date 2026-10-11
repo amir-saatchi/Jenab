@@ -54,6 +54,22 @@ func Builtin() (*Set, error) {
 	return New(ss...)
 }
 
+// Usable is the set without the skills whose load_with names only tools
+// that has reports missing: they are about work the app can't do yet. A
+// skill without load_with stays.
+func (s *Set) Usable(has func(tool string) bool) *Set {
+	if s == nil {
+		return nil
+	}
+	out := &Set{}
+	for _, sk := range s.list {
+		if len(sk.LoadWith) == 0 || slices.ContainsFunc(sk.LoadWith, has) {
+			out.list = append(out.list, sk)
+		}
+	}
+	return out
+}
+
 // For are the skills a chat of kind k can use. A nil set has none.
 func (s *Set) For(k chat.Kind) []Skill {
 	if s == nil {

@@ -6,6 +6,7 @@
 # The tools are SPIKE-023's, with `skills` on create_chat (SPEC 8.6).
 title: Crypto watch
 card: ../fixtures/crypto-watch/card.md
+today: 2026-09-29   # the fixture's day, for the date in block 1
 fixture: ../fixtures/crypto-watch/fixture.sql
 configs: ../fixtures/crypto-watch/configs
 skills: ../skills

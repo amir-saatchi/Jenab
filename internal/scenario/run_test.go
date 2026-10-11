@@ -34,6 +34,7 @@ func writeSet(t *testing.T, files map[string]string) string {
 var testSet = map[string]string{
 	"_set.yaml": `title: Prices
 card: card.md
+today: 2026-09-29
 fixture: fixture.sql
 skills: skills
 tools:
@@ -163,8 +164,9 @@ func TestRunSet(t *testing.T) {
 	for _, b := range calls[0].System {
 		sys.WriteString(b.Text)
 	}
-	if !strings.Contains(sys.String(), "Tables: prices") || !strings.Contains(sys.String(), "sql-queries") {
-		t.Errorf("system prompt lacks the card or the skill list")
+	if !strings.Contains(sys.String(), "Tables: prices") || !strings.Contains(sys.String(), "sql-queries") ||
+		!strings.Contains(sys.String(), "Today is Tuesday, 2026-09-29") {
+		t.Errorf("system prompt lacks the card, the skill list or the set's day")
 	}
 	var names []string
 	for _, tl := range calls[0].Tools {

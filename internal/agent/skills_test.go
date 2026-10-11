@@ -92,7 +92,7 @@ func (h *harness) setSkills(c id.Chat, skills ...string) {
 }
 
 func TestLoadSkill(t *testing.T) {
-	h := newHarness(t, t.TempDir(), "", testSettings(), loadSkill())
+	h := newHarness(t, t.TempDir(), "", testSettings(), loadSkill(), saveThing())
 	defer h.stop()
 	h.o.d.Skills = skillSet(t, sqlSkill, viewsSkill, motherOnly)
 	c := h.newChat(chat.Chat{Title: "Prices", Role: "a data analyst"})

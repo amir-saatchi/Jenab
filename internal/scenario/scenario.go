@@ -31,6 +31,7 @@ type Set struct {
 	Dir       string
 	Title     string
 	Card      string            // the project card (3.2), block 4
+	Today     time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
 	Fixture   string            // a SQL script for the fixture database
 	Configs   map[string]string // stored configs by id, for config tools
 	Skills    []skill.Skill     // the set's own skills, besides the built-in ones
@@ -44,6 +45,7 @@ type Set struct {
 type setFile struct {
 	Title        string             `yaml:"title"`
 	Card         string             `yaml:"card"`          // a file in the set
+	Today        string             `yaml:"today"`         // YYYY-MM-DD, the day the fixture is from
 	Fixture      string             `yaml:"fixture"`       // a .sql file in the set
 	Configs      string             `yaml:"configs"`       // a folder of <id>.yaml files
 	Skills       string             `yaml:"skills"`        // a folder of skill folders
@@ -195,6 +197,11 @@ func Load(dir string) (*Set, error) {
 	}
 	if s.Card, err = read(f.Card); err != nil {
 		return nil, err
+	}
+	if f.Today != "" {
+		if s.Today, err = time.ParseInLocation(time.DateOnly, f.Today, time.Local); err != nil {
+			return nil, fmt.Errorf("%s: today %q is not a date as YYYY-MM-DD", SetFile, f.Today)
+		}
 	}
 	if s.Fixture, err = read(f.Fixture); err != nil {
 		return nil, err
