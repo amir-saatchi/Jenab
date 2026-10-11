@@ -32,8 +32,10 @@ func TestRequestCap(t *testing.T) {
 	if len(calls) != 3 {
 		t.Fatalf("%d requests, want the cap of 3", len(calls))
 	}
-	if len(calls[1].Tools) != 1 || calls[2].Tools != nil {
-		t.Errorf("tools %d, %d; want the last request without tools", len(calls[1].Tools), len(calls[2].Tools))
+	if !slices.EqualFunc(calls[1].Tools, calls[2].Tools, func(a, b provider.ToolDef) bool { return a.Name == b.Name }) || len(calls[2].Tools) != 1 ||
+		calls[1].ToolChoice != "" || calls[2].ToolChoice != provider.ToolsNone {
+		t.Errorf("tools %d %q, %d %q; want the same tools, and tool choice none in the last request",
+			len(calls[1].Tools), calls[1].ToolChoice, len(calls[2].Tools), calls[2].ToolChoice)
 	}
 	got := texts(calls[2].Messages)
 	if got[len(got)-1] != "user: "+lastRequest {
@@ -46,11 +48,47 @@ func TestRequestCap(t *testing.T) {
 		}
 	}
 	// The model answered the last request with a call anyway: it is
-	// stored, closed and never run.
-	if got := texts(ms); got[len(got)-1] != "tool: result not run: the turn reached its request limit" {
-		t.Errorf("last call: %q", got[len(got)-1])
+	// stored, closed and never run, and with no text the turn ends with
+	// the cap notice (TASK-010).
+	got = texts(ms)
+	if got[len(got)-2] != "tool: result not run: the turn reached its request limit" ||
+		got[len(got)-1] != "user: [the turn reached its limit of 3 requests before the model answered. Send a message to continue.]" {
+		t.Errorf("ends with %q", got[len(got)-2:])
 	}
 	validHistory(t, ms)
+}
+
+// The last answer's text is enough: a call next to it is closed, with no
+// notice. A call the API refused to send (Gemini under tool choice none)
+// ends the answer with no parts, and gets the notice (TASK-010).
+func TestRequestCapAnswers(t *testing.T) {
+	withText := fake.ToolCall("c2", "echo", map[string]string{"text": "again"})
+	withText.Events = slices.Insert(withText.Events, 0, provider.Event{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: "BTC is at 60k."}}})
+	refused := fake.Reply{Events: []provider.Event{fake.Done(provider.StopToolUse, chat.Usage{})}}
+	for _, tt := range []struct {
+		name string
+		last fake.Reply
+		want []string
+	}{
+		{"text and a call", withText, []string{"assistant: BTC is at 60k.", "assistant: call echo", "tool: result not run: the turn reached its request limit"}},
+		{"no parts", refused, []string{"tool: result again", "user: [the turn reached its limit of 2 requests before the model answered. Send a message to continue.]"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			set := testSettings()
+			set.LLM.TurnMaxRequests = 2
+			h := newHarness(t, t.TempDir(), "", set, echo())
+			defer h.stop()
+			c := h.newChat(chat.Chat{Title: "Prices"})
+			h.fp.Push(fake.ToolCall("c1", "echo", map[string]string{"text": "again"}), tt.last)
+			h.turn(c.ID, "loop")
+			ms := h.messages(c.ID)
+			got := texts(ms)
+			if len(got) < len(tt.want) || !slices.Equal(got[len(got)-len(tt.want):], tt.want) {
+				t.Errorf("stored %q\nwant it to end with %q", got, tt.want)
+			}
+			validHistory(t, ms)
+		})
+	}
 }
 
 func TestTitle(t *testing.T) {
@@ -397,8 +435,8 @@ func TestMessageDuringLastRequest(t *testing.T) {
 		h.send(c.ID, "second")
 		h.wait()
 		calls := h.fp.Calls()
-		if len(calls) != 3 || calls[2].Tools != nil {
-			t.Fatalf("%d requests; want one more without tools for the message", len(calls))
+		if len(calls) != 3 || calls[2].ToolChoice != provider.ToolsNone {
+			t.Fatalf("%d requests; want one more without calls for the message", len(calls))
 		}
 		want := []string{"user: first", "assistant: call echo", "tool: result hi", "assistant: first answer", "user: second", "assistant: second answer"}
 		if got := texts(h.messages(c.ID)); !slices.Equal(got, want) {

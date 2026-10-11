@@ -78,7 +78,7 @@ type TurnView struct {
 type RequestView struct {
 	StartMS int64       `json:"start_ms"`
 	TookMS  int64       `json:"took_ms"`
-	Last    bool        `json:"last"`    // the turn's last request, without tools
+	Last    bool        `json:"last"`    // the turn's last request, which asks for no tool calls
 	Dropped bool        `json:"dropped"` // its texts were dropped to save memory
 	Usage   chat.Usage  `json:"usage"`
 	Stop    string      `json:"stop,omitempty"`

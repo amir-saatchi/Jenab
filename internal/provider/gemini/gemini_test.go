@@ -515,3 +515,33 @@ func beatsBeforeCall(evs []provider.Event) bool {
 	}
 	return false
 }
+
+// TestToolChoiceNone: the last request of a turn keeps its tools and asks
+// for no calls. A call the model makes anyway comes as a bare
+// malformed_tool_call line, which ends the answer as a call without one;
+// without tool choice none it is a transport error (TASK-010).
+func TestToolChoiceNone(t *testing.T) {
+	malformed := "event: interaction.created\ndata: " + start + "\n\n" +
+		`{"error":{"message":"Model generated invalid JSON syntax and the output could not be parsed.","code":"malformed_tool_call"}}` + "\n"
+	for _, choice := range []string{"", provider.ToolsNone} {
+		s := newServer(t, reply{200, malformed})
+		req := hello
+		req.Tools = []provider.ToolDef{{Name: "query", Description: "Runs SQL.", Schema: json.RawMessage(`{"type":"object"}`)}}
+		req.ToolChoice = choice
+		evs, err := run(newBackend(t, s), req)
+		body := s.body(t, 0)
+		gc, _ := body["generation_config"].(map[string]any)
+		if tools, _ := body["tools"].([]any); len(tools) != 1 || gc["tool_choice"] != map[string]any{"": nil, "none": "none"}[choice] {
+			t.Errorf("choice %q: %d tools, generation_config %v", choice, len(tools), gc)
+		}
+		if choice == "" {
+			if errKind(err) != provider.Transport || !strings.Contains(err.Error(), "malformed_tool_call") {
+				t.Errorf("without tool choice: err = %v, want a transport error", err)
+			}
+			continue
+		}
+		if err != nil || len(parts(evs)) != 0 || last(evs).Stop != provider.StopToolUse {
+			t.Errorf("with tool choice none: %+v, %v; want a tool_use end without parts", evs, err)
+		}
+	}
+}

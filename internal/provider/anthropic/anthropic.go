@@ -76,6 +76,7 @@ type request struct {
 	System       []block      `json:"system,omitempty"`
 	Messages     []message    `json:"messages"`
 	Tools        []tool       `json:"tools,omitempty"`
+	ToolChoice   *toolChoice  `json:"tool_choice,omitempty"`
 	Thinking     *thinking    `json:"thinking,omitempty"`
 	CacheControl *cacheMarker `json:"cache_control,omitempty"` // automatic cache point at the end (SPEC 3.1)
 }
@@ -84,6 +85,10 @@ type thinking struct {
 	Type         string `json:"type"` // adaptive or enabled
 	Display      string `json:"display,omitempty"`
 	BudgetTokens int    `json:"budget_tokens,omitempty"`
+}
+
+type toolChoice struct {
+	Type string `json:"type"` // auto, any, tool or none
 }
 
 type cacheMarker struct {
@@ -354,6 +359,9 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 	}
 	for _, t := range req.Tools {
 		r.Tools = append(r.Tools, tool{Name: t.Name, Description: t.Description, InputSchema: t.Schema})
+	}
+	if req.ToolChoice == provider.ToolsNone && len(r.Tools) > 0 {
+		r.ToolChoice = &toolChoice{Type: "none"}
 	}
 	// Thinking: models the catalog knows get it on with its text shown.
 	// Unknown models get the API's default, which never fails.

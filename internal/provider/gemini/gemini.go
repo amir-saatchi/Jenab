@@ -164,6 +164,7 @@ type genConfig struct {
 	MaxOutputTokens   int    `json:"max_output_tokens,omitempty"`
 	ThinkingLevel     string `json:"thinking_level,omitempty"`
 	ThinkingSummaries string `json:"thinking_summaries,omitempty"`
+	ToolChoice        string `json:"tool_choice,omitempty"`
 }
 
 type tool struct {
@@ -285,7 +286,17 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 		for sc.Scan() {
 			data, ok := bytes.CutPrefix(sc.Bytes(), []byte("data:"))
 			data = bytes.TrimSpace(data)
-			if !ok || len(data) == 0 || string(data) == "[DONE]" {
+			if !ok {
+				// An error after the stream started can come as a bare
+				// JSON line (seen 2026-10-11).
+				var bare struct{ Error *apiError }
+				if json.Unmarshal(sc.Bytes(), &bare) == nil && bare.Error != nil {
+					yield(b.streamError(*bare.Error, req))
+					return
+				}
+				continue
+			}
+			if len(data) == 0 || string(data) == "[DONE]" {
 				continue
 			}
 			var ev event
@@ -345,7 +356,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 				if ev.Error != nil {
 					e = *ev.Error
 				}
-				yield(provider.Event{}, b.failed(e.Code, e.Message))
+				yield(b.streamError(e, req))
 				return
 			}
 		}
@@ -446,6 +457,21 @@ func (b *backend) done(ev event, calls bool) (provider.Event, error) {
 
 // failed maps an error sent inside the stream, which has a code but no
 // HTTP status.
+// streamError ends a stream on an error event. malformed_tool_call is
+// a call the API couldn't parse. With ToolChoice none the model was told
+// not to call, so the answer ends as a call without one, which the agent
+// closes like other calls in the last request (8.3). Otherwise it is a
+// transport error, retried as the API advises.
+func (b *backend) streamError(e apiError, req provider.Request) (provider.Event, error) {
+	if e.Code != "malformed_tool_call" {
+		return provider.Event{}, b.failed(e.Code, e.Message)
+	}
+	if req.ToolChoice == provider.ToolsNone {
+		return provider.Event{Kind: provider.EventDone, Stop: provider.StopToolUse, Usage: &chat.Usage{}}, nil
+	}
+	return provider.Event{}, provider.TransportError(b.name, b.guard.Redact(e.Code+": "+e.Message), nil)
+}
+
 func (b *backend) failed(code, msg string) *provider.Error {
 	status := http.StatusBadRequest
 	switch code {
@@ -476,6 +502,9 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 	r.SystemInstruction = strings.Join(sys, "\n\n")
 	for _, t := range req.Tools {
 		r.Tools = append(r.Tools, tool{Type: "function", Name: t.Name, Description: t.Description, Parameters: t.Schema})
+	}
+	if req.ToolChoice == provider.ToolsNone && len(r.Tools) > 0 {
+		r.GenerationConfig.ToolChoice = "none"
 	}
 	names := map[string]string{} // call ID → tool name, for function_result
 	for _, m := range req.Messages {

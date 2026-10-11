@@ -32,11 +32,16 @@ type Provider interface {
 
 // Request is one model request.
 type Request struct {
-	Model     string // the provider's model ID; the Registry resolves aliases and "provider/model"
-	System    []Block
-	Messages  []chat.Message
-	Tools     []ToolDef
-	MaxTokens int
+	Model    string // the provider's model ID; the Registry resolves aliases and "provider/model"
+	System   []Block
+	Messages []chat.Message
+	Tools    []ToolDef
+	// ToolChoice ToolsNone asks for an answer without tool calls while
+	// the tools stay in the request, so its cached prefix holds (SPEC
+	// 8.3). APIs without a tool choice get no tools. Empty lets the
+	// model choose.
+	ToolChoice string
+	MaxTokens  int
 	// Thinking asks for the model's thinking where it has it. False turns
 	// it off where the API allows (Ollama: think false).
 	Thinking bool
@@ -50,6 +55,9 @@ type Request struct {
 	// messages need it.
 	Image func(ctx context.Context, ref string) ([]byte, error)
 }
+
+// ToolsNone is the ToolChoice for an answer without tool calls.
+const ToolsNone = "none"
 
 // Block is a piece of the system prompt. Cache marks a cache point after it
 // (SPEC 3.1); APIs without explicit cache points ignore it.

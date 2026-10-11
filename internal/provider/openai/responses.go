@@ -29,6 +29,7 @@ type rRequest struct {
 	Instructions    string     `json:"instructions,omitempty"`
 	Input           []rItem    `json:"input"`
 	Tools           []rTool    `json:"tools,omitempty"`
+	ToolChoice      string     `json:"tool_choice,omitempty"`
 	MaxOutputTokens int        `json:"max_output_tokens,omitempty"`
 	Store           bool       `json:"store"`
 	Include         []string   `json:"include"`
@@ -291,6 +292,9 @@ func (a *responsesAPI) body(ctx context.Context, req provider.Request) ([]byte, 
 	}
 	for _, t := range req.Tools {
 		r.Tools = append(r.Tools, rTool{Type: "function", Name: t.Name, Description: t.Description, Parameters: t.Schema})
+	}
+	if req.ToolChoice == provider.ToolsNone && len(r.Tools) > 0 {
+		r.ToolChoice = "none"
 	}
 	for _, m := range req.Messages {
 		switch m.Role {

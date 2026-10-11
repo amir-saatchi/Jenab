@@ -82,7 +82,7 @@ func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 			continue
 		}
 		if r.newMessages(t) {
-			continue // a message came during the answer; after the cap, one more request without tools answers it
+			continue // a message came during the answer; after the cap, one more request without calls answers it
 		}
 		cs.mu.Lock()
 		r.idle(false)
@@ -155,22 +155,28 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 			calls = append(calls, *p.ToolCall)
 		}
 	}
-	if len(calls) == 0 {
-		if s := cut(resp); s != "" {
-			n := chat.Notice{Kind: chat.NoticeAnswerCut, Text: s}
-			if err := r.writeMessage(ctx, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &n}}}); err != nil {
-				return false, err
-			}
+	if len(calls) > 0 {
+		if err := r.runTools(ctx, t, resp, calls, last); err != nil {
+			return false, err
 		}
-		return false, nil
+		if ctx.Err() != nil {
+			return false, context.Cause(ctx)
+		}
+		if !last {
+			return true, nil
+		}
 	}
-	if err := r.runTools(ctx, t, resp, calls, last); err != nil {
-		return false, err
+	capped := 0
+	if last {
+		capped = t.set.LLM.TurnMaxRequests
 	}
-	if ctx.Err() != nil {
-		return false, context.Cause(ctx)
+	if s := cut(resp, capped); s != "" {
+		n := chat.Notice{Kind: chat.NoticeAnswerCut, Text: s}
+		if err := r.writeMessage(ctx, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &n}}}); err != nil {
+			return false, err
+		}
 	}
-	return true, nil
+	return false, nil
 }
 
 // response is one model answer, kept in memory until it is complete.
@@ -268,9 +274,10 @@ func (resp *response) stopped() []chat.Part {
 	return out
 }
 
-// cut is the notice for an answer without tool calls that ended early or
-// had no text, or "" (8.3).
-func cut(resp *response) string {
+// cut is the notice for a final answer that ended early or had no text,
+// or "" (8.3). capped is the request cap when the answer is the last
+// request's, whose tool calls are not run; 0 otherwise.
+func cut(resp *response, capped int) string {
 	switch resp.stop {
 	case provider.StopMaxTokens:
 		return "[the answer was cut off: it reached the model's output limit]"
@@ -281,6 +288,9 @@ func cut(resp *response) string {
 		if p.Text != nil && strings.TrimSpace(p.Text.Text) != "" {
 			return ""
 		}
+	}
+	if capped > 0 {
+		return fmt.Sprintf("[the turn reached its limit of %d requests before the model answered. Send a message to continue.]", capped)
 	}
 	return "[the model sent an empty answer]"
 }

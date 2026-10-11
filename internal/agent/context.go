@@ -79,7 +79,8 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 }
 
 // request builds one request: the system blocks, the window and the
-// current turn. The last request of a turn has no tools (8.3).
+// current turn. The last request of a turn keeps the tools, so the cached
+// prefix holds, but asks for an answer without calls (8.3).
 func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Request, error) {
 	w := &r.cs.win
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
@@ -96,14 +97,14 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		msgs = shape(ms, w)
 	}
 	req := provider.Request{Model: t.model, System: w.system, Messages: msgs, Thinking: true, Image: r.image}
+	for _, tl := range r.o.d.Tools.For(t.ch.Kind) {
+		s := tl.Spec()
+		req.Tools = append(req.Tools, provider.ToolDef{Name: s.Name, Description: s.Description, Schema: s.Schema})
+	}
 	if last {
+		req.ToolChoice = provider.ToolsNone
 		req.Messages = append(req.Messages, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser,
 			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: lastRequest}}}})
-	} else {
-		for _, tl := range r.o.d.Tools.For(t.ch.Kind) {
-			s := tl.Spec()
-			req.Tools = append(req.Tools, provider.ToolDef{Name: s.Name, Description: s.Description, Schema: s.Schema})
-		}
 	}
 	w.last = time.Now()
 	return req, nil

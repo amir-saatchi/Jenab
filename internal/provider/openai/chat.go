@@ -230,6 +230,9 @@ func (a *chatAPI) params(ctx context.Context, req provider.Request) (sdk.ChatCom
 			Name: t.Name, Description: sdk.String(t.Description), Parameters: schema,
 		}))
 	}
+	if req.ToolChoice == provider.ToolsNone && len(p.Tools) > 0 {
+		p.ToolChoice = sdk.ChatCompletionToolChoiceOptionUnionParam{OfAuto: sdk.String("none")}
+	}
 	if req.MaxTokens > 0 {
 		p.MaxCompletionTokens = sdk.Int(int64(req.MaxTokens))
 	}

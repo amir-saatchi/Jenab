@@ -641,3 +641,35 @@ func beatsBeforeCall(evs []provider.Event) bool {
 	}
 	return false
 }
+
+// TestToolChoiceNone: the last request of a turn keeps its tools and asks
+// for no calls (TASK-010).
+func TestToolChoiceNone(t *testing.T) {
+	answers := map[provider.Kind]string{
+		provider.KindCompatible: sse(`{"choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}]}`),
+		provider.KindOpenAI:     events(`{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`),
+	}
+	for kind, answer := range answers {
+		for _, choice := range []string{"", provider.ToolsNone} {
+			s := newServer(t, 200, answer)
+			req := hello
+			req.Tools = []provider.ToolDef{{Name: "query", Description: "Runs SQL.", Schema: json.RawMessage(`{"type":"object"}`)}}
+			req.ToolChoice = choice
+			if _, err := run(backend(t, s, kind), req); err != nil {
+				t.Fatal(err)
+			}
+			var body struct {
+				Tools      []json.RawMessage `json:"tools"`
+				ToolChoice json.RawMessage   `json:"tool_choice"`
+			}
+			json.Unmarshal([]byte(s.lastBody()), &body)
+			want := ""
+			if choice != "" {
+				want = `"none"`
+			}
+			if len(body.Tools) != 1 || string(body.ToolChoice) != want {
+				t.Errorf("%s, choice %q: %d tools, tool_choice %s", kind, choice, len(body.Tools), body.ToolChoice)
+			}
+		}
+	}
+}

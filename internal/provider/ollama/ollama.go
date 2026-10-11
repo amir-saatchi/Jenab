@@ -302,8 +302,12 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 	if s, err := b.show(ctx, req.Model); err == nil && s.has("thinking") {
 		r.Think = &req.Thinking
 	}
-	for _, t := range req.Tools {
-		r.Tools = append(r.Tools, tool{Type: "function", Function: function{Name: t.Name, Description: t.Description, Parameters: t.Schema}})
+	// /api/chat has no tool choice (SPIKE-030): an answer without calls
+	// gets no tools.
+	if req.ToolChoice != provider.ToolsNone {
+		for _, t := range req.Tools {
+			r.Tools = append(r.Tools, tool{Type: "function", Function: function{Name: t.Name, Description: t.Description, Parameters: t.Schema}})
+		}
 	}
 	var sys []string
 	for _, s := range req.System {

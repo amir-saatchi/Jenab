@@ -50,7 +50,7 @@ type RequestTrace struct {
 	Started time.Time
 	Took    time.Duration
 	Done    bool             // the try has ended
-	Last    bool             // the turn's last request, without tools
+	Last    bool             // the turn's last request, which asks for no tool calls
 	Req     provider.Request // System, Tools and Messages as sent; empty once Dropped
 	Dropped bool             // the texts went over the budget
 	Blocks  []TraceBlock

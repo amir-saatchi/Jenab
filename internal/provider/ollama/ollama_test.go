@@ -347,3 +347,21 @@ func beatsBeforeCall(evs []provider.Event) bool {
 	}
 	return false
 }
+
+// TestToolChoiceNone: /api/chat has no tool choice, so the last request of
+// a turn has no tools (TASK-010).
+func TestToolChoiceNone(t *testing.T) {
+	for _, choice := range []string{"", provider.ToolsNone} {
+		s := newServer(t, 200, calls, qwenShow)
+		req := hello
+		req.Tools = []provider.ToolDef{{Name: "query", Description: "Runs SQL.", Schema: json.RawMessage(`{"type":"object"}`)}}
+		req.ToolChoice = choice
+		if _, err := run(newBackend(t, s, ""), req); err != nil {
+			t.Fatal(err)
+		}
+		tools, _ := s.lastChat(t)["tools"].([]any)
+		if want := map[string]int{"": 1, "none": 0}[choice]; len(tools) != want {
+			t.Errorf("choice %q: %d tools, want %d", choice, len(tools), want)
+		}
+	}
+}
