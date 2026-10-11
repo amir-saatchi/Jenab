@@ -301,3 +301,22 @@ func TestModels(t *testing.T) {
 		t.Errorf("models = %+v", ms)
 	}
 }
+
+// TestNonObjectArgs: arguments that are valid JSON but not an object are
+// Invalid (TASK-007). Ollama writes null for a call without arguments, so
+// null stays {}.
+func TestNonObjectArgs(t *testing.T) {
+	for args, invalid := range map[string]string{"[]": "[]", `"x"`: `"x"`, "null": ""} {
+		body := `{"model":"qwen3.5:4b","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"query","arguments":` + args + `}}]},"done":false}
+{"model":"qwen3.5:4b","message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":4}
+`
+		s := newServer(t, 200, body, qwenShow)
+		evs, err := run(newBackend(t, s, ""), hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ps := parts(evs); len(ps) != 1 || ps[0].ToolCall.Invalid != invalid || string(ps[0].ToolCall.Args) != "{}" {
+			t.Errorf("%s: parts = %+v", args, ps)
+		}
+	}
+}

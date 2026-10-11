@@ -7,9 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -248,7 +246,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 				}
 				id := tc.ID
 				if id == "" {
-					id = newCallID()
+					id = provider.NewCallID()
 				}
 				calls = append(calls, chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, tc.Function.Name, string(args), "")})
 			}
@@ -290,12 +288,6 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 	}
 }
 
-func newCallID() string {
-	var b [8]byte
-	rand.Read(b[:])
-	return "call_" + hex.EncodeToString(b[:])
-}
-
 func (b *backend) body(ctx context.Context, req provider.Request) (*request, error) {
 	r := &request{Model: req.Model, Stream: true, KeepAlive: keepAlive,
 		Options: options{NumCtx: req.Context, NumPredict: req.MaxTokens}}
@@ -335,7 +327,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 					text.WriteString(p.Text.Text)
 				case p.ToolCall != nil:
 					names[p.ToolCall.ID] = p.ToolCall.Name
-					am.ToolCalls = append(am.ToolCalls, toolCall{Function: function{Name: p.ToolCall.Name, Arguments: p.ToolCall.Args}})
+					am.ToolCalls = append(am.ToolCalls, toolCall{Function: function{Name: p.ToolCall.Name, Arguments: provider.ObjectArgs(p.ToolCall.Args)}})
 				}
 			}
 			am.Content = text.String()

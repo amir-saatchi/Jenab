@@ -641,6 +641,20 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 func invalidArgs(raw string) string {
 	var v any
 	err := json.Unmarshal([]byte(raw), &v)
+	if err == nil {
+		kind := "null"
+		switch v.(type) {
+		case []any:
+			kind = "an array"
+		case string:
+			kind = "a string"
+		case float64:
+			kind = "a number"
+		case bool:
+			kind = "a boolean"
+		}
+		return "the arguments must be a JSON object, not " + kind + ". Send the call again with an object."
+	}
 	var se *json.SyntaxError
 	if errors.As(err, &se) {
 		return fmt.Sprintf("the arguments are not valid JSON: %v, at byte %d of %d. Send the call again with valid JSON.", se, se.Offset, len(raw))

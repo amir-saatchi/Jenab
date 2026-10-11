@@ -199,7 +199,11 @@ func (a *responsesAPI) part(it rItem) (*chat.Part, error) {
 		}
 		return &chat.Part{Kind: chat.PartThinking, Thinking: &chat.Thinking{Text: text, Signature: string(sig)}}, nil
 	case "function_call":
-		return &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(it.CallID, it.Name, it.Arguments, "")}, nil
+		id := it.CallID
+		if id == "" {
+			id = provider.NewCallID()
+		}
+		return &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, it.Name, it.Arguments, "")}, nil
 	}
 	return nil, nil
 }
@@ -280,7 +284,7 @@ func (a *responsesAPI) body(ctx context.Context, req provider.Request) ([]byte, 
 				case p.Text != nil:
 					r.Input = append(r.Input, rItem{Type: "message", Role: "assistant", Content: []rContent{{Type: "output_text", Text: p.Text.Text}}})
 				case p.ToolCall != nil:
-					r.Input = append(r.Input, rItem{Type: "function_call", CallID: p.ToolCall.ID, Name: p.ToolCall.Name, Arguments: string(p.ToolCall.Args)})
+					r.Input = append(r.Input, rItem{Type: "function_call", CallID: p.ToolCall.ID, Name: p.ToolCall.Name, Arguments: string(provider.ObjectArgs(p.ToolCall.Args))})
 				}
 			}
 		case chat.RoleTool:

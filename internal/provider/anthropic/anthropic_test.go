@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -391,5 +392,76 @@ func TestModels(t *testing.T) {
 	}
 	if len(ms) != 1 || ms[0] != (provider.ModelInfo{ID: "claude-opus-5-5", Name: "Claude Opus 5.5", Context: 1000000, Output: 128000}) {
 		t.Errorf("models = %+v", ms)
+	}
+}
+
+// TestNonObjectArgs: valid JSON that is not an object is Invalid
+// (TASK-007).
+func TestNonObjectArgs(t *testing.T) {
+	for _, args := range []string{"null", "[]", `"x"`} {
+		q, _ := json.Marshal(args)
+		s := newServer(t, 200, events(start,
+			`{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`,
+			`{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":`+string(q)+`}}`,
+			`{"type":"content_block_stop","index":0}`,
+			`{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":5}}`,
+			`{"type":"message_stop"}`))
+		evs, err := run(newBackend(t, s), hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ps := parts(evs); len(ps) != 1 || ps[0].ToolCall.Invalid != args || string(ps[0].ToolCall.Args) != "{}" {
+			t.Errorf("%s: parts = %+v", args, ps)
+		}
+	}
+}
+
+// TestCallsFromOtherProviders: IDs the API refuses, such as Kimi's, are
+// mapped in the call and its result alike, the same in every request;
+// arguments stored as null go as {} (TASK-007).
+func TestCallsFromOtherProviders(t *testing.T) {
+	s := newServer(t, 200, events(start, `{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":1}}`, `{"type":"message_stop"}`))
+	p := newBackend(t, s)
+	call := func(id, args string) chat.Part {
+		return chat.Part{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: id, Name: "read_file", Args: json.RawMessage(args)}}
+	}
+	result := func(id string) chat.Part {
+		return chat.Part{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: id, Text: "ok"}}
+	}
+	req := hello
+	req.Messages = append(append([]chat.Message(nil), hello.Messages...),
+		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{call("functions.read_file:0", `{"path":"a"}`), call("functions.read_file:1", "null"), call("toolu_01", "{}")}},
+		chat.Message{Role: chat.RoleTool, Parts: []chat.Part{result("functions.read_file:0"), result("functions.read_file:1"), result("toolu_01")}})
+	var bodies []string
+	for range 2 {
+		if _, err := run(p, req); err != nil {
+			t.Fatal(err)
+		}
+		bodies = append(bodies, s.lastBody())
+	}
+	if bodies[0] != bodies[1] {
+		t.Error("the mapped IDs differ between requests, which breaks the cache")
+	}
+	var body struct {
+		Messages []struct {
+			Content []struct {
+				ID        string          `json:"id"`
+				ToolUseID string          `json:"tool_use_id"`
+				Input     json.RawMessage `json:"input"`
+			} `json:"content"`
+		} `json:"messages"`
+	}
+	json.Unmarshal([]byte(bodies[0]), &body)
+	valid := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	uses, results := body.Messages[1].Content, body.Messages[2].Content
+	seen := map[string]bool{}
+	for i, u := range uses {
+		if !valid.MatchString(u.ID) || seen[u.ID] || results[i].ToolUseID != u.ID || !strings.HasPrefix(string(u.Input), "{") {
+			t.Errorf("tool_use %d = %+v, result %q", i, u, results[i].ToolUseID)
+		}
+		seen[u.ID] = true
+	}
+	if uses[2].ID != "toolu_01" {
+		t.Errorf("a valid ID changed to %q", uses[2].ID)
 	}
 }

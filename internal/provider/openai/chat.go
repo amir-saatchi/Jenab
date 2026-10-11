@@ -174,9 +174,9 @@ func (a *chatAPI) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 		if text.Len() > 0 {
 			parts = append(parts, chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: text.String()}})
 		}
-		for i, c := range calls {
+		for _, c := range calls {
 			if c.id == "" {
-				c.id = fmt.Sprintf("call_%d", i)
+				c.id = provider.NewCallID()
 			}
 			parts = append(parts, chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(c.id, c.name, c.args.String(), c.extra)})
 		}
@@ -245,6 +245,11 @@ func systemText(bs []provider.Block) string {
 // messages converts the chat. Tool messages take text only, so a tool
 // message's images follow in one user message (SPEC 3.8). Thinking is not
 // sent back: Chat Completions has no field for it.
+// callIDs: OpenAI accepts tool-call IDs of at most 40 characters, so
+// longer IDs from other providers are mapped. Any characters are kept:
+// some models read their own IDs, such as Kimi's `functions.read_file:0`.
+var callIDs = provider.CallIDRule{Max: 40}
+
 func (a *chatAPI) messages(ctx context.Context, req provider.Request) ([]sdk.ChatCompletionMessageParamUnion, error) {
 	var out []sdk.ChatCompletionMessageParamUnion
 	for _, m := range req.Messages {
@@ -266,8 +271,8 @@ func (a *chatAPI) messages(ctx context.Context, req provider.Request) ([]sdk.Cha
 					text.WriteString(p.Text.Text)
 				case p.ToolCall != nil:
 					fc := &sdk.ChatCompletionMessageFunctionToolCallParam{
-						ID:       p.ToolCall.ID,
-						Function: sdk.ChatCompletionMessageFunctionToolCallFunctionParam{Name: p.ToolCall.Name, Arguments: string(p.ToolCall.Args)},
+						ID:       callIDs.Map(p.ToolCall.ID),
+						Function: sdk.ChatCompletionMessageFunctionToolCallFunctionParam{Name: p.ToolCall.Name, Arguments: string(provider.ObjectArgs(p.ToolCall.Args))},
 					}
 					if p.ToolCall.Extra != "" {
 						fc.SetExtraFields(map[string]any{"extra_content": json.RawMessage(p.ToolCall.Extra)})
@@ -294,7 +299,7 @@ func (a *chatAPI) messages(ctx context.Context, req provider.Request) ([]sdk.Cha
 			for _, p := range m.Parts {
 				switch {
 				case p.ToolResult != nil:
-					out = append(out, sdk.ToolMessage(p.ToolResult.Text, p.ToolResult.CallID))
+					out = append(out, sdk.ToolMessage(p.ToolResult.Text, callIDs.Map(p.ToolResult.CallID)))
 				case p.Image != nil:
 					images = append(images, p)
 				}

@@ -13,9 +13,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -405,7 +403,7 @@ func (b *backend) part(o *open) *chat.Part {
 		}
 		id := o.ID
 		if id == "" {
-			id = newCallID()
+			id = provider.NewCallID()
 		}
 		return &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall(id, o.Name, args, signatureJSON(o.Signature))}
 	}
@@ -455,12 +453,6 @@ func (b *backend) failed(code, msg string) *provider.Error {
 	return provider.Classify(b.name, status, nil, b.guard.Redact(msg))
 }
 
-func newCallID() string {
-	var b [8]byte
-	rand.Read(b[:])
-	return "call_" + hex.EncodeToString(b[:])
-}
-
 func (b *backend) body(ctx context.Context, req provider.Request) (*request, error) {
 	r := &request{Model: req.Model, Store: false, Stream: true,
 		GenerationConfig: genConfig{MaxOutputTokens: req.MaxTokens, ThinkingSummaries: "none"}}
@@ -507,11 +499,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 				case p.ToolCall != nil:
 					c := p.ToolCall
 					names[c.ID] = c.Name
-					args := c.Args
-					if !isObject(args) {
-						args = json.RawMessage(`{}`)
-					}
-					r.Input = append(r.Input, step{Type: "function_call", ID: c.ID, Name: c.Name, Arguments: args, Signature: ownSignature(c.Extra)})
+					r.Input = append(r.Input, step{Type: "function_call", ID: c.ID, Name: c.Name, Arguments: provider.ObjectArgs(c.Args), Signature: ownSignature(c.Extra)})
 				}
 			}
 		case chat.RoleTool:
@@ -539,11 +527,6 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 		}
 	}
 	return r, nil
-}
-
-func isObject(raw json.RawMessage) bool {
-	t := bytes.TrimSpace(raw)
-	return len(t) > 0 && t[0] == '{' && json.Valid(t)
 }
 
 func userContent(ctx context.Context, req provider.Request, ps []chat.Part) ([]content, error) {

@@ -108,14 +108,15 @@ const (
 )
 
 // ToolCall makes a call from the arguments a model sent. No arguments are
-// an empty object. Arguments that are not valid JSON go in Invalid, with
-// Args {}: the agent tells the model, or drops the call if the answer was
-// cut at MaxTokens (SPEC 3.8).
+// an empty object. Arguments that are not a JSON object (invalid JSON, or
+// null, an array, a string) go in Invalid, with Args {}: the agent tells
+// the model, or drops the call if the answer was cut at MaxTokens (SPEC
+// 3.8).
 func ToolCall(id, name, args, extra string) *chat.ToolCall {
 	c := &chat.ToolCall{ID: id, Name: name, Args: json.RawMessage(`{}`), Extra: extra}
 	switch {
 	case strings.TrimSpace(args) == "":
-	case json.Valid([]byte(args)):
+	case isObject([]byte(args)):
 		c.Args = json.RawMessage(args)
 	default:
 		c.Invalid = args

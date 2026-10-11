@@ -328,6 +328,11 @@ func (b *backend) streamError(typ, msg string) *provider.Error {
 	return provider.Classify(b.name, status, nil, b.guard.Redact(typ+": "+msg))
 }
 
+// callIDs: the API accepts only `^[a-zA-Z0-9_-]+$` as a tool_use ID, so
+// IDs from other providers, such as Kimi's `functions.read_file:0`, are
+// mapped.
+var callIDs = provider.CallIDRule{Allowed: provider.IDChar}
+
 func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error) {
 	r := request{Model: req.Model, MaxTokens: req.MaxTokens, CacheControl: ephemeral}
 	if r.MaxTokens <= 0 {
@@ -392,7 +397,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 				case p.Text != nil && strings.TrimSpace(p.Text.Text) != "": // the API refuses blank text
 					bs = append(bs, block{Type: "text", Text: p.Text.Text})
 				case p.ToolCall != nil:
-					bs = append(bs, block{Type: "tool_use", ID: p.ToolCall.ID, Name: p.ToolCall.Name, Input: p.ToolCall.Args})
+					bs = append(bs, block{Type: "tool_use", ID: callIDs.Map(p.ToolCall.ID), Name: p.ToolCall.Name, Input: provider.ObjectArgs(p.ToolCall.Args)})
 				}
 			}
 			add("assistant", bs...)
@@ -400,7 +405,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 			for _, p := range m.Parts {
 				switch {
 				case p.ToolResult != nil:
-					res := block{Type: "tool_result", ToolUseID: p.ToolResult.CallID, IsError: p.ToolResult.IsError}
+					res := block{Type: "tool_result", ToolUseID: callIDs.Map(p.ToolResult.CallID), IsError: p.ToolResult.IsError}
 					if strings.TrimSpace(p.ToolResult.Text) != "" {
 						res.Content = []block{{Type: "text", Text: p.ToolResult.Text}}
 					}

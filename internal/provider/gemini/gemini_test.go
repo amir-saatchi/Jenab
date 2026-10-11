@@ -460,3 +460,24 @@ func TestKeyNotInErrors(t *testing.T) {
 		t.Errorf("the key is in the error: %v", err)
 	}
 }
+
+// TestNonObjectArgs: arguments that are valid JSON but not an object are
+// Invalid (TASK-007). A null in step.start only means the arguments come
+// in deltas, so it is not checked here.
+func TestNonObjectArgs(t *testing.T) {
+	for _, args := range []string{"[]", `"x"`} {
+		q, _ := json.Marshal(args)
+		s := newServer(t, reply{200, sse(start,
+			`{"index":0,"step":{"id":"c1","type":"function_call","name":"query","arguments":{}},"event_type":"step.start"}`,
+			`{"index":0,"delta":{"arguments":`+string(q)+`,"type":"arguments_delta"},"event_type":"step.delta"}`,
+			`{"index":0,"event_type":"step.stop"}`,
+			completed("requires_action"))})
+		evs, err := run(newBackend(t, s), hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ps := parts(evs); len(ps) != 1 || ps[0].ToolCall.Invalid != args || string(ps[0].ToolCall.Args) != "{}" {
+			t.Errorf("%s: parts = %+v", args, ps)
+		}
+	}
+}

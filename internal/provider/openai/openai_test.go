@@ -490,3 +490,77 @@ func TestResponsesHTTPError(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// TestChatCallIDsNew: calls the provider sends without an ID get a new ID
+// in every step, so a later step never repeats an earlier ID (TASK-007).
+func TestChatCallIDsNew(t *testing.T) {
+	s := newServer(t, 200, sse(`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"name":"q","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}`, `[DONE]`))
+	p := backend(t, s, provider.KindCompatible)
+	var ids []string
+	for range 2 {
+		evs, err := run(p, hello)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, parts(evs)[0].ToolCall.ID)
+	}
+	if ids[0] == ids[1] || ids[0] == "" {
+		t.Errorf("IDs of two steps = %q, want two different IDs", ids)
+	}
+}
+
+// TestNonObjectArgs: valid JSON that is not an object is Invalid, in both
+// APIs (TASK-007).
+func TestNonObjectArgs(t *testing.T) {
+	for _, args := range []string{"null", "[]", `"x"`} {
+		q, _ := json.Marshal(args)
+		t.Run("chat "+args, func(t *testing.T) {
+			s := newServer(t, 200, sse(`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c","function":{"name":"q","arguments":`+string(q)+`}}]},"finish_reason":"tool_calls"}]}`))
+			evs, err := run(backend(t, s, provider.KindCompatible), hello)
+			if err != nil {
+				t.Fatal(err)
+			}
+			checkInvalid(t, evs, args, provider.StopToolUse)
+		})
+		t.Run("responses "+args, func(t *testing.T) {
+			s := newServer(t, 200, events(
+				`{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_1","call_id":"call_1","name":"q","arguments":`+string(q)+`,"status":"completed"}}`,
+				`{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`))
+			evs, err := run(backend(t, s, provider.KindOpenAI), hello)
+			if err != nil {
+				t.Fatal(err)
+			}
+			checkInvalid(t, evs, args, provider.StopToolUse)
+		})
+	}
+}
+
+// TestChatLongCallIDs: an ID longer than OpenAI's 40 characters is mapped
+// in the call and its result alike, and arguments stored as null go as {}.
+func TestChatLongCallIDs(t *testing.T) {
+	s := newServer(t, 200, sse(`{"choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":"stop"}]}`, `[DONE]`))
+	long := "toolu_" + strings.Repeat("x", 50)
+	req := hello
+	req.Messages = append(append([]chat.Message(nil), hello.Messages...),
+		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: long, Name: "q", Args: json.RawMessage("null")}}}},
+		chat.Message{Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: long, Text: "1"}}}})
+	if _, err := run(backend(t, s, provider.KindCompatible), req); err != nil {
+		t.Fatal(err)
+	}
+	var body struct {
+		Messages []struct {
+			ToolCallID string `json:"tool_call_id"`
+			ToolCalls  []struct {
+				ID       string `json:"id"`
+				Function struct {
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
+		} `json:"messages"`
+	}
+	json.Unmarshal([]byte(s.lastBody()), &body)
+	call, res := body.Messages[1].ToolCalls[0], body.Messages[2].ToolCallID
+	if len(call.ID) > 40 || call.ID != res || call.Function.Arguments != "{}" {
+		t.Errorf("call %+v, result %q: want one ID of at most 40 characters and arguments {}", call, res)
+	}
+}

@@ -233,6 +233,27 @@ func TestBadToolJSON(t *testing.T) {
 	validHistory(t, ms)
 }
 
+// TestNonObjectToolArgs: arguments that are valid JSON but not an object
+// are not run; the model is told to send an object (TASK-007).
+func TestNonObjectToolArgs(t *testing.T) {
+	for args, kind := range map[string]string{"null": "null", "[1]": "an array", `"hi"`: "a string"} {
+		h := newHarness(t, t.TempDir(), "", testSettings(), say())
+		c := h.newChat(chat.Chat{Title: "Echo"})
+		h.fp.Push(fake.Reply{Events: []provider.Event{
+			{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartToolCall, ToolCall: provider.ToolCall("a", "say", args, "")}},
+			fake.Done(provider.StopToolUse, chat.Usage{Input: 10, Output: 5}),
+		}}, fake.Text("done"))
+		h.turn(c.ID, "go")
+		ms := h.messages(c.ID)
+		want := "the arguments must be a JSON object, not " + kind + ". Send the call again with an object."
+		if r := ms[2].Parts[0].ToolResult; !r.IsError || r.Text != want {
+			t.Errorf("%s: result = %+v", args, r)
+		}
+		validHistory(t, ms)
+		h.stop()
+	}
+}
+
 // TestCutToolCall: a call cut off at the output limit is dropped, and the
 // turn shows its cut notice.
 func TestCutToolCall(t *testing.T) {

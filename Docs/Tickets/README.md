@@ -40,6 +40,14 @@
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
+| [TASK-006](TASK-006-stream-watchdog.md) | Long tool calls look like a stalled stream | Bug | Open | 3 |
+| [TASK-007](TASK-007-tool-call-ids.md) | Tool-call IDs and arguments that every API accepts | Bug | Done | 3 |
+| [TASK-008](TASK-008-thinking-refusals-overflow.md) | Thinking, refusals and context overflow in the provider layer | Bug | Open | 3 |
+| [TASK-009](TASK-009-skill-text-twice.md) | Skill text is sent twice after a cut | Bug | Open | 3 |
+| [TASK-010](TASK-010-request-cap-answer.md) | A turn at its request cap still answers | Bug | Open | 3 |
+| [TASK-011](TASK-011-prompts-match-tools.md) | Prompts that match what the app can do | Task | Open | 3 |
+| [TASK-012](TASK-012-untrusted-mark.md) | The untrusted mark and messages that join a turn | Task | Open | 3 |
+| [TASK-013](TASK-013-scenario-runner-harness.md) | Scenario runner: measure the harness, not only the model | Task | Open | 3 |
 
 ## Phase 1
 
