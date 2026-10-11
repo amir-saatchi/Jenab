@@ -363,7 +363,8 @@ function PartView({
     case PartKind.PartImage:
       return <ImagePart project={thread.project} part={p} />
     case PartKind.PartNotice:
-      if (!p.notice) return null
+      // A skill's text is for the model; its chip stands for it.
+      if (!p.notice || p.notice.kind === NoticeKind.NoticeSkillText) return null
       return p.notice.kind === NoticeKind.NoticeSkillLoaded ? <SkillChip text={p.notice.text} /> : <NoticeLine notice={p.notice} />
     case PartKind.PartApproval:
     case PartKind.PartQuestion: {

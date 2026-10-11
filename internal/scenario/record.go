@@ -77,6 +77,8 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 			case p.ToolResult != nil:
 				e.kind, e.text, e.callID, e.err = evResult, p.ToolResult.Text, p.ToolResult.CallID, p.ToolResult.IsError
 				e.tool = rec.callTool(e.callID)
+			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillText:
+				continue // the skill's text, which the chip stands for
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillLoaded:
 				e.kind, e.text, e.skill = evSkill, p.Notice.Text, strings.TrimSpace(strings.TrimPrefix(p.Notice.Text, "Skill loaded:"))
 			case p.Notice != nil:

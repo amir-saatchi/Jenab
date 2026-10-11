@@ -1821,10 +1821,11 @@ Each bad field gives its own error, naming the file and the field.
 - **Staying loaded:**
   - The chat's loaded skills are stored in `chats.skills`.
   - At the next cut of the history window (3.6), they move into block 1, after the role, so they survive cuts. Block 1 changes only at cuts, which keeps the cache valid in between.
+  - The skill's text is stored as a `skill_text` notice after its chip, not in the tool result, and is joined to the result when the request is built. After the cut, the results kept in the window have a stub instead, `[skill sql: moved into the system prompt]`, so the text isn't sent twice; a `load_with` result keeps the tool's own output. In-turn trimming (3.7) stubs a `load_with` result like any other and keeps the skill's text (TASK-009).
   - Starting limit: 6 skills or 10,000 tokens per chat. Beyond that, `load_skill` returns an error that lists what is loaded.
   - *Clear* (8.6) keeps the loaded skills, like the role.
 - **Subagents:** `subagent(task, inputs, background, skills)` starts with those skills loaded. The schema agent (8.2) is a subagent with `database-design` and `migrations`.
-- **Shown:** a loaded skill is a chip in the chat, `Skill loaded: migrations`. It is a `skill_loaded` notice in the tool message, which isn't sent to the model.
+- **Shown:** a loaded skill is a chip in the chat, `Skill loaded: migrations`. It is a `skill_loaded` notice in the tool message, which isn't sent to the model. The `skill_text` notice is not shown.
 - **Skills and memory:** memory holds facts and intent and is always in the context (3.3). Skills hold procedures and are loaded when needed.
 
 **Built-in skills (v1):**

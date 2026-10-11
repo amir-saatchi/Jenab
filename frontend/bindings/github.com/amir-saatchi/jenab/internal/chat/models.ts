@@ -209,6 +209,11 @@ export interface Message {
 export interface Notice {
     "kind": NoticeKind;
     "text": string;
+
+    /**
+     * skill_loaded and skill_text: the skill's name
+     */
+    "skill"?: string;
 }
 
 /**
@@ -265,6 +270,13 @@ export enum NoticeKind {
      * the chip; in the tool message, so the model doesn't read it (8.9)
      */
     NoticeSkillLoaded = "skill_loaded",
+
+    /**
+     * NoticeSkillText is a loaded skill's text, right after its chip. It
+     * is not shown; the request joins it to the call's result, until the
+     * skill moves into block 1 (8.9).
+     */
+    NoticeSkillText = "skill_text",
 };
 
 /**

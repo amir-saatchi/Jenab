@@ -1,6 +1,6 @@
 # TASK-009 — Skill text is sent twice after a cut
 **Type:** Bug
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 
 ## Goal
@@ -29,3 +29,20 @@ After a cut, a loaded skill's text is only in block 1, not also in the tool resu
 - A `load_with` result keeps the tool's output after the cut.
 - A file read with `load_skill` stays whole.
 - `go test ./...` passes.
+
+## Result
+After a cut, a loaded skill's text is only in block 1. Done with option (b): the text is a part of its own.
+
+- **Storage.** `addSkill` writes the chip and then a `skill_text` notice with the skill's text. Both carry the skill's name in a new `Notice.Skill` field. `load_skill`'s result itself is empty. `load_with` no longer adds to the tool's result.
+- **The request.** `shape` joins each `skill_text` part to the next result in its tool message, so the model reads what it read before. In turns before the last cut, a skill that is in block 1 joins as `[skill sql: moved into the system prompt]`. A skill that isn't in block 1, for example one removed from disk, keeps its text. The window records which skills block 1 has at each cut. `skill_text` parts are not sent on their own.
+- **Trimming** no longer needs `carriesSkill` (removed). A `load_with` result is trimmed like any other, and the skill text, which is not in the result, stays.
+- **Unchanged:** files read with `load_skill(name, file)` stay whole. Retry and restart read from the history.
+- **Elsewhere:**
+  - The frontend hides `skill_text` notices (bindings regenerated).
+  - The scenario recorder skips them.
+  - `read_messages` shows the text as a notice, where it used to show it in the result.
+  - SPEC 8.9 and CODE-OUTLINE 7 are updated.
+- **Tests:**
+  - `TestSkillTextAfterTheCut`: after the cut, block 1 has both skills; `load_skill`'s result is the stub; `load_with`'s keeps "saved" with the stub; the file read stays whole; no `skill_text` part is sent.
+  - The skill tests read results as the model sees them.
+  - The trimming tests now check that a trimmed `load_with` result keeps its skill, also after Retry.

@@ -391,7 +391,7 @@ export interface RequestView {
     "took_ms": number;
 
     /**
-     * the turn's last request, without tools
+     * the turn's last request, which asks for no tool calls
      */
     "last": boolean;
 

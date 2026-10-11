@@ -38,6 +38,7 @@ type window struct {
 	stubbed   map[string]bool  // tool calls whose results in-turn trimming made stubs
 	chatList  string           // Mother's chat list, refreshed at cuts (8.6)
 	system    []provider.Block // blocks 1–5, built at cuts
+	skills    map[string]bool  // the skills in block 1, from the last cut
 	last      time.Time        // the last request
 }
 
@@ -75,6 +76,12 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		return err
 	}
 	w.system = sys
+	w.skills = map[string]bool{}
+	for _, name := range t.ch.Skills {
+		if _, ok := r.o.d.Skills.Get(t.ch.Kind, name); ok {
+			w.skills[name] = true
+		}
+	}
 	return nil
 }
 
@@ -112,8 +119,9 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 
 // shape is the window's messages as the model sees them: tool results of
 // turns before the last cut, and those trimmed in a turn, as stubs (3.7).
-// A tool call without a result, left by a crash, gets one, so every
-// provider accepts the history.
+// A skill's text joins the result after it; before the last cut, a skill
+// in block 1 leaves a stub (8.9). A tool call without a result, left by a
+// crash, gets one, so every provider accepts the history.
 func shape(ms []chat.Message, w *window) []chat.Message {
 	out := make([]chat.Message, 0, len(ms))
 	var open []string // calls of the last assistant message without results
@@ -140,17 +148,32 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 				}
 			}
 		case chat.RoleTool:
-			parts := make([]chat.Part, len(m.Parts))
-			for i, p := range m.Parts {
+			parts := make([]chat.Part, 0, len(m.Parts))
+			var skills []string // skill texts waiting for their result
+			for _, p := range m.Parts {
+				if n := p.Notice; n != nil && n.Kind == chat.NoticeSkillText {
+					if m.Turn < w.stubBelow && w.skills[n.Skill] {
+						skills = append(skills, "[skill "+n.Skill+": moved into the system prompt]")
+					} else {
+						skills = append(skills, n.Text)
+					}
+					continue
+				}
 				if r := p.ToolResult; r != nil {
 					open = without(open, r.CallID)
+					s := *r
 					if m.Turn < w.stubBelow || w.stubbed[r.CallID] {
-						s := *r
 						s.Text = tool.Stub(s)
-						p.ToolResult = &s
 					}
+					for _, k := range skills {
+						if s.Text != "" {
+							s.Text += "\n\n"
+						}
+						s.Text += k
+					}
+					p.ToolResult, skills = &s, nil
 				}
-				parts[i] = p
+				parts = append(parts, p)
 			}
 			m.Parts = parts
 		default:
@@ -189,8 +212,8 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 	}
 	var refs []string
 	for _, m := range cur {
-		for i, p := range m.Parts {
-			if p.ToolResult != nil && p.ToolResult.Ref != "" && !carriesSkill(m.Parts, i) {
+		for _, p := range m.Parts {
+			if p.ToolResult != nil && p.ToolResult.Ref != "" {
 				refs = append(refs, p.ToolResult.CallID)
 			}
 		}
@@ -203,18 +226,6 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 		}
 	}
 	return changed
-}
-
-// carriesSkill reports whether result i of a tool message carries a skill
-// from load_with: the skill's chip comes right before it. Trimming keeps
-// such a result whole until the skill moves into block 1. It is read from
-// the history, so it holds for a turn continued by Retry too.
-func carriesSkill(parts []chat.Part, i int) bool {
-	if i == 0 {
-		return false
-	}
-	n := parts[i-1].Notice
-	return n != nil && n.Kind == chat.NoticeSkillLoaded
 }
 
 // system is blocks 1–5 of the context (3.1) for the window. Phase 1 has the

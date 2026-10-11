@@ -636,7 +636,7 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		r.o.d.Log.Error("agent: tool failed", "tool", c.Name, "chat", t.ch.ID, "err", err)
 		return result(fmt.Sprintf("%s failed: %v", c.Name, err)), false
 	}
-	out.Text += r.loadWith(ctx, t, tm, c.Name)
+	r.loadWith(ctx, t, tm, c.Name)
 	parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &out}}
 	if !out.IsError {
 		for _, img := range res.Images {

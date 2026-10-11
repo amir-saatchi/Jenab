@@ -42,10 +42,11 @@ func saveThing() tool.Tool {
 		})
 }
 
-// resultOf is the text of a call's result.
+// resultOf is the text of a call's result as the model reads it in its
+// turn, with the skill texts joined.
 func resultOf(t *testing.T, ms []chat.Message, call string) string {
 	t.Helper()
-	for _, m := range ms {
+	for _, m := range shape(ms, &window{}) {
 		for _, p := range m.Parts {
 			if p.ToolResult != nil && p.ToolResult.CallID == call {
 				return p.ToolResult.Text
@@ -244,9 +245,9 @@ func TestSkillLimit(t *testing.T) {
 	}
 }
 
-// A result that carries a skill from load_with isn't trimmed in its turn,
-// so the skill stays readable until it moves into block 1.
-func TestLoadWithResultIsNotTrimmed(t *testing.T) {
+// Trimming a result that carries a skill from load_with keeps the skill,
+// so it stays readable until it moves into block 1.
+func TestTrimmedLoadWithResultKeepsSkill(t *testing.T) {
 	set := testSettings()
 	set.LLM.Providers["p"].Models[0].Context = 7600 // trims past 3,800 tokens
 	h := newHarness(t, t.TempDir(), "", set, big())
@@ -262,16 +263,16 @@ func TestLoadWithResultIsNotTrimmed(t *testing.T) {
 	var stubs []string
 	for _, m := range last.Messages {
 		for _, p := range m.Parts {
-			if r := p.ToolResult; r != nil && !strings.Contains(r.Text, "\n") {
+			if r := p.ToolResult; r != nil && strings.HasPrefix(r.Text, "[output of big — ref: ") {
 				stubs = append(stubs, r.CallID)
 			}
-			if r := p.ToolResult; r != nil && r.CallID == "c0" && !strings.HasSuffix(r.Text, "Skill loaded: data\n\nRead refs in parts.") {
+			if r := p.ToolResult; r != nil && r.CallID == "c0" && !strings.HasSuffix(r.Text, "]\n\nSkill loaded: data\n\nRead refs in parts.") {
 				t.Errorf("c0: %q", r.Text)
 			}
 		}
 	}
-	if !slices.Equal(stubs, []string{"c1"}) {
-		t.Errorf("stubs %q, want c1 only", stubs)
+	if !slices.Equal(stubs, []string{"c0", "c1"}) {
+		t.Errorf("stubs %q, want c0 and c1", stubs)
 	}
 }
 
@@ -307,9 +308,9 @@ func TestSkillEventsHaveNoGap(t *testing.T) {
 	}
 }
 
-// A turn continued by Retry still keeps the result that carries a skill
-// from load_with whole.
-func TestLoadWithResultIsNotTrimmedAfterRetry(t *testing.T) {
+// A turn continued by Retry still joins the skill from load_with to its
+// result.
+func TestTrimmedLoadWithResultKeepsSkillAfterRetry(t *testing.T) {
 	set := testSettings()
 	set.LLM.Providers["p"].Models[0].Context = 7600 // trims past 3,800 tokens
 	h := newHarness(t, t.TempDir(), "", set, big())
@@ -334,4 +335,51 @@ func TestLoadWithResultIsNotTrimmedAfterRetry(t *testing.T) {
 			}
 		}
 	}
+}
+
+// After the cut the skills are in block 1, and the results in the window
+// keep a stub instead of their text: load_skill's result is the stub,
+// load_with's keeps the tool's output. A file read with load_skill is not
+// a loaded skill and stays whole (TASK-009).
+func TestSkillTextAfterTheCut(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings(), loadSkill(), saveThing())
+		defer h.stop()
+		views := viewsSkill
+		views.LoadWith = []string{"save_thing"}
+		h.o.d.Skills = skillSet(t, sqlSkill, views)
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		h.fp.Push(fake.ToolCall("c1", "load_skill", map[string]string{"name": "sql"}), fake.ToolCall("c2", "save_thing", map[string]string{}),
+			fake.ToolCall("c3", "load_skill", map[string]string{"name": "sql", "file": "recipes.md"}), fake.Text("done"), fake.Text("two"))
+		h.turn(c.ID, "one")
+		time.Sleep(cacheIdle + time.Second)
+		h.turn(c.ID, "two")
+		req := h.fp.Calls()[4]
+		sys := req.System[0].Text
+		if !strings.Contains(sys, "Skill loaded: sql\n\nUse named parameters.") || !strings.Contains(sys, "Skill loaded: views\n\nViews have columns.") {
+			t.Errorf("block 1:\n%s", sys)
+		}
+		want := map[string]string{
+			"c1": "[skill sql: moved into the system prompt]",
+			"c2": "saved\n\n[skill views: moved into the system prompt]",
+			"c3": "Recipe one.",
+		}
+		seen := 0
+		for _, m := range req.Messages {
+			for _, p := range m.Parts {
+				if r := p.ToolResult; r != nil {
+					seen++
+					if r.Text != want[r.CallID] {
+						t.Errorf("%s: %q, want %q", r.CallID, r.Text, want[r.CallID])
+					}
+				}
+				if p.Notice != nil && p.Notice.Kind == chat.NoticeSkillText {
+					t.Errorf("a skill text part is sent: %+v", p.Notice)
+				}
+			}
+		}
+		if seen != len(want) {
+			t.Errorf("%d results in the window, want %d", seen, len(want))
+		}
+	})
 }

@@ -13,9 +13,10 @@ import (
 )
 
 // Skills (SPEC 8.9). A chat loads a skill with load_skill, or with the
-// first call of a tool in the skill's load_with. The text arrives as the
-// tool result; the name goes into chats.skills, and at the next cut the
-// text moves into block 1 (context.go).
+// first call of a tool in the skill's load_with. The name goes into
+// chats.skills; the chip and the skill's text go into the tool message,
+// and the request joins the text to the call's result (shape). At the
+// next cut the text moves into block 1, and the result keeps a stub.
 
 type loadArgs struct {
 	Name string `json:"name"`
@@ -66,18 +67,15 @@ func (r *runner) loadSkill(ctx context.Context, t *turn, tm *toolMsg, name, file
 	if slices.Contains(t.ch.Skills, name) {
 		return tool.Result{Text: "The skill " + name + " is already loaded in this chat."}, nil
 	}
-	if err := r.addSkill(ctx, t, tm, s); err != nil {
-		return tool.Result{}, err
-	}
-	return tool.Result{Text: s.Text(), Whole: true}, nil
+	// The text is in the part after the chip; the result itself is empty.
+	return tool.Result{Whole: true}, r.addSkill(ctx, t, tm, s)
 }
 
 // loadWith loads the skills whose load_with names the tool, at its first
-// call in the chat, and returns their text for the call's result. It is a
-// safety net for models that don't load skills themselves (8.9), so a
-// skill over the chat's limit is left out.
-func (r *runner) loadWith(ctx context.Context, t *turn, tm *toolMsg, name string) string {
-	var b strings.Builder
+// call in the chat; their text joins the call's result. It is a safety
+// net for models that don't load skills themselves (8.9), so a skill over
+// the chat's limit is left out.
+func (r *runner) loadWith(ctx context.Context, t *turn, tm *toolMsg, name string) {
 	for _, s := range r.o.d.Skills.With(t.ch.Kind, name) {
 		if slices.Contains(t.ch.Skills, s.Name) {
 			continue
@@ -87,15 +85,13 @@ func (r *runner) loadWith(ctx context.Context, t *turn, tm *toolMsg, name string
 			if !errors.As(err, &te) {
 				r.o.d.Log.Error("agent: loading a skill", "skill", s.Name, "chat", t.ch.ID, "err", err)
 			}
-			continue
 		}
-		b.WriteString("\n\n" + s.Text())
 	}
-	return b.String()
 }
 
-// addSkill records a skill as loaded in the chat and writes its chip. A
-// chat holds at most skill.MaxLoaded skills or skill.MaxLoadedTokens.
+// addSkill records a skill as loaded in the chat and writes its chip and
+// its text. A chat holds at most skill.MaxLoaded skills or
+// skill.MaxLoadedTokens.
 func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Skill) error {
 	n, tokens := 1, skill.Tokens(s.Body)
 	var loaded []string
@@ -110,7 +106,8 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 			s.Name, skill.MaxLoaded, skill.MaxLoadedTokens, strings.Join(loaded, ", "))
 	}
 	skills := append(slices.Clone(t.ch.Skills), s.Name)
-	chip := chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeSkillLoaded, Text: "Skill loaded: " + s.Name}}
+	chip := chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeSkillLoaded, Text: "Skill loaded: " + s.Name, Skill: s.Name}}
+	text := chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeSkillText, Text: s.Text(), Skill: s.Name}}
 	wctx, cancel := writing(ctx)
 	defer cancel()
 	r.cs.pub.Lock()
@@ -129,6 +126,11 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 	// its sequence number too: the frontend sees no gap.
 	tm.publish(seq, i, chip)
 	tm.publish(chipSeq, i, chip)
+	i, textSeq, err := tm.store(wctx, text)
+	if err != nil {
+		return err
+	}
+	tm.publish(textSeq, i, text)
 	return nil
 }
 

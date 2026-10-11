@@ -43,7 +43,7 @@
 | [TASK-006](TASK-006-stream-watchdog.md) | Long tool calls look like a stalled stream | Bug | Done | 3 |
 | [TASK-007](TASK-007-tool-call-ids.md) | Tool-call IDs and arguments that every API accepts | Bug | Done | 3 |
 | [TASK-008](TASK-008-thinking-refusals-overflow.md) | Thinking, refusals and context overflow in the provider layer | Bug | Done | 3 |
-| [TASK-009](TASK-009-skill-text-twice.md) | Skill text is sent twice after a cut | Bug | Open | 3 |
+| [TASK-009](TASK-009-skill-text-twice.md) | Skill text is sent twice after a cut | Bug | Done | 3 |
 | [TASK-010](TASK-010-request-cap-answer.md) | A turn at its request cap still answers | Bug | Done | 3 |
 | [TASK-011](TASK-011-prompts-match-tools.md) | Prompts that match what the app can do | Task | Open | 3 |
 | [TASK-012](TASK-012-untrusted-mark.md) | The untrusted mark and messages that join a turn | Task | Open | 3 |

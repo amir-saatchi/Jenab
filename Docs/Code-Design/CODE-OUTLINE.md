@@ -251,7 +251,7 @@ type Skill struct { Name, Description string; LoadWith []string; Body string; Fi
 func Parse(file string, src []byte) (Skill, error) // a SKILL.md; each bad field is its own *Error
 func Read(fsys fs.FS, name string) (Skill, error)  // the folder name: SKILL.md, extra files, the name matches the folder
 type Error struct { File, Field, Msg string }      // errors.Is(err, ErrInvalid)
-func (s Skill) Text() string                       // "Skill loaded: <name>" and the body: load_skill's result and block 1's text
+func (s Skill) Text() string                       // "Skill loaded: <name>" and the body: the skill_text notice and block 1's text
 func Tokens(s string) int                          // 4 bytes a token, as requests are counted
 const (MaxDescription = 200; MaxBodyTokens = 3000; MaxLoaded = 6; MaxLoadedTokens = 10000)
 
@@ -776,8 +776,8 @@ Send → AppendMessage → runner.turn → step ─┬─ models.Stream ──�
 ```
 
 Skills (8.9): block 1 has the chat's loaded skills after the role, then the skill list. A tool's first call in a chat also
-loads the skills whose `load_with` names it, if they fit, and adds their text to its result; in-turn trimming leaves
-that result whole. The text in results becomes a stub at the next cut, when it moves into block 1.
+loads the skills whose `load_with` names it, if they fit. Each skill's text is a `skill_text` notice after its chip,
+which `shape` joins to the call's result; in the turns before the last cut, a skill in block 1 joins as a stub.
 
 Scenario runner (TASK-001, 8.4): `internal/scenario` builds a project, the real orchestrator and its tools for each run,
 with fake tools from the set's files in place of the tools the app doesn't have yet. `cmd/jenab-scenarios` runs sets on

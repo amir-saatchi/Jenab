@@ -97,12 +97,17 @@ const (
 	NoticeTurnFailed    NoticeKind = "turn_failed"    // a provider error stopped the turn; the card offers Retry (8.3)
 	NoticeAnswerCut     NoticeKind = "answer_cut"     // the answer hit the output limit, was refused or was empty (8.3)
 	NoticeSkillLoaded   NoticeKind = "skill_loaded"   // the chip; in the tool message, so the model doesn't read it (8.9)
+	// NoticeSkillText is a loaded skill's text, right after its chip. It
+	// is not shown; the request joins it to the call's result, until the
+	// skill moves into block 1 (8.9).
+	NoticeSkillText NoticeKind = "skill_text"
 )
 
 // Notice is a short note from the app to the agent, shown in the chat.
 type Notice struct {
-	Kind NoticeKind `json:"kind"`
-	Text string     `json:"text"`
+	Kind  NoticeKind `json:"kind"`
+	Text  string     `json:"text"`
+	Skill string     `json:"skill,omitempty"` // skill_loaded and skill_text: the skill's name
 }
 
 // Approval is an approval card (SPEC 8.8). Kind and Target name what is
