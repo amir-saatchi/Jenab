@@ -1,6 +1,6 @@
 # TASK-008 — Thinking, refusals and context overflow in the provider layer
 **Type:** Bug
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 
 ## Goal
@@ -39,3 +39,13 @@ The provider layer asks for what the agent expects and reports what happened, th
   - Anthropic: `MaxTokens` 1500 and 2048 give a valid request.
 - The `reasoning_content` check is recorded here, with its decision.
 - `go test ./...` passes.
+
+## Result
+- **Responses reasoning:** with thinking on, a catalog model that reasons gets `reasoning: {summary: "auto"}`. Unknown models get the API's default.
+- **Responses refusals:** a message with a `refusal` part keeps its text as the answer and ends with `StopRefused`, so the turn shows its notice.
+- **Overflow:** `Classify` makes a 4xx `too_large` when the body has one of `overflowMarks`: Anthropic's "prompt is too long" and "exceed context limit", OpenAI's `context_length_exceeded` and "maximum context length" (also used by compatible APIs), and Gemini's "exceeds the maximum number of tokens". The same rule covers errors inside a stream, since every backend's stream errors go through `Classify`; the Responses stream's `context_length_exceeded` code maps to 413 directly.
+  - Ollama doesn't refuse an overflow: it cuts the prompt to `num_ctx`, which the truncation check (SPEC 3.8) catches.
+- **Anthropic budget:** the budget is half of `max_tokens`, at least 1,024, and always below `max_tokens`; if it can't be, thinking is off. The range that failed was `max_tokens` ≤ 1,024, not ≤ 2,048: at 1,500 and 2,048 the budget of 1,024 was already below `max_tokens`. Both now have tests, as does 1,024, which turns thinking off.
+- **`reasoning_content`, decision: no change.** Both reference models use their native APIs, not Chat Completions: Gemini through the Interactions API (TASK-004) and gemma4:31b through Ollama's `/api/chat`, which sends `thinking` back already. So no reference model can show whether the field is needed. If a reference model moves to a Chat Completions API, check it then.
+- **Tests:** overflow bodies in `TestClassify`, and per backend in `TestHTTPErrors` (Anthropic), `TestChatErrors` (Chat Completions) and `TestEnds` (Gemini); overflow inside the stream in `TestEnds` (Anthropic, Gemini) and `TestResponsesEnds`; `TestResponsesReasoning`; the refusal in `TestResponsesEnds`; budget rows in `TestThinkingSettings`.
+- SPEC 3.8 is updated.

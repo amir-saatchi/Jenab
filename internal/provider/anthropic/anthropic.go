@@ -350,9 +350,13 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 	}
 	// Thinking: models the catalog knows get it on with its text shown.
 	// Unknown models get the API's default, which never fails.
+	// A budget must be at least 1,024 tokens and below max_tokens; when
+	// it can't be, thinking is off.
 	if k := req.Known; req.Thinking && k != nil && k.Thinking {
 		if k.ThinkingBudget {
-			r.Thinking = &thinking{Type: "enabled", BudgetTokens: max(1024, r.MaxTokens/2)}
+			if b := max(1024, r.MaxTokens/2); b < r.MaxTokens {
+				r.Thinking = &thinking{Type: "enabled", BudgetTokens: b}
+			}
 		} else {
 			r.Thinking = &thinking{Type: "adaptive", Display: "summarized"}
 		}

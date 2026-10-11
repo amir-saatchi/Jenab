@@ -118,7 +118,7 @@ func (a *responsesAPI) Stream(ctx context.Context, req provider.Request) iter.Se
 		st := a.client.Responses.NewStreaming(ctx, responses.ResponseNewParams{}, option.WithRequestBody("application/json", body))
 		defer st.Close()
 
-		calls := false
+		calls, refused := false, false
 		for st.Next() {
 			var ev rEvent
 			if err := json.Unmarshal([]byte(st.Current().RawJSON()), &ev); err != nil {
@@ -135,6 +135,7 @@ func (a *responsesAPI) Stream(ctx context.Context, req provider.Request) iter.Se
 					return
 				}
 			case "response.output_item.done":
+				refused = refused || hasRefusal(ev.Item)
 				part, err := a.part(ev.Item)
 				if err != nil {
 					yield(provider.Event{}, err)
@@ -148,7 +149,11 @@ func (a *responsesAPI) Stream(ctx context.Context, req provider.Request) iter.Se
 					return
 				}
 			case "response.completed", "response.incomplete":
-				yield(a.done(ev, calls), nil)
+				d := a.done(ev, calls)
+				if refused && d.Stop == provider.StopEnd {
+					d.Stop = provider.StopRefused
+				}
+				yield(d, nil)
 				return
 			case "response.failed":
 				code, msg := "", "the response failed"
@@ -208,6 +213,20 @@ func (a *responsesAPI) part(it rItem) (*chat.Part, error) {
 	return nil, nil
 }
 
+// hasRefusal reports a message with a refusal part. Its text is kept as
+// the answer, and the stop is StopRefused, so the turn shows its notice.
+func hasRefusal(it rItem) bool {
+	if it.Type != "message" {
+		return false
+	}
+	for _, c := range it.Content {
+		if c.Type == "refusal" {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *responsesAPI) done(ev rEvent, calls bool) provider.Event {
 	stop := provider.StopEnd
 	if calls {
@@ -242,6 +261,8 @@ func (a *responsesAPI) failed(code, msg string) *provider.Error {
 	case "insufficient_quota":
 		status = 429
 		msg = code + ": " + msg
+	case "context_length_exceeded":
+		status = 413
 	}
 	return provider.Classify(a.name, status, nil, a.guard.Redact(msg))
 }
@@ -253,6 +274,12 @@ func (a *responsesAPI) body(ctx context.Context, req provider.Request) ([]byte, 
 		MaxOutputTokens: req.MaxTokens,
 		Store:           false,
 		Include:         []string{"reasoning.encrypted_content"},
+	}
+	// Reasoning summaries for models the catalog knows reason, as with
+	// Anthropic. They show the thinking, and they keep the stream moving
+	// during long reasoning (TASK-008).
+	if k := req.Known; req.Thinking && k != nil && k.Thinking {
+		r.Reasoning = &rReasonCf{Summary: "auto"}
 	}
 	for _, t := range req.Tools {
 		r.Tools = append(r.Tools, rTool{Type: "function", Name: t.Name, Description: t.Description, Parameters: t.Schema})

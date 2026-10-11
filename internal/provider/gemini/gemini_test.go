@@ -314,6 +314,8 @@ func TestEnds(t *testing.T) {
 		{"daily quota", reply{429, `{"error":{"code":"resource_exhausted","message":"Quota exceeded for metric generate_content_free_tier_requests, limit: GenerateRequestsPerDayPerProjectPerModel-FreeTier"}}`}, "", provider.Quota},
 		{"no such model", reply{404, `{"error":{"message":"Model 'gemini-9' not found.","code":"not_found"}}`}, "", provider.BadRequest},
 		{"too large", reply{413, `{"error":{"message":"Request payload size exceeds the limit","code":"invalid_request"}}`}, "", provider.TooLarge},
+		{"overflow", reply{400, `{"error":{"message":"The input token count (1200000) exceeds the maximum number of tokens allowed (1048576).","code":"invalid_argument"}}`}, "", provider.TooLarge},
+		{"overflow in stream", reply{200, sse(start, `{"error":{"code":"invalid_argument","message":"The input token count (1200000) exceeds the maximum number of tokens allowed (1048576)."},"event_type":"error"}`)}, "", provider.TooLarge},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

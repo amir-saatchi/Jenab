@@ -265,6 +265,7 @@ func TestChatErrors(t *testing.T) {
 		kind   provider.ErrorKind
 	}{
 		{"413", 413, `{"error":{"message":"Request too large for model","type":"tokens","code":"rate_limit_exceeded"}}`, provider.TooLarge},
+		{"overflow", 400, `{"error":{"message":"This model's maximum context length is 128000 tokens. However, your messages resulted in 130522 tokens.","type":"invalid_request_error","code":"context_length_exceeded"}}`, provider.TooLarge},
 		{"gemini quota", 429, `[{"error":{"code":429,"message":"You exceeded your current quota","details":[{"violations":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}]}}]`, provider.Quota},
 		{"rate limit", 429, `{"error":{"message":"slow down"}}`, provider.RateLimited},
 		{"bad key", 401, `{"error":{"message":"Incorrect API key provided: ` + testKey + `"}}`, provider.BadRequest},
@@ -444,6 +445,9 @@ func TestResponsesEnds(t *testing.T) {
 		{"failed", events(`{"type":"response.failed","response":{"status":"failed","error":{"code":"server_error","message":"The server had an error"}}}`), "", provider.Overloaded},
 		{"rate limit in stream", events(`{"type":"error","code":"rate_limit_exceeded","message":"Rate limit reached"}`), "", provider.RateLimited},
 		{"quota in stream", events(`{"type":"error","code":"insufficient_quota","message":"You exceeded your current quota"}`), "", provider.Quota},
+		{"overflow in stream", events(`{"type":"error","code":"context_length_exceeded","message":"Your input exceeds the context window of this model."}`), "", provider.TooLarge},
+		{"overflow failed", events(`{"type":"response.failed","response":{"status":"failed","error":{"code":"context_length_exceeded","message":"Your input exceeds the context window of this model."}}}`), "", provider.TooLarge},
+		{"refusal", events(`{"type":"response.output_item.done","output_index":0,"item":{"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[{"type":"refusal","refusal":"I can't help with that."}]}}`, `{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`), provider.StopRefused, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -562,5 +566,33 @@ func TestChatLongCallIDs(t *testing.T) {
 	call, res := body.Messages[1].ToolCalls[0], body.Messages[2].ToolCallID
 	if len(call.ID) > 40 || call.ID != res || call.Function.Arguments != "{}" {
 		t.Errorf("call %+v, result %q: want one ID of at most 40 characters and arguments {}", call, res)
+	}
+}
+
+// TestResponsesReasoning: reasoning summaries are asked for when thinking
+// is on and the catalog says the model reasons (TASK-008).
+func TestResponsesReasoning(t *testing.T) {
+	gpt := &provider.Model{Kind: provider.KindOpenAI, ID: "gpt-5", Thinking: true}
+	tests := []struct {
+		name string
+		req  provider.Request
+		want string
+	}{
+		{"on", provider.Request{Model: "gpt-5", Known: gpt, Thinking: true}, `{"summary":"auto"}`},
+		{"off", provider.Request{Model: "gpt-5", Known: gpt}, ``},
+		{"unknown model", provider.Request{Model: "gpt-x", Thinking: true}, ``},
+	}
+	for _, tt := range tests {
+		s := newServer(t, 200, events(`{"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":10,"output_tokens":5}}}`))
+		if _, err := run(backend(t, s, provider.KindOpenAI), tt.req); err != nil {
+			t.Fatal(err)
+		}
+		var body struct {
+			Reasoning json.RawMessage `json:"reasoning"`
+		}
+		json.Unmarshal([]byte(s.lastBody()), &body)
+		if string(body.Reasoning) != tt.want {
+			t.Errorf("%s: reasoning = %s, want %s", tt.name, body.Reasoning, tt.want)
+		}
 	}
 }

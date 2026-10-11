@@ -206,6 +206,10 @@ func TestThinkingSettings(t *testing.T) {
 	}{
 		{"adaptive", provider.Request{Known: opus, Thinking: true}, `{"type":"adaptive","display":"summarized"}`},
 		{"budget", provider.Request{Known: haiku, Thinking: true, MaxTokens: 8000}, `{"type":"enabled","budget_tokens":4000}`},
+		// The budget stays below max_tokens, or thinking is off (TASK-008).
+		{"budget at 2048", provider.Request{Known: haiku, Thinking: true, MaxTokens: 2048}, `{"type":"enabled","budget_tokens":1024}`},
+		{"budget at 1500", provider.Request{Known: haiku, Thinking: true, MaxTokens: 1500}, `{"type":"enabled","budget_tokens":1024}`},
+		{"no room for a budget", provider.Request{Known: haiku, Thinking: true, MaxTokens: 1024}, ``},
 		{"off: the API's default", provider.Request{Known: opus}, ``},
 		{"unknown model", provider.Request{Thinking: true}, ``},
 	}
@@ -271,6 +275,7 @@ func TestEnds(t *testing.T) {
 		{"cut off", events(start, `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`, `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"par"}}`), "", provider.Transport},
 		{"cut off in a call", events(start, `{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t","name":"q","input":{}}}`, `{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"sql\":"}}`, `{"type":"content_block_stop","index":0}`), "", provider.Transport},
 		{"overloaded in stream", events(start, `{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}`), "", provider.Overloaded},
+		{"overflow in stream", events(start, `{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 214312 tokens > 200000 maximum"}}`), "", provider.TooLarge},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -324,6 +329,7 @@ func TestHTTPErrors(t *testing.T) {
 		{413, `{"type":"error","error":{"type":"request_too_large","message":"Request exceeds the maximum size"}}`, provider.TooLarge},
 		{400, `{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}`, provider.Quota},
 		{529, `{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}`, provider.Overloaded},
+		{400, `{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 214312 tokens > 200000 maximum"}}`, provider.TooLarge},
 		{401, `{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key ` + testKey + `"}}`, provider.BadRequest},
 	}
 	for _, tt := range tests {

@@ -44,6 +44,11 @@ func TestClassify(t *testing.T) {
 		{"anthropic credits", 400, nil, `{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}`, Quota, 0},
 		{"anthropic overloaded", 529, hdr("retry-after-ms", "1500"), `{"type":"error","error":{"type":"overloaded_error"}}`, Overloaded, 1500 * time.Millisecond},
 		{"too large", 413, nil, `{"error":{"message":"Request too large for model"}}`, TooLarge, 0},
+		// Context overflow comes as a 400 (TASK-008).
+		{"anthropic overflow", 400, nil, `{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 214312 tokens > 200000 maximum"}}`, TooLarge, 0},
+		{"anthropic overflow with max_tokens", 400, nil, `{"type":"error","error":{"type":"invalid_request_error","message":"input length and ` + "`max_tokens`" + ` exceed context limit: 190000 + 32000 > 200000"}}`, TooLarge, 0},
+		{"openai overflow", 400, nil, `{"error":{"message":"This model's maximum context length is 128000 tokens. However, your messages resulted in 130522 tokens.","type":"invalid_request_error","param":"messages","code":"context_length_exceeded"}}`, TooLarge, 0},
+		{"gemini overflow", 400, nil, `{"error":{"code":400,"message":"The input token count (1200000) exceeds the maximum number of tokens allowed (1048576).","status":"INVALID_ARGUMENT"}}`, TooLarge, 0},
 		{"server error", 500, nil, `[{"error":{"code":500,"message":"Internal error encountered.","status":"INTERNAL"}}]`, Overloaded, 0},
 		{"timeout", 408, nil, ``, Transport, 0},
 		{"bad key", 401, nil, `{"error":{"message":"Incorrect API key provided"}}`, BadRequest, 0},

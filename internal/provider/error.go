@@ -86,13 +86,23 @@ var quotaMarks = []string{
 	"insufficient balance", "insufficient_quota", `"1113"`, `"1308"`, `"1310"`,
 }
 
+// overflowMarks are error texts that mean the request is larger than the
+// model's context, in each API's own words. They come as a 400, so the
+// body decides (TASK-008).
+var overflowMarks = []string{
+	"prompt is too long", "exceed context limit", // Anthropic
+	"context_length_exceeded", "maximum context length", // OpenAI, both APIs, and compatible APIs
+	"exceeds the maximum number of tokens", // Gemini
+}
+
 // Classify maps an HTTP error answer to an Error. body is the response
 // body, which the caller has already redacted; header may be nil.
 func Classify(provider string, status int, header http.Header, body string) *Error {
 	e := &Error{Provider: provider, Status: status, Message: shorten(body, 600)}
 	lower := strings.ToLower(body)
 	switch {
-	case status == http.StatusRequestEntityTooLarge:
+	case status == http.StatusRequestEntityTooLarge,
+		status >= 400 && status < 500 && containsAny(lower, overflowMarks):
 		e.Kind = TooLarge
 		return e
 	case status >= 400 && status < 500 && containsAny(lower, quotaMarks):

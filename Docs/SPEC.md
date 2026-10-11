@@ -417,8 +417,8 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
   - Anthropic: all tool results of a turn go in one user message.
   - OpenAI: tool messages take text only, so tool images follow in one user message.
   - Thinking blocks are sent back unchanged, signature included, before their `tool_use`.
-  - OpenAI's Responses API is used with `store: false`; its reasoning comes back encrypted and is sent back the same way. Its newest models take tools only there.
-- **Anthropic thinking:** a catalog model that thinks gets `adaptive` thinking with summarized text. A model marked `thinking_budget` in the catalog (Claude Haiku 4.5) gets `enabled` with a budget of half `max_tokens`. Unknown models get the API's default. Changing these settings between requests invalidates the prompt cache.
+  - OpenAI's Responses API is used with `store: false`; its reasoning comes back encrypted and is sent back the same way. Its newest models take tools only there. A catalog model that reasons gets `reasoning: {summary: "auto"}` when thinking is on, so its thinking shows. A `refusal` part is kept as the answer's text, with a `refused` stop (TASK-008).
+- **Anthropic thinking:** a catalog model that thinks gets `adaptive` thinking with summarized text. A model marked `thinking_budget` in the catalog (Claude Haiku 4.5) gets `enabled` with a budget of half `max_tokens`, at least 1,024 tokens and always below `max_tokens`; when that can't be, thinking is off. Unknown models get the API's default. Changing these settings between requests invalidates the prompt cache.
 - **Caching and usage:**
   - Cache points follow 3.1.
   - Cache write and read tokens are stored with the message.
@@ -434,7 +434,7 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
     | `overloaded` | 503, Anthropic's 529 | Wait, then retry |
     | `transport` | lost connection, a cut-off or stalled stream | Wait, then retry |
     | `quota` | daily quota or credit used up, often sent as a 429 | No retry: the model stops until the user acts |
-    | `too_large` | 413 | No retry as is: the context is shrunk |
+    | `too_large` | 413, or a 400 that says the context is exceeded (Anthropic "prompt is too long", OpenAI `context_length_exceeded`, Gemini "exceeds the maximum number of tokens"), also inside a stream | No retry as is: the context is shrunk |
     | `request` | 400, 401, 403, 404 | No retry: the error is shown |
 
   - **Waits:** the provider's own wait when it sends one (`retry-after`, or Gemini's `retryDelay` in the body). Otherwise 10 s, 20 s, 40 s, 80 s, then every 100 s. Up to 20 % is added at random, so calls don't all retry at the same moment.
