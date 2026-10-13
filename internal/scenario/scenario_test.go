@@ -4,6 +4,8 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/amir-saatchi/jenab/internal/tool"
 )
 
 // The repo's sets load, and their fixtures run.
@@ -34,6 +36,15 @@ func TestRepoSets(t *testing.T) {
 				if sc.skip() == "" {
 					n++
 				}
+			}
+			// A set on a project with data fakes tools for its tables,
+			// pipelines and views, so block 1 names all three (TASK-014).
+			var areas tool.Areas
+			for _, tl := range s.Tools {
+				areas |= tl.areas
+			}
+			if s.Fixture != "" && areas != tool.Tables|tool.Pipelines|tool.Views {
+				t.Errorf("the fake tools' areas are %b, not all three", areas)
 			}
 			t.Logf("%d scenarios, %d run now, %d skills", len(s.Scenarios), n, len(s.Skills))
 		})
@@ -80,6 +91,7 @@ func TestLoadErrors(t *testing.T) {
 		"settings bad value":       {"_set.yaml": tool, "a.yaml": sc + "settings: {llm: {turn_max_requests: many}}\n"},
 		"set settings models":      {"_set.yaml": tool + "settings: {llm: {models: {default: p/m}}}\n", "a.yaml": sc},
 		"bad false_running":        {"_set.yaml": tool + "false_running: ['(']\n", "a.yaml": sc},
+		"unknown area":             {"_set.yaml": "tools: [{name: q, description: x, areas: [charts]}]\n", "a.yaml": sc},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := Load(writeSet(t, files)); err == nil {

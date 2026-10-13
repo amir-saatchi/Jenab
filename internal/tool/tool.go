@@ -44,7 +44,22 @@ type Spec struct {
 	// returns (8.3). The prompt rule for requests with several parts
 	// comes with such a tool.
 	Background bool
+	// Areas are the parts of a project the tool works on. Block 1 names a
+	// part only when a tool for it is registered (TASK-014).
+	Areas Areas
 }
+
+// Areas are parts of a project (1): its tables, pipelines and views.
+type Areas uint
+
+const (
+	Tables Areas = 1 << iota
+	Pipelines
+	Views
+)
+
+// AreaNames are the areas' names, in their order.
+var AreaNames = []string{"tables", "pipelines", "views"}
 
 // DefaultTimeout bounds a tool call whose Spec sets none.
 const DefaultTimeout = time.Minute

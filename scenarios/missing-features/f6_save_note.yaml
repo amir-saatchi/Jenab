@@ -1,0 +1,10 @@
+id: F6_save_note
+title: 'Save a note in my files: buy more if BTC drops under 60,000 USD.'
+tests: ["plain"]
+context: main
+why: 'Something the tools can do: save it with bucket_put, no refusal.'
+messages:
+  - text: 'Save a note in my files: buy more if BTC drops under 60,000 USD.'
+asserts:
+  - {type: tool_called, test: plain, tool: bucket_put, args_match: '60'}
+  - {type: answer_delivered, test: info}

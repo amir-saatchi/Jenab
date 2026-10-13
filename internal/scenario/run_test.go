@@ -44,9 +44,11 @@ tools:
     kind: sql
     arg: sql
     delay: 1s
+    areas: [tables]
   - name: web_search
     description: Search the web.
     schema: {type: object, properties: {query: {type: string}}, required: [query]}
+  - name: fetch_page
 rules:
   web_search:
     - match: '(?i)gold'
@@ -165,12 +167,18 @@ func TestRunSet(t *testing.T) {
 		sys.WriteString(b.Text)
 	}
 	if !strings.Contains(sys.String(), "Tables: prices") || !strings.Contains(sys.String(), "sql-queries") ||
-		!strings.Contains(sys.String(), "Today is Tuesday, 2026-09-29") {
-		t.Errorf("system prompt lacks the card, the skill list or the set's day")
+		!strings.Contains(sys.String(), "Today is Tuesday, 2026-09-29") ||
+		!strings.Contains(sys.String(), "keeps a project: tables in a local database. This version has no pipelines or views yet. You work") {
+		t.Errorf("system prompt lacks the card, the skill list, the set's day or the tables")
 	}
+	// The fake fetch_page without its own text has the real one's.
+	real, _ := realSpec("fetch_page")
 	var names []string
 	for _, tl := range calls[0].Tools {
 		names = append(names, tl.Name)
+		if tl.Name == "fetch_page" && (tl.Description != real.Description || string(tl.Schema) != string(real.Schema)) {
+			t.Errorf("fake fetch_page: %q %s", tl.Description, tl.Schema)
+		}
 	}
 	for _, n := range []string{"query", "web_search", "load_skill"} {
 		if !strings.Contains(" "+strings.Join(names, " ")+" ", " "+n+" ") {

@@ -16,6 +16,7 @@ mother_skills: [delegation]
 
 tools:
   - name: apply_migration
+    areas: [tables]
     description: "Change the database schema with structured migration steps (never SQL DDL). Runs as one transaction: the steps, then every view and pipeline is re-validated against the new schema. Views and pipelines that must change because of the migration are sent in the same call as full YAML configs in `views` and `pipelines`; if any check fails, nothing is applied and all errors are returned."
     schema:
       type: object
@@ -26,24 +27,29 @@ tools:
       required: [steps]
     delay: 200ms
   - name: save_pipeline
+    areas: [pipelines]
     description: Validate and save a pipeline config (full YAML). Returns all errors with paths, or success.
     schema: {type: object, properties: {yaml: {type: string, description: the complete pipeline config as YAML}}, required: [yaml]}
     delay: 200ms
   - name: save_view
+    areas: [views]
     description: Validate and save a table or chart view config (full YAML). Returns all errors with paths, or success.
     schema: {type: object, properties: {yaml: {type: string, description: the complete view config as YAML}}, required: [yaml]}
     delay: 200ms
   - name: save_form
+    areas: [views]
     description: "Validate and save a form view config (full YAML, type: form). Returns all errors with paths, or success."
     schema: {type: object, properties: {yaml: {type: string, description: the complete form config as YAML}}, required: [yaml]}
     delay: 200ms
   - name: describe_table
+    areas: [tables]
     description: Columns, types, keys, indexes and row count of a table.
     schema: {type: object, properties: {name: {type: string}}, required: [name]}
     kind: describe
     arg: name
     delay: 200ms
   - name: query
+    areas: [tables]
     description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
     schema:
       type: object
@@ -55,6 +61,7 @@ tools:
     arg: sql
     delay: 200ms
   - name: get_config
+    areas: [pipelines, views]
     description: Read the saved YAML of a view or pipeline by id.
     schema: {type: object, properties: {id: {type: string}}, required: [id]}
     kind: config

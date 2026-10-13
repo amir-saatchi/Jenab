@@ -24,24 +24,28 @@ chats:
 
 tools:
   - name: query
+    areas: [tables]
     description: Read-only SQL SELECT on the project database (SQLite); returns up to 200 rows and the row count.
     schema: {type: object, properties: {sql: {type: string}}, required: [sql]}
     kind: sql
     arg: sql
     delay: 1s
   - name: describe_table
+    areas: [tables]
     description: Columns, types, keys and row count of a table.
     schema: {type: object, properties: {name: {type: string}}, required: [name]}
     kind: describe
     arg: name
     delay: 1s
   - name: read_config
+    areas: [pipelines, views]
     description: The stored pipeline or view config as YAML.
     schema: {type: object, properties: {id: {type: string}}, required: [id]}
     kind: config
     arg: id
     delay: 1s
   - name: run_pipeline
+    areas: [pipelines]
     description: Start a pipeline run. Returns the run ID right away; the run goes on in the background and a notice follows when it finishes.
     schema:
       type: object
@@ -52,6 +56,7 @@ tools:
     background: true
     delay: 500ms
   - name: run_status
+    areas: [pipelines]
     description: Status and step summaries of a pipeline run.
     schema: {type: object, properties: {run_id: {type: string}}, required: [run_id]}
     delay: 500ms

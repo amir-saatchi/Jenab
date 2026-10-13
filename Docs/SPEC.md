@@ -292,7 +292,8 @@ For providers with explicit cache control (Anthropic), cache points are placed a
 
 Block 1 (TASK-011):
 - **Date:** today's date and the user's time zone, as a UTC offset, since Windows has no IANA name for it. It has no time, so it changes only on a new day, and it is built at each cut. A cut comes after 5 minutes idle (3.6), so a new day almost always starts with one.
-- **Only what the tools can do:** lines about a kind of work come only with the tools that do it. The prompt rule for requests with several parts (8.3) comes with a tool that starts background work, and Mother's delegation guidance (8.6) with `create_chat`.
+- **Only what the tools can do:** lines about a kind of work come only with the tools that do it. The prompt rule for requests with several parts (8.3) comes with a tool that starts background work, and Mother's delegation guidance (8.6) with `create_chat`. The first line names a project's tables, pipelines and views only when a tool for each is registered, and says the others aren't in this version yet, so the model doesn't build them from files. A tool says which of them it works on (TASK-014).
+- **When no tool fits:** one line, the same for every model: tell the user so and offer what the tools can do; a saved file doesn't run or update itself; don't make up data no tool gave; don't describe screens, menus or steps the model can't see (TASK-014).
 
 ### 3.2 Project card
 

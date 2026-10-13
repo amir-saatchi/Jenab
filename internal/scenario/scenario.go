@@ -20,8 +20,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/skill"
+	"github.com/amir-saatchi/jenab/internal/tool"
 )
 
 // SetFile is the name of a set's shared file.
@@ -86,6 +88,9 @@ type ToolSpec struct {
 	Kind        string         `yaml:"kind"`   // rules (the default), sql, describe or config
 	Arg         string         `yaml:"arg"`    // the argument sql, describe and config read
 	Mother      bool           `yaml:"mother"` // only the Mother chat gets it
+	// Areas are the parts of a project it works on: tables, pipelines or
+	// views. Block 1 names only the parts some tool has (TASK-014).
+	Areas []string `yaml:"areas"`
 	// Background: a call starts background work (8.3). BackgroundArg
 	// names a boolean argument that does so instead, such as a
 	// subagent's background.
@@ -93,6 +98,7 @@ type ToolSpec struct {
 	BackgroundArg string   `yaml:"background_arg"`
 	Delay         Duration `yaml:"delay"`
 	schema        json.RawMessage
+	areas         tool.Areas
 }
 
 // Rule is a fake result: Match is a regex on the call's arguments as JSON;
@@ -350,17 +356,30 @@ func (s *Set) checkTools() error {
 			return fmt.Errorf("%s: %s is listed twice", where, t.Name)
 		}
 		seen[t.Name] = true
-		if t.Description == "" {
-			return fmt.Errorf("%s (%s): no description", where, t.Name)
+		if real, ok := realSpec(t.Name); ok && t.Description == "" && t.Schema == nil {
+			// A fake of a real tool without its own text takes the
+			// real one's, so the model sees what the app sends.
+			t.Description, t.schema = real.Description, real.Schema
+		} else {
+			if t.Description == "" {
+				return fmt.Errorf("%s (%s): no description", where, t.Name)
+			}
+			if t.Schema == nil {
+				t.Schema = map[string]any{"type": "object", "properties": map[string]any{}}
+			}
+			b, err := json.Marshal(t.Schema)
+			if err != nil {
+				return fmt.Errorf("%s (%s): schema: %v", where, t.Name, err)
+			}
+			t.schema = b
 		}
-		if t.Schema == nil {
-			t.Schema = map[string]any{"type": "object", "properties": map[string]any{}}
+		for _, a := range t.Areas {
+			i := slices.Index(tool.AreaNames, a)
+			if i < 0 {
+				return fmt.Errorf("%s (%s): unknown area %q; the areas are %s", where, t.Name, a, strings.Join(tool.AreaNames, ", "))
+			}
+			t.areas |= 1 << i
 		}
-		b, err := json.Marshal(t.Schema)
-		if err != nil {
-			return fmt.Errorf("%s (%s): schema: %v", where, t.Name, err)
-		}
-		t.schema = b
 		switch t.Kind {
 		case "":
 			t.Kind = KindRules
@@ -380,6 +399,16 @@ func (s *Set) checkTools() error {
 		}
 	}
 	return nil
+}
+
+// realSpec is the spec of the app's tool of that name.
+func realSpec(name string) (tool.Spec, bool) {
+	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
+		if s := t.Spec(); s.Name == name {
+			return s, true
+		}
+	}
+	return tool.Spec{}, false
 }
 
 func (s *Set) tool(name string) *ToolSpec {

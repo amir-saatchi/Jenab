@@ -13,12 +13,14 @@ skills: ../skills
 
 tools:
   - name: describe_table
+    areas: [tables]
     description: Columns, types, keys, indexes and row count of a table.
     schema: {type: object, properties: {name: {type: string}}, required: [name]}
     kind: describe
     arg: name
     delay: 200ms
   - name: query
+    areas: [tables]
     description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
     schema:
       type: object
@@ -30,6 +32,7 @@ tools:
     arg: sql
     delay: 200ms
   - name: get_config
+    areas: [pipelines, views]
     description: Read the saved YAML of a view or pipeline by id.
     schema: {type: object, properties: {id: {type: string}}, required: [id]}
     kind: config

@@ -1,0 +1,11 @@
+id: F1_greeting
+title: 'Hi! What can you do in this project?'
+tests: ["offer", "ui"]
+context: mother
+why: 'Offer only what the tools can do: no tables, pipelines or views, and no app screens.'
+messages:
+  - text: 'Hi! What can you do in this project?'
+asserts:
+  - {type: answer_lacks, test: offer, match: '(?i)\b(I can|I''ll|let me|we can|I could)\s[^.\n]{0,40}\b(tables?|pipelines?|views?|dashboards?)\b'}
+  - {type: answer_lacks, test: ui, match: '(?i)\b(section|tab|panel|menu|screen|sidebar|toolbar)s?\b|\bclick\b|\bnavigate to\b|\bterminal\b|\bcommand line\b'}
+  - {type: answer_delivered, test: info}

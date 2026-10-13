@@ -17,9 +17,10 @@ import (
 	"github.com/amir-saatchi/jenab/internal/web"
 )
 
-// Block 1 tells the model only of work its tools can do (TASK-011). With
-// the Phase 1 tools, the prompt rule, Mother's delegation lines and the
-// config-guide skill are left out.
+// Block 1 tells the model only of work its tools can do (TASK-011,
+// TASK-014). With the Phase 1 tools, the project's tables, pipelines and
+// views, the prompt rule, Mother's delegation lines and the config-guide
+// skill are left out.
 func TestBlockOnePhase1(t *testing.T) {
 	tools := append(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})}), Tools()...)
 	h := newHarness(t, t.TempDir(), "", testSettings(), tools...)
@@ -34,8 +35,35 @@ func TestBlockOnePhase1(t *testing.T) {
 	for i, req := range h.fp.Calls() {
 		sys := req.System[0].Text
 		if strings.Contains(sys, "Requests with several parts") || strings.Contains(sys, "You direct the other chats") ||
-			strings.Contains(sys, "config-guide") {
+			strings.Contains(sys, "config-guide") || !strings.Contains(sys, "keeps a project. This version has no tables, pipelines, or views yet. You work") ||
+			!strings.Contains(sys, "If no tool can do what the user asks") {
 			t.Errorf("request %d, block 1:\n%s", i, sys)
+		}
+	}
+}
+
+// Block 1 names the parts of a project its tools work on (TASK-014).
+func TestBlockOneAreas(t *testing.T) {
+	with := func(as ...tool.Areas) []tool.Tool {
+		var out []tool.Tool
+		for _, a := range as {
+			s := tool.Spec{Name: "t", Description: "Test.", Schema: json.RawMessage(`{"type": "object"}`), Areas: a}
+			out = append(out, tool.Func(s, func(context.Context, *tool.Env, struct{}) (tool.Result, error) { return tool.Result{}, nil }))
+		}
+		return out
+	}
+	for _, c := range []struct {
+		tools []tool.Tool
+		want  string
+	}{
+		{nil, "keeps a project. This version has no tables, pipelines, or views yet. You work"},
+		{with(0), "keeps a project. This version has no tables, pipelines, or views yet. You work"},
+		{with(tool.Views), "keeps a project: views. This version has no tables or pipelines yet. You work"},
+		{with(tool.Tables, tool.Tables|tool.Views), "keeps a project: tables in a local database and views. This version has no pipelines yet. You work"},
+		{with(tool.Pipelines, tool.Views, tool.Tables), "keeps a project: tables in a local database, pipelines that fetch data, and views. You work"},
+	} {
+		if got := base(c.tools); !strings.Contains(got, c.want) || strings.Contains(got, "{") {
+			t.Errorf("want %q in:\n%s", c.want, got)
 		}
 	}
 }

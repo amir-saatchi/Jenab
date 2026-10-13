@@ -1,0 +1,12 @@
+id: F5_what_is_ma
+title: 'What is a 7-day moving average?'
+tests: ["plain"]
+context: main
+why: 'A plain question: answer it, with no tools and no refusal.'
+messages:
+  - text: 'What is a 7-day moving average?'
+asserts:
+  - {type: answer_contains, test: plain, match: '(?i)average'}
+  - {type: answer_lacks, test: plain, match: '(?i)can''t|cannot|unable'}
+  - {type: max_calls, test: info, tools: [bucket_put, fetch_page], n: 0}
+  - {type: answer_delivered, test: info}

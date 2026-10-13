@@ -58,7 +58,7 @@ asserts:
 context: main
 messages:
   - text: Hi.
-  - {text: Call it nightly., at: 5s}
+  - {text: Call it nightly., at: 100s} # 1 s at scale 0.01, well after the first turn
 asserts:
   - {type: after_message, test: x, when: between}
   - {type: after_message, test: y, when: during}

@@ -237,7 +237,7 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) {
 	tools := r.o.d.Tools.For(t.ch.Kind)
 	var b strings.Builder
-	b.WriteString(strings.TrimSpace(basePrompt))
+	b.WriteString(base(tools))
 	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
 		b.WriteString("\n\n" + strings.TrimSpace(rulePrompt))
 	}
@@ -275,6 +275,47 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 	}
 	blocks[len(blocks)-1].Cache = true
 	return blocks, nil
+}
+
+// areaText is how block 1 names each area (tool.AreaNames' order).
+var areaText = []string{"tables in a local database", "pipelines that fetch data", "views"}
+
+// base is the system prompt's start. It names the parts of a project the
+// tools work on, and says the others aren't in this version, so the model
+// doesn't build them from files (TASK-014).
+func base(tools []tool.Tool) string {
+	var has tool.Areas
+	for _, tl := range tools {
+		has |= tl.Spec().Areas
+	}
+	var parts, missing []string
+	for i, s := range areaText {
+		if has&(1<<i) != 0 {
+			parts = append(parts, s)
+		} else {
+			missing = append(missing, tool.AreaNames[i])
+		}
+	}
+	areas, lacks := "", ""
+	if len(parts) > 0 {
+		areas = ": " + list(parts, "and")
+	}
+	if len(missing) > 0 {
+		lacks = "This version has no " + list(missing, "or") + " yet. "
+	}
+	return strings.NewReplacer("{areas}", areas, "{missing}", lacks).Replace(strings.TrimSpace(basePrompt))
+}
+
+// list joins words as a sentence does: "a", "a and b", "a, b, and c".
+func list(words []string, conj string) string {
+	switch n := len(words); n {
+	case 1:
+		return words[0]
+	case 2:
+		return words[0] + " " + conj + " " + words[1]
+	default:
+		return strings.Join(words[:n-1], ", ") + ", " + conj + " " + words[n-1]
+	}
 }
 
 // today is block 1's date line. It has the date and not the time, so it

@@ -28,6 +28,7 @@ Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one tr
 | `skill-loading` | SPIKE-025 T-load | The chat loads the right skill before it acts, and no others. |
 | `role-skills` | SPIKE-025 T-roles | Mother gives a new chat the skills its role needs. |
 | `acceptance` | P1-18 | Phase 1's "done when": a chat of 25 turns with tool calls survives a restart, and turn 25 finds turn 3 with `search_history`. |
+| `missing-features` | TASK-014 | A project with Phase 1's tools only. Asked for a table, a pipeline or a view, the agent says it can't do that yet: no SQL or scripts saved as the setup, no app screens. A plain question and a note it can save check it doesn't refuse those too. |
 
 SPIKE-021's config tasks (T1–T4) come with Phase 2, when the app can check configs.
 
@@ -39,6 +40,6 @@ A set is a folder:
 - One YAML file per scenario: the context (`main` or `mother`), the messages (one with `at` is sent during a turn; one with `restart: true` comes after the app closes and opens again), `settings` over the set's, and the asserts. An assert's `turn` is `first`, `last`, `finish`, `any` or a turn number. `after_message` takes `when: during` or `between`, and fails when the message lands elsewhere.
 - A file that starts with `_`, such as `_offline.yaml`, isn't a scenario. A script lists each scenario's replies: `text`, `calls` (`name`, `args`) and an optional `usage`.
 
-A fake tool answers with the first rule whose `match` regex fits the call's arguments as JSON. The scenario's own rules come first. Tools of kind `sql`, `describe` and `config` read the fixture. An assert with `test: info` is reported but never fails a run.
+A fake tool's `areas` (`tables`, `pipelines`, `views`) are the parts of a project it works on; block 1 names only the parts some tool has. A fake of a real tool with no `description` or `schema`, such as `fetch_page`, gets the real one's. A fake tool answers with the first rule whose `match` regex fits the call's arguments as JSON. The scenario's own rules come first. Tools of kind `sql`, `describe` and `config` read the fixture. An assert with `test: info` is reported but never fails a run.
 
-The assert types are listed in `internal/scenario/assert.go`. `max_requests`, `no_turn_failed` and `cache_read_share` (`min`, a share from 0 to 1; `test: info` unless given) check the requests. A check that comes with a later feature, such as `background_started`, needs that feature in `needs`; every type is checked, even in a skipped scenario.
+The assert types are listed in `internal/scenario/assert.go`. `answer_lacks` fails when the answer matches `match`. `max_requests`, `no_turn_failed` and `cache_read_share` (`min`, a share from 0 to 1; `test: info` unless given) check the requests. A check that comes with a later feature, such as `background_started`, needs that feature in `needs`; every type is checked, even in a skipped scenario.

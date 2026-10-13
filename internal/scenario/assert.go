@@ -37,6 +37,7 @@ var assertFields = map[string][]string{
 	"max_calls":           {"tools"},
 	"max_prompt_tokens":   {"n"},
 	"answer_contains":     {"match"},
+	"answer_lacks":        {"match"},
 	"answer_delivered":    nil,
 	"no_repeat":           nil,
 	"max_status_polls":    {"tools"},
@@ -143,6 +144,12 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		}
 		txt := rec.text(a.Turn)
 		return pf(re.MatchString(txt), clip(txt, 160))
+	case "answer_lacks":
+		txt := rec.text(a.Turn)
+		if m := regexp.MustCompile(a.Match).FindString(txt); m != "" {
+			return Fail, "says " + clip(m, 80) + ": " + clip(txt, 120), 0
+		}
+		return Pass, "", 0
 	case "answer_delivered":
 		last := rec.turns()
 		var final string

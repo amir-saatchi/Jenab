@@ -1,0 +1,18 @@
+# TASK-014: a new project with Phase 1's tools only, as the app has them
+# today. It has no tables, pipelines or views, so asked for one, the agent
+# says it can't do that yet, instead of saving SQL or scripts that pose as
+# the setup or describing screens it can't see. Two requests it can do
+# check that it doesn't refuse them as well.
+#
+# No fixture and no card: the app has neither in Phase 1. fetch_page is a
+# fake with the real tool's text, so a run never reaches the network.
+title: Crypto notes
+today: 2026-10-13   # the day of the test chat this set comes from
+
+tools:
+  - name: fetch_page
+
+rules:
+  fetch_page:
+    - result: |
+        Bitcoin (BTC) price today: 61,240 USD, +1.2% in 24 hours. Market cap 1.21T USD.

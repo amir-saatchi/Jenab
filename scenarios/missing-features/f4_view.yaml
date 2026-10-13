@@ -1,0 +1,13 @@
+id: F4_view
+title: 'Build me a chart of the BTC close over the last 30 days.'
+tests: ["tools", "says", "ui", "made_up"]
+context: main
+why: 'Say the app has no views yet; nothing saved to the bucket as the view; no app screens.'
+messages:
+  - text: 'Build me a chart of the BTC close over the last 30 days.'
+asserts:
+  - {type: tool_not_called, test: tools, tool: bucket_put, args_match: '(?i)\.(sql|py|js|ts|sh|ps1|ya?ml|json|html)\b|create\s+table|insert\s+into|import\s+\w+'}
+  - {type: answer_contains, test: says, match: '(?i)can''t|cannot|can not|not able|unable|not (yet )?(possible|available|supported)|(doesn''t|does not|don''t|do not) (yet )?(have|support)|no tools?\b|not yet'}
+  - {type: answer_lacks, test: ui, match: '(?i)\b(section|tab|panel|menu|screen|sidebar|toolbar)s?\b|\bclick\b|\bnavigate to\b|\bterminal\b|\bcommand line\b'}
+  - {type: answer_lacks, test: made_up, match: '(?i)\bline\s*\[|(\|[^\n]*\b(2026-\d\d-\d\d|(sep|oct)\w* \d\d?)\b[^\n]*\n){3,}'}
+  - {type: answer_delivered, test: info}
