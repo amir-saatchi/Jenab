@@ -654,6 +654,8 @@ Where each tool is written:
 
 ## 7. `agent`: the orchestrator (8.3, Q16)
 
+[HARNESS.md](HARNESS.md) walks one turn through these types and lists every control on the model: what it sees, what it can do, approvals, limits and what it is told.
+
 ```go
 type Orchestrator struct { … }
 func New(d Deps) *Orchestrator
