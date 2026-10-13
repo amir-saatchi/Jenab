@@ -3,7 +3,7 @@ import { expect, test } from "bun:test"
 import { ChatKind, ChatState, MemoryLevel, type ChatItem } from "@/lib/api"
 import { initial, initials } from "@/state/projects"
 import { pageTitle, shortcut } from "@/shell/app-shell"
-import { memoryText, modelText, problemText, workText } from "@/shell/bottom-bar"
+import { memoryText, memoryTip, problemText, workText } from "@/shell/bottom-bar"
 import { subline } from "@/shell/chat-sidebar"
 
 const it_ = (state: ChatState, over: Partial<ChatItem["chat"]> = {}, last?: string) =>
@@ -16,15 +16,17 @@ test("workText", () => {
 })
 
 test("memoryText", () => {
-  expect(memoryText({ free: 2.1 * 2 ** 30, total: 16 * 2 ** 30, level: MemoryLevel.OK })).toBe("Memory 2.1 / 16 GB")
-  expect(memoryText({ free: 0, total: 16 * 2 ** 30, level: MemoryLevel.Low })).toBe("Memory low") // macOS
-})
-
-test("modelText", () => {
-  expect(modelText("default", { default: "google/gemma-4-31b" })).toBe("gemma-4-31b")
-  expect(modelText("", { default: "p/m1" })).toBe("m1")
-  expect(modelText("zai/glm-4.6", {})).toBe("glm-4.6")
-  expect(modelText("default", {})).toBe("No model")
+  const G = 2 ** 30
+  const win = { free: 5.4 * G, total: 29 * G, ram: 15.7 * G, level: MemoryLevel.OK }
+  expect(memoryText(win)).toBe("Memory 5.4 GB free")
+  expect(memoryTip(win)).toBe("What the system can still hand out: 16 GB RAM + 13 GB page file")
+  const linux = { free: 2.1 * G, total: 16 * G, ram: 16 * G, level: MemoryLevel.OK }
+  expect(memoryTip(linux)).toBe("Free memory, of 16 GB RAM")
+  expect(memoryTip({ ...win, free: 0.3 * G, level: MemoryLevel.Critical })).toContain("almost full")
+  const mac = { free: 0, total: 16 * G, ram: 16 * G, level: MemoryLevel.OK }
+  expect(memoryText(mac)).toBe("Memory 16 GB")
+  expect(memoryText({ ...mac, level: MemoryLevel.Low })).toBe("Memory low")
+  expect(memoryTip(mac)).toBe("16 GB RAM")
 })
 
 test("problemText", () => {

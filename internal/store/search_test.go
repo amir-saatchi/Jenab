@@ -798,7 +798,11 @@ func (g *textGenerator) message() string {
 		}
 	}
 	if g.rng.Intn(20) == 0 {
-		b.WriteString(" https://api." + g.en[z.Uint64()%2000] + ".example/v1/" + g.en[g.rng.Intn(2000)] + "?coin=btc")
+		b.WriteString(" https://api.")
+		b.WriteString(g.en[z.Uint64()%2000])
+		b.WriteString(".example/v1/")
+		b.WriteString(g.en[g.rng.Intn(2000)])
+		b.WriteString("?coin=btc")
 	}
 	return b.String()
 }

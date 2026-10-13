@@ -392,7 +392,7 @@ func workObjects(ctx context.Context, dir string) {
 			data[j] = byte(rand.IntN(256))
 		}
 		if i%5 == 0 {
-			data = []byte(fmt.Sprintf("repeated %d", i%3)) // stored once
+			data = fmt.Appendf(nil, "repeated %d", i%3) // stored once
 		}
 		if i%7 == 0 {
 			p.objects.Put(ctx, bytes.NewReader(data), 0) // bytes with no row, for the sweep

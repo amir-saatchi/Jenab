@@ -7,7 +7,7 @@ func TestRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Total < 256<<20 || r.Level == "" {
+	if r.RAM < 256<<20 || r.Total < r.RAM || r.Level == "" {
 		t.Fatalf("reading %+v", r)
 	}
 }

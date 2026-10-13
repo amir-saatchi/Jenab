@@ -21,10 +21,12 @@ const (
 
 // Reading is one reading. Free is 0 where the OS gives only a level
 // (macOS). Total is what Free is out of: the commit limit (RAM plus page
-// files) on Windows, the physical memory elsewhere.
+// files) on Windows, the physical memory elsewhere. RAM is the physical
+// memory, so Total - RAM is the page files.
 type Reading struct {
 	Free  uint64 `json:"free"`  // bytes the OS can still hand out
 	Total uint64 `json:"total"` // bytes Free is out of
+	RAM   uint64 `json:"ram"`   // bytes of physical memory
 	Level Level  `json:"level"`
 }
 

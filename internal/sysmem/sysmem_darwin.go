@@ -17,5 +17,5 @@ func read() (Reading, error) {
 	if err != nil {
 		return Reading{}, fmt.Errorf("sysmem: pressure level: %w", err)
 	}
-	return Reading{Total: total, Level: pressureLevel(p)}, nil
+	return Reading{Total: total, RAM: total, Level: pressureLevel(p)}, nil
 }

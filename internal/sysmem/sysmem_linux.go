@@ -40,6 +40,6 @@ func parseMeminfo(b []byte) (Reading, error) {
 	if !haveFree || !haveTotal {
 		return Reading{}, fmt.Errorf("sysmem: no MemAvailable or MemTotal in /proc/meminfo")
 	}
-	r.Level = levelOf(r.Free)
+	r.RAM, r.Level = r.Total, levelOf(r.Free)
 	return r, nil
 }

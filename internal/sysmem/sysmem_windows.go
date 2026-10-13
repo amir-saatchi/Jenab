@@ -30,5 +30,5 @@ func read() (Reading, error) {
 	// Free and Total are a pair: the commit headroom out of the commit
 	// limit, which is more than the RAM when there is a page file. The
 	// headroom is what runs out first when a command can't start.
-	return Reading{Free: m.availPageFile, Total: m.totalPageFile, Level: levelOf(m.availPageFile)}, nil
+	return Reading{Free: m.availPageFile, Total: m.totalPageFile, RAM: m.totalPhys, Level: levelOf(m.availPageFile)}, nil
 }
