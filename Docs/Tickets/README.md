@@ -34,7 +34,7 @@
 | [SPIKE-026](SPIKE-026-command-limits.md) | How many commands can run at once? | Spike | Done on Windows | 3 |
 | [SPIKE-027](SPIKE-027-decision-models.md) | Can a decision model make Jenab's small decisions? | Spike | Done | 3 |
 | [SPIKE-028](SPIKE-028-request-list.md) | A request list, and loading tools and history when needed | Spike | Open (before Phase 2) | 3 |
-| [SPIKE-029](SPIKE-029-subjects.md) | Subjects: a chat's work, kept as objects | Spike | In progress (rounds 1 and 2 done; decisions proposed) | 3 |
+| [SPIKE-029](SPIKE-029-subjects.md) | Subjects: a chat's work, kept as objects | Spike | In progress (rounds 1–3 done; decisions proposed) | 3 |
 | [SPIKE-030](SPIKE-030-structured-output.md) | Structured output: JSON that matches a schema, from any model | Spike | Done | 3 |
 | [SPIKE-031](SPIKE-031-thoughts-graph.md) | Thoughts-Graph: a how-to task as a graph of model calls | Spike | Done | 3 |
 | [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | Open | 3 |

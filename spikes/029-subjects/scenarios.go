@@ -6,6 +6,7 @@ const (
 	kindChange   = "change"   // changes earlier work: its subject is updated, not a new one created
 	kindQuestion = "question" // a plain question: no subject
 	kindFollowup = "followup" // asks about earlier turns: no subject, the answer is checked
+	kindMerge    = "merge"    // says two pieces of earlier work are one thing: they end up in one subject
 )
 
 // message is one scripted user message and how its turn is scored.
@@ -23,6 +24,9 @@ type message struct {
 	// pattern; "" for CallTool means any write tool.
 	CallTool string
 	Call     []string
+	// Merge: the topics that are one thing for the user (kindMerge). After
+	// the message, one subject that isn't dropped covers all of them.
+	Merge []string
 }
 
 type scenarioDef struct {
@@ -32,8 +36,9 @@ type scenarioDef struct {
 }
 
 // The runs use history_max_turns 4 and history_min_turns 2, so the window
-// is cut at turns 6, 9 and 12, and the follow-ups ask about turns that are
-// out of the window by then.
+// is cut every few turns, and the follow-ups ask about turns that are out
+// of the window by then. Round 3 added the merge messages: 15 messages a
+// chat, where rounds 1 and 2 had 14.
 var scenarios = []scenarioDef{
 	{
 		ID:    "crypto",
@@ -50,6 +55,7 @@ var scenarios = []scenarioDef{
 			{Kind: kindWork, Topic: "eth", Text: "Now do the same for Ethereum: a table, a pipeline and a chart, set up like Bitcoin's.",
 				CallTool: "save_pipeline", Call: []string{`eth`, `0 7 |07:00|7:00`, `1-5|mon-fri|weekday|weekend|workday`}},
 			{Kind: kindQuestion, Text: "Roughly how many rows will btc_prices have after a year?"},
+			{Kind: kindMerge, Text: "Bitcoin and Ethereum are one project for me: my crypto price tracking. Keep them together from now on.", Merge: []string{"btc", "eth"}},
 			{Kind: kindChange, Topic: "alerts", Text: "About the alert I mentioned earlier: send it to Telegram. Set it up now.",
 				Status: []string{"done", "in_progress"}, Call: []string{`5 ?%|0\.05|five percent|5 percent|-5|>= ?5|> ?5`, `telegram`}},
 			{Kind: kindQuestion, Text: "Is CoinGecko's API free for this?"},
@@ -73,6 +79,7 @@ var scenarios = []scenarioDef{
 			{Kind: kindChange, Topic: "apps", Text: "N26 rejected me.", CallTool: "update_rows", Call: []string{`n26`, `closed`}},
 			{Kind: kindChange, Topic: "follow_up", Text: "Make follow_up run on Fridays instead, and use 10 days instead of 14.",
 				Status: []string{"done"}, CallTool: "save_pipeline", Call: []string{`fri|\* \* 5`, `10 ?day|-10|> ?10|>= ?10`}},
+			{Kind: kindMerge, Text: "follow_up and the board are really one thing for me: my Friday review, where I go through both together. Keep them together from now on.", Merge: []string{"follow_up", "board"}},
 			{Kind: kindChange, Topic: "zalando_watch", Text: "Here's the Zalando link: https://jobs.zalando.com/en/jobs?search=data. Go ahead with it.",
 				Status: []string{"done", "in_progress"}, CallTool: "save_pipeline", Call: []string{`zalando`, `data`}},
 			{Kind: kindQuestion, Text: "What's a typical salary range for a data engineer in Berlin?"},

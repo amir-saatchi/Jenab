@@ -1,6 +1,6 @@
 # SPIKE-029 — Results
 
-Round 1 is below; [round 2](#round-2) is at the end.
+Round 1 is below, then [round 2](#round-2) and [round 3](#round-3).
 
 Round 1 ran on 2026-10-08 on Ollama Cloud (reserve key) with gemma4:31b and gpt-oss:120b: 2 scenarios × 4 conditions × 3 reps, 48 runs of 14 messages each. Four runs stopped during a 70-minute provider stall and were run again with `-resume`. The full tables, the checks one by one and a transcript per run are in [`results/2026-10-08_204530/`](results/2026-10-08_204530/results.md).
 
@@ -90,3 +90,61 @@ With the index, both models together updated the existing subject in 28 of 34 ch
 - **The index in block 5: yes.** Round 2 shows it is needed for gpt-oss.
 - **The app's check: no.** Round 2 needed none to reach the target.
 - **SPIKE-028:** no change.
+
+## Round 3
+
+Round 3 tests a broader subject: one goal of the user, which can grow. Its text is added to instead of replaced, two subjects can be merged, and in one variant the open items replace the status. Three variants, all on condition 3 (tool + index):
+
+| | Subjects | Text | State | Merge |
+|---|---|---|---|---|
+| **A** (rule v2, the control) | one per table, pipeline or decision | `outcome`, replaced | `status` | – |
+| **B** (rule v3) | one per goal, can be widened and renamed | `summary` (replaced) + `notes` (only added to) | `status` | `merge_subjects` |
+| **C** (rule v4) | like B | like B | `open` items only | like B |
+
+Each chat got one more message after a cut, where two pieces of earlier work become one thing for the user:
+- crypto: "Bitcoin and Ethereum are one project for me"
+- jobs: "follow_up and the board are one thing for me: my Friday review"
+
+So A ran again instead of reusing round 2's runs. It ran on 2026-10-09 on the same models: 2 chats × 3 variants × 3 reps, 36 runs, with no runs lost. The tables, the merges one by one and the transcripts are in [`results/2026-10-09_133741/`](results/2026-10-09_133741/results.md).
+
+| | gemma A | gemma B | gemma C | gpt-oss A | gpt-oss B | gpt-oss C |
+|---|---|---|---|---|---|---|
+| Subjects at the end, per run | 5.8 | 1.8 | 1.7 | 7.3 | 1.7 | 1.5 |
+| Work turns that updated a subject | 93% | 94% | 98% | 91% | 96% | 94% |
+| Changes that updated the existing subject | 94% | 94% | 94% | 76% | 71% | **100%** |
+| Duplicates, in 6 runs | 0 | 0 | 0 | 1 | 3 | 0 |
+| Work in one subject after the merge message | 0/6 | 5/6 | 5/6 | 0/6 | 6/6 | 6/6 |
+| Merges made | – | 4 | 0 | – | 7 | 6 |
+| Subject status right | 93% | **59%** | – | 67% | **41%** | – |
+| Waiting work shown | 100% | 100% | 100% | 83% | 100% | 100% |
+| Follow-ups right | 100% | 100% | 100% | 92% | 67% | 58% |
+| ...without the word check on "board" (see 16) | 100% | 100% | 100% | 92% | 92% | 83% |
+| Calls that needed earlier turns right | 100% | 100% | 94% | 83% | 83% | 94% |
+| Requests per run | 36.7 | 36.3 | 36.8 | 44.7 | 44.0 | 43.2 |
+| Prompt tokens per run | 125k | 132k | 139k | 112k | 125k | 131k |
+
+A's numbers moved since round 2 on the same rule: gemma's changes went from 76% to 94%, and gpt-oss's from 88% to 76%. The chats changed by one message, and each cell has only 17–18 changes, so differences of 15 points between rounds are within noise.
+
+### Findings
+
+13. **"One per goal" makes a chat one subject.** Both models kept 1.5–1.8 subjects per chat in B and C, against 6–7 in A. Each test chat has one theme, so its one goal is the whole chat: "Crypto price tracking", "Job applications tracking". With so few subjects the index says little, and updating the right subject is easy, which explains the high numbers for changes.
+
+14. **Merging works, but only at the level of whole subjects.** The 10 merges in the crypto chat were all right. One joined two copies of the daily_btc pipeline, and the other nine joined Bitcoin and Ethereum into "Crypto price tracking". In A, without the tool, neither model joined them by hand (0 of 12). The 7 merges in the jobs chat show the limit: the board view was already inside "Job applications tracking", so to join it with follow_up the model merged the whole applications subject and renamed it "Friday review". All 7 gave the whole job search the name of one of its parts, and one of them also pulled in the Zalando watcher. A subject can grow and merge, but it can't split, so a grouping the user makes inside a goal has no place.
+
+15. **One status for a goal doesn't work, as expected.** B's statuses were right in 59% (gemma) and 41% (gpt-oss) of checks, against 93% and 67% in A. A goal with a finished pipeline and a waiting alert has no single right status, and the models mostly left it at `in_progress`. C has no status, and waiting work showed as an open item in every check (12 of 12). The open items carry what the status was for.
+
+16. **The notes keep reasons, but gpt-oss doesn't read them.** Asked "why did we stop collecting weekend prices?", gpt-oss answered from the schedule in the card, in one request, without reading the subject. In one B run it made up a reason ("trading days"). gemma answered every follow-up right in all three variants. Most of gpt-oss's lower follow-up scores in B and C come from one word: its view was named `applications_by_status`, and in A the word "board" reached the answer only through a subject called "board view". Without that word check, gpt-oss is at 92% in A and B and 83% in C.
+
+17. **gpt-oss put the Zalando link into the applications table again in B** (0 of 3, against 2 of 3 in A and C). Round 2 had fixed this. The cells are small, but the subject "Zalando data jobs monitoring · open" was in the index each time.
+
+18. **The broader design costs 6–17% more prompt tokens**, from the longer rule, the third tool and the notes. Requests didn't change. gpt-oss still sends every subject call alone in its response (186 of 186).
+
+### Decisions (proposed)
+
+- **Notes that are only added to: yes.** Nothing was lost on a change, and merges keep everything. They help only when the model reads the subject, which gemma did and gpt-oss mostly didn't.
+- **Open items instead of a status: yes (C).** In these runs the open items showed waiting work in every check, and a goal with several parts has no single right status.
+- **`merge_subjects`: yes, as a way to clean up duplicates and to join work the user calls one thing.** The app joins the text, so nothing is rewritten.
+- **One subject per goal: no.** It turns a chat into one subject, and a grouping inside a goal can only be made by renaming the whole goal. Keep round 2's size, one subject per piece of work, and let merges make larger subjects when the user or *Refresh memory* (3.5) asks for them.
+- The other decisions from round 2 stand: the index in block 5, no app check, SPIKE-028 unchanged.
+
+The proposed design (round 2's size, with notes, open items and merges) hasn't been run as a whole. A round 4 on condition 3 alone would be 12 runs.

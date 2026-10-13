@@ -1,6 +1,6 @@
 # SPIKE-029 — Subjects: a chat's work, kept as objects
 **Type:** Spike
-**Status:** In progress (rounds 1 and 2 done; decisions proposed)
+**Status:** In progress (rounds 1–3 done; decisions proposed)
 **Gate:** 3
 
 ## Question
@@ -83,3 +83,42 @@ Each condition has results per model, with at least 3 reps per cell. There is a 
 - no app check
 - *Refresh memory* (3.5) merges duplicates
 - SPIKE-028 stays as planned
+
+**Round 3** (planned on 2026-10-09) tests a broader subject. A subject is one goal of the user, and it can grow. Its text is added to instead of replaced, two subjects can be merged, and in one variant `status` is replaced by the list of what is still waiting.
+
+All three variants run on condition 3 (tool + index), on the same models, 3 reps:
+
+| | Subjects | Text | State | Merge |
+|---|---|---|---|---|
+| **A** (round 2's design, the control) | one per table, pipeline or decision | `outcome`, replaced | `status` | – |
+| **B** | one per goal, can be widened and renamed | `summary` (replaced) + `notes` (only added to) | `status` | `merge_subjects` |
+| **C** | like B | like B | `open` items only, no `status` | like B |
+
+The tools in B and C:
+- `update_subject(id?, subject?, status?, summary?, note?, open?)`. A note is added at the end with the message it came from. The summary is the current state, and the index doesn't show it.
+- `merge_subjects(ids, subject, summary?, status?)`. The model writes the merged title. The app joins the notes in time order and the open items, so nothing is rewritten. Merged ids lead to the kept subject from now on, and the index shows only that one. If the call has no summary, the old summaries are joined. A later rewrite belongs to *Refresh memory* (3.5).
+- In C the index line is `s2 · BTC price tracking · 1 open` instead of the status.
+
+The chats get one more message each, after a cut, where two pieces of earlier work turn out to be one thing for the user: Bitcoin and Ethereum tracking in the crypto chat, and the follow_up pipeline and the board view in the jobs chat. The chats change, so A runs again instead of reusing round 2's runs. That is 36 runs.
+
+**Measures:** what round 2 measured, plus:
+- whether the two pieces of work end up in one subject after the merge message
+- merges made, read one by one to judge whether they were right
+- whether the waiting state shows: `open` or `blocked` in A and B, an open item in C
+- follow-ups that need an older reason ("why weekends?", "why closed?"), which notes should keep
+
+The status check doesn't apply to C. A goal with several parts has no single status, so C is judged by the waiting check and the follow-ups.
+
+**Round 3 result** (2026-10-09, 36 runs, no runs lost; findings 13–18 in [`results.md`](../../spikes/029-subjects/results.md#round-3)):
+- **One subject per goal makes a chat one subject:** 1.5–1.8 subjects per chat in B and C, against 6–7 in A. The index then says little.
+- **Merging works between whole subjects.** All 10 crypto merges were right, and in A neither model joined the work by hand. In the jobs chat, the board view was already inside "Job applications tracking", so all 7 merges renamed the whole job search "Friday review". A subject can't split, so a grouping inside a goal has no place.
+- **One status for a goal fails:** B's statuses were right in 41–59% of checks, against 67–93% in A. In C the open items showed waiting work in 12 of 12 checks.
+- **The notes keep reasons, but gpt-oss answered "why weekends?" from the card without reading them,** and once made up a reason. gemma answered every follow-up right in all variants.
+- **Cost:** 6–17% more prompt tokens than A, and the same number of requests.
+
+**Proposed decisions after round 3:**
+- Keep round 2's size: one subject per piece of work.
+- Add notes that are only added to, open items instead of a status, and `merge_subjects`. Merges make larger subjects when the user or *Refresh memory* (3.5) asks for them.
+- The other round 2 decisions stand.
+
+This combined design hasn't been run as a whole. A round 4 on condition 3 would be 12 runs.

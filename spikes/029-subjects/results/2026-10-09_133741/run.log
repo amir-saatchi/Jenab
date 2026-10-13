@@ -1,0 +1,40 @@
+2026/10/09 13:37:41 36 runs to go, results in results\2026-10-09_133741
+2026/10/09 13:40:38 [1/36] ollama-cloud-gemma4-31b_crypto_c3_r1_v3 177s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 2/5 · ok
+2026/10/09 13:40:54 [2/36] ollama-cloud-gemma4-31b_crypto_c3_r1_v2 193s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 13:41:21 [3/36] ollama-cloud-gpt-oss-120b_crypto_c3_r1_v3 221s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 1/5 · ok
+2026/10/09 13:41:36 [4/36] ollama-cloud-gpt-oss-120b_crypto_c3_r1_v2 235s subj 8/9 nudges 0 answers 1/2 calls 2/3 status 4/5 · ok
+time=2026-10-09T13:43:02.847+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=overloaded status=500 retry_after=11.597295813s err="{\"error\":\"Internal Server Error (ref: 8e7940a4-8f14-4a64-aecb-2196d6163d47)\"}"
+2026/10/09 13:44:02 [5/36] ollama-cloud-gemma4-31b_crypto_c3_r1_v4 204s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 0/0 · ok
+2026/10/09 13:44:26 [6/36] ollama-cloud-gemma4-31b_jobs_c3_r1_v2 185s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/09 13:44:52 [7/36] ollama-cloud-gpt-oss-120b_crypto_c3_r1_v4 238s subj 9/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:45:29 [8/36] ollama-cloud-gpt-oss-120b_jobs_c3_r1_v2 233s subj 7/9 nudges 0 answers 2/2 calls 2/3 status 2/4 · ok
+2026/10/09 13:47:15 [9/36] ollama-cloud-gemma4-31b_jobs_c3_r1_v3 194s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 13:47:27 [10/36] ollama-cloud-gemma4-31b_jobs_c3_r1_v4 155s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:48:39 [11/36] ollama-cloud-gpt-oss-120b_jobs_c3_r1_v3 253s subj 7/9 nudges 0 answers 1/2 calls 2/3 status 1/4 · ok
+2026/10/09 13:49:47 [12/36] ollama-cloud-gpt-oss-120b_jobs_c3_r1_v4 258s subj 8/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:50:31 [13/36] ollama-cloud-gemma4-31b_crypto_c3_r2_v2 196s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 13:52:10 [14/36] ollama-cloud-gpt-oss-120b_crypto_c3_r2_v2 283s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 13:52:36 [15/36] ollama-cloud-gemma4-31b_crypto_c3_r2_v3 237s subj 7/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 13:53:57 [16/36] ollama-cloud-gpt-oss-120b_crypto_c3_r2_v3 250s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 2/5 · ok
+2026/10/09 13:54:17 [17/36] ollama-cloud-gemma4-31b_crypto_c3_r2_v4 226s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:55:33 [18/36] ollama-cloud-gemma4-31b_jobs_c3_r2_v2 177s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 3/4 · ok
+2026/10/09 13:55:57 [19/36] ollama-cloud-gpt-oss-120b_crypto_c3_r2_v4 227s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:57:31 [20/36] ollama-cloud-gemma4-31b_jobs_c3_r2_v3 194s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/09 13:57:55 [21/36] ollama-cloud-gpt-oss-120b_jobs_c3_r2_v2 238s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 13:58:59 [22/36] ollama-cloud-gemma4-31b_jobs_c3_r2_v4 182s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 13:59:18 [23/36] ollama-cloud-gpt-oss-120b_jobs_c3_r2_v3 224s subj 9/9 nudges 0 answers 1/2 calls 2/3 status 3/4 · ok
+time=2026-10-09T14:01:11.556+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=overloaded status=500 retry_after=10.989600548s err="{\"error\":\"Internal Server Error (ref: aa40ca26-77a2-4173-b24f-b38189e481f6)\"}"
+2026/10/09 14:01:25 [24/36] ollama-cloud-gpt-oss-120b_jobs_c3_r2_v4 233s subj 8/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/09 14:01:44 [25/36] ollama-cloud-gemma4-31b_crypto_c3_r3_v2 228s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 5/5 · ok
+2026/10/09 14:02:54 [26/36] ollama-cloud-gemma4-31b_crypto_c3_r3_v3 217s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 1/5 · ok
+2026/10/09 14:03:25 [27/36] ollama-cloud-gpt-oss-120b_crypto_c3_r3_v2 266s subj 8/9 nudges 0 answers 2/2 calls 2/3 status 3/5 · ok
+2026/10/09 14:05:20 [28/36] ollama-cloud-gpt-oss-120b_crypto_c3_r3_v3 235s subj 9/9 nudges 0 answers 1/2 calls 3/3 status 1/5 · ok
+2026/10/09 14:06:48 [29/36] ollama-cloud-gpt-oss-120b_crypto_c3_r3_v4 234s subj 9/9 nudges 0 answers 1/2 calls 3/3 status 0/0 · ok
+2026/10/09 14:06:50 [30/36] ollama-cloud-gemma4-31b_crypto_c3_r3_v4 307s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 14:07:11 [31/36] ollama-cloud-gemma4-31b_jobs_c3_r3_v2 226s subj 8/9 nudges 0 answers 2/2 calls 3/3 status 4/4 · ok
+2026/10/09 14:09:50 [32/36] ollama-cloud-gpt-oss-120b_jobs_c3_r3_v2 270s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 14:10:15 [33/36] ollama-cloud-gemma4-31b_jobs_c3_r3_v4 184s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 0/0 · ok
+2026/10/09 14:10:21 [34/36] ollama-cloud-gemma4-31b_jobs_c3_r3_v3 213s subj 9/9 nudges 0 answers 2/2 calls 3/3 status 2/4 · ok
+2026/10/09 14:10:52 [35/36] ollama-cloud-gpt-oss-120b_jobs_c3_r3_v3 242s subj 9/9 nudges 0 answers 1/2 calls 2/3 status 3/4 · ok
+2026/10/09 14:11:13 [36/36] ollama-cloud-gpt-oss-120b_jobs_c3_r3_v4 83s subj 8/9 nudges 0 answers 1/2 calls 2/3 status 0/0 · ok
+2026/10/09 14:11:13 wrote results\2026-10-09_133741\results.md

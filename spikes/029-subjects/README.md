@@ -14,7 +14,8 @@ go run . -models ollama-cloud/gemma4:31b -scenarios crypto -conds 3 -reps 1   # 
 go run . -models ollama-cloud/gemma4:31b,ollama-cloud/gpt-oss:120b -reps 3    # main run
 go run . -resume results/<stamp>                                               # runs that are missing or failed
 go run . -report results/<stamp>/runs.jsonl                                    # results.md again
-go run . -rule v1 ...                                                          # round 1's prompt rule (v2 is the default)
+go run . -rule v1 -chats 0 ...                                                 # round 1's prompt rule and chats (v2 is the default)
+go run . -conds 3 -rule v2,v3,v4 ...                                           # round 3: A, B and C
 ```
 
 Keys come from `../../.env`. `models.yaml` uses the reserve Ollama Cloud key,
@@ -24,16 +25,17 @@ Keys come from `../../.env`. `models.yaml` uses the reserve Ollama Cloud key,
 
 | File | What |
 |---|---|
-| `scenarios.go` | Two chats of 14 messages: `crypto` and `jobs`. Each message has a kind (work, change, question, follow-up), a topic and its checks |
+| `scenarios.go` | Two chats, `crypto` and `jobs`, of 15 messages; rounds 1 and 2 had 14, without the merge message (`-chats 0`). Each message has a kind (work, change, question, follow-up, merge), a topic and its checks |
 | `world.go` | The fake project: `create_table`, `insert_rows`, `update_rows`, `describe_table`, `save_pipeline`, `run_pipeline`, `get_config`, `save_view`, `update_memory`, `web_search`, and the project card built from them |
-| `subjects.go` | The subject store, `update_subject`, `get_subject` and the prompt rule |
+| `subjects.go` | The subject store, `update_subject`, `get_subject`, `merge_subjects` (v3, v4) and the prompt rules v1–v4 |
 | `run.go` | One run: a new project and chat, the orchestrator, the messages one by one, and the app's check in condition 4 |
 | `score.go`, `report.go` | Scoring and `results.md`; a transcript per run |
 
 ## Setup
 
 - **Conditions:** 1 baseline; 2 `update_subject`, `get_subject` and the rule; 3 condition 2 plus the index in the context; 4 condition 3 plus the app's check.
-- **History window:** `history_min_turns` 2 and `history_max_turns` 4, so the window is cut at turns 6, 9 and 12. The follow-ups and the changes late in each chat ask about turns that are out of the window by then.
+- **Prompt rules:** v1 (round 1) and v2 (round 2) keep one subject per piece of work, with an outcome that each update replaces. v3 (round 3, B) makes a subject one goal that can grow, with a summary, notes that are only added to, and `merge_subjects`. v4 (round 3, C) is v3 with the open items as the only state, and no status.
+- **History window:** `history_min_turns` 2 and `history_max_turns` 4, so the window is cut every few turns. The follow-ups and the changes late in each chat ask about turns that are out of the window by then.
 - **The rule and the index** are in block 4, after the project card, through `agent.Deps.Card`. The agent asks for that block only at a cut, so the index is as of the last cut, as SPEC 3.1 has it for blocks 2–5.
 - **Project memory** is shown in the card in every condition, as blocks 2–3 will show it (3.3). A decision the agent saves to memory is visible without subjects, so the checks that need subjects are about status, open items and dropped work.
 

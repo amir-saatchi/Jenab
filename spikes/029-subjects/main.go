@@ -8,6 +8,7 @@
 //	go run . -resume results/<stamp>                                              # run what is missing or failed
 //	go run . -report results/<stamp>/runs.jsonl                                   # results.md again
 //	go run . -rule v1 ...                                                          # round 1's prompt rule
+//	go run . -conds 3 -rule v2,v3,v4 ...                                           # round 3: A, B and C
 package main
 
 import (
@@ -50,7 +51,8 @@ func main() {
 		resume     = flag.String("resume", "", "a results folder to continue: runs without a line or with an error run again")
 		reportOnly = flag.String("report", "", "write results.md from these runs.jsonl files (comma-separated) and stop")
 		keep       = flag.Bool("keep", false, "keep the runs' projects")
-		rule       = flag.String("rule", "v2", "the prompt rule: v1 (round 1) or v2 (round 2)")
+		rules      = flag.String("rule", "v2", "prompt rules, comma-separated: v1 (round 1), v2 (round 2), v3 and v4 (round 3)")
+		chats      = flag.Int("chats", 3, "the chats: 3 has round 3's merge messages, 0 is the chats of rounds 1 and 2")
 	)
 	flag.Parse()
 	if *reportOnly != "" {
@@ -69,12 +71,15 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	if _, ok := subjectRules[*rule]; !ok {
-		log.Fatalf("no rule %q", *rule)
-	}
-	ruleTag := *rule
-	if ruleTag == "v1" {
-		ruleTag = "" // round 1's runs have no rule field
+	var ruleTags []string
+	for _, r := range split(*rules) {
+		if _, ok := subjectRules[r]; !ok {
+			log.Fatalf("no rule %q", r)
+		}
+		if r == "v1" {
+			r = "" // round 1's runs have no rule field
+		}
+		ruleTags = append(ruleTags, r)
 	}
 	models := split(*modelList)
 	var conds []int
@@ -87,7 +92,7 @@ func main() {
 	}
 	var scs []scenarioDef
 	for _, id := range split(*scList) {
-		sc, ok := scenarioByID(id)
+		sc, ok := scenarioByID(id, *chats)
 		if !ok {
 			log.Fatalf("no scenario %q", id)
 		}
@@ -128,16 +133,18 @@ func main() {
 	}
 	defer f.Close()
 
-	// Models take turns, and so do conditions, so a stopped run still has
-	// a bit of every cell.
+	// Models take turns, and so do conditions and rules, so a stopped run
+	// still has a bit of every cell.
 	var jobs []job
 	for rep := 1; rep <= *reps; rep++ {
 		for _, sc := range scs {
 			for _, c := range conds {
-				for _, m := range models {
-					j := job{Model: m, Scenario: sc.ID, Cond: c, Rep: rep, Rule: ruleTag}
-					if !done[j] {
-						jobs = append(jobs, j)
+				for _, rt := range ruleTags {
+					for _, m := range models {
+						j := job{Model: m, Scenario: sc.ID, Cond: c, Rep: rep, Rule: rt, Chats: *chats}
+						if !done[j] {
+							jobs = append(jobs, j)
+						}
 					}
 				}
 			}
@@ -151,7 +158,7 @@ func main() {
 	for range *parallel {
 		wg.Go(func() {
 			for j := range ch {
-				sc, _ := scenarioByID(j.Scenario)
+				sc, _ := scenarioByID(j.Scenario, j.Chats)
 				r := h.run(ctx, j, sc)
 				line, _ := json.Marshal(r)
 				mu.Lock()

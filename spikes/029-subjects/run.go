@@ -37,7 +37,8 @@ type job struct {
 	Scenario string `json:"scenario"`
 	Cond     int    `json:"cond"`
 	Rep      int    `json:"rep"`
-	Rule     string `json:"rule,omitempty"` // the prompt rule; "" is round 1's, v1
+	Rule     string `json:"rule,omitempty"`  // the prompt rule; "" is round 1's, v1
+	Chats    int    `json:"chats,omitempty"` // 3: round 3's chats, with the merge messages; 0: rounds 1 and 2
 }
 
 func (j job) name() string {
@@ -62,7 +63,7 @@ type call struct {
 	Error  bool   `json:"error,omitempty"`
 	Result string `json:"result,omitempty"`
 	Nudge  bool   `json:"nudge,omitempty"` // in the turn after the app's check
-	Alone  bool   `json:"alone,omitempty"` // update_subject was the only call of its response
+	Alone  bool   `json:"alone,omitempty"` // a subject write was the only call of its response
 }
 
 // msgResult is what one scripted message's turns did.
@@ -318,7 +319,7 @@ func (r *run) read(ctx context.Context, nudge bool, mr *msgResult) error {
 				text.WriteString(pt.Text.Text)
 			}
 		}
-		if len(calls) == 1 && calls[0].Tool == "update_subject" {
+		if len(calls) == 1 && subjectWrite(calls[0].Tool) {
 			calls[0].Alone = true
 		}
 		mr.Calls = append(mr.Calls, calls...)
@@ -368,8 +369,10 @@ func wrote(cs []call) bool {
 }
 
 func subjectUpdated(cs []call) bool {
-	return slices.ContainsFunc(cs, func(c call) bool { return !c.Error && c.Tool == "update_subject" })
+	return slices.ContainsFunc(cs, func(c call) bool { return !c.Error && subjectWrite(c.Tool) })
 }
+
+func subjectWrite(name string) bool { return name == "update_subject" || name == "merge_subjects" }
 
 // clip shortens s to n bytes at a rune boundary.
 func clip(s string, n int) string {
