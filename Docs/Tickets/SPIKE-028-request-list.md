@@ -18,6 +18,10 @@ The pattern (proposed on 2026-10-03):
 - **History cards:** older related parts, through `search_history` and `read_messages`, added to the recent turns, never replacing them.
 - **Subagents per request** only for heavy, independent work; the model decides. A result comes back as a short note plus a ref.
 - **Notes:** in the session notes (3.4), which already hold the plan.
+- **Plan first** (asked for on 2026-10-13, while testing the app): the user can make a turn plan before it acts.
+  - **Forced:** a *Plan first* switch on the composer. The turn may use only tools that change nothing, and it ends with the request list. The user approves or edits it before anything runs.
+  - **Automatic:** the model calls `plan` for a request with several steps, as in condition 2. A simple question gets no plan.
+  - A plan also shows early when a step has no tool behind it (TASK-014).
 - **Subjects:** [SPIKE-029](SPIKE-029-subjects.md) keeps the chat's work across turns as subjects. A request that ends `done`, `blocked` or `dropped` may update or create a subject. The two designs are decided together.
 
 ## Conditions
@@ -31,6 +35,7 @@ The pattern (proposed on 2026-10-03):
 - SPIKE-025's T-load scenarios, to see how often a needed tool or skill is missed under conditions 3 and 4.
 - Long chats where a follow-up ("do the same for ETH") needs an earlier turn, for the history cards.
 - No false plans: a simple question must not get a `plan` call.
+- *Plan first*: the turn changes nothing before the user approves, and the plan names a step no tool can do instead of faking it.
 
 ## Measures
 - Every part answered, and nothing repeated or started twice.
@@ -43,4 +48,4 @@ The pattern (proposed on 2026-10-03):
 Models: the SPIKE-018 development models, with the same prompts for all (SPEC 1). The harness extends SPIKE-023's scenario runner.
 
 ## Done when
-Each condition has results per model, with at least 3 reps per cell. There is a decision on `plan` and the app's check (8.3), on the tool index (8.1), on history cards (3.6), and on a `Plan` message part (P1-19).
+Each condition has results per model, with at least 3 reps per cell. There is a decision on `plan` and the app's check (8.3), on *Plan first* (8.3, 5.12), on the tool index (8.1), on history cards (3.6), and on a `Plan` message part (P1-19).

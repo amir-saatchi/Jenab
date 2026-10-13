@@ -48,6 +48,12 @@
 | [TASK-011](TASK-011-prompts-match-tools.md) | Prompts that match what the app can do | Task | Done | 3 |
 | [TASK-012](TASK-012-untrusted-mark.md) | The untrusted mark and messages that join a turn | Task | Done | 3 |
 | [TASK-013](TASK-013-scenario-runner-harness.md) | Scenario runner: measure the harness, not only the model | Task | Done | 3 |
+| [TASK-014](TASK-014-agent-offers-missing-features.md) | The agent offers features the app doesn't have | Bug | Open | 3 |
+| [TASK-015](TASK-015-files-panel.md) | The Files panel: browse and open the project's files | Task | Open | 3 |
+| [TASK-016](TASK-016-export-chat.md) | Export a chat | Task | Open | 3 |
+| [TASK-017](TASK-017-installer.md) | Install the app | Task | Open | 3 |
+| [TASK-018](TASK-018-rewind-chat.md) | Rewind a chat to an earlier message | Task | Open | 3 |
+| [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Open | 3 |
 
 ## Phase 1
 
