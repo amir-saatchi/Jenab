@@ -7,6 +7,10 @@ export type Row =
   | { kind: "agent"; id: string; messages: Message[]; last: boolean }
   | { kind: "notice"; id: string; message: Message; part: Part }
 
+// aside are the notices added to a turn after it ended (agent.aside), so
+// they don't say how the turn ended.
+const aside: (NoticeKind | undefined)[] = [NoticeKind.NoticeApprovalLevel, NoticeKind.NoticeTurnUndone]
+
 // isNotice tells whether a user message is a note from the app.
 function isNotice(m: Message) {
   return m.role === Role.RoleUser && (m.parts ?? []).every((p) => p.kind === PartKind.PartNotice)
@@ -15,15 +19,19 @@ function isNotice(m: Message) {
 // rows groups messages for the thread. Assistant and tool messages in a row
 // are one agent item; last marks the one that ends a turn, which gets the
 // turn's footer. Turns of messages not yet read from the store are a guess
-// until the turn ends.
+// until the turn ends. Notices added after a turn ended, such as an
+// undo's, sit in the chat's last turn but don't take its footer away.
 export function rows(messages: Message[]): Row[] {
   const out: Row[] = []
   let group: Message[] | null = null
+  let i = 0
   const close = (next?: Message) => {
+    if (next && isAside(next)) next = messages.slice(i + 1).find((m) => !isAside(m))
     if (group) out.push({ kind: "agent", id: group[0].id, messages: group, last: !next || next.turn !== group[group.length - 1].turn })
     group = null
   }
-  for (const m of messages) {
+  for (; i < messages.length; i++) {
+    const m = messages[i]
     if (m.role !== Role.RoleUser) {
       if (group) group.push(m)
       else group = [m]
@@ -39,6 +47,12 @@ export function rows(messages: Message[]): Row[] {
   }
   close()
   return out
+}
+
+// isAside tells whether a message holds only notices added after a turn
+// ended.
+function isAside(m: Message) {
+  return isNotice(m) && (m.parts ?? []).every((p) => aside.includes(p.notice?.kind))
 }
 
 // splitJoining splits off the user messages at the end that join the
@@ -59,11 +73,17 @@ export function results(messages: Message[]): Map<string, ToolResult> {
 
 // lastNotice is the newest notice of the chat, for the provider card: a
 // turn that failed because no model is set up. As on the Go side, messages
-// that only note a change of the approval level don't count.
+// that only note a change of the approval level or an undo don't count.
 export function lastNotice(messages: Message[]): { message: Message; kind: NoticeKind; text: string } | null {
-  const m = messages.findLast((m) => (m.parts ?? []).some((p) => p.notice?.kind !== NoticeKind.NoticeApprovalLevel))
+  const m = messages.findLast((m) => (m.parts ?? []).some((p) => !aside.includes(p.notice?.kind)))
   const p = m?.parts?.[m.parts.length - 1]
   return m && p?.notice ? { message: m, kind: p.notice.kind, text: p.notice.text } : null
+}
+
+// toolTurn tells whether the turn called a tool, so it may have changed
+// the project and has an *Undo turn*.
+export function toolTurn(messages: Message[], turn: number): boolean {
+  return messages.some((m) => m.turn === turn && (m.parts ?? []).some((p) => p.kind === PartKind.PartToolCall))
 }
 
 // copyText is an agent item's text, for *Copy*.

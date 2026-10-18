@@ -252,6 +252,11 @@ export enum NoticeKind {
     NoticeApprovalLevel = "approval_level",
 
     /**
+     * Undo turn or Redo turn (2.6)
+     */
+    NoticeTurnUndone = "turn_undone",
+
+    /**
      * a turn ended after a failed save (10)
      */
     NoticeEarlyStop = "early_stop",

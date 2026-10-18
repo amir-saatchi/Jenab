@@ -554,7 +554,7 @@ func (o *Orchestrator) Wait(ctx context.Context) error {
 
 // load reads the chat's last turn and sequence number once, whether the
 // last turn stopped on an error (its last message, not counting approval
-// level notices, ends with a turn_failed notice), and whether it read
+// level and undo notices, ends with a turn_failed notice), and whether it read
 // outside data since the user's last message, so Retry after a restart
 // keeps Auto's mark (8.8). cs.mu is held.
 func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Project) error {
@@ -577,7 +577,7 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 		}
 		for i := len(ms) - 1; i >= 0; i-- {
 			ps := ms[i].Parts
-			if !slices.ContainsFunc(ps, func(p chat.Part) bool { return p.Notice == nil || p.Notice.Kind != chat.NoticeApprovalLevel }) {
+			if !slices.ContainsFunc(ps, func(p chat.Part) bool { return p.Notice == nil || !aside(p.Notice.Kind) }) {
 				continue
 			}
 			last := ps[len(ps)-1]
@@ -618,6 +618,12 @@ func (o *Orchestrator) untrustedIn(ms []chat.Message) bool {
 		}
 	}
 	return untrusted
+}
+
+// aside reports whether a notice of kind is added to a turn after it ended,
+// so it doesn't say how the turn ended.
+func aside(kind chat.NoticeKind) bool {
+	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone
 }
 
 // bumpSeq raises the known sequence number to s.

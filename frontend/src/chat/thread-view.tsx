@@ -28,7 +28,8 @@ import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
-import { copyText, firstRows, lastNotice, results, rows, splitJoining, type Row } from "@/chat/rows"
+import { copyText, firstRows, lastNotice, results, rows, splitJoining, toolTurn, type Row } from "@/chat/rows"
+import { UndoTurn } from "@/chat/undo"
 import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { useStream } from "@/state/stream"
@@ -293,6 +294,9 @@ function AgentRow({
   const devTools = useSettings((s) => s.started?.dev_tools ?? false)
   const answer = messages.findLast((m) => m.role === Role.RoleAssistant)
   const footer = last && !running && answer
+  // Only tools change the project, so only a turn with tool calls has
+  // anything to undo; a joined message may have split the turn's calls.
+  const undo = footer && toolTurn(thread.messages, answer.turn)
   return (
     <MessageRow align="start">
       <MessageContent className="gap-2">
@@ -317,16 +321,18 @@ function AgentRow({
             <CopyButton text={copyText(messages)} />
             <span className="ps-1">{clock(answer.created_at)}</span>
             {answer.model && <span>· {modelName(groups ?? [], answer.model)}</span>}
-            {devTools && (
-              <Button
-                variant="ghost"
-                size="xs"
-                className="ms-auto"
-                onClick={() => useNav.getState().go({ view: "inspector", project: thread.project, chat: thread.chat.id, turn: answer.turn })}
-              >
-                Inspect
-              </Button>
-            )}
+            <span className="ms-auto flex gap-1">
+              {undo && <UndoTurn project={thread.project} chat={thread.chat.id} turn={answer.turn} seen={thread.messages.length} />}
+              {devTools && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => useNav.getState().go({ view: "inspector", project: thread.project, chat: thread.chat.id, turn: answer.turn })}
+                >
+                  Inspect
+                </Button>
+              )}
+            </span>
           </MessageFooter>
         )}
       </MessageContent>

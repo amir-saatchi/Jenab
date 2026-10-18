@@ -11,6 +11,12 @@ export type Approval = string;
  * Typed IDs, so the compiler catches a chat ID passed as a project ID (Q8).
  * TypeScript sees plain strings.
  */
+export type Change = string;
+
+/**
+ * Typed IDs, so the compiler catches a chat ID passed as a project ID (Q8).
+ * TypeScript sees plain strings.
+ */
 export type Chat = string;
 
 /**

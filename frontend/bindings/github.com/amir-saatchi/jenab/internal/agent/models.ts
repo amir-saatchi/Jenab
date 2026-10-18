@@ -7,6 +7,9 @@ import * as chat$0 from "../chat/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as id$0 from "../id/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as store$0 from "../store/models.js";
 
 /**
  * Answer is the user's answer to the card or form a turn waits for.
@@ -62,4 +65,92 @@ export interface Live {
      * its text so far
      */
     "text"?: string;
+}
+
+/**
+ * TurnConflict is a conflict with the chat that made the later change,
+ * when a message of a chat made it.
+ */
+export interface TurnConflict {
+    "conflict": store$0.UndoConflict;
+    "chat"?: id$0.Chat;
+    "chat_title"?: string;
+}
+
+/**
+ * TurnPlan is what Undo turn or Redo turn would revert, for the footer.
+ */
+export interface TurnPlan {
+    /**
+     * 0: nothing to revert
+     */
+    "changes": number;
+    "rows": store$0.TableRows[] | null;
+
+    /**
+     * "12 rows in btc_prices, 1 file"
+     */
+    "summary": string;
+
+    /**
+     * Summary for the UI, table names in bidi isolates
+     */
+    "display": string;
+
+    /**
+     * past the undo window, so it is refused
+     */
+    "past": boolean;
+
+    /**
+     * row entries, as store.MaxUndoEntries counts them
+     */
+    "entries": number;
+
+    /**
+     * over store.MaxUndoEntries, so it is refused
+     */
+    "too_big": boolean;
+}
+
+/**
+ * TurnUndo says what Undo turn did. With conflicts it did nothing: the
+ * user skips them, with UndoRequest.Skip, or cancels.
+ */
+export interface TurnUndo {
+    "turn": number;
+    "redo": boolean;
+    "done": boolean;
+    "summary": string;
+
+    /**
+     * kept
+     */
+    "migrations": number;
+    "skipped": number;
+    "conflicts"?: TurnConflict[] | null;
+}
+
+/**
+ * TurnUndoState is what Undo turn and Redo turn would do now.
+ */
+export interface TurnUndoState {
+    "turn": number;
+    "undo": TurnPlan;
+    "redo": TurnPlan;
+
+    /**
+     * kept by an undo (SPEC 2.6)
+     */
+    "migrations": number;
+}
+
+/**
+ * UndoRequest is an Undo turn or a Redo turn from the footer, or its second
+ * try with the conflicts the user chose to skip.
+ */
+export interface UndoRequest {
+    "turn": number;
+    "redo": boolean;
+    "skip"?: store$0.UndoItem[] | null;
 }

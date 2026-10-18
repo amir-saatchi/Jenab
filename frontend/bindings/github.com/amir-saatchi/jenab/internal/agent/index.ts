@@ -3,5 +3,10 @@
 
 export type {
     Answer,
-    Live
+    Live,
+    TurnConflict,
+    TurnPlan,
+    TurnUndo,
+    TurnUndoState,
+    UndoRequest
 } from "./models.js";

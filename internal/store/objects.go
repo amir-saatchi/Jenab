@@ -572,8 +572,8 @@ type SweepReport struct {
 // SweepObjects removes the bytes that no current or kept version points
 // to, such as those left by a crash between a put's bytes and its row, and
 // temporary files older than a day (SPEC 4.4). Recovery runs it after a
-// crash (SPEC 2.7). Phase 2 adds the changes inside the undo window to
-// what keeps bytes.
+// crash (SPEC 2.7). Object revisions in changes inside the undo window
+// keep their bytes too (usedHashes).
 func (p *ProjectDB) SweepObjects(ctx context.Context) (SweepReport, error) {
 	if p.w == nil {
 		return SweepReport{}, ErrReadOnly
@@ -617,8 +617,14 @@ func (p *ProjectDB) SweepObjects(ctx context.Context) (SweepReport, error) {
 	return rep, err
 }
 
+// usedHashes are the bytes that current and kept versions point to, and
+// those of object revisions in changes inside the undo window, so an undo
+// or a redo can bring a version back (P2-03).
 func (p *ProjectDB) usedHashes(ctx context.Context) (map[string]bool, error) {
-	hs, err := Query(ctx, p.DB, `SELECT sha256 FROM _jenab_objects UNION SELECT sha256 FROM _jenab_object_versions`, nil,
+	hs, err := Query(ctx, p.DB, `SELECT sha256 FROM _jenab_objects UNION SELECT sha256 FROM _jenab_object_versions
+		UNION SELECT h FROM (SELECT before->>'sha256' AS h FROM _jenab_changes WHERE target LIKE 'object:%' AND id > ?1
+			UNION ALL SELECT after->>'sha256' FROM _jenab_changes WHERE target LIKE 'object:%' AND id > ?1) WHERE h IS NOT NULL`,
+		[]any{p.cleanedTo(ctx)},
 		func(r *sql.Rows) (string, error) {
 			var h string
 			return h, r.Scan(&h)
@@ -631,6 +637,18 @@ func (p *ProjectDB) usedHashes(ctx context.Context) (map[string]bool, error) {
 		used[h] = true
 	}
 	return used, nil
+}
+
+// cleanedTo reads the cleanup's watermark; "" before the first cleanup.
+func (p *ProjectDB) cleanedTo(ctx context.Context) string {
+	rows, err := Query(ctx, p.DB, `SELECT value FROM _jenab_meta WHERE key = ?`, []any{metaCleanedTo}, func(r *sql.Rows) (string, error) {
+		var v string
+		return v, r.Scan(&v)
+	})
+	if err != nil || len(rows) == 0 {
+		return ""
+	}
+	return rows[0]
 }
 
 // lifecycle reads the rules; a missing or broken entry means no expiry.

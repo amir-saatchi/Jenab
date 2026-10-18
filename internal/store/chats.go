@@ -916,3 +916,39 @@ func (c *ChatsDB) Usage(ctx context.Context, from time.Time, offset time.Duratio
 		return u, r.Scan(&u.Day, &u.Chat, &u.Model, &u.Usage.Input, &u.Usage.Output, &u.Usage.CacheRead, &u.Usage.CacheWrite)
 	})
 }
+
+// TurnMessages returns the IDs of a turn's messages, oldest first. The
+// changes a turn made have the sources message:<id> of them (SPEC 2.6).
+func (c *ChatsDB) TurnMessages(ctx context.Context, ch id.Chat, turn int) ([]id.Message, error) {
+	return Query(ctx, c.DB, `SELECT id FROM messages WHERE chat_id = ? AND turn = ? ORDER BY id`, []any{ch, turn},
+		func(r *sql.Rows) (id.Message, error) {
+			var m id.Message
+			return m, r.Scan(&m)
+		})
+}
+
+// MessageChats returns the chat of each of ms that exists, for naming who
+// made a change.
+func (c *ChatsDB) MessageChats(ctx context.Context, ms []id.Message) (map[id.Message]id.Chat, error) {
+	out := map[id.Message]id.Chat{}
+	if len(ms) == 0 {
+		return out, nil
+	}
+	b, err := json.Marshal(ms)
+	if err != nil {
+		return nil, err
+	}
+	type row struct {
+		m  id.Message
+		ch id.Chat
+	}
+	rows, err := Query(ctx, c.DB, `SELECT id, chat_id FROM messages WHERE id IN (SELECT value FROM json_each(?))`, []any{string(b)},
+		func(r *sql.Rows) (row, error) {
+			var x row
+			return x, r.Scan(&x.m, &x.ch)
+		})
+	for _, x := range rows {
+		out[x.m] = x.ch
+	}
+	return out, err
+}

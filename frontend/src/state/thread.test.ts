@@ -145,6 +145,17 @@ test("rows group the agent's work and mark turn ends", () => {
   expect(lastNotice(ms.slice(0, 5))?.kind).toBe(NoticeKind.NoticeTaskFinished)
 })
 
+test("an undo notice keeps the turn's footer", () => {
+  const undone = { ...msg("n1", 1, Role.RoleUser), parts: [{ kind: PartKind.PartNotice, notice: { kind: NoticeKind.NoticeTurnUndone, text: "[turn 1 was undone]" } }] }
+  const level = { ...msg("n2", 1, Role.RoleUser), parts: [{ kind: PartKind.PartNotice, notice: { kind: NoticeKind.NoticeApprovalLevel, text: "[level]" } }] }
+  const lasts = (ms: Message[]) => rows(ms).flatMap((r) => (r.kind === "agent" ? [r.last] : []))
+  const turn = [msg("u1", 1, Role.RoleUser, "go"), msg("a1", 1, Role.RoleAssistant, "Done.")]
+  expect(lasts([...turn, undone, level])).toEqual([true])
+  expect(rows([...turn, undone, level]).map((r) => r.kind)).toEqual(["user", "agent", "notice", "notice"])
+  // A message that joins the turn after the notice still takes the footer.
+  expect(lasts([...turn, undone, msg("u2", 1, Role.RoleUser, "more"), msg("a2", 1, Role.RoleAssistant, "Ok.")])).toEqual([false, true])
+})
+
 test("a chat opens with about two screens of rows", () => {
   const long = Array.from({ length: 30 }, (_, i) => `line ${i}`).join("\n")
   const ms = Array.from({ length: 40 }, (_, i) => msg(`m${i}`, i + 1, Role.RoleUser, i % 2 ? long : "hi"))

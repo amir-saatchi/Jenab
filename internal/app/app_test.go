@@ -564,6 +564,9 @@ func TestUIError(t *testing.T) {
 		{errors.Join(errors.New("chat 01J"), store.ErrNotFound), KindNotFound},
 		{&provider.Error{Provider: "p", Kind: provider.BadRequest, Message: "bad key " + testKey}, KindProvider},
 		{errors.New("disk full near " + testKey), KindInternal},
+		{fmt.Errorf("agent: turn 3: %w", store.ErrNothingToUndo), KindBusy},
+		{store.ErrUndoWindow, KindInvalid},
+		{fmt.Errorf("%w: disk full", agent.ErrRolesNotUndone), KindInternal},
 	}
 	for _, c := range cases {
 		err := c.err
@@ -572,6 +575,12 @@ func TestUIError(t *testing.T) {
 		if !errors.As(err, &ue) || ue.Kind != c.kind || strings.Contains(ue.Message+ue.Details, testKey) {
 			t.Errorf("%v: %#v", c.err, err)
 		}
+	}
+	var big error = fmt.Errorf("store: %w", &store.UndoTooBigError{Rows: 30000, Max: 20000})
+	b.guard("test", &big)
+	uiErr(t, big, KindInvalid)
+	if ue := (*UIError)(nil); errors.As(big, &ue) && ue.Message != "This turn changed 30000 rows. Undo can revert at most 20000 at once." {
+		t.Errorf("too big: %q", ue.Message)
 	}
 	var ui error = &UIError{Kind: KindBusy, Message: "Wait."}
 	b.guard("test", &ui)

@@ -220,6 +220,21 @@ func (s *ChatService) Archive(ctx context.Context, p id.Project, c id.Chat, arch
 	})
 }
 
+// UndoState says what Undo turn and Redo turn would revert now for the
+// chat's turn, for its footer (SPEC 2.6).
+func (s *ChatService) UndoState(ctx context.Context, p id.Project, c id.Chat, turn int) (st agent.TurnUndoState, err error) {
+	defer s.guard("chat.undo_state", &err)
+	return s.orch.UndoState(ctx, p, c, turn)
+}
+
+// UndoTurn reverts what the chat's turn changed, or puts it back. With
+// conflicts it changes nothing and lists them for the dialog; the user
+// skips them, with r.Skip, or cancels.
+func (s *ChatService) UndoTurn(ctx context.Context, p id.Project, c id.Chat, r agent.UndoRequest) (res agent.TurnUndo, err error) {
+	defer s.guard("chat.undo_turn", &err)
+	return s.orch.UndoTurn(ctx, p, c, r)
+}
+
 // write runs a change to the chat outside a turn and tells the
 // Orchestrator its new sequence number, so later events carry it.
 func (s *ChatService) write(ctx context.Context, p id.Project, c id.Chat, fn func(*project.Project) (uint64, error)) error {

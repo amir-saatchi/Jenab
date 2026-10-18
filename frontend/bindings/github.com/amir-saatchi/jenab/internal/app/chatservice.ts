@@ -145,6 +145,23 @@ export function Stop(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
 }
 
 /**
+ * UndoState says what Undo turn and Redo turn would revert now for the
+ * chat's turn, for its footer (SPEC 2.6).
+ */
+export function UndoState(p: id$0.Project, c: id$0.Chat, turn: number): $CancellablePromise<agent$0.TurnUndoState> {
+    return $Call.ByID(3456422620, p, c, turn);
+}
+
+/**
+ * UndoTurn reverts what the chat's turn changed, or puts it back. With
+ * conflicts it changes nothing and lists them for the dialog; the user
+ * skips them, with r.Skip, or cancels.
+ */
+export function UndoTurn(p: id$0.Project, c: id$0.Chat, r: agent$0.UndoRequest): $CancellablePromise<agent$0.TurnUndo> {
+    return $Call.ByID(1431554608, p, c, r);
+}
+
+/**
  * Waiting lists the chats of every project that wait for the user. Later
  * changes come as chat:status events.
  */

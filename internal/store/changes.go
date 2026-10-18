@@ -52,6 +52,11 @@ const (
 	rowInserted = "i"
 	rowUpdated  = "u"
 	rowDeleted  = "d"
+	// rowMigrated marks a table a migration changed: one entry per table,
+	// with row_key '' and no before-image, in the migration's change (op
+	// migrate). Its rowid places the migration among the row entries, so
+	// an undo of an earlier change to the table sees it (undoRun.migrations).
+	rowMigrated = "migrate"
 )
 
 // change is one entry of _jenab_changes.
@@ -92,6 +97,31 @@ func writeChange(tx *sql.Tx, c change, rows []rowEntry) error {
 		return err
 	}
 	return writeRowEntries(tx, c.id, rows)
+}
+
+// writeMigration writes a migration's change log entry inside the
+// migration's own transaction, with its DDL: the change (op migrate,
+// target table:<name> for one table, schema for more) and one rowMigrated
+// marker per table it changes, so an undo of an earlier change to one of
+// them sees the migration in commit order (undoRun.migrations). An undo
+// never reverts it (SPEC 2.6).
+func writeMigration(tx *sql.Tx, src id.Source, tables []string) (id.Change, error) {
+	if err := checkSource(src); err != nil {
+		return "", err
+	}
+	if len(tables) == 0 {
+		return "", fault("store: a migration names the tables it changes")
+	}
+	target := "schema"
+	if len(tables) == 1 {
+		target = "table:" + tables[0]
+	}
+	c := newChange(src, target, "migrate")
+	rows := make([]rowEntry, len(tables))
+	for i, t := range tables {
+		rows[i] = rowEntry{table: t, key: "", kind: rowMigrated}
+	}
+	return c.id, writeChange(tx, c, rows)
 }
 
 // writeRowEntries adds rows to change cid with one statement.
@@ -367,7 +397,7 @@ func dropRows(tx *sql.Tx, cid string, n int) (int, error) {
 		count[k]++
 	}
 	_, err = tx.Exec(`UPDATE _jenab_changes SET after = json_object('d', coalesce(after->>'d', 0) + ?,
-		'i', coalesce(after->>'i', 0) + ?, 'u', coalesce(after->>'u', 0) + ?) WHERE id = ? AND target LIKE 'table:%'`,
+		'i', coalesce(after->>'i', 0) + ?, 'u', coalesce(after->>'u', 0) + ?) WHERE id = ? AND target LIKE 'table:%' AND op <> 'migrate'`,
 		count[rowDeleted], count[rowInserted], count[rowUpdated], cid)
 	return len(kinds), err
 }

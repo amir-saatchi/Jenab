@@ -93,6 +93,7 @@ const (
 	NoticePageOpened    NoticeKind = "page_opened"    // the user opened a page or changed its filters (5.9)
 	NoticeMemoryChanged NoticeKind = "memory_changed" // between cuts (3.6)
 	NoticeApprovalLevel NoticeKind = "approval_level" // 8.8
+	NoticeTurnUndone    NoticeKind = "turn_undone"    // Undo turn or Redo turn (2.6)
 	NoticeEarlyStop     NoticeKind = "early_stop"     // a turn ended after a failed save (10)
 	NoticeTurnFailed    NoticeKind = "turn_failed"    // a provider error stopped the turn; the card offers Retry (8.3)
 	NoticeAnswerCut     NoticeKind = "answer_cut"     // the answer hit the output limit, was refused or was empty (8.3)

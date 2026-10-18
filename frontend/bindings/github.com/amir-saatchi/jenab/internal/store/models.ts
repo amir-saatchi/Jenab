@@ -12,6 +12,46 @@ import * as id$0 from "../id/models.js";
 import * as time$0 from "../../../../../time/models.js";
 
 /**
+ * ConflictReason says why an item stops an undo.
+ */
+export enum ConflictReason {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * a later change touched it
+     */
+    ConflictChanged = "changed",
+
+    /**
+     * reverting it would make foreign keys change Reached, which the undo doesn't cover
+     */
+    ConflictCascade = "cascade",
+
+    /**
+     * Reached refers to it, or it refers to a row that is gone
+     */
+    ConflictReferenced = "referenced",
+
+    /**
+     * its table or a column of it is gone
+     */
+    ConflictSchema = "schema",
+
+    /**
+     * putting it back breaks a constraint
+     */
+    ConflictConstraint = "constraint",
+
+    /**
+     * this kind of target can't be undone yet
+     */
+    ConflictUnsupported = "unsupported",
+};
+
+/**
  * Hit is one message that matched, with a snippet of its text.
  */
 export interface Hit {
@@ -35,6 +75,53 @@ export interface SearchResult {
      * messages may match too.
      */
     "stopped": boolean;
+}
+
+/**
+ * TableRows is how many rows of one table an undo reverts.
+ */
+export interface TableRows {
+    /**
+     * as _jenab_change_rows names it
+     */
+    "table": string;
+    "rows": number;
+}
+
+/**
+ * UndoConflict is an item the undo can't revert as things are.
+ */
+export interface UndoConflict {
+    "item": UndoItem;
+    "reason": ConflictReason;
+
+    /**
+     * the later change, for ConflictChanged
+     */
+    "change"?: id$0.Change;
+
+    /**
+     * who made it
+     */
+    "source"?: id$0.Source;
+    "at"?: string | null;
+
+    /**
+     * the other row, for ConflictCascade and ConflictReferenced
+     */
+    "reached"?: UndoItem | null;
+    "detail"?: string;
+}
+
+/**
+ * UndoItem is one thing an undo reverts, as _jenab_change_rows names it:
+ * a row of an agent table by its primary key in SQLite's json_array form,
+ * or an internal target such as an object (_jenab_objects, object:<key>)
+ * or a chat's role (RoleItem).
+ */
+export interface UndoItem {
+    "table": string;
+    "key": string;
 }
 
 /**

@@ -66,6 +66,9 @@ var known = []struct {
 	{store.ErrBadTitle, KindInvalid, "A title needs 1 to 100 characters on one line."},
 	{store.ErrTooLong, KindInvalid, "The text is too long."},
 	{store.ErrReadOnly, KindReadOnly, "The project is open read-only after damage."},
+	{store.ErrUndoWindow, KindInvalid, "This turn is past the undo window. Its changes are kept as history only."},
+	{store.ErrNothingToUndo, KindBusy, "There is nothing to undo."},
+	{agent.ErrRolesNotUndone, KindInternal, "The turn was undone, but its chat roles weren't. Undo it again to finish."},
 	{store.ErrNewerFormat, KindInvalid, "The project was saved by a newer version of Jenab."},
 	{bucket.ErrBadKey, KindInvalid, "That isn't a usable file name."},
 	{store.ErrNotFound, KindNotFound, "It no longer exists."},
@@ -96,6 +99,10 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	var pe *provider.Error
 	if errors.As(err, &pe) {
 		return &UIError{Kind: KindProvider, Message: redact(pe.Error()), Details: details}
+	}
+	var big *store.UndoTooBigError
+	if errors.As(err, &big) {
+		return &UIError{Kind: KindInvalid, Message: fmt.Sprintf("This turn changed %d rows. Undo can revert at most %d at once.", big.Rows, big.Max), Details: details}
 	}
 	var le *levelError
 	if errors.As(err, &le) {

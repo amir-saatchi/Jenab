@@ -64,6 +64,8 @@ func TestCrashWorker(t *testing.T) {
 		workParts(ctx, dir)
 	case "changes":
 		workChanges(ctx, dir)
+	case "undo":
+		workUndo(ctx, dir)
 	}
 	t.Fatal("the worker returned instead of being killed")
 }
@@ -688,5 +690,123 @@ func TestCrashChangeLog(t *testing.T) {
 	// proved nothing about cut requests.
 	if cut == 0 {
 		t.Errorf("no kill cut a request between its chunks in %d kills", kills())
+	}
+}
+
+// ---- undo: the whole undo or nothing (P2-03) ----
+
+// The turn updates, deletes and inserts rows of u, so the table has one of
+// two states: before the turn (undoBefore) and after it (undoAfter), each
+// as count(*) and total(v).
+const undoRows = 5000
+
+var (
+	undoTurn   = id.SourceOf("message", "01CRASHUNDO")
+	undoBefore = [2]int{undoRows, 0}
+	undoAfter  = [2]int{undoRows - 1000 + 1500, 2500 + 2*1500}
+)
+
+func workUndo(ctx context.Context, dir string) {
+	p, err := OpenProject(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	var n int
+	Query(ctx, p.DB, "SELECT count(*) FROM sqlite_schema WHERE name = 'u'", nil, func(r *sql.Rows) (int, error) { return 0, r.Scan(&n) })
+	if n == 0 {
+		if _, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (int, error) {
+			_, err := tx.Exec("CREATE TABLE u (i INTEGER PRIMARY KEY, v INTEGER NOT NULL, pad TEXT)")
+			return 0, err
+		}); err != nil {
+			panic(err)
+		}
+		rows := make([]Row, undoRows)
+		for i := range rows {
+			rows[i] = Row{"i": i, "v": 0, "pad": strings.Repeat("p", 100)}
+		}
+		if _, err := p.Insert(ctx, limit.Interactive, id.SourceUser, "u", rows, ConflictFail); err != nil {
+			panic(err)
+		}
+		upd := make([]Row, 2500)
+		for i := range upd {
+			upd[i] = Row{"i": i, "v": 1, "pad": strings.Repeat("q", 100)}
+		}
+		del := make([]Row, 1000)
+		for i := range del {
+			del[i] = Row{"i": 2500 + i}
+		}
+		ins := make([]Row, 1500)
+		for i := range ins {
+			ins[i] = Row{"i": undoRows + i, "v": 2, "pad": strings.Repeat("r", 100)}
+		}
+		if _, err := p.Insert(ctx, limit.Interactive, undoTurn, "u", upd, ConflictUpsert); err != nil {
+			panic(err)
+		}
+		if _, err := p.Delete(ctx, limit.Interactive, undoTurn, "u", del); err != nil {
+			panic(err)
+		}
+		if _, err := p.Insert(ctx, limit.Interactive, undoTurn, "u", ins, ConflictFail); err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("READY")
+	for {
+		st, err := p.UndoState(ctx, []id.Source{undoTurn})
+		if err != nil {
+			panic(err)
+		}
+		if _, err := p.Undo(ctx, []id.Source{undoTurn}, UndoOptions{Redo: st.Undo.Changes == 0}); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func TestCrashUndo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("crash test")
+	}
+	dir := t.TempDir()
+	ctx := context.Background()
+	undos := 0
+	for k := range kills() {
+		killDuring(t, "undo", dir, 2*time.Second)
+		p, err := OpenProject(ctx, dir)
+		if err != nil {
+			t.Fatalf("kill %d: open: %v", k+1, err)
+		}
+		quickCheck(t, p.DB)
+		var got [2]int
+		got[0] = one[int](t, p.DB, "SELECT count(*) FROM u")
+		got[1] = one[int](t, p.DB, "SELECT total(v) FROM u")
+		st, err := p.UndoState(ctx, []id.Source{undoTurn})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch got {
+		case undoAfter:
+			if st.Undo.Changes != 3 || st.Redo.Changes != 0 {
+				t.Errorf("kill %d: the turn is in effect, but the state is %+v", k+1, st)
+			}
+		case undoBefore:
+			if st.Undo.Changes != 0 || st.Redo.Changes != 3 {
+				t.Errorf("kill %d: the turn is undone, but the state is %+v", k+1, st)
+			}
+		default:
+			t.Errorf("kill %d: u is half undone: %d rows, total %d", k+1, got[0], got[1])
+		}
+		// Every undo change has all its row entries.
+		if n := one[int](t, p.DB, `SELECT count(*) FROM _jenab_changes c WHERE c.source LIKE 'undo:%' AND
+			(SELECT count(*) FROM _jenab_change_rows r WHERE r.change_id = c.id) NOT IN (1000, 1500, 2500)`); n != 0 {
+			t.Errorf("kill %d: %d undo changes miss row entries", k+1, n)
+		}
+		undos = one[int](t, p.DB, "SELECT count(*) FROM _jenab_changes WHERE source LIKE 'undo:%'")
+		if undos%3 != 0 {
+			t.Errorf("kill %d: %d undo changes, not whole undos of 3", k+1, undos)
+		}
+		p.Close(ctx)
+		t.Logf("kill %d: %d undos and redos so far", k+1, undos/3)
+	}
+	if undos == 0 {
+		t.Errorf("no undo finished in %d kills", kills())
 	}
 }
