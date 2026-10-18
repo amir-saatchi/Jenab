@@ -47,6 +47,9 @@ type Deps struct {
 	// Level is the approval level for new projects
 	// (approvals.default_level); nil means Standard.
 	Level func() Level
+	// ChangeKeep is how long change-log rows are kept (SPEC 2.5); 0 means
+	// store.ChangeKeep.
+	ChangeKeep time.Duration
 }
 
 // Manager keeps one Project per open project, with its leases (Q29).
@@ -286,6 +289,9 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 		}
 	}
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+	if p.Damage == nil {
+		go m.cleanChanges(p)
+	}
 	if err := m.d.Registry.TouchProject(ctx, p.ID, time.Now()); err != nil {
 		m.d.Log.Warn("project: could not save the open time", "project", p.ID, "err", err)
 	}
@@ -496,4 +502,40 @@ func (m *Manager) safely(what string, pid id.Project, fn func()) {
 		}
 	}()
 	fn()
+}
+
+// The change-log cleanup runs once a day while a project is open (SPEC
+// 2.5): an open project checks every cleanCheck whether cleanEvery has
+// passed, the first time cleanFirst after it opened.
+const (
+	cleanEvery = 24 * time.Hour
+	cleanCheck = time.Hour
+	cleanFirst = time.Minute
+)
+
+// cleanChanges runs the cleanup until p closes.
+func (m *Manager) cleanChanges(p *Project) {
+	t := time.NewTimer(cleanFirst)
+	defer t.Stop()
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-t.C:
+		}
+		m.safely("change-log cleanup", p.ID, func() {
+			last, err := p.DB.CleanedAt(p.ctx)
+			if err != nil || time.Since(last) < cleanEvery {
+				return
+			}
+			rep, err := p.DB.CleanChanges(p.ctx, m.d.ChangeKeep)
+			switch {
+			case err != nil && p.ctx.Err() == nil:
+				m.d.Log.Warn("project: the change-log cleanup failed", "project", p.ID, "err", err)
+			case rep.Rows > 0:
+				m.d.Log.Info("project: dropped old change-log rows", "project", p.ID, "changes", rep.Changes, "rows", rep.Rows)
+			}
+		})
+		t.Reset(cleanCheck)
+	}
 }

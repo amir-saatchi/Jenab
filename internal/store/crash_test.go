@@ -62,6 +62,8 @@ func TestCrashWorker(t *testing.T) {
 		workObjects(ctx, dir)
 	case "parts":
 		workParts(ctx, dir)
+	case "changes":
+		workChanges(ctx, dir)
 	}
 	t.Fatal("the worker returned instead of being killed")
 }
@@ -559,5 +561,132 @@ func TestCrashStreamedParts(t *testing.T) {
 		}
 		t.Logf("kill %d: %d messages, %d parts, %d reported", k+1, len(ms), parts, len(reported))
 		c.Close(ctx)
+	}
+}
+
+// ---- the change log: whole chunks, each with its entry and message (P2-02) ----
+
+const logRequest = 6 * chunkRows // rows per request
+
+func workChanges(ctx context.Context, dir string) {
+	p, err := OpenProject(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	c, err := OpenChats(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	mother, err := c.EnsureMother(ctx)
+	if err != nil {
+		panic(err)
+	}
+	Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (int, error) {
+		_, err := tx.Exec("CREATE TABLE IF NOT EXISTS t (req INTEGER, i INTEGER, pad TEXT, PRIMARY KEY (req, i))")
+		return 0, err
+	})
+	req := 0
+	Query(ctx, p.DB, "SELECT coalesce(max(req), 0) FROM t", nil, func(r *sql.Rows) (int, error) { return 0, r.Scan(&req) })
+	ms, _, _ := c.Messages(ctx, mother.ID, 0, 0)
+	turn := len(ms) + 1
+	// Interactive writes take turns with the chunks.
+	go func() {
+		for i := 0; ; i++ {
+			p.Insert(ctx, limit.Interactive, id.SourceUser, "t", []Row{{"req": -1, "i": i % 20, "pad": "x"}}, ConflictUpsert)
+		}
+	}()
+	fmt.Println("READY")
+	for ; ; turn++ {
+		req++
+		// The message first, as before a tool runs (SPEC 2.3).
+		m, _, err := c.AppendMessage(ctx, chat.Message{Chat: mother.ID, Turn: turn, Role: chat.RoleAssistant,
+			Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "c", Name: "insert", Args: json.RawMessage("{}")}}}})
+		if err != nil {
+			panic(err)
+		}
+		rows := make([]Row, logRequest)
+		for i := range rows {
+			rows[i] = Row{"req": req, "i": i, "pad": strings.Repeat("p", 200)}
+		}
+		if _, err := p.Insert(ctx, limit.Background, id.SourceOf("message", string(m.ID)), "t", rows, ConflictFail); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func TestCrashChangeLog(t *testing.T) {
+	if testing.Short() {
+		t.Skip("crash test")
+	}
+	dir := t.TempDir()
+	ctx := context.Background()
+	cut, reqs := 0, 0
+	for k := range kills() {
+		killDuring(t, "changes", dir, 600*time.Millisecond)
+		p, err := OpenProject(ctx, dir)
+		if err != nil {
+			t.Fatalf("kill %d: open: %v", k+1, err)
+		}
+		quickCheck(t, p.DB)
+		// Whole chunks only, from the first one on.
+		if n := one[int](t, p.DB, "SELECT count(*) FROM (SELECT req FROM t WHERE req > 0 GROUP BY req HAVING count(*) % ? <> 0 OR max(i) + 1 <> count(*))", chunkRows); n != 0 {
+			t.Errorf("kill %d: %d requests have part of a chunk", k+1, n)
+		}
+		// Every row has its row entry, and every row entry its change.
+		if n := one[int](t, p.DB, "SELECT count(*) FROM t WHERE json_array(req, i) NOT IN (SELECT row_key FROM _jenab_change_rows WHERE table_name = 't')"); n != 0 {
+			t.Errorf("kill %d: %d rows without a row entry", k+1, n)
+		}
+		if n := one[int](t, p.DB, "SELECT count(*) FROM _jenab_change_rows r WHERE NOT EXISTS (SELECT 1 FROM _jenab_changes c WHERE c.id = r.change_id)"); n != 0 {
+			t.Errorf("kill %d: %d row entries without their change", k+1, n)
+		}
+		// One entry per request, holding whole chunks of it, never empty.
+		if n := one[int](t, p.DB, `SELECT count(*) FROM _jenab_changes c WHERE c.source LIKE 'message:%' AND
+			(SELECT count(*) FROM _jenab_change_rows r WHERE r.change_id = c.id) NOT IN (500, 1000, 1500, 2000, 2500, 3000)`); n != 0 {
+			t.Errorf("kill %d: %d entries are empty or hold part of a chunk", k+1, n)
+		}
+		if n := one[int](t, p.DB, `SELECT count(*) FROM (SELECT change_id FROM _jenab_change_rows WHERE table_name = 't' AND row_key NOT LIKE '[-1,%'
+			GROUP BY change_id HAVING count(DISTINCT row_key->>0) <> 1)`); n != 0 {
+			t.Errorf("kill %d: %d entries mix requests", k+1, n)
+		}
+		reqs = one[int](t, p.DB, "SELECT count(DISTINCT req) FROM t WHERE req > 0")
+		if n := one[int](t, p.DB, "SELECT count(*) FROM _jenab_changes WHERE source LIKE 'message:%'"); n != reqs {
+			t.Errorf("kill %d: %d entries for %d requests", k+1, n, reqs)
+		}
+		cut = one[int](t, p.DB, "SELECT count(*) FROM (SELECT req FROM t WHERE req > 0 GROUP BY req HAVING count(*) < ?)", logRequest)
+		// Never an entry without its message.
+		srcs, err := Query(ctx, p.DB, "SELECT source FROM _jenab_changes WHERE source LIKE 'message:%'", nil, func(r *sql.Rows) (string, error) {
+			var s string
+			return s, r.Scan(&s)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Close(ctx)
+		c, err := OpenChats(ctx, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mother, _ := c.EnsureMother(ctx)
+		ms, _, err := c.Messages(ctx, mother.ID, 0, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		have := map[string]bool{}
+		for _, m := range ms {
+			have["message:"+string(m.ID)] = true
+		}
+		for _, s := range srcs {
+			if !have[s] {
+				t.Errorf("kill %d: change from %s, which is not in chats.db", k+1, s)
+			}
+		}
+		c.Close(ctx)
+		t.Logf("kill %d: %d requests logged, %d messages", k+1, reqs, len(ms))
+	}
+	t.Logf("%d of %d requests were cut between chunks", cut, reqs)
+	// The kills must have hit requests in the middle, or the checks above
+	// proved nothing about cut requests.
+	if cut == 0 {
+		t.Errorf("no kill cut a request between its chunks in %d kills", kills())
 	}
 }

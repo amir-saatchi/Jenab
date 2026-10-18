@@ -252,7 +252,7 @@ func inTx[T any](ctx context.Context, c *sql.Conn, fn func(*sql.Tx) (T, error)) 
 	}
 	if err := tx.Commit(); err != nil {
 		var zero T
-		return zero, err
+		return zero, checkErr(err) // a deferred foreign key fails here
 	}
 	return v, nil
 }
@@ -294,9 +294,9 @@ func await[T any](ctx context.Context, w *writer, p limit.Priority, j job, reply
 }
 
 // setErrIfDB records errors from SQLite for Stats, but not the caller's own
-// errors such as a revision conflict.
+// errors such as a revision conflict or a write that doesn't fit its table.
 func (w *writer) setErrIfDB(err error) {
-	if errors.Is(err, ErrConflict) || errors.Is(err, ErrNotFound) || errors.Is(err, ErrClosed) {
+	if errors.Is(err, ErrConflict) || errors.Is(err, ErrNotFound) || errors.Is(err, ErrClosed) || errors.Is(err, ErrInvalid) {
 		return
 	}
 	w.setErr(err)

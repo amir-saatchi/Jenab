@@ -324,6 +324,72 @@ func TestIdleClose(t *testing.T) {
 	})
 }
 
+// The change-log cleanup runs a minute after the open, then once a day,
+// and stops with the project (SPEC 2.5).
+func TestChangeCleanup(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		e := newEnv(t, t.TempDir())
+		e.m = NewManager(Deps{Paths: e.paths, Registry: e.reg, Events: e.pub, ChangeKeep: 30 * time.Second})
+		defer e.stop(t)
+		ctx := context.Background()
+		p := open(t, e.m, create(t, e.m, "BTC"))
+		defer p.Release()
+		if _, err := store.Do(ctx, p.DB.DB, limit.Interactive, func(tx *sql.Tx) (int, error) {
+			_, err := tx.Exec(`CREATE TABLE t (id INTEGER PRIMARY KEY)`)
+			return 0, err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		r, err := p.DB.Insert(ctx, limit.Interactive, id.SourceUser, "t", []store.Row{{"id": 1}}, store.ConflictFail)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rows := func() int {
+			n, err := store.Query(ctx, p.DB.DB, "SELECT count(*) FROM _jenab_change_rows WHERE change_id = ?", []any{string(r.Change)},
+				func(r *sql.Rows) (int, error) {
+					var n int
+					return n, r.Scan(&n)
+				})
+			if err != nil {
+				t.Fatal(err)
+			}
+			return n[0]
+		}
+		cleanedAt := func() time.Time {
+			at, err := p.DB.CleanedAt(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return at
+		}
+
+		time.Sleep(cleanFirst - time.Second)
+		synctest.Wait()
+		if !cleanedAt().IsZero() || rows() != 1 {
+			t.Fatal("cleaned before the first minute")
+		}
+		time.Sleep(2 * time.Second)
+		synctest.Wait()
+		first := cleanedAt()
+		if first.IsZero() || rows() != 0 {
+			t.Fatalf("not cleaned after the first minute: at %v, %d rows", first, rows())
+		}
+		// The hourly checks wait for the day to pass.
+		time.Sleep(cleanCheck)
+		synctest.Wait()
+		if !cleanedAt().Equal(first) {
+			t.Error("cleaned again within the day")
+		}
+		time.Sleep(cleanEvery)
+		synctest.Wait()
+		if !cleanedAt().After(first) {
+			t.Error("not cleaned again after a day")
+		}
+		// e.stop closes the project; synctest.Test then waits for the
+		// cleanup goroutine, which must end with it.
+	})
+}
+
 func TestOnCloseNewestFirstAndPanics(t *testing.T) {
 	e := newEnv(t, t.TempDir())
 	p := open(t, e.m, create(t, e.m, "BTC"))

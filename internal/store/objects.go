@@ -123,12 +123,15 @@ func (e *noObject) Error() string     { return "store: no object at " + e.key }
 func (e *noObject) Is(err error) bool { return err == ErrNotFound || err == bucket.ErrNotFound }
 
 // PutObject stores r under key in the write order of SPEC 4.3: the bytes
-// first, then the index and version rows in one transaction. A crash in
-// between leaves only bytes no row points to, which the sweep removes.
-// Content equal to the current version adds no version; the other fields
-// are updated.
+// first, then the index and version rows and the change entry in one
+// transaction. A crash in between leaves only bytes no row points to, which
+// the sweep removes. Content equal to the current version adds no version;
+// the other fields are updated.
 func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Source, key string, r io.Reader, o PutOptions) (Object, error) {
 	if err := bucket.CheckKey(key); err != nil {
+		return Object{}, err
+	}
+	if err := checkSource(src); err != nil {
 		return Object{}, err
 	}
 	if !objectSources[o.Source] {
@@ -157,13 +160,15 @@ func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Sou
 		Source: o.Source, SourceURL: o.SourceURL, CreatedBy: src, UpdatedAt: time.Now().UTC().Truncate(time.Millisecond)}
 	obj.Expires = life.expires(key, obj.UpdatedAt)
 	return Do(ctx, p.DB, pr, func(tx *sql.Tx) (Object, error) {
-		var cur sql.NullString
-		var version int
-		if err := tx.QueryRow(`SELECT (SELECT sha256 FROM _jenab_objects WHERE key = ?),
-			(SELECT COALESCE(MAX(version), 0) FROM _jenab_object_versions WHERE key = ?)`, key, key).Scan(&cur, &version); err != nil {
+		prev, err := objectIn(tx, key)
+		if err != nil {
 			return Object{}, err
 		}
-		if cur.String != obj.SHA256 || !cur.Valid {
+		var version int
+		if err := tx.QueryRow(`SELECT COALESCE(MAX(version), 0) FROM _jenab_object_versions WHERE key = ?`, key).Scan(&version); err != nil {
+			return Object{}, err
+		}
+		if prev == nil || prev.SHA256 != obj.SHA256 {
 			version++
 			if _, err := tx.Exec(`INSERT INTO _jenab_object_versions (key, version, sha256, size, created_by, created_at)
 				VALUES (?, ?, ?, ?, ?, ?)`, key, version, obj.SHA256, obj.Size, string(src), formatTime(obj.UpdatedAt)); err != nil {
@@ -171,13 +176,15 @@ func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Sou
 			}
 		}
 		obj.Version = version
-		_, err := tx.Exec(`INSERT INTO _jenab_objects (key, sha256, mime, size, metadata, source, source_url, created_by, updated_at)
+		if _, err := tx.Exec(`INSERT INTO _jenab_objects (key, sha256, mime, size, metadata, source, source_url, created_by, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (key) DO UPDATE SET sha256 = excluded.sha256, mime = excluded.mime, size = excluded.size,
 				metadata = excluded.metadata, source = excluded.source, source_url = excluded.source_url,
 				created_by = excluded.created_by, updated_at = excluded.updated_at`,
-			key, obj.SHA256, obj.MIME, obj.Size, string(meta), obj.Source, obj.SourceURL, string(src), formatTime(obj.UpdatedAt))
-		return obj, err
+			key, obj.SHA256, obj.MIME, obj.Size, string(meta), obj.Source, obj.SourceURL, string(src), formatTime(obj.UpdatedAt)); err != nil {
+			return Object{}, err
+		}
+		return obj, logObject(tx, src, "save", key, prev, &obj)
 	})
 }
 
@@ -347,27 +354,35 @@ func (p *ProjectDB) ObjectVersions(ctx context.Context, key string) ([]ObjectVer
 
 // DeleteObject removes key. Its versions and bytes stay until the
 // lifecycle rules and the sweep remove them (SPEC 4.3, 4.4), so the delete
-// can be undone.
+// can be undone. The change entry keeps the object as it was.
 func (p *ProjectDB) DeleteObject(ctx context.Context, pr limit.Priority, src id.Source, key string) error {
 	if err := bucket.CheckKey(key); err != nil {
 		return err
 	}
+	if err := checkSource(src); err != nil {
+		return err
+	}
 	_, err := Do(ctx, p.DB, pr, func(tx *sql.Tx) (struct{}, error) {
-		res, err := tx.Exec(`DELETE FROM _jenab_objects WHERE key = ?`, key)
+		prev, err := objectIn(tx, key)
 		if err != nil {
 			return struct{}{}, err
 		}
-		if n, _ := res.RowsAffected(); n == 0 {
+		if prev == nil {
 			return struct{}{}, &noObject{key}
 		}
-		return struct{}{}, nil
+		if _, err := tx.Exec(`DELETE FROM _jenab_objects WHERE key = ?`, key); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, logObject(tx, src, "delete", key, prev, nil)
 	})
 	return err
 }
 
 // MoveObject renames from to to, with its versions. It fails with
 // ErrObjectExists if to is taken. If to had versions from an earlier
-// deleted object, the moved ones are numbered after them.
+// deleted object, the moved ones are numbered after them. Object-reference
+// columns that hold from are set to to in the same transaction (SPEC 4.3),
+// and the change entry lists those rows with their before-images.
 func (p *ProjectDB) MoveObject(ctx context.Context, pr limit.Priority, src id.Source, from, to string) (Object, error) {
 	if err := bucket.CheckKey(from); err != nil {
 		return Object{}, err
@@ -377,6 +392,9 @@ func (p *ProjectDB) MoveObject(ctx context.Context, pr limit.Priority, src id.So
 	}
 	if from == to {
 		return Object{}, fmt.Errorf("store: moving %s onto itself", from)
+	}
+	if err := checkSource(src); err != nil {
+		return Object{}, err
 	}
 	life := p.lifecycle(ctx)
 	now := time.Now().UTC().Truncate(time.Millisecond)
@@ -388,25 +406,160 @@ func (p *ProjectDB) MoveObject(ctx context.Context, pr limit.Priority, src id.So
 		if taken > 0 {
 			return Object{}, fmt.Errorf("%w: %s", ErrObjectExists, to)
 		}
+		prev, err := objectIn(tx, from)
+		if err != nil {
+			return Object{}, err
+		}
+		if prev == nil {
+			return Object{}, &noObject{from}
+		}
 		var offset int
 		if err := tx.QueryRow(`SELECT COALESCE(MAX(version), 0) FROM _jenab_object_versions WHERE key = ?`, to).Scan(&offset); err != nil {
 			return Object{}, err
 		}
-		res, err := tx.Exec(`UPDATE _jenab_objects SET key = ?, created_by = ?, updated_at = ? WHERE key = ?`,
-			to, string(src), formatTime(now), from)
-		if err != nil {
+		if _, err := tx.Exec(`UPDATE _jenab_objects SET key = ?, created_by = ?, updated_at = ? WHERE key = ?`,
+			to, string(src), formatTime(now), from); err != nil {
 			return Object{}, err
-		}
-		if n, _ := res.RowsAffected(); n == 0 {
-			return Object{}, &noObject{from}
 		}
 		if _, err := tx.Exec(`UPDATE _jenab_object_versions SET key = ?, version = version + ? WHERE key = ?`, to, offset, from); err != nil {
 			return Object{}, err
 		}
 		o, err := scanObject(tx.QueryRow("SELECT "+objectCols+" FROM _jenab_objects o WHERE o.key = ?", to))
+		if err != nil {
+			return Object{}, err
+		}
 		o.Expires = life.expires(o.Key, o.UpdatedAt)
-		return o, err
+		refs, err := moveRefs(tx, from, to)
+		if err != nil {
+			return Object{}, err
+		}
+		c := newChange(src, objectTarget(from), "move")
+		c.before, c.after = objectRevision(prev), objectRevision(&o)
+		rows := append([]rowEntry{
+			{table: "_jenab_objects", key: objectTarget(from), kind: rowDeleted, before: c.before},
+			{table: "_jenab_objects", key: objectTarget(to), kind: rowInserted},
+		}, refs...)
+		return o, writeChange(tx, c, rows)
 	})
+}
+
+// moveRefs sets the object-reference columns that hold from to to, and
+// returns the rows it changed with their before-images (SPEC 4.5).
+// Annotations of tables that are gone are skipped.
+func moveRefs(tx *sql.Tx, from, to string) ([]rowEntry, error) {
+	tables, err := queryTx(tx, `SELECT DISTINCT table_name FROM _jenab_columns WHERE kind = 'object_ref' ORDER BY table_name`, nil,
+		func(r *sql.Rows) (string, error) {
+			var t string
+			return t, r.Scan(&t)
+		})
+	if err != nil {
+		return nil, err
+	}
+	var out []rowEntry
+	for _, name := range tables {
+		t, err := loadTable(tx, name)
+		if errors.Is(err, ErrNotFound) || errors.Is(err, ErrNotAgentTable) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if len(t.refs) == 0 {
+			continue
+		}
+		where := make([]string, len(t.refs))
+		args := make([]any, len(t.refs))
+		for i, c := range t.refs {
+			where[i], args[i] = quote(c)+" = ?", from
+		}
+		var blob bool
+		befores, err := queryTx(tx, fmt.Sprintf("SELECT %s, %s, %s FROM %s WHERE %s", t.keyExpr(), t.beforeExpr(), t.blobKeyAs(""),
+			quote(t.name), strings.Join(where, " OR ")), args, func(r *sql.Rows) (rowEntry, error) {
+			e := rowEntry{table: t.name, kind: rowUpdated}
+			var b bool
+			err := r.Scan(&e.key, &e.before, &b)
+			blob = blob || b
+			return e, err
+		})
+		if err != nil {
+			return nil, err
+		}
+		if blob {
+			return nil, fault("store: a row of %s that refers to %s has a BLOB in its key, which the change log can't hold", t.name, from)
+		}
+		keys := make([]string, len(befores))
+		for i, e := range befores {
+			keys[i] = e.key
+		}
+		cas, err := cascadeOf(tx, t, keys, t.refs) // other tables may reference the ref columns
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range t.refs {
+			if _, err := tx.Exec(fmt.Sprintf("UPDATE OR ABORT %s SET %s = ? WHERE %s = ?", quote(t.name), quote(c), quote(c)), to, from); err != nil {
+				return nil, checkErr(err)
+			}
+		}
+		l := &chunkLog{seen: map[string]bool{}}
+		for _, e := range befores {
+			l.add(e.table, e.key, e.kind, e.before)
+		}
+		if err := cas.log(tx, l); err != nil {
+			return nil, err
+		}
+		out = append(append(out, l.cascade...), l.rows...)
+	}
+	return out, nil
+}
+
+// objectIn reads key's current version inside tx; nil if there is none.
+func objectIn(tx *sql.Tx, key string) (*Object, error) {
+	o, err := scanObject(tx.QueryRow("SELECT "+objectCols+" FROM _jenab_objects o WHERE o.key = ?", key))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+func objectTarget(key string) string { return "object:" + key }
+
+// objectRevision is an object as the change log keeps it in before and
+// after (SPEC 2.5); NULL for none.
+func objectRevision(o *Object) sql.NullString {
+	if o == nil {
+		return sql.NullString{}
+	}
+	b, _ := json.Marshal(struct {
+		Key       string          `json:"key"`
+		SHA256    string          `json:"sha256"`
+		MIME      string          `json:"mime"`
+		Size      int64           `json:"size"`
+		Version   int             `json:"version"`
+		Metadata  json.RawMessage `json:"metadata"` // checked as a JSON object when it was stored
+		Source    string          `json:"source"`
+		SourceURL string          `json:"source_url"`
+		CreatedBy id.Source       `json:"created_by"`
+		UpdatedAt string          `json:"updated_at"`
+	}{o.Key, o.SHA256, o.MIME, o.Size, o.Version, o.Metadata, o.Source, o.SourceURL, o.CreatedBy, formatTime(o.UpdatedAt)})
+	return sql.NullString{String: string(b), Valid: true}
+}
+
+// logObject writes the change entry of a put or delete of key: the object
+// before and after, and key's row entry with its before-image.
+func logObject(tx *sql.Tx, src id.Source, op, key string, before, after *Object) error {
+	c := newChange(src, objectTarget(key), op)
+	c.before, c.after = objectRevision(before), objectRevision(after)
+	kind := rowUpdated
+	switch {
+	case before == nil:
+		kind = rowInserted
+	case after == nil:
+		kind = rowDeleted
+	}
+	return writeChange(tx, c, []rowEntry{{table: "_jenab_objects", key: c.target, kind: kind, before: c.before}})
 }
 
 // SweepReport says what a sweep removed.

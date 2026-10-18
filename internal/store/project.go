@@ -34,6 +34,7 @@ var ProjectFormat = Format{Name: "project", Steps: []func(*sql.Tx) error{
 		`CREATE INDEX _jenab_approvals_target ON _jenab_approvals (kind, target)`,
 	),
 	objectTables,
+	changeTables,
 }}
 
 // projectPragmas are for the project.db writer: a 64 MB cache, and a WAL
