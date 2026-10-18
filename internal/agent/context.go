@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -27,6 +28,9 @@ var (
 	//go:embed prompts/delegate.md
 	delegatePrompt string // Mother's delegation guidance (8.6); with create_chat
 )
+
+// promptNames fills in the names the prompt files leave as {app} and {mother}.
+var promptNames = strings.NewReplacer("{app}", appinfo.Name, "{mother}", appinfo.Mother)
 
 // cacheIdle is how long a provider keeps a prompt cache. After a longer
 // pause the next turn cuts the window, since the cache is lost anyway
@@ -242,7 +246,7 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 		b.WriteString("\n\n" + strings.TrimSpace(rulePrompt))
 	}
 	if t.ch.Kind == chat.KindMother {
-		b.WriteString("\n\n" + strings.TrimSpace(motherPrompt))
+		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))
 		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {
 			b.WriteString("\n\n" + strings.TrimSpace(delegatePrompt))
 		}
@@ -303,7 +307,7 @@ func base(tools []tool.Tool) string {
 	if len(missing) > 0 {
 		lacks = "This version has no " + list(missing, "or") + " yet. "
 	}
-	return strings.NewReplacer("{areas}", areas, "{missing}", lacks).Replace(strings.TrimSpace(basePrompt))
+	return strings.NewReplacer("{areas}", areas, "{missing}", lacks).Replace(promptNames.Replace(strings.TrimSpace(basePrompt)))
 }
 
 // list joins words as a sentence does: "a", "a and b", "a, b, and c".

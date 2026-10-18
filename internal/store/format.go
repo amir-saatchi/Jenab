@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
 // Format is a file's storage format: Steps[i] brings the file from version
@@ -57,7 +59,7 @@ func prepareFormat(ctx context.Context, path string, f Format, snapshots string)
 	case v == f.current():
 		return nil
 	case v == 0 && tables > 0:
-		return fmt.Errorf("store: %s is not a Jenab file (format 0 with %d tables)", filepath.Base(path), tables)
+		return fmt.Errorf("store: %s is not a "+appinfo.Name+" file (format 0 with %d tables)", filepath.Base(path), tables)
 	case v > 0:
 		if snapshots == "" {
 			return fmt.Errorf("store: %s needs a backup before its format update, but no snapshot folder is set", filepath.Base(path))

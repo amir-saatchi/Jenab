@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
@@ -106,12 +107,12 @@ const (
 	MaxRoleTokens  = 500
 	MaxNotesTokens = 2500
 	MaxTitle       = 100 // characters
-	MotherTitle    = "Mother"
+	MotherTitle    = appinfo.Mother
 	DefaultModel   = "default" // the alias new chats use (SPEC 3.9)
 )
 
 var (
-	ErrMother     = errors.New("store: the Mother chat can't be archived or deleted, or have a role")
+	ErrMother     = errors.New("store: the " + appinfo.Mother + " chat can't be archived or deleted, or have a role")
 	ErrTitleTaken = errors.New("store: another chat has this title")
 	ErrBadTitle   = errors.New("store: a title needs 1 to 100 characters on one line")
 	ErrTooLong    = errors.New("store: the text is over its token limit")

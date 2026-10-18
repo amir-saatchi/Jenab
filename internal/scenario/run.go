@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -324,7 +325,7 @@ func (r *run) setup(ctx context.Context) error {
 		}
 		i := slices.IndexFunc(cs, func(c chat.Chat) bool { return c.Kind == chat.KindMother })
 		if i < 0 {
-			return errors.New("the project has no Mother chat")
+			return errors.New("the project has no " + appinfo.Mother + " chat")
 		}
 		r.cid = cs[i].ID
 		if len(r.sc.Skills) > 0 {

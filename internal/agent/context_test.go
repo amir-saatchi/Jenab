@@ -10,6 +10,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/skill"
@@ -64,6 +65,22 @@ func TestBlockOneAreas(t *testing.T) {
 	} {
 		if got := base(c.tools); !strings.Contains(got, c.want) || strings.Contains(got, "{") {
 			t.Errorf("want %q in:\n%s", c.want, got)
+		}
+	}
+}
+
+// The prompt files name the app and the Mother chat only through {app}
+// and {mother}, and only the files that go through promptNames use them.
+func TestPromptNames(t *testing.T) {
+	if got := base(nil); !strings.HasPrefix(got, "You are the agent of a "+appinfo.Name+" project. "+appinfo.Name+" is ") {
+		t.Errorf("base: %q", got)
+	}
+	if got := promptNames.Replace(motherPrompt); !strings.HasPrefix(got, "This is the "+appinfo.Mother+" chat:") {
+		t.Errorf("mother: %q", got)
+	}
+	for name, p := range map[string]string{"rule.md": rulePrompt, "delegate.md": delegatePrompt} {
+		if strings.Contains(p, "{app}") || strings.Contains(p, "{mother}") {
+			t.Errorf("%s uses a name placeholder, but isn't filled in", name)
 		}
 	}
 }

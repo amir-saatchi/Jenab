@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { SettingsService, type ModelOption, type ProviderModels } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { APP_NAME } from "@/lib/names"
 import { contextSize } from "@/settings/format"
 import { NumberInput } from "@/settings/number-input"
 import { useSettings } from "@/state/settings"
@@ -85,7 +86,7 @@ export function ProviderModelsDialog({ name, onClose }: { name: string; onClose:
                 <div className="flex flex-col gap-2">
                   <h3 className="text-sm font-medium">Other models</h3>
                   <p className="text-xs text-muted-foreground">
-                    Listed by the provider but not in Jenab&apos;s model list. Turning one on needs its context window.
+                    Listed by the provider but not in {APP_NAME}&apos;s model list. Turning one on needs its context window.
                   </p>
                   <ModelList models={pm.other} isOn={isOn} aliased={aliased} onToggle={toggle} askContext />
                 </div>

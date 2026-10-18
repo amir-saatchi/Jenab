@@ -24,6 +24,7 @@ import {
   type Waiting,
 } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
@@ -176,7 +177,7 @@ function Empty({ thread, mother }: { thread: Thread; mother: boolean }) {
   return (
     <MessageRow align="start">
       <MessageContent className="gap-2">
-        <AgentText text={hello(thread.chat.title || "Mother")} />
+        <AgentText text={hello(thread.chat.title || MOTHER)} />
         <div className="flex flex-wrap gap-2">
           {starters.map((s) => (
             <Button key={s} variant="outline" size="sm" onClick={() => void send(s)}>

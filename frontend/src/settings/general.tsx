@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SettingsService, type FolderWarning as Warning, type MoveResult } from "@/lib/api"
 import { showError, toUIError } from "@/lib/errors"
+import { APP_NAME } from "@/lib/names"
 import { useSettings } from "@/state/settings"
 import { FolderWarning } from "@/shell/folder-warning"
 import { levels } from "@/shell/project-settings"
@@ -103,7 +104,7 @@ function MovedNote({ moved }: { moved: MoveResult }) {
         {n > 0 && <span>{n === 1 ? "1 project was" : `${n} projects were`} moved to the new data folder at this start. </span>}
         {failed.length > 0 && (
           <span>
-            Not moved, still opened from the old folder: <span dir="auto">{failed.join(", ")}</span>. Jenab tries
+            Not moved, still opened from the old folder: <span dir="auto">{failed.join(", ")}</span>. {APP_NAME} tries
             again at the next start; the log has the reason.
           </span>
         )}

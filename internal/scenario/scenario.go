@@ -21,6 +21,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -462,7 +463,7 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		return nil, errors.New("context must be main or mother")
 	}
 	if sc.Context == "mother" && sc.Role != "" {
-		return nil, errors.New("the Mother chat has no role")
+		return nil, errors.New("the " + appinfo.Mother + " chat has no role")
 	}
 	for _, n := range sc.Needs {
 		if !slices.Contains(knownNeeds, n) {

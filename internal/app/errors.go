@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
@@ -49,8 +50,8 @@ var known = []struct {
 	kind string
 	msg  string
 }{
-	{agent.ErrRefused, KindClosing, "Jenab is shutting down."},
-	{project.ErrClosed, KindClosing, "Jenab is shutting down."},
+	{agent.ErrRefused, KindClosing, appinfo.Name + " is shutting down."},
+	{project.ErrClosed, KindClosing, appinfo.Name + " is shutting down."},
 	{agent.ErrEmpty, KindInvalid, "The message is empty."},
 	{agent.ErrInTurn, KindBusy, "The chat is in a turn. Wait for it to end, or stop it."},
 	{agent.ErrNoRetry, KindBusy, "There is nothing to retry."},
@@ -61,7 +62,7 @@ var known = []struct {
 	{project.ErrExportExists, KindInvalid, "Something is already there. Choose another name, or an empty folder."},
 	{project.ErrExportInside, KindInvalid, "An export can't go inside the project's own folder."},
 	{project.ErrNoSpace, KindInvalid, "There isn't enough free disk space there for the export."},
-	{store.ErrMother, KindInvalid, "The Mother chat can't be archived or deleted, or get a role."},
+	{store.ErrMother, KindInvalid, "The " + appinfo.Mother + " chat can't be archived or deleted, or get a role."},
 	{store.ErrTitleTaken, KindInvalid, "Another chat has this title."},
 	{store.ErrBadTitle, KindInvalid, "A title needs 1 to 100 characters on one line."},
 	{store.ErrTooLong, KindInvalid, "The text is too long."},
@@ -69,7 +70,7 @@ var known = []struct {
 	{store.ErrUndoWindow, KindInvalid, "This turn is past the undo window. Its changes are kept as history only."},
 	{store.ErrNothingToUndo, KindBusy, "There is nothing to undo."},
 	{agent.ErrRolesNotUndone, KindInternal, "The turn was undone, but its chat roles weren't. Undo it again to finish."},
-	{store.ErrNewerFormat, KindInvalid, "The project was saved by a newer version of Jenab."},
+	{store.ErrNewerFormat, KindInvalid, "The project was saved by a newer version of " + appinfo.Name + "."},
 	{bucket.ErrBadKey, KindInvalid, "That isn't a usable file name."},
 	{store.ErrNotFound, KindNotFound, "It no longer exists."},
 	{bucket.ErrNotFound, KindNotFound, "It no longer exists."},

@@ -13,6 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/frontend"
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/app"
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
@@ -27,9 +28,6 @@ import (
 	"github.com/amir-saatchi/jenab/internal/web"
 )
 
-// appName is the one place the app's name is set (Q1).
-const appName = "Jenab"
-
 // benchArgs gives extra WebView2 arguments; only the bench build sets it.
 var benchArgs = func() []string { return nil }
 
@@ -41,7 +39,7 @@ func main() {
 		if errors.Is(err, errRunning) {
 			fatal(err.Error() + ".")
 		} else {
-			fatal(fmt.Sprintf("%s couldn't start: %v", appName, err))
+			fatal(fmt.Sprintf("%s couldn't start: %v", appinfo.Name, err))
 		}
 		os.Exit(1)
 	}
@@ -51,7 +49,7 @@ func main() {
 // (Q28, CODE-OUTLINE 2). The scheduler, pipelines and updates join it in
 // later phases.
 func run(_ []string) (err error) {
-	paths, err := config.DefaultPaths(appName)
+	paths, err := config.DefaultPaths(appinfo.Name)
 	if err != nil {
 		return err
 	}
@@ -92,7 +90,7 @@ func run(_ []string) (err error) {
 		return err
 	}
 	live := app.NewSettings(paths.Settings, settings, problems)
-	secrets := secret.New(secret.OSKeyring(strings.ToLower(appName)))
+	secrets := secret.New(secret.OSKeyring(strings.ToLower(appinfo.Name)))
 	registry, err := store.OpenRegistry(ctx, paths.Registry)
 	if err != nil {
 		return err
@@ -112,7 +110,7 @@ func run(_ []string) (err error) {
 		models.Apply(s.LLM)
 	})
 
-	wapp := app.New(app.Deps{Name: appName, Assets: assets, Log: log, // first, so events can be sent
+	wapp := app.New(app.Deps{Name: appinfo.Name, Assets: assets, Log: log, // first, so events can be sent
 		WebviewData: filepath.Join(paths.Root, "webview"), BrowserArgs: benchArgs()})
 	projects := project.NewManager(project.Deps{Paths: paths, Registry: registry, Log: log, Events: wapp.Publisher(),
 		Level: func() project.Level {

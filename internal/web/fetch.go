@@ -19,6 +19,8 @@ import (
 
 	"golang.org/x/net/html/charset"
 	"golang.org/x/net/idna"
+
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
 // MaxBody caps a response body (SPEC 6.6); the rest is not read.
@@ -55,7 +57,7 @@ type Options struct {
 }
 
 // DefaultUserAgent names the app, with a link to it.
-const DefaultUserAgent = "Mozilla/5.0 (compatible; Jenab; +https://github.com/amir-saatchi/Jenab)"
+const DefaultUserAgent = "Mozilla/5.0 (compatible; " + appinfo.Name + "; +https://github.com/amir-saatchi/Jenab)"
 
 // Client is one HTTP client with the network rules: http and https only,
 // no proxy, and no private addresses unless the host is an exception,

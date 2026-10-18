@@ -3,6 +3,7 @@ import { WrenchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { APP_NAME } from "@/lib/names"
 import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { backToChats } from "@/shell/open"
@@ -58,7 +59,7 @@ function DevToolsOff() {
           <WrenchIcon />
         </EmptyMedia>
         <EmptyTitle>The developer tools are off</EmptyTitle>
-        <EmptyDescription>Turn them on in Settings → Developer. They apply at the next start of Jenab.</EmptyDescription>
+        <EmptyDescription>Turn them on in Settings → Developer. They apply at the next start of {APP_NAME}.</EmptyDescription>
       </EmptyHeader>
     </Empty>
   )

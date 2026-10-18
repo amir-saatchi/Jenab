@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -101,7 +102,7 @@ func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result,
 		label = "page " + quoted(p.Title) + " — " + host
 	}
 	if p.NeedsJavaScript {
-		return Result{Text: "[" + label + " — needs_javascript: the page has almost no text without JavaScript, which Jenab doesn't run]"}, nil
+		return Result{Text: "[" + label + " — needs_javascript: the page has almost no text without JavaScript, which " + appinfo.Name + " doesn't run]"}, nil
 	}
 	if p.Truncated {
 		label += fmt.Sprintf(" — cut at %d MB", web.MaxBody>>20)

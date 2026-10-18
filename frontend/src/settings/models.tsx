@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ProviderSettings, Settings } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { APP_NAME } from "@/lib/names"
 import { ConnectForm, type Replace } from "@/chat/provider-card"
 import { limitDefault } from "@/settings/format"
 import { NumberInput } from "@/settings/number-input"
@@ -40,7 +41,7 @@ export function ModelsSection() {
 
   return (
     <>
-      <SettingsSection title="Models" description="Jenab works the same with every model. Keys are stored in the OS keychain.">
+      <SettingsSection title="Models" description={`${APP_NAME} works the same with every model. Keys are stored in the OS keychain.`}>
         {providers.length > 0 ? (
           <ItemGroup className="gap-2">
             {providers.map(([name, p]) => (

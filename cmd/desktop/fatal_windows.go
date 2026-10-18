@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
 // fatal tells the user why the app can't start. The release build has no
@@ -13,7 +15,7 @@ import (
 func fatal(msg string) {
 	fmt.Fprintln(os.Stderr, msg)
 	text, err1 := windows.UTF16PtrFromString(msg)
-	title, err2 := windows.UTF16PtrFromString(appName)
+	title, err2 := windows.UTF16PtrFromString(appinfo.Name)
 	if err1 != nil || err2 != nil {
 		return
 	}

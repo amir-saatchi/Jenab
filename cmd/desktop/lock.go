@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
 // errRunning is returned by lockRoot when another copy of the app holds
 // the lock.
-var errRunning = errors.New(appName + " is already running")
+var errRunning = errors.New(appinfo.Name + " is already running")
 
 // lockRoot takes the app folder's lock, so only one copy of the app runs:
 // two would both move projects and write the registry. The OS drops the

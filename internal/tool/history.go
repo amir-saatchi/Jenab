@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -222,7 +223,7 @@ func writeMessage(b *strings.Builder, m chat.Message) {
 func listChats() Tool {
 	return Func(Spec{
 		Name:        "list_chats",
-		Description: "List the project's chats: ID, title, role and status. The Mother chat is first.",
+		Description: "List the project's chats: ID, title, role and status. The " + appinfo.Mother + " chat is first.",
 		Schema:      json.RawMessage(`{"type": "object", "properties": {}, "additionalProperties": false}`),
 		Effects:     ReadsDB,
 	}, func(ctx context.Context, env *Env, _ struct{}) (Result, error) {
@@ -235,7 +236,7 @@ func listChats() Tool {
 		for _, c := range cs {
 			fmt.Fprintf(&b, "\n- %s %s", c.ID, quoted(c.Title))
 			if c.Kind == chat.KindMother {
-				b.WriteString(" · Mother")
+				b.WriteString(" · " + appinfo.Mother)
 			}
 			if c.ID == env.Chat {
 				b.WriteString(" · this chat")

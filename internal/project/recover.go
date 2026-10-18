@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
@@ -19,7 +20,7 @@ func writeLock(dir string) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "Jenab has this project open.\npid %d\nopened %s\n", os.Getpid(), time.Now().UTC().Format(time.RFC3339))
+	_, err = fmt.Fprintf(f, appinfo.Name+" has this project open.\npid %d\nopened %s\n", os.Getpid(), time.Now().UTC().Format(time.RFC3339))
 	if err == nil {
 		err = f.Sync()
 	}

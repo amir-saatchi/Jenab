@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 import { InspectorView } from "@/dev/inspector"
 import { RuntimeView } from "@/dev/runtime"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { APP_NAME } from "@/lib/names"
 import { current, useNav, type Place } from "@/state/nav"
 import { useUI } from "@/state/ui"
 import { BottomBar } from "@/shell/bottom-bar"
@@ -75,7 +76,7 @@ function PageHeader({ title }: { title: string }) {
 export function pageTitle(place: Place | undefined) {
   switch (place?.view) {
     case undefined:
-      return "Jenab"
+      return APP_NAME
     case "settings":
       return "Settings"
     case "project-settings":

@@ -3,6 +3,7 @@ import { FolderIcon, PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { APP_NAME } from "@/lib/names"
 import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { useUI } from "@/state/ui"
@@ -11,7 +12,7 @@ import { FolderWarning } from "@/shell/folder-warning"
 // Welcome is the first run (SPEC 3.9): no wizard, just *Create project*.
 // *Open the example* comes with the Bitcoin example (Phases 3 and 4).
 export function Welcome() {
-  const folder = useSettings((s) => s.view?.settings.data_folder) || "~/Jenab"
+  const folder = useSettings((s) => s.view?.settings.data_folder) || `~/${APP_NAME}`
   return (
     <div className="flex h-full flex-col">
       <Empty className="flex-1">
@@ -19,7 +20,7 @@ export function Welcome() {
           <EmptyMedia variant="icon">
             <FolderIcon />
           </EmptyMedia>
-          <EmptyTitle>Welcome to Jenab</EmptyTitle>
+          <EmptyTitle>Welcome to {APP_NAME}</EmptyTitle>
           <EmptyDescription>Each project is one folder with its data, chats and files.</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

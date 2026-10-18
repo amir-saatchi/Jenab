@@ -10,6 +10,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -39,13 +40,10 @@ func (h home) env() []string {
 }
 
 func (h home) paths() config.Paths {
-	root := filepath.Join(h.dir, "local", appName)
+	root := filepath.Join(h.dir, "local", appinfo.Name)
 	return config.Paths{Root: root, Settings: filepath.Join(root, "config.yaml"), Registry: filepath.Join(root, "registry.db"),
-		Logs: filepath.Join(root, "logs")}.WithDataFolder(filepath.Join(h.dir, "user", appName))
+		Logs: filepath.Join(root, "logs")}.WithDataFolder(filepath.Join(h.dir, "user", appinfo.Name))
 }
-
-// appName is the app's folder name, as cmd/desktop sets it.
-const appName = "Jenab"
 
 // writeSettings connects the fake model as a local Ollama and makes it the
 // default and fast model. Background calls to it may run 8 at a time.
