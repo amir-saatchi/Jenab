@@ -1,6 +1,6 @@
 # TASK-014 — The agent offers features the app doesn't have
 **Type:** Bug
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-011
 
@@ -45,10 +45,10 @@ Block 1 says what this version has, and what to do when no tool fits (SPEC 3.1).
   |---|---|---|---|
   | missing-features | 15/18 | 18/18 | - |
   | skill-loading | 32/36 | 36/36 | 11/12, 11/12 |
-  | multi-part | 3/3, then the free tier's 500 requests a day ran out | 27/27 | 9/9, 9/9 |
+  | multi-part | 27/27 (rerun on 2026-10-16, after the quota reset) | 27/27 | 9/9, 9/9 |
 
   - Gemini in missing-features: F4 (chart) 1/3. It still makes up 30 days of prices and once saved them as an HTML chart. F2 (table) 2/3: once it saved a CSV "table" without saying the app has none.
   - Gemini in skill-loading: L04 0/3, as before (0/1, and 3/4 failed on TASK-011's old code). L02 2/3: once it saved the pipeline before loading `pipelines`. gemma's L02, which the old rewording hurt, is 3/3.
 - **Also fixed:** `TestScriptedRun` was flaky: the "between" message came 50 ms after the first, and a slow first turn made it land during the turn. It now comes after 1 s; 20/20 runs pass.
 - **Tests:** `TestBlockOneAreas` (the line with no, one, two and three areas), `TestBlockOnePhase1` (the "not yet" sentence and the no-tool line with the app's tools), the tables line and the real `fetch_page` text in `TestRunSet`, and an unknown area in `TestLoadErrors`.
-- **Open:** multi-part on Gemini after the quota resets; whether Gemini's made-up chart data needs more than this.
+- **Made-up chart data:** a prompt line for one model is out (SPEC 1). [SPIKE-032](SPIKE-032-made-up-numbers.md) tests a harness check instead.

@@ -1,6 +1,6 @@
 # SPIKE-032 — Catch made-up numbers and let the model correct them
 **Type:** Spike
-**Status:** Open
+**Status:** In progress (round 1 done; round 2 later)
 **Gate:** 3
 **Needs:** TASK-014
 
@@ -53,3 +53,30 @@ The ones available now, with the same prompts for all (SPEC 1):
 
 ## Done when
 Each condition has results per model, with at least 3 reps per cell. There is a decision on the check (8.3), K, same turn or next turn, the notice text, and the mark on the answer (2.3). Or the decision is that the check isn't worth its false alarms.
+
+## Round 1 (2026-10-13)
+The code is on the branch `worktree-agent-af0e299be34cd117e`, not committed yet: the check (`internal/agent/grounding.go`), the `grounding` scenario set, and `spikes/032-made-up-numbers/` with `results.md` and the labels. About 335 runs on glm-4.5-flash, gemma4:31b and gpt-oss:120b. Groq stopped on 429s, and Gemini was left out to keep its quota.
+
+- **How it works:** the numbers in the answer and in what write tools save are matched against every number in the request, within rounding. Dates, years, small whole numbers, list numbering and names like `v3` are skipped. It fires at K or more numbers with no source.
+- **Catching:** at K=3, 9 of 12 made-up answers. All of them came from glm; gemma and gpt-oss made up none.
+- **Misses:** a real number on the wrong day, and a made-up file the model read back, which then counted as a source.
+- **False alarms:** 13 of 249 honest answers, all worked examples.
+- **Same turn:** the model admitted the numbers 4 of 4 times, but fixed the saved file only 2 of 4. Each firing cost 1–6 extra requests and 12–63 s. Next turn: the one notice was ignored. No model took back a correct number.
+- **Fixes before the app:** keep numbers the model wrote unsourced when read back; count each value once; don't flag numbers quoted from the notice; make the correction fix the saved file; decide on worked examples.
+
+## Round 2: correct answers full of numbers (later)
+Round 1's honest answers had at most 2 computed numbers, so K=3 let them through. The check can't tell a computed number from a made-up one. Test answers that are correct but full of numbers:
+
+- a computed table, such as a 7-day moving average over 30 real prices
+- several conversions in one answer (7 prices to EUR)
+- what-ifs and worked examples
+- general knowledge ("the supply cap is 21 million")
+- a saved script or config with constants (`timeout: 5000`)
+- percentages written another way (`0.052` and `5.2%`)
+
+Run them on gemma4:31b and gpt-oss:120b, which made nothing up in round 1, so any firing is a false alarm. Then compare three ways to cut false alarms, the same for every model:
+1. Numbers a tool computed count as sourced (a calculator tool, or `query` in Phase 2).
+2. Two thresholds: a low one for the user's mark, a high one, or any number in a saved file, for telling the model.
+3. Mark only: the model is never told.
+
+Done when: false alarms per case and per fix are known, and the decision says which mode, if any, goes in the app.

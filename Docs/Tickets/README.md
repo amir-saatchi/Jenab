@@ -37,7 +37,7 @@
 | [SPIKE-029](SPIKE-029-subjects.md) | Subjects: a chat's work, kept as objects | Spike | In progress (rounds 1–3 done; decisions proposed) | 3 |
 | [SPIKE-030](SPIKE-030-structured-output.md) | Structured output: JSON that matches a schema, from any model | Spike | Done | 3 |
 | [SPIKE-031](SPIKE-031-thoughts-graph.md) | Thoughts-Graph: a how-to task as a graph of model calls | Spike | Done | 3 |
-| [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | Open | 3 |
+| [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | In progress (round 1 done; round 2 later) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -49,12 +49,13 @@
 | [TASK-011](TASK-011-prompts-match-tools.md) | Prompts that match what the app can do | Task | Done | 3 |
 | [TASK-012](TASK-012-untrusted-mark.md) | The untrusted mark and messages that join a turn | Task | Done | 3 |
 | [TASK-013](TASK-013-scenario-runner-harness.md) | Scenario runner: measure the harness, not only the model | Task | Done | 3 |
-| [TASK-014](TASK-014-agent-offers-missing-features.md) | The agent offers features the app doesn't have | Bug | Open | 3 |
+| [TASK-014](TASK-014-agent-offers-missing-features.md) | The agent offers features the app doesn't have | Bug | Done | 3 |
 | [TASK-015](TASK-015-files-panel.md) | The Files panel: browse and open the project's files | Task | Open | 3 |
 | [TASK-016](TASK-016-export-chat.md) | Export a chat | Task | Open | 3 |
 | [TASK-017](TASK-017-installer.md) | Install the app | Task | Open | 3 |
 | [TASK-018](TASK-018-rewind-chat.md) | Rewind a chat to an earlier message | Task | Open | 3 |
 | [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Open | 3 |
+| [TASK-020](TASK-020-tool-call-errors.md) | Tool-call errors: measure them, then check more | Task | Open (later) | 3 |
 
 ## Phase 1
 
