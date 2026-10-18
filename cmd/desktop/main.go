@@ -21,6 +21,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/provider/backends"
 	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/skill"
+	"github.com/amir-saatchi/jenab/internal/sqlworker"
 	"github.com/amir-saatchi/jenab/internal/store"
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/web"
@@ -33,6 +34,9 @@ const appName = "Jenab"
 var benchArgs = func() []string { return nil }
 
 func main() {
+	// A query worker (SPEC 2.2) is this executable started again; it must
+	// not take the lock or start Wails.
+	sqlworker.IfWorker()
 	if err := run(os.Args[1:]); err != nil {
 		if errors.Is(err, errRunning) {
 			fatal(err.Error() + ".")

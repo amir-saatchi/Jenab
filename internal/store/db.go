@@ -15,6 +15,9 @@ import (
 	"sync"
 
 	"modernc.org/sqlite"
+
+	"github.com/amir-saatchi/jenab/internal/sqlguard"
+	"github.com/amir-saatchi/jenab/internal/sqlworker"
 )
 
 var (
@@ -25,11 +28,9 @@ var (
 	ErrReadOnly    = errors.New("store: the database is open read-only")
 )
 
-// SQLite limit IDs (sqlite3.h); modernc doesn't export names for them.
-const (
-	limitLength   = 0 // SQLITE_LIMIT_LENGTH
-	limitAttached = 7 // SQLITE_LIMIT_ATTACHED
-)
+// limitAttached is SQLITE_LIMIT_ATTACHED (sqlite3.h), for the writers;
+// sqlguard.Prepare sets the readers' limits.
+const limitAttached = 7
 
 // Options configure one database file.
 type Options struct {
@@ -64,7 +65,8 @@ type DB struct {
 	closeErr  error
 }
 
-// dsn builds a modernc DSN. Pragmas in the DSN run on every new connection.
+// dsn builds a modernc DSN, with the path escaped (sqlworker.FileURI).
+// Pragmas in the DSN run on every new connection.
 func dsn(path string, readOnly bool, pragmas ...string) string {
 	q := url.Values{}
 	for _, p := range pragmas {
@@ -73,7 +75,7 @@ func dsn(path string, readOnly bool, pragmas ...string) string {
 	if readOnly {
 		q.Set("mode", "ro")
 	}
-	return "file:" + filepath.ToSlash(path) + "?" + q.Encode()
+	return sqlworker.FileURI(path) + "?" + q.Encode()
 }
 
 // common runs on every connection to a project, chats or registry file.
@@ -311,15 +313,9 @@ func (db *DB) reader(ctx context.Context) (*sql.Conn, error) {
 		}
 		return nil, err
 	}
-	if _, err := c.ExecContext(ctx, "PRAGMA query_only = ON"); err != nil {
+	if err := sqlguard.Prepare(ctx, c); err != nil {
 		c.Close()
 		return nil, err
-	}
-	for _, l := range [][2]int{{limitAttached, 0}, {limitLength, 16 << 20}} {
-		if _, err := sqlite.Limit(c, l[0], l[1]); err != nil {
-			c.Close()
-			return nil, err
-		}
 	}
 	return c, nil
 }

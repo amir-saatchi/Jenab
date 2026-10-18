@@ -27,6 +27,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/provider/backends"
 	"github.com/amir-saatchi/jenab/internal/scenario"
+	"github.com/amir-saatchi/jenab/internal/sqlworker"
 )
 
 const usage = `usage:
@@ -39,6 +40,7 @@ Run "jenab-scenarios run -h" for the run flags.
 `
 
 func main() {
+	sqlworker.IfWorker() // the scenarios' projects run agent queries in this executable
 	if len(os.Args) < 2 {
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)

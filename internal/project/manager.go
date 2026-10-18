@@ -321,6 +321,7 @@ func (p *Project) openFiles(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	p.DB.Warm()
 	if p.Damage != nil {
 		if _, statErr := os.Stat(filepath.Join(p.Dir, "chats.db")); errors.Is(statErr, os.ErrNotExist) {
 			err = newChats(ctx, p.Dir)

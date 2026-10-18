@@ -8,6 +8,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/limit"
+	"github.com/amir-saatchi/jenab/internal/sqlworker"
 )
 
 // ProjectFormat is project.db's storage format. Phase 1 has only the
@@ -48,11 +49,26 @@ type ProjectDB struct {
 	// objMu keeps the sweep from removing bytes that a put is about to
 	// point to: a put holds it for reading from its bytes to its index
 	// row, the sweep for writing while it removes (SPEC 4.3).
-	objMu sync.RWMutex
+	objMu   sync.RWMutex
+	workers *sqlworker.Pool // for agent queries (SPEC 2.2)
 }
 
 func newProjectDB(db *DB, dir string) *ProjectDB {
-	return &ProjectDB{DB: db, objects: bucket.NewFolder(filepath.Join(dir, "objects"), filepath.Join(dir, "tmp"))}
+	return &ProjectDB{
+		DB:      db,
+		objects: bucket.NewFolder(filepath.Join(dir, "objects"), filepath.Join(dir, "tmp")),
+		workers: sqlworker.New(db.path, sqlworker.Options{}),
+	}
+}
+
+// Warm starts a query worker in the background, so that the first agent
+// query or view doesn't wait for one (2.2).
+func (p *ProjectDB) Warm() { p.workers.Warm() }
+
+// Close stops the query workers, then closes the file (DB.Close).
+func (p *ProjectDB) Close(ctx context.Context) error {
+	p.workers.Close()
+	return p.DB.Close(ctx)
 }
 
 // OpenProject opens dir/project.db, creating it if needed. Backups before a

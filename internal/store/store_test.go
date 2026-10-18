@@ -26,7 +26,7 @@ func openTestProject(t *testing.T) (*ProjectDB, string) {
 	return p, dir
 }
 
-func mustExec(t *testing.T, db *DB, q string, args ...any) {
+func mustExec(t testing.TB, db *DB, q string, args ...any) {
 	t.Helper()
 	if _, err := Do(context.Background(), db, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
 		_, err := tx.Exec(q, args...)
@@ -36,7 +36,7 @@ func mustExec(t *testing.T, db *DB, q string, args ...any) {
 	}
 }
 
-func one[T any](t *testing.T, db *DB, q string, args ...any) T {
+func one[T any](t testing.TB, db *DB, q string, args ...any) T {
 	t.Helper()
 	rows, err := Query(context.Background(), db, q, args, func(r *sql.Rows) (T, error) {
 		var v T
