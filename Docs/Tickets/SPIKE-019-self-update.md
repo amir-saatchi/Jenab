@@ -112,6 +112,7 @@ Run on 2026-09-28 with Wails v3.0.0-beta.26 `pkg/updater` on Windows 11 Pro 2620
   - Only when idle: no run, migration or write in progress.
   - `OnShutdown` has a 10-second deadline, well under the helper's 30 s.
   - `main()` does nothing heavy before `application.New`.
+  - After the #6298 fix, the helper relaunches the old exe when the parent doesn't exit within 30 s, so two instances can overlap for a few seconds. The new one waits for the old one's database locks instead of failing. If single-instance mode is ever turned on, the new copy may hand off to the closing window and leave nothing running; the watchdog covers that.
 - **Watchdog:** before `Restart`, Jenab starts a small detached watchdog (the same exe). If no instance is running after 60 s, it relaunches the installed exe. This covers the helper's exits 14 and 17.
 - **Cleanup on start:**
   - delete `%TEMP%\wails-update-*` and the helper logs
@@ -123,5 +124,5 @@ Run on 2026-09-28 with Wails v3.0.0-beta.26 `pkg/updater` on Windows 11 Pro 2620
   - A new version backs up with `VACUUM INTO` and migrates in one transaction.
   - An older version refuses a newer database and asks the user to update.
 - **Children:** Starlark children stay in a kill-on-close Job Object (SPIKE-016), so none survive an update.
-- **Upstream:** reported to Wails on 2026-09-28: [#6185](https://github.com/wailsapp/wails/issues/6185) (download cleanup), [#6186](https://github.com/wailsapp/wails/issues/6186) (fail-open verification), [#6187](https://github.com/wailsapp/wails/issues/6187) (no relaunch on exits 14 and 17), [#6188](https://github.com/wailsapp/wails/issues/6188) (`CheckInterval` re-download). We don't wait for fixes.
+- **Upstream:** reported to Wails on 2026-09-28: [#6185](https://github.com/wailsapp/wails/issues/6185) (download cleanup), [#6186](https://github.com/wailsapp/wails/issues/6186) (fail-open verification), [#6187](https://github.com/wailsapp/wails/issues/6187) (no relaunch on exits 14 and 17; fixed in [#6298](https://github.com/wailsapp/wails/pull/6298) on 2026-10-18, not yet in a release), [#6188](https://github.com/wailsapp/wails/issues/6188) (`CheckInterval` re-download). We don't wait for fixes.
 - **Later (Phase 5):** code signing (Authenticode, Apple notarization), SmartScreen, a check against the real release host, and macOS.
