@@ -13,6 +13,7 @@ export type {
   ChatSnapshot,
   ConnectRequest,
   ConnectResult,
+  ExportRequest,
   ModelGroup,
   ModelItem,
   ModelOption,
@@ -62,6 +63,14 @@ export type {
   Waiting,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
 export type { ModelSettings, ProviderSettings, Settings } from "../../bindings/github.com/amir-saatchi/jenab/internal/config/models"
-export type { FolderWarning, MoveResult, Notice } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
+export type {
+  ExportEstimate,
+  ExportProgress,
+  ExportResult,
+  FolderWarning,
+  MoveResult,
+  Notice,
+} from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
+export { ExportFormat, ExportStep } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Reading as MemoryReading } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"

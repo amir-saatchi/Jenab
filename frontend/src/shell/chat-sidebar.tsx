@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronDownIcon, CircleAlertIcon, DiamondIcon, FolderCogIcon, MessageSquareIcon, PinIcon, PlusIcon } from "lucide-react"
+import { ChevronDownIcon, CircleAlertIcon, DiamondIcon, FolderCogIcon, MessageSquareIcon, PackageIcon, PinIcon, PlusIcon } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -28,16 +28,19 @@ import { useChats, visible } from "@/state/chats"
 import { current, useNav } from "@/state/nav"
 import { useProjects } from "@/state/projects"
 import { useUI } from "@/state/ui"
+import { ExportProject } from "@/shell/export-project"
 import { newChat, openChat } from "@/shell/open"
 
 // ChatSidebar is the left sidebar (SPEC 5.12): the project's name with its
-// menu, *New chat*, and the chat list with Mother pinned at the top (8.6).
+// menu (*Project settings*, *Export*), *New chat*, and the chat list with
+// Mother pinned at the top (8.6).
 export function ChatSidebar({ project, className }: { project: string; className?: string }) {
   const item = useProjects((s) => s.list.find((p) => p.id === project))
   const items = useChats((s) => s.byProject[project])
   const place = useNav(current)
   const list = React.useMemo(() => visible(items ?? []), [items])
   const active = place?.view === "chat" ? place.chat : undefined
+  const [exporting, setExporting] = React.useState(false)
 
   return (
     <Sidebar collapsible="none" className={cn("w-64 border-e", className)}>
@@ -69,6 +72,10 @@ export function ChatSidebar({ project, className }: { project: string; className
                     <FolderCogIcon />
                     Project settings
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setExporting(true)}>
+                    <PackageIcon />
+                    Export…
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -99,6 +106,7 @@ export function ChatSidebar({ project, className }: { project: string; className
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <ExportProject project={project} name={item?.name ?? ""} open={exporting} onOpenChange={setExporting} />
     </Sidebar>
   )
 }

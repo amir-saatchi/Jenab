@@ -31,7 +31,8 @@ func writeLock(dir string) error {
 //  1. quick_check on both databases; a failure returns the damage, and the
 //     project opens read-only;
 //  2. runs still `running` become `interrupted` (Phase 4, when runs exist);
-//  3. tmp/ is emptied, and partial snapshots are deleted;
+//  3. tmp/ is emptied, but for the records of exports whose .partial
+//     cleanExports couldn't remove yet, and partial snapshots are deleted;
 //  4. objects/ is swept once the database is open (Manager.load).
 //
 // SQLite needs no help: it discards an interrupted transaction itself.
@@ -46,7 +47,7 @@ func recoverProject(ctx context.Context, dir string) (*Damage, error) {
 			damage = &Damage{File: f, Problem: problem, Snapshot: latestSnapshot(dir, f)}
 		}
 	}
-	if err := emptyDir(filepath.Join(dir, "tmp")); err != nil {
+	if err := emptyDir(filepath.Join(dir, "tmp"), isExportRecord); err != nil {
 		return nil, err
 	}
 	if err := store.RemovePartials(filepath.Join(dir, "snapshots")); err != nil {
@@ -55,8 +56,9 @@ func recoverProject(ctx context.Context, dir string) (*Damage, error) {
 	return damage, nil
 }
 
-// emptyDir removes everything inside dir and keeps dir itself.
-func emptyDir(dir string) error {
+// emptyDir removes everything inside dir but what keep names, and keeps
+// dir itself.
+func emptyDir(dir string, keep func(name string) bool) error {
 	ents, err := os.ReadDir(dir)
 	if errors.Is(err, os.ErrNotExist) {
 		return os.MkdirAll(dir, 0o755)
@@ -65,6 +67,9 @@ func emptyDir(dir string) error {
 		return err
 	}
 	for _, e := range ents {
+		if keep != nil && keep(e.Name()) {
+			continue
+		}
 		if err := os.RemoveAll(filepath.Join(dir, e.Name())); err != nil {
 			return err
 		}

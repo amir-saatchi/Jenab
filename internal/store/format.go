@@ -121,7 +121,7 @@ func backupBeforeUpdate(ctx context.Context, path, name string, v int, snapshots
 	}
 	prefix := name + "-pre-update-"
 	target := filepath.Join(snapshots, prefix+time.Now().UTC().Format("20060102-150405.000")+fmt.Sprintf("-v%d.db", v))
-	if err := vacuumInto(ctx, path, target); err != nil {
+	if err := vacuumInto(ctx, path, target, nil); err != nil {
 		return err
 	}
 	old, _ := filepath.Glob(filepath.Join(snapshots, prefix+"*.db"))
@@ -137,7 +137,9 @@ func backupBeforeUpdate(ctx context.Context, path, name string, v int, snapshots
 // connection, outside the reader pool (query_only rejects VACUUM INTO). It
 // follows the safe-copy rule: write target.partial, fsync it, then rename,
 // so only complete copies ever carry the final name (SPEC 7.5, SPIKE-008).
-func vacuumInto(ctx context.Context, path, target string) error {
+// A non-nil edit runs in one transaction on the copy before it is synced,
+// so the copy gets its final name only with the edit in it.
+func vacuumInto(ctx context.Context, path, target string, edit func(*sql.Tx) error) error {
 	partial := target + ".partial"
 	removePartial(partial)
 	db, err := sql.Open("sqlite", dsn(path, false, common...))
@@ -149,6 +151,12 @@ func vacuumInto(ctx context.Context, path, target string) error {
 	if _, err := db.ExecContext(ctx, "VACUUM INTO ?", partial); err != nil {
 		removePartial(partial)
 		return fmt.Errorf("store: copy %s: %w", filepath.Base(path), err)
+	}
+	if edit != nil {
+		if err := editCopy(ctx, partial, edit); err != nil {
+			removePartial(partial)
+			return fmt.Errorf("store: copy %s: %w", filepath.Base(path), err)
+		}
 	}
 	if err := syncFile(partial); err != nil {
 		removePartial(partial)
@@ -211,5 +219,5 @@ func RemovePartials(dir string) error {
 // snapshots before destructive migrations and for export (SPEC 7.5, 2.1).
 // It blocks neither readers nor the writer.
 func (db *DB) Snapshot(ctx context.Context, target string) error {
-	return vacuumInto(ctx, db.path, target)
+	return vacuumInto(ctx, db.path, target, nil)
 }

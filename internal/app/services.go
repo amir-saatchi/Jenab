@@ -52,7 +52,7 @@ func NewServices(s Services) Bound {
 		b.redact = s.Secrets.Redact
 	}
 	return Bound{
-		Project: &ProjectService{base: b, projects: s.Projects},
+		Project: &ProjectService{base: b, projects: s.Projects, emit: func(string, any) {}},
 		Chat:    &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects},
 		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, secrets: s.Secrets, registry: s.Registry,
 			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},

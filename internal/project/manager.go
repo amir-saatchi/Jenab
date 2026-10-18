@@ -262,6 +262,7 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 	if _, err := os.Stat(filepath.Join(p.Dir, "project.db")); err != nil {
 		return fmt.Errorf("project %s: %w", p.ID, err)
 	}
+	cleanExports(p.Dir, m.d.Log)
 	crashed := false
 	if _, err := os.Stat(lockPath(p.Dir)); err == nil {
 		crashed = true

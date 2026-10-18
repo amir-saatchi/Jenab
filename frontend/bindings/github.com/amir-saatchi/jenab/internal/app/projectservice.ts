@@ -37,6 +37,33 @@ export function Create(name: string): $CancellablePromise<$models.OpenedProject>
 }
 
 /**
+ * Export copies the project to the place in r while it stays in use
+ * (SPEC 2.1). Its progress comes as project:export events, and the last
+ * one says how it ended, so a dialog that ExportStatus found it for can
+ * follow it too. StopExport, or cancelling the call, stops it and removes
+ * what it wrote.
+ */
+export function Export(p: id$0.Project, r: $models.ExportRequest): $CancellablePromise<project$0.ExportResult> {
+    return $Call.ByID(4277686860, p, r);
+}
+
+/**
+ * ExportEstimate is what an export of the project would copy now, for the
+ * export dialog.
+ */
+export function ExportEstimate(p: id$0.Project): $CancellablePromise<project$0.ExportEstimate> {
+    return $Call.ByID(3780272826, p);
+}
+
+/**
+ * ExportStatus is the project's running export, as its last progress
+ * event; nil when none runs.
+ */
+export function ExportStatus(p: id$0.Project): $CancellablePromise<project$0.ExportProgress | null> {
+    return $Call.ByID(4268691126, p);
+}
+
+/**
  * FolderWarning says whether the data folder is a bad place for the
  * projects, for the banner in 2.1; nil when it is fine.
  */
@@ -57,4 +84,12 @@ export function List(): $CancellablePromise<$models.ProjectItem[] | null> {
  */
 export function Open(p: id$0.Project): $CancellablePromise<$models.OpenedProject> {
     return $Call.ByID(4141360838, p);
+}
+
+/**
+ * StopExport stops the project's running export. Its Export call then
+ * fails, once what it wrote is removed. It reports whether one was running.
+ */
+export function StopExport(p: id$0.Project): $CancellablePromise<boolean> {
+    return $Call.ByID(3798979188, p);
 }

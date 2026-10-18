@@ -17,6 +17,7 @@ const (
 	EventNotice   = "project:notice"
 	EventActivity = "project:activity"
 	EventOpen     = "app:open" // a desktop notification was clicked
+	EventExport   = "project:export"
 	// run:status comes with the pipelines (Phase 3).
 )
 
@@ -35,6 +36,7 @@ func init() {
 	application.RegisterEvent[project.Notice](EventNotice)
 	application.RegisterEvent[project.Activity](EventActivity)
 	application.RegisterEvent[Open](EventOpen)
+	application.RegisterEvent[project.ExportProgress](EventExport)
 }
 
 // Publisher sends events to the frontend. It implements the Publisher of

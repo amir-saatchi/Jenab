@@ -42,6 +42,8 @@ type Project struct {
 	idle    *time.Timer
 	closing bool
 
+	exporting sync.Mutex // held by the running export
+
 	mu        sync.Mutex
 	next      int
 	reporters map[int]Reporter
@@ -131,6 +133,7 @@ func (p *Project) close(ctx context.Context) error {
 		p.m.safely("OnClose", p.ID, fn)
 	}
 	p.cancel()
+	p.waitExport(ctx)
 	err := errors.Join(p.Chats.Close(ctx), p.DB.Close(ctx))
 	if err == nil {
 		if rmErr := os.Remove(lockPath(p.Dir)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {

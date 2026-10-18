@@ -54,6 +54,122 @@ export interface Damage {
 }
 
 /**
+ * ExportEstimate is what an export of the project would copy now, for the
+ * export dialog.
+ */
+export interface ExportEstimate {
+    /**
+     * databases (with their WAL), objects/ and skills/
+     */
+    "bytes": number;
+
+    /**
+     * project.db and chats.db with their WAL
+     */
+    "databases": number;
+
+    /**
+     * files in objects/
+     */
+    "objects": number;
+}
+
+/**
+ * ExportFormat is what an export writes.
+ */
+export enum ExportFormat {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * one zip file
+     */
+    ExportZip = "zip",
+
+    /**
+     * a folder
+     */
+    ExportFolder = "folder",
+};
+
+/**
+ * ExportProgress is how far an export is.
+ */
+export interface ExportProgress {
+    "project": id$0.Project;
+    "target": string;
+    "step": ExportStep;
+
+    /**
+     * bytes
+     */
+    "done": number;
+
+    /**
+     * bytes; an estimate until project.db is copied
+     */
+    "total": number;
+
+    /**
+     * The app's last event of an export carries how it ended: Result with
+     * StepDone, or Error with StepFailed (Stopped when it was stopped).
+     */
+    "result"?: ExportResult | null;
+    "error"?: string;
+    "stopped"?: boolean;
+}
+
+/**
+ * ExportResult is a finished export.
+ */
+export interface ExportResult {
+    "path": string;
+    "format": ExportFormat;
+
+    /**
+     * ID is the copy's project ID: a new one, so the copy can sit next to
+     * the project in the same data folder.
+     */
+    "id": id$0.Project;
+
+    /**
+     * the zip file, or the folder's files, in bytes
+     */
+    "size": number;
+    "objects": number;
+
+    /**
+     * Missing counts the objects the index points to whose bytes are not
+     * in objects/. They are left out; the export is otherwise complete.
+     */
+    "missing": number;
+    "ms": number;
+}
+
+/**
+ * ExportStep is what an export is copying.
+ */
+export enum ExportStep {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    StepProject = "project.db",
+    StepChats = "chats.db",
+    StepObjects = "objects",
+    StepSkills = "skills",
+    StepDone = "done",
+
+    /**
+     * sent by the app when an export fails or is stopped
+     */
+    StepFailed = "failed",
+};
+
+/**
  * FolderWarning says why the data folder is a bad place for SQLite files:
  * a network drive, or a folder a sync service copies file by file, which
  * can copy the -wal file apart from its database and corrupt it (SPEC 2.1).

@@ -22,6 +22,7 @@ export type {
     ChatSnapshot,
     ConnectRequest,
     ConnectResult,
+    ExportRequest,
     ModelGroup,
     ModelItem,
     ModelOption,

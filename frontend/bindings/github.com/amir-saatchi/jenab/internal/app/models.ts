@@ -110,6 +110,26 @@ export interface ConnectResult {
 }
 
 /**
+ * ExportRequest is the place the user chose in the save dialog.
+ */
+export interface ExportRequest {
+    "target": string;
+    "format": project$0.ExportFormat;
+
+    /**
+     * Replace lets a zip export replace the file at Target; set it only
+     * when the save dialog asked the user about it.
+     */
+    "replace": boolean;
+
+    /**
+     * IncludeApprovals keeps the approvals, approval level and private
+     * hosts, for the user's own backup.
+     */
+    "include_approvals": boolean;
+}
+
+/**
  * ModelGroup is one connected provider with its models that are on, for
  * the model picker (SPEC 3.9).
  */

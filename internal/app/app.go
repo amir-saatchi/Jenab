@@ -75,6 +75,7 @@ func (a *App) Bind(s Services) {
 	})
 	b := NewServices(s)
 	b.System.notify = a.notifier()
+	b.Project.emit = a.pub.emit
 	a.w.RegisterService(application.NewService(b.Project))
 	a.w.RegisterService(application.NewService(b.Chat))
 	a.w.RegisterService(application.NewService(b.Settings))

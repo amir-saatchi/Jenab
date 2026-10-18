@@ -73,7 +73,13 @@ func ValidHash(s string) bool {
 }
 
 func (f *Folder) path(hash string) string {
-	return filepath.Join(f.objects, hash[:2], hash[2:4], hash)
+	return filepath.Join(f.objects, filepath.FromSlash(RelPath(hash)))
+}
+
+// RelPath is where the content with hash lives inside objects/, as a slash
+// path: ab/12/ab12f9…
+func RelPath(hash string) string {
+	return hash[:2] + "/" + hash[2:4] + "/" + hash
 }
 
 // Put follows the write order in SPEC 4.3: the bytes go to tmp/ while the

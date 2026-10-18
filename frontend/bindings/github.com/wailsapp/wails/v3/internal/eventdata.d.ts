@@ -23,6 +23,7 @@ declare module "@wailsio/runtime" {
             "chat:part": chat$0.PartDone;
             "chat:status": chat$0.Status;
             "project:activity": project$0.Activity;
+            "project:export": project$0.ExportProgress;
             "project:notice": project$0.Notice;
         }
     }

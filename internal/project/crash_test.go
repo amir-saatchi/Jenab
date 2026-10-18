@@ -45,6 +45,10 @@ func TestCrashWorker(t *testing.T) {
 	if spec == "" {
 		t.Skip("runs only as a crash test worker")
 	}
+	if rest, ok := strings.CutPrefix(spec, "export|"); ok {
+		exportWorker(rest)
+		t.Fatal("the worker returned instead of being killed")
+	}
 	root, pid, _ := cutLast(spec)
 	ctx := context.Background()
 	reg, err := store.OpenRegistry(ctx, testPaths(root).Registry)
