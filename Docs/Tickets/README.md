@@ -90,7 +90,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | ID | Title | Needs | Status |
 |---|---|---|---|
 | [P2-01](P2-01-sql-guard.md) | SQL guard | P1-03 | Open |
-| [P2-02](P2-02-change-log.md) | Change log and typed writes | P1-03, P1-05 | Open |
+| [P2-02](P2-02-change-log.md) | Change log and typed writes | P1-03, P1-05 | Done |
 | [P2-03](P2-03-undo-turn.md) | Undo turn | P2-02 | Open |
 | [P2-04](P2-04-migrations.md) | Migrations | P2-01, P2-02 | Open |
 | [P2-05](P2-05-data-tools.md) | Data tools: query, describe_table, insert | P2-01, P2-02 | Open |

@@ -16,7 +16,8 @@ Go turns structured migration steps into DDL and runs them in one transaction, o
 - **Try:** the same transaction, always rolled back, returning the full report. A long try runs on a `VACUUM INTO` copy.
 - **Long migrations:** estimated from row counts (over 500,000 rows rewritten or scanned), with the time estimate for the approval card and the free-space check (2× on the project drive, 0.5× on the temp drive).
 - **Destructive steps:** a snapshot with the safe-copy rule first; the last 5 are kept. Restoring one shows how many writes will be lost.
-- **`_jenab_columns`:** `annotate_column` (e.g. `object_ref`).
+- **`_jenab_columns`:** `annotate_column` (e.g. `object_ref`). Renaming a table or column must update it, because P2-02 skips stale annotations without a word.
+- **Limits from P2-02:** typed writes refuse tables with more than 500 columns, tables with triggers (temp ones too), and BLOB values in keys, so the schema guard keeps tables inside these limits. Migrations write their own change entries with `writeChange`.
 - **Dependents:** the hook for views, pipelines and forms, validated inside the transaction. There are none until Phases 3 and 4, so Phase 2 tests it with a fake dependent.
 
 ## Done when

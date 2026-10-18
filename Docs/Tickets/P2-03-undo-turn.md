@@ -17,6 +17,13 @@
 - **Role changes:** undo for a chat's role, from `role_changes` (P1-06 left it for Phase 2).
 - **UI:** *Undo turn* in the turn footer, with what it will revert ("12 rows in btc_prices, 1 memory section"). The conflict list is shown in a dialog. The chat gets a notice that the turn was undone, so the model knows.
 - **Revert run** uses the same code with `run:<id>`; its button comes with the pipeline page in Phase 4.
+- **What P2-02 leaves for undo:**
+  - **Order:** follow the rowid of `_jenab_change_rows`, never `change_id`, because chunks of different requests interleave. One row can appear twice in a change, once per chunk. A request cut by a crash or an error leaves a partial entry, which is undone as it stands.
+  - **Window:** refuse changes at or below `changes_cleaned_to`, not a fixed 90 days. That includes a change that is only partly cleaned.
+  - **Foreign keys:**
+    - Cascaded rows are logged in the same change, deepest first. Run each undo with `PRAGMA defer_foreign_keys = ON`, because rows on a reference cycle have no safe order.
+    - Undo writes go through the typed write path, so that `reach` and `log` record what cascades touch. That includes rows added after the undone change that now point at the value being restored. Rows reached outside the undone set count as conflicts.
+  - **Before-images:** decode `{"$blob":"<hex>"}`. Compare keys in SQLite's `json_array` form. Skip the `object_ref` check when restoring a row.
 
 ## Done when
 - Undoing a 5,000-row turn takes under 1 s (N-08).

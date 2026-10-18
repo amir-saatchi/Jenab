@@ -10,6 +10,9 @@ The agent reads the project's tables with `query` and adds small entries with `i
 
 ## Scope
 - **`query(sql, params)`:** through `AgentQuery`. It returns up to 200 rows or 4,000 tokens, plus the total count. A bigger result is stored as a ref with a preview (3.7).
+- **Limits from P2-01 and P2-02:**
+  - `AgentQuery` returns at most 8 MiB of rows (`Rows.Full`), with values of at most 1 MiB. `db.query` in pipelines streams up to 100,000 rows (SPEC 6.5), so it needs its own result limit, not the 8 MiB one.
+  - Over 500 rows, a typed `Insert` can fail in a later chunk and keep the earlier ones: a partial unique index, a CHECK constraint or a STRICT type error. The tool must report this as a partial write, using `WriteResult`.
 - **`describe_table(name)`:** columns, types, keys, annotations and the row count.
 - **`insert(table, rows)`:** at most 50 rows a call, through the typed `Insert`, with the source `message:<id>`. Each row is checked against the column types and `NOT NULL` before the write, and every error comes back at once, with its row and column.
 - **Areas:** the three tools have `Areas: tool.Tables`, so block 1 names the project's tables and no longer says "no tables yet" (TASK-014).
