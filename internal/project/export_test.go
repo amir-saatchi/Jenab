@@ -455,9 +455,13 @@ func TestExportRefuses(t *testing.T) {
 		t.Error("an unknown format was allowed")
 	}
 
-	p.exporting.Lock()
+	p.mu.Lock()
+	p.exportDone = make(chan struct{})
+	p.mu.Unlock()
 	_, err := p.Export(ctx, ExportOptions{Target: filepath.Join(dir, "b.zip"), Format: ExportZip})
-	p.exporting.Unlock()
+	p.mu.Lock()
+	p.exportDone = nil
+	p.mu.Unlock()
 	if !errors.Is(err, ErrExportRunning) {
 		t.Errorf("a second export at once: %v", err)
 	}
@@ -533,6 +537,9 @@ func TestExportClose(t *testing.T) {
 		}
 	default:
 		t.Fatal("the project closed before the export stopped")
+	}
+	if _, err := p.Export(context.Background(), ExportOptions{Target: filepath.Join(t.TempDir(), "late.zip"), Format: ExportZip}); !errors.Is(err, ErrClosed) {
+		t.Errorf("an export after close: %v", err)
 	}
 	p.Release()
 	if exists(target) || len(partials(target)) != 0 {

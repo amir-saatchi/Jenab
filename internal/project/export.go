@@ -186,10 +186,26 @@ func (p *Project) Export(ctx context.Context, o ExportOptions) (ExportResult, er
 	if samePath(target, p.Dir) || inside(target, p.Dir) {
 		return ExportResult{}, ErrExportInside
 	}
-	if !p.exporting.TryLock() {
+	// One check under p.mu: close cancels p.ctx before waitExport reads
+	// exportDone, so an export either is waited for or doesn't start.
+	p.mu.Lock()
+	switch {
+	case p.ctx.Err() != nil:
+		p.mu.Unlock()
+		return ExportResult{}, ErrClosed
+	case p.exportDone != nil:
+		p.mu.Unlock()
 		return ExportResult{}, ErrExportRunning
 	}
-	defer p.exporting.Unlock()
+	done := make(chan struct{})
+	p.exportDone = done
+	p.mu.Unlock()
+	defer func() {
+		p.mu.Lock()
+		p.exportDone = nil
+		p.mu.Unlock()
+		close(done)
+	}()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	defer context.AfterFunc(p.ctx, cancel)() // the project closing stops it too
@@ -309,12 +325,12 @@ func cleanExports(dir string, log *slog.Logger) {
 // waitExport waits, at most until ctx ends, for a running export to stop
 // and remove what it wrote; close cancelled it.
 func (p *Project) waitExport(ctx context.Context) {
-	done := make(chan struct{})
-	go func() {
-		p.exporting.Lock()
-		p.exporting.Unlock()
-		close(done)
-	}()
+	p.mu.Lock()
+	done := p.exportDone
+	p.mu.Unlock()
+	if done == nil {
+		return
+	}
 	select {
 	case <-done:
 	case <-ctx.Done():

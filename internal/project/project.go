@@ -42,12 +42,11 @@ type Project struct {
 	idle    *time.Timer
 	closing bool
 
-	exporting sync.Mutex // held by the running export
-
-	mu        sync.Mutex
-	next      int
-	reporters map[int]Reporter
-	onClose   map[int]func()
+	mu         sync.Mutex
+	next       int
+	reporters  map[int]Reporter
+	onClose    map[int]func()
+	exportDone chan struct{} // the running export's; closed when it has stopped
 }
 
 // Context is cancelled when the project closes. Background tasks and
