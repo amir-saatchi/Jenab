@@ -1,6 +1,6 @@
 # P2-03 — Undo turn
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 2)
 **Needs:** P2-02
 **Requirements:** R-16, R-35, N-08
@@ -30,3 +30,21 @@
 - Tests: undo and redo; a conflict from another chat; a turn with an insert, an update, a delete, a memory edit and a bucket put; a turn past the window; a turn with a migration.
 
 ## Result
+Done on 2026-10-18 (commit b52b1fa), after four review rounds.
+
+- **Built:** `internal/store/undo.go` (plan, conflicts, revert), `undo_roles.go` (chat roles), `internal/agent/undo.go` (the turn, the notice), and *Undo turn* / *Redo turn* in the turn footer with a conflict dialog.
+- **Numbers:**
+  - A 5,000-row turn on a 100,000-row table undoes in 0.47–0.55 s, and in 0.81–0.89 s under an already undone turn of the same size.
+  - The largest undo (20,000 rows) takes 1.4–1.9 s, redo 1.6–2.5 s, on a machine about 40% busy.
+- **Changes from the ticket:**
+  - Every reverted change gets its own undo entry, even with no rows left to revert. The parity of a change's undo chain says whether it is undone, so redo is undo of the undo.
+  - A later change counts as a conflict unless an undo really put that item back. Skipped items, roles too, flip their chain with a no-op entry.
+  - Migrations conflict by commit order: a migration writes one marker row per table through `writeMigration` (contract in P2-04).
+  - One undo reverts at most 20,000 row entries (`MaxUndoEntries`); a bigger turn is refused before anything is written.
+  - The notice for the model is plain text; table names get bidi isolates only in the UI.
+- **Still open:**
+  - Redoing two turns oldest first (undo B, undo A, redo A, redo B) gives a false conflict on B's rows. Nothing is lost, but B can't be redone without a skip.
+  - A migration after the turn's rows blocks undo of the whole table (decision in P2-04).
+  - Cleanup drops changes in ID order, so a migration marker can go before a turn that it should still block. It needs a migration right at the cutoff.
+  - No-op role records show in `RoleChanges()`; a future role history should hide `before = after`.
+  - Revert run (Phase 4) needs a chunked, resumable form, since the cap refuses more than 20,000 rows.
