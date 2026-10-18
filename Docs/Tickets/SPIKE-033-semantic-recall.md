@@ -47,15 +47,19 @@ The design to test (proposed on 2026-10-18; widened to files the same day):
    - The Go scan over 100,000 and 250,000 vectors at full width, at 256 and as int8. 250,000 is about 1,500 long documents next to a long chat history. Scan time doesn't depend on the text, so these vectors may be random unit vectors at the right width.
 
 ## Models
-To confirm with the user before any run, one of each:
-- **Local, through Ollama's native API:** for example `embeddinggemma` (768 wide, Matryoshka down to 128) or `nomic-embed-text` (768, Matryoshka).
+One of each. The local model and the built-in candidates were chosen on 2026-10-18; the cloud model is confirmed with the user before any run.
+- **Local, through Ollama's native API:** `embeddinggemma-2:270m`, the text-only tag of EmbeddingGemma 2 (304–378 MB). It is 768 wide, with Matryoshka widths of 512, 256 and 128, and covers over 100 languages; its page doesn't name Persian, so the Persian queries decide. It takes task prefixes for search, which the page doesn't spell out; the prefix run (Method 6) uses the ones from its model card.
 - **Cloud, through an OpenAI-compatible `/embeddings` endpoint:** for example Gemini's `gemini-embedding-001` (3,072 wide, Matryoshka) with `GEMINI_API_KEY`, on the OpenAI-compatible base URL set by hand. The kind is chosen, not guessed from the URL.
-- **Built-in, through hugot's Go backend** (`NewGoSession`), with an ONNX model of about 100–300 MB. It must handle Persian, so English-only models such as `all-MiniLM-L6-v2` are out. Candidates: `multilingual-e5-small` (384 wide), `granite-embedding-107m-multilingual` (384) or `embeddinggemma-300m` (768, Matryoshka). Before the run, the spike checks for each candidate:
-  - **License:** whether the app may download and run it for every user. Gemma models come with Google's own terms.
-  - **It loads:** whether hugot's Go backend runs it, tokenizer included.
-  - **Size:** the download in MB, as fp32 and int8 if both are published.
+- **Built-in, through hugot's Go backend** (`NewGoSession`). It must handle Persian, so English-only models such as `all-MiniLM-L6-v2` are out. The candidates, in order:
+  1. **`embeddinggemma-2:270m`**, the same model as the Ollama run, if all three of these hold:
+     - **ONNX:** an ONNX export of the 270m text model is published. In October 2026 there was one for the first EmbeddingGemma (`onnx-community/embeddinggemma-300m-ONNX`) but not for this one.
+     - **It runs on hugot's Go backend,** tokenizer included. It is a Gemma 4 model, with sliding-window attention and a 262,144-token vocabulary, while hugot's docs aim the Go backend at small models such as MiniLM.
+     - **No gate:** the app can download it for the user without an account or accepting terms on the site, and Google's Gemma terms allow the app to download and run it for every user. Ollama hosts its own copy, so this doesn't limit the Ollama run.
 
-  hugot's docs say the Go backend is for small models and batches of about 32 inputs. If it is too slow, one extra run uses hugot's ONNX Runtime backend (cgo, plus a native library per platform) on the same model, so the cost of staying pure Go is known.
+     With this model in both runs, the Ollama and hugot vectors for the same text are compared too: their cosine should be close to 1, which shows the hugot path is right.
+  2. **Otherwise `multilingual-e5-small`** (384 wide) **or `granite-embedding-107m-multilingual`** (384), both BERT-style, which hugot's Go backend is made for. The spike checks each one's license, that it loads with its tokenizer, and its download size as fp32 and int8. The one with the better Persian recall on a first small run is used. Neither is trained for Matryoshka, so they run at full width and int8 only (Method 5).
+
+  hugot's docs say the Go backend is for small models and batches of about 32 inputs. If it is too slow, one extra run uses hugot's ONNX Runtime backend (cgo, plus a native library per platform) on the same model, so the cost of staying pure Go is known. The result names which candidate ran and why the ones before it didn't.
 
 Failures of a free tier (rate limits, quota) are recorded and that model stops; there are no workarounds for them.
 
