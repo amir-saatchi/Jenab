@@ -74,7 +74,7 @@ type Summary struct {
 	// CacheRead is the share of all prompt tokens read from the cache.
 	CacheRead float64 `json:"cache_read_share"`
 	// Spread is, with 3 or more reps, the least and the most of each rep's
-	// pass share: of the runs ("runs") and of each check.
+	// pass share: of the runs (spreadRuns) and of each check.
 	Spread map[string]Range `json:"spread,omitempty"`
 }
 
@@ -90,6 +90,10 @@ func (r Range) String() string {
 
 // spreadFrom is the minimum number of reps for a spread.
 const spreadFrom = 3
+
+// spreadRuns is the Spread key of the runs' pass share; the other keys
+// are check types.
+const spreadRuns = "runs"
 
 // Rate counts one check's results.
 type Rate struct {
@@ -194,7 +198,7 @@ func (rep *Report) spread(model string) map[string]Range {
 			}
 		}
 		if runs > 0 {
-			add("runs", float64(passed)/float64(runs))
+			add(spreadRuns, float64(passed)/float64(runs))
 		}
 		for t, c := range checks {
 			if c.Pass+c.Fail > 0 {
@@ -320,7 +324,7 @@ func (rep *Report) Markdown(prev *Report) string {
 	b.WriteString("\n## Models\n\n| Model | Runs passed | Broke | Skipped | Prompt tokens | Cache read | Output tokens | Time |\n|---|---|---|---|---|---|---|---|\n")
 	for _, s := range rep.Summary {
 		passed := fmt.Sprintf("%d/%d", s.Passed, s.Runs)
-		if r, ok := s.Spread["runs"]; ok {
+		if r, ok := s.Spread[spreadRuns]; ok {
 			passed += " (" + r.String() + ")"
 		}
 		fmt.Fprintf(&b, "| %s | %s | %d | %d | %d | %.0f %% | %d | %.0f s |\n", s.Model, passed, s.Errors, s.Skipped, s.Prompt, s.CacheRead*100, s.Output, s.Seconds)

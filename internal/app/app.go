@@ -87,6 +87,12 @@ func (a *App) Bind(s Services) {
 	a.w.RegisterService(application.NewServiceWithOptions(&objects{objectHandler(s.Projects)}, application.ServiceOptions{Route: bucket.Route}))
 }
 
+// The keys of a notification's data, read back when it is clicked.
+const (
+	notifyDataProject = "project"
+	notifyDataChat    = "chat"
+)
+
 // notifier sends desktop notifications through Wails' service. On
 // Windows it registers the app with the toast system under
 // HKCU\Software\Classes at start. A click shows the window and sends
@@ -99,8 +105,8 @@ func (a *App) notifier() func(Notification) error {
 			a.log.Warn("notification response", "err", r.Error)
 			return
 		}
-		p, _ := r.Response.UserInfo["project"].(string)
-		c, _ := r.Response.UserInfo["chat"].(string)
+		p, _ := r.Response.UserInfo[notifyDataProject].(string)
+		c, _ := r.Response.UserInfo[notifyDataChat].(string)
 		if a.main != nil {
 			a.main.UnMinimise()
 			a.main.Show()
@@ -113,7 +119,10 @@ func (a *App) notifier() func(Notification) error {
 	return func(n Notification) error {
 		return ns.SendNotification(notifications.NotificationOptions{
 			ID: "chat-" + string(n.Chat), Title: n.Title, Body: n.Body,
-			Data: map[string]any{"project": string(n.Project), "chat": string(n.Chat)},
+			Data: map[string]any{
+				notifyDataProject: string(n.Project),
+				notifyDataChat:    string(n.Chat),
+			},
 		})
 	}
 }

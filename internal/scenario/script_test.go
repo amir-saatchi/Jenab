@@ -247,7 +247,7 @@ func TestSpread(t *testing.T) {
 	rep := &Report{Models: []string{"m"}, Reps: 3, Runs: []Run{run(1, Pass), run(2, Fail), run(3, Pass)}}
 	rep.summarize()
 	sp := rep.Summary[0].Spread
-	if sp["runs"] != (Range{0, 1}) || sp["tool_called"] != (Range{0, 1}) {
+	if sp[spreadRuns] != (Range{0, 1}) || sp["tool_called"] != (Range{0, 1}) {
 		t.Errorf("spread %v", sp)
 	}
 	md := rep.Markdown(nil)
