@@ -55,7 +55,7 @@ The ones available now, with the same prompts for all (SPEC 1):
 Each condition has results per model, with at least 3 reps per cell. There is a decision on the check (8.3), K, same turn or next turn, the notice text, and the mark on the answer (2.3). Or the decision is that the check isn't worth its false alarms.
 
 ## Round 1 (2026-10-13)
-The code is on the branch `worktree-agent-af0e299be34cd117e`, not committed yet: the check (`internal/agent/grounding.go`), the `grounding` scenario set, and `spikes/032-made-up-numbers/` with `results.md` and the labels. About 335 runs on glm-4.5-flash, gemma4:31b and gpt-oss:120b. Groq stopped on 429s, and Gemini was left out to keep its quota.
+The code is committed on the branch `worktree-agent-af0e299be34cd117e` (commit dd91c98), not merged into main: the check (`internal/agent/grounding.go`), the `grounding` scenario set, and `spikes/032-made-up-numbers/` with `results.md` and the labels. About 335 runs on glm-4.5-flash, gemma4:31b and gpt-oss:120b. Groq stopped on 429s, and Gemini was left out to keep its quota.
 
 - **How it works:** the numbers in the answer and in what write tools save are matched against every number in the request, within rounding. Dates, years, small whole numbers, list numbering and names like `v3` are skipped. It fires at K or more numbers with no source.
 - **Catching:** at K=3, 9 of 12 made-up answers. All of them came from glm; gemma and gpt-oss made up none.
