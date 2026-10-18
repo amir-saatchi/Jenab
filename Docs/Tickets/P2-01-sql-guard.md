@@ -1,6 +1,6 @@
 # P2-01 — SQL guard
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 2)
 **Needs:** P1-03
 **Requirements:** N-20
@@ -21,3 +21,29 @@ Every query the agent writes passes the three guard layers before it reads anyth
 - A benchmark keeps layer 1 under 10 µs and layer 2 under 200 µs per query.
 
 ## Result
+Done on 2026-10-18 (commit dcea668), after four review rounds. SPEC 2.2 now describes what was built.
+
+- **Built:**
+  - `internal/sqlguard`: the lexer, the budget, the EXPLAIN check, and the function allow-list and deny list.
+  - `internal/sqlworker`: the worker process, its pool and the protocol.
+  - `ProjectDB.AgentQuery` in `internal/store`.
+- **Bypasses found in review, now refused:**
+  - a `#` parameter (Tcl form `#a(...)`) hiding a `;`, so the EXPLAIN step ran the hidden statements;
+  - a BOM at the start of a name;
+  - `json_each` used as an alias to switch the virtual-table check off;
+  - `rtreecheck()` reading internal tables.
+  Layer 1 is now an allow-list of characters. Layer 2 prepares the query once in a form that only compiles as one statement, and checks `VOpen` by the eponymous table's address.
+- **Why there is a worker:** SQLite can't interrupt a prepare or a single long function call, and this build has no per-query memory limit. Review found nested subqueries, JSON aggregates, `instr`, `LIKE` and big arguments costing seconds and gigabytes in-process. Each worker is capped at 256 MiB by a Job Object and killed at the deadline. All those attacks stop within the deadline, and the app's own memory doesn't grow.
+- **Numbers:**
+  - Layer 1 takes 2–4 µs and layer 2 about 100 µs.
+  - The worker round trip adds 0.1–0.25 ms. A worker starts in 35–70 ms, or about 1.7 s on the first start after a new build, so one starts in the background when a project opens.
+  - Five realistic analytic queries on 100k rows take 0.3–0.8 s and peak at 52–70 MiB.
+- **Tests:** every attack is a permanent case. A byte sweep runs 4,112 queries, and `FuzzAgentQuery` (seeded with SPIKE-007's 63 cases) checks that a query that passes changes nothing.
+- **Changes from the ticket:**
+  - Values are capped at 1 MiB for agent queries (decided by the user), parameters at `?999`, and results at 8 MiB.
+  - The 300-value budget was tried and dropped, because it refused normal reports.
+  - Paths in `file:` URIs are now escaped (`#` and `%` broke them).
+- **Still open:**
+  - Linux and macOS build but are untested. Their memory limit is a 20 ms watchdog, not a hard cap.
+  - `copy_data` runs on the writer without a worker (see P2-04).
+  - `db.query` needs its own result limit (see P2-05).

@@ -121,23 +121,28 @@ Every agent query passes three layers, in this order. None of them depends on a 
    - anything that does not start with `SELECT`, `WITH` or `VALUES`
    - names starting with `_jenab_`, `sqlite_` or `pragma_`
    - virtual table modules other than `json_each` and `json_tree`
-   - `load_extension`
-   - NUL bytes
+   - `load_extension`, `rtreecheck` and the other functions on the deny list, where they are called
+   - NUL bytes, `#`, a BOM, and any other character outside SQLite's plain token set
+   - a query over 64 KiB, more than 500 `SELECT`, `WITH` and `VALUES`, more than 100 CTEs, or more than 2,000 SELECTs once each use of a CTE counts as a copy. This is an early refusal with a message the model can act on, not the safety limit: the worker (layer 3) is.
 
    This layer must come first. SQLite runs some PRAGMAs while *preparing* a statement: just preparing `PRAGMA query_only = 0`, or running `EXPLAIN` on it, turns read-only off. So no agent text is prepared, explained or inspected for columns before it passes this check.
 2. **EXPLAIN check.** `EXPLAIN <query>` is compiled with NULL bound to every parameter, and its program is scanned. Tables opened by `OpenRead` are mapped to names through `sqlite_schema` (the map is cached by `schema_version`). The query is rejected if it:
    - opens a `_jenab_*` table, `sqlite_schema`, or the temp or an attached schema
-   - opens a virtual table (`VOpen`), unless layer 1 found only `json_each` or `json_tree`
+   - opens a virtual table (`VOpen`) other than `json_each` or `json_tree`
+   - calls a function outside the allow-list
    - starts a write transaction, or uses `OpenWrite` or another schema- or file-changing opcode
 
-   This catches access through CTEs, subqueries, `IN table` and index-only lookups. Row opcodes such as `Insert` are allowed, because CTEs and sorting use them on temporary tables.
-3. **Guarded connection.** The query runs on a reader connection (the `copy_data` query runs on the writer, inside the migration):
-   - `query_only`, which is set again each time the connection is taken from the pool
-   - `SQLITE_LIMIT_ATTACHED = 0`. Without it, a read-only connection can attach and read any other file, such as another project's database
-   - `SQLITE_LIMIT_LENGTH = 16 MiB`, so a query cannot build huge strings or blobs in memory
-   - a `context` deadline: 2 s for views (5.7), 10 s for `query` and `db.query`. A cancelled query is interrupted.
+   Before it runs EXPLAIN, it prepares the query (without running it) in a form that only compiles when SQLite reads the whole text as one statement, so no hidden second statement is ever run.
 
-No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the connection layer does not stop reads of internal tables. Only layer 3 stops runaway queries. The cost is about 2 µs for layer 1 and 70 µs for layer 2 per query. If the driver offers an authorizer callback, it can be installed as an extra layer.
+   This catches access through CTEs, subqueries, `IN table` and index-only lookups. Row opcodes such as `Insert` are allowed, because CTEs and sorting use them on temporary tables.
+3. **Query worker.** SQLite can't interrupt a query while it prepares it or inside one long function call, and it has no per-query memory limit, so agent queries run in a separate worker process that the OS can cap and kill (P2-01). The `copy_data` query is the exception: it runs on the writer, inside the migration.
+   - The worker is the app's own executable, started in worker mode. Each project has up to 2, started when needed (one in the background when the project opens), stopped after 3 minutes idle and closed with the project. They die with the app.
+   - The app runs layer 1. The worker runs layer 1 again, then layer 2 and the query, on its own connection: opened read-only, with `query_only`, `SQLITE_LIMIT_ATTACHED = 0` (without it, a read-only connection can attach and read any other file, such as another project's database), `SQLITE_LIMIT_LENGTH = 1 MiB` and `SQLITE_LIMIT_VARIABLE_NUMBER = 999`. A stored value over 1 MiB can't be read by agent SQL; `length()` still works. Each query reads its own snapshot.
+   - Memory: 256 MiB per worker. On Windows, a Job Object enforces it; elsewhere a watchdog in the worker checks every 20 ms. A query over it is stopped with "the query used more than 256 MiB and was stopped". Sorts spill to temp files, which SQLite deletes when the worker ends.
+   - Time: a `context` deadline, 2 s for views (5.7) and 10 s for `query` and `db.query`. Waiting for a free worker counts against the deadline; starting a new one does not (it has its own 30 s limit). At the deadline, or when the caller cancels, the worker is killed and the next query starts a new one (about 35–70 ms, longer on the first start after an update). A killed worker leaves the database, the WAL and the writer intact.
+   - At most 8 MiB of rows are returned to `query`. The rest are left out, as with rows past the maximum, and the result says so.
+
+No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the worker's settings do not stop reads of internal tables. Only layer 3 stops runaway queries. The cost is about 2–4 µs for layer 1, 100 µs for layer 2 and 0.1–0.25 ms for the round trip to the worker (P2-01). If the driver offers an authorizer callback, it can be installed as an extra layer.
 
 ### 2.3 chats.db
 
@@ -1130,7 +1135,7 @@ Pipelines cannot delete objects. Deletion is manual or through lifecycle rules.
   - **Available:** recursion is off and `load()` is not available. The script sees only `db.query` and the transform functions, and `print` goes to the run log.
   - **`db.query`:**
     - The child never opens the database. It sends the SQL and parameters to the parent over its stdin/stdout pipe.
-    - The parent runs the query on the project's reader pool, with the SQL guard (2.2), `query_only`, the reader timeouts, `SQLITE_LIMIT_LENGTH` of 16 MiB and `SQLITE_LIMIT_ATTACHED` of 0.
+    - The parent runs the query through the SQL guard and the project's query workers, with their limits (2.2).
     - The parent streams back at most 100,000 rows.
   - **Cost:** about 28 ms to start the child, and about 40 ms for a typical transform over 10,000 rows.
 
