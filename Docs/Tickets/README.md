@@ -83,6 +83,27 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 | [P1-18](P1-18-phase-1-acceptance.md) | Phase 1 acceptance | P1-15, P1-16, TASK-001 | In progress |
 | [P1-19](P1-19-chat-types.md) | Chat types | P1-02 | Done |
 
+## Phase 2
+
+Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to P2-05). It doesn't depend on SPIKE-028 or SPIKE-029, so those can be decided while it is built; their decisions shape P2-10. P2-07 holds SPIKE-021's and SPIKE-025's table checks that were due before Phase 2; their pipeline, view and page tasks move to Phases 3 and 4.
+
+| ID | Title | Needs | Status |
+|---|---|---|---|
+| [P2-01](P2-01-sql-guard.md) | SQL guard | P1-03 | Open |
+| [P2-02](P2-02-change-log.md) | Change log and typed writes | P1-03, P1-05 | Open |
+| [P2-03](P2-03-undo-turn.md) | Undo turn | P2-02 | Open |
+| [P2-04](P2-04-migrations.md) | Migrations | P2-01, P2-02 | Open |
+| [P2-05](P2-05-data-tools.md) | Data tools: query, describe_table, insert | P2-01, P2-02 | Open |
+| [P2-06](P2-06-schema-agent.md) | Schema agent | P2-04, P2-05 | Open |
+| [P2-07](P2-07-schema-skills-and-checks.md) | Schema skills and model checks | P2-06, TASK-013 | Open |
+| [P2-08](P2-08-project-card.md) | Project card | P2-04 | Open |
+| [P2-09](P2-09-memory.md) | User and project memory | P2-02, P2-03 | Open |
+| [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09, SPIKE-028, SPIKE-029 | Open |
+| [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Open |
+| [P2-12](P2-12-export.md) | Export a project | P1-04 | Open |
+| [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Open |
+| [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | Open |
+
 ## Notes
 
 The spikes ran under the working name Burrow, so their code, results and transcripts in `spikes/` still use it (`_burrow_` tables, `burrow.lock`). The tickets use the final name, Jenab.
