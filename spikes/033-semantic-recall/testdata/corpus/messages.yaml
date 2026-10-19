@@ -1,0 +1,19 @@
+# A small fixture in the corpus format, for go test. The real corpus is
+# in ../../corpus.
+chats:
+  - id: c1
+    title: Prices and currencies
+    messages:
+      - {id: m001, role: user, lang: en, text: "Please show prices in euros from now on."}
+      - {id: m002, role: assistant, lang: en, text: "Okay. From now on I give every price in EUR."}
+      - {id: m003, role: user, lang: en, text: "What was the dollar price of BTC yesterday?"}
+      - {id: m004, role: assistant, lang: en, text: "BTC closed at $62,410 yesterday, see https://example.com/btc for the chart."}
+      - {id: m005, role: user, lang: fa, text: "قیمت‌ها را به تومان هم نشان بده."}
+      - {id: m006, role: assistant, lang: fa, text: "باشه، از این به بعد هر قیمت به تومان هم نوشته می‌شود."}
+  - id: c2
+    title: Wochenbericht
+    messages:
+      - {id: m007, role: user, lang: de, text: "Bitte erinnere mich jeden Montag an den Wochenbericht."}
+      - {id: m008, role: assistant, lang: de, text: "Gut, ich erinnere dich jeden Montag um 9 Uhr."}
+      - {id: m009, role: user, lang: de, text: "Wie heißt die Funktion, die die Straße normalisiert?"}
+      - {id: m010, role: assistant, lang: de, text: "Sie heißt `normalizeStreet` und steht in addr.go."}

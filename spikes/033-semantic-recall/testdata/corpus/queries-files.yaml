@@ -1,0 +1,30 @@
+- id: qf001
+  kind: same_words
+  lang: en
+  query: notice period three months
+  targets: [{file: rental-contract-en.md, quote: "The notice period is three months, counted to the end of a calendar month."}]
+- id: qf002
+  kind: paraphrase
+  lang: en
+  query: when can I leave the flat
+  targets: [{file: rental-contract-en.md, quote: "The notice period is three months, counted to the end of a calendar month."}]
+- id: qf003
+  kind: same_words
+  lang: en
+  query: garden maintenance cost
+  targets: [{file: rental-contract-en.md, quote: "| Garden maintenance |"}]
+- id: qf004
+  kind: same_words
+  lang: de
+  query: Kündigungsfrist Probezeit
+  targets: [{file: arbeitsvertrag-de.md, quote: "In der Probezeit kann jede Seite mit einer Frist von zwei Wochen kündigen."}]
+- id: qf005
+  kind: cross_language
+  lang: de
+  query: Mietkaution zurück
+  targets: [{file: rental-contract-en.md, quote: "It is paid back within six months after the flat is handed over"}]
+- id: qf006
+  kind: no_answer
+  lang: en
+  query: swimming pool opening hours
+  targets: []

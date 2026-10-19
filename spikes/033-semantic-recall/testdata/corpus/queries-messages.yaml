@@ -1,0 +1,7 @@
+- {id: qm001, kind: same_words, lang: en, query: "prices in euros", targets: [{message: m001}]}
+- {id: qm002, kind: paraphrase, lang: en, query: "which currency did I want", targets: [{message: m001}, {message: m002}]}
+- {id: qm003, kind: cross_language, lang: en, query: "show amounts in toman", targets: [{message: m005}]}
+- {id: qm004, kind: same_words, lang: de, query: "Wochenbericht Montag", targets: [{message: m007}]}
+- {id: qm005, kind: same_words, lang: fa, query: "قیمت‌ها تومان", targets: [{message: m005}]}
+- {id: qm006, kind: same_words, lang: de, query: "Strasse normalisiert", targets: [{message: m009}]}
+- {id: qm007, kind: no_answer, lang: en, query: "flight to Lisbon booking", targets: []}
