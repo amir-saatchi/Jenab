@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -34,6 +36,8 @@ func run(ctx context.Context) error {
 		chunkList  = flag.String("chunking", "fixed,heading", "file chunkings, comma-separated")
 		check      = flag.Bool("check", false, "only load the corpus, find every quote and print the counts")
 		show       = flag.String("chunks", "", "print one document's chunks (its file name) with -chunking, then stop")
+		textsFile  = flag.String("texts", "", "write every text a model would embed to this file, as JSON lines of use and text, then stop")
+		builtinDir = flag.String("builtin-models", filepath.Join("builtin", "models"), "the folder that holds the built-in models' folders")
 		verbose    = flag.Bool("v", false, "log progress")
 	)
 	flag.Parse()
@@ -56,6 +60,9 @@ func run(ctx context.Context) error {
 	if *check {
 		return printCheck(ctx, c, cks)
 	}
+	if *textsFile != "" {
+		return writeTexts(ctx, c, cks, *textsFile)
+	}
 
 	var models []modelSpec
 	if names := split(*modelList); len(names) > 0 {
@@ -65,6 +72,11 @@ func run(ctx context.Context) error {
 		}
 		if models, err = pickModels(all, names); err != nil {
 			return err
+		}
+		for i, m := range models {
+			if m.Kind == "builtin" && m.Dir != "" && !filepath.IsAbs(m.Dir) {
+				models[i].Dir = filepath.Join(*builtinDir, m.Dir)
+			}
 		}
 	}
 	k, err := readKeys(*envFile)
@@ -145,4 +157,40 @@ func printChunks(ctx context.Context, c *corpus, file string, cks []chunker) err
 		return nil
 	}
 	return fmt.Errorf("no document %s in docs.yaml", file)
+}
+
+// writeTexts writes each text a model would embed, without prefixes, with
+// the cache's use: messages, a chunking's name, or query. A tool that
+// embeds them another way (reftok.py) writes its vectors into vectors.db.
+func writeTexts(ctx context.Context, c *corpus, cks []chunker, path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	enc := json.NewEncoder(f)
+	enc.SetEscapeHTML(false)
+	put := func(use, text string) {
+		if err == nil {
+			err = enc.Encode(map[string]string{"use": use, "text": text})
+		}
+	}
+	for _, m := range c.Messages {
+		put("messages", m.Text)
+	}
+	for _, ck := range cks {
+		for _, d := range c.Docs {
+			cs, cerr := ck.Chunk(ctx, d)
+			if cerr != nil {
+				f.Close()
+				return cerr
+			}
+			for _, x := range cs {
+				put(ck.Name(), x.Text)
+			}
+		}
+	}
+	for _, q := range append(slices.Clone(c.MsgQueries), c.FileQueries...) {
+		put("query", q.Query)
+	}
+	return errors.Join(err, f.Close())
 }

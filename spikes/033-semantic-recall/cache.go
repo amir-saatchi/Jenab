@@ -107,7 +107,8 @@ type embedded struct {
 
 // embedAll embeds texts with the prefix put in front, batch by batch, and
 // reads the vectors already in the cache. A batch of 1 times each text
-// alone, as for queries.
+// alone, as for queries. A model that loads is loaded before the first
+// batch, so its load time isn't counted.
 func embedAll(ctx context.Context, e embedder, c *vectorCache, k cacheKey, prefix string, texts []string, batch int) (embedded, error) {
 	out := embedded{vecs: make([][]float32, len(texts))}
 	shas := make([]string, len(texts))
@@ -123,6 +124,11 @@ func embedAll(ctx context.Context, e embedder, c *vectorCache, k cacheKey, prefi
 			continue
 		}
 		todo = append(todo, i)
+	}
+	if l, ok := e.(loader); ok && len(todo) > 0 {
+		if err := l.load(ctx); err != nil {
+			return out, fmt.Errorf("%s: %w", e.Name(), err)
+		}
 	}
 	for len(todo) > 0 {
 		n := min(batch, len(todo))
