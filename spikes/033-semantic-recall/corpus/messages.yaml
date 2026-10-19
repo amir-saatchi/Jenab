@@ -1,0 +1,1586 @@
+# SPIKE-033 message corpus: 6 synthetic chats, 300 messages (m001–m300).
+# See README-messages.md for what the chats are about and how the targets
+# and distractors were placed.
+chats:
+  - id: c1
+    title: Used GPU price tracker
+    messages:
+      - id: m001
+        role: user
+        lang: en
+        text: |-
+          I want to build a small tool that tracks used GPU prices on eBay and Kleinanzeigen. Go, if possible. Where do I start?
+      - id: m002
+        role: assistant
+        lang: en
+        text: |-
+          Good project. It has three parts: a fetcher per site, a parser that pulls title, price and URL out of each listing, and a store. Start with one site and one model, for example the RTX 4070, and add the rest once the first one works end to end.
+      - id: m003
+        role: user
+        lang: en
+        text: |-
+          Let's start with eBay. Here is a search URL: https://www.ebay.com/sch/i.html?_nkw=rtx+4070&LH_ItemCondition=3000
+      - id: m004
+        role: assistant
+        lang: en
+        text: |-
+          LH_ItemCondition=3000 is the filter for used items. Fetch the page with net/http and parse it with goquery:
+          ```go
+          resp, err := http.Get(searchURL)
+          if err != nil {
+              return err
+          }
+          defer resp.Body.Close()
+          doc, err := goquery.NewDocumentFromReader(resp.Body)
+          ```
+          Each result is an `li.s-item`; the price is in `.s-item__price`.
+      - id: m005
+        role: user
+        lang: en
+        text: |-
+          It works! The first run found 38 listings. Prices go from $389 to $620.
+      - id: m006
+        role: assistant
+        lang: en
+        text: |-
+          Nice. The median of those 38 is $472. The few above $600 are probably new cards listed as used, or bundles with a whole PC. Do you want to drop outliers?
+      - id: m007
+        role: user
+        lang: en
+        text: |-
+          Yes, drop anything more than 40% above the median.
+      - id: m008
+        role: assistant
+        lang: en
+        text: |-
+          Done: `if p > median*1.4 { continue }`. With that rule 3 listings fall out, and the new top price is $579.
+      - id: m009
+        role: user
+        lang: en
+        text: |-
+          Where should I keep the data? I don't want to run a database server.
+      - id: m010
+        role: assistant
+        lang: en
+        text: |-
+          SQLite is enough, in one file next to the binary. A first schema:
+          ```sql
+          CREATE TABLE prices (
+            id INTEGER PRIMARY KEY,
+            item TEXT NOT NULL,
+            price_cents INTEGER NOT NULL,
+            url TEXT,
+            seen_at TEXT NOT NULL
+          );
+          ```
+          Keeping cents as an integer avoids the rounding errors you get with floats.
+      - id: m011
+        role: user
+        lang: en
+        text: |-
+          Can I also export it as CSV for a spreadsheet?
+      - id: m012
+        role: assistant
+        lang: en
+        text: |-
+          Yes: `sqlite3 -header -csv prices.db "SELECT item, price_cents/100.0 AS price, seen_at FROM prices" > prices.csv`. The price column comes out in dollars with two decimals.
+      - id: m013
+        role: user
+        lang: en
+        text: |-
+          How often should it run? I don't want eBay to block me.
+      - id: m014
+        role: assistant
+        lang: en
+        text: |-
+          Every 30 minutes is polite for one search page. On Linux, a cron line:
+          ```
+          */30 * * * * /home/sam/gpu-tracker/tracker >> /home/sam/gpu-tracker/log.txt 2>&1
+          ```
+          That runs at minute 0 and minute 30 of every hour.
+      - id: m015
+        role: user
+        lang: en
+        text: |-
+          And if a request fails?
+      - id: m016
+        role: assistant
+        lang: en
+        text: |-
+          Retry twice, waiting 5 minutes between tries, then give up until the next run. Log the HTTP status, so you can tell a block (403 or 429) from a plain timeout.
+      - id: m017
+        role: user
+        lang: en
+        text: |-
+          Can it also send me a daily summary?
+      - id: m018
+        role: assistant
+        lang: en
+        text: |-
+          Sure. A second cron entry at 8:00 every morning: `0 8 * * * /home/sam/gpu-tracker/tracker -summary`. It sends the lowest, median and highest price of the last 24 hours.
+      - id: m019
+        role: user
+        lang: en
+        text: |-
+          Now add the RTX 4060 and the RTX 3080 too.
+      - id: m020
+        role: assistant
+        lang: en
+        text: |-
+          Added. Today's medians: RTX 4060 $268, RTX 4070 $472, RTX 3080 $401. The 3080 is cheaper than the 4070, but it draws about 320 W instead of 200 W.
+      - id: m021
+        role: user
+        lang: en
+        text: |-
+          Power matters, my PSU is only 550 W. Forget the 3080.
+      - id: m022
+        role: assistant
+        lang: en
+        text: |-
+          Removed the 3080. The tracker now watches the 4060 and the 4070.
+      - id: m023
+        role: user
+        lang: en
+        text: |-
+          Prices on Kleinanzeigen are in euros and eBay is in dollars. That's messy in the summary.
+      - id: m024
+        role: assistant
+        lang: en
+        text: |-
+          Right, the summary mixes $ and €. I can convert with the daily ECB rate from https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml. Which way round?
+      - id: m025
+        role: user
+        lang: en
+        text: |-
+          Show prices in euros from now on. The dollar numbers confuse me.
+      - id: m026
+        role: assistant
+        lang: en
+        text: |-
+          Done. All prices are now in euros, converted at today's rate of 1 USD = 0.92 EUR. The 4070 median is €434.
+      - id: m027
+        role: user
+        lang: en
+        text: |-
+          Does the rate update by itself?
+      - id: m028
+        role: assistant
+        lang: en
+        text: |-
+          Yes. The tracker fetches the ECB file once a day, before the 8:00 summary, and caches it in the database.
+      - id: m029
+        role: user
+        lang: en
+        text: |-
+          I'd like a ping when a card gets really cheap.
+      - id: m030
+        role: assistant
+        lang: en
+        text: |-
+          We can send an alert by email or by Telegram. Email needs an SMTP server; Telegram needs a bot token from @BotFather. Which one?
+      - id: m031
+        role: user
+        lang: en
+        text: |-
+          Email is too slow, I never check it.
+      - id: m032
+        role: assistant
+        lang: en
+        text: |-
+          Then Telegram. Create a bot, put the token in `.env` as TELEGRAM_TOKEN, and send each message with a POST to https://api.telegram.org/bot<token>/sendMessage.
+      - id: m033
+        role: user
+        lang: en
+        text: |-
+          OK. Alert me on Telegram when an RTX 4070 goes under 450 euros.
+      - id: m034
+        role: assistant
+        lang: en
+        text: |-
+          Set: `alert: {item: "RTX 4070", below_eur: 450}`. The lowest right now is €447 on Kleinanzeigen, so you'll get the first message after the next run.
+      - id: m035
+        role: user
+        lang: en
+        text: |-
+          Ha, good. For the 4060 don't ping me, just put it in the daily summary.
+      - id: m036
+        role: assistant
+        lang: en
+        text: |-
+          OK, no ping for the 4060. It only shows up in the summary.
+      - id: m037
+        role: user
+        lang: fa
+        text: |-
+          می‌شه از این به بعد فارسی باهام حرف بزنی؟ راحت‌ترم.
+      - id: m038
+        role: assistant
+        lang: fa
+        text: |-
+          حتماً. از این به بعد فارسی می‌نویسم. کد و دستورها رو همون‌طور انگلیسی می‌ذارم.
+      - id: m039
+        role: user
+        lang: fa
+        text: |-
+          امروز سه تا پیام هشدار اومد ولی دوتاش کلاهبرداری بود. عکس کارت رو از اینترنت برداشته بودن.
+      - id: m040
+        role: assistant
+        lang: fa
+        text: |-
+          این زیاد پیش میاد. چند تا نشونه داره: قیمت خیلی پایین‌تر از میانه، حساب تازه‌ساز، و کسی که فقط پیش‌پرداخت می‌خواد.
+      - id: m041
+        role: user
+        lang: fa
+        text: |-
+          لطفاً آگهی‌هایی رو که فروشنده‌شون امتیاز زیر ۹۵ درصد داره کلاً حذف کن.
+      - id: m042
+        role: assistant
+        lang: fa
+        text: |-
+          باشه. حالا آگهی‌هایی که امتیاز فروشنده‌شون کمتر از 95٪ باشه یا کمتر از ۱۰ تا نظر داشته باشن، دیگه ذخیره نمی‌شن. با این قانون از ۴۱ آگهی امروز ۶ تا حذف شد.
+      - id: m043
+        role: user
+        lang: fa
+        text: |-
+          آگهی‌هایی که نوشتن «معیوب» یا «برای قطعات» هم نشونم نده.
+      - id: m044
+        role: assistant
+        lang: fa
+        text: |-
+          اضافه شد. اگه کلمه‌های defekt، for parts، معیوب یا «برای قطعات» توی عنوان باشه، آگهی رد می‌شه.
+      - id: m045
+        role: user
+        lang: fa
+        text: |-
+          ارسال هم برام مهمه. فقط آگهی‌هایی که ارسال به آلمان دارن.
+      - id: m046
+        role: assistant
+        lang: fa
+        text: |-
+          فیلتر ارسال به آلمان هم فعال شد. توی eBay این با پارامتر `LH_PrefLoc=3` کار می‌کنه.
+      - id: m047
+        role: user
+        lang: fa
+        text: |-
+          گزارش هفتگی قیمت‌ها رو هم هر یکشنبه صبح برام بفرست، با یه نمودار ساده.
+      - id: m048
+        role: assistant
+        lang: fa
+        text: |-
+          باشه. هر یکشنبه ساعت ۹ صبح یه پیام تلگرام می‌فرستم با میانه‌ی هفت روز گذشته و یه نمودار PNG. نمودار رو با gonum/plot می‌سازم.
+      - id: m049
+        role: user
+        lang: fa
+        text: |-
+          گزارش روزانه‌ی ساعت ۸ رو دیگه لازم ندارم، خاموشش کن.
+      - id: m050
+        role: assistant
+        lang: fa
+        text: |-
+          خاموش شد. خط cron ساعت ۸ رو برداشتم؛ فقط هشدارها و گزارش یکشنبه می‌مونه.
+
+  - id: c2
+    title: Portugal-Reise im Mai
+    messages:
+      - id: m051
+        role: user
+        lang: de
+        text: |-
+          Hi! Ich plane mit meiner Partnerin eine Reise nach Portugal, zehn Tage im Mai. Lissabon und Porto. Kannst du mir helfen?
+      - id: m052
+        role: assistant
+        lang: de
+        text: |-
+          Gern. Zehn Tage reichen gut für beide Städte, zum Beispiel sechs Nächte in Lissabon und vier in Porto. Von wo fliegt ihr ab?
+      - id: m053
+        role: user
+        lang: de
+        text: |-
+          Von Frankfurt. Am liebsten am 9. Mai hin und am 19. Mai zurück.
+      - id: m054
+        role: assistant
+        lang: de
+        text: |-
+          Ich habe bei TAP und Lufthansa geschaut: Frankfurt–Lissabon am 9. Mai kostet ab 142 € pro Person, Porto–Frankfurt am 19. Mai ab 98 €. Für euch beide also etwa 480 €.
+      - id: m055
+        role: user
+        lang: de
+        text: |-
+          Klingt gut. Wichtig: Wir wollen nicht mehr als 1.800 € für Flüge und Hotels zusammen ausgeben.
+      - id: m056
+        role: assistant
+        lang: de
+        text: |-
+          Verstanden. Nach den Flügen bleiben etwa 1.320 € für zehn Nächte, also rund 130 € pro Nacht. Das ist in beiden Städten machbar, wenn ihr nicht direkt am Wasser wohnt.
+      - id: m057
+        role: user
+        lang: de
+        text: |-
+          Welche Viertel in Lissabon sind schön zum Wohnen?
+      - id: m058
+        role: assistant
+        lang: de
+        text: |-
+          Die Alfama ist alt und hügelig, mit vielen Fado-Lokalen. Die Baixa ist zentral und flach. Príncipe Real ist ruhiger und hat viele Cafés. Für einen ersten Besuch passen Alfama oder Baixa.
+      - id: m059
+        role: user
+        lang: de
+        text: |-
+          Alfama! Such mir etwas mit Blick, aber im Rahmen.
+      - id: m060
+        role: assistant
+        lang: de
+        text: |-
+          Zwei Optionen: das Hotel Baixa House, 115 € pro Nacht, ohne Blick, aber sehr zentral. Oder die Casa do Fado in der Alfama, 89 € pro Nacht, mit kleiner Terrasse und Blick auf den Tejo.
+      - id: m061
+        role: user
+        lang: de
+        text: |-
+          Casa do Fado bitte. Sechs Nächte.
+      - id: m062
+        role: assistant
+        lang: de
+        text: |-
+          Ich habe dir das Hotel in der Alfama reserviert: Casa do Fado, 6 Nächte vom 9. bis 15. Mai, 89 € pro Nacht. Die Stornierung ist bis 48 Stunden vorher kostenlos.
+      - id: m063
+        role: user
+        lang: de
+        text: |-
+          Super. Wie kommen wir dann von Lissabon nach Porto?
+      - id: m064
+        role: assistant
+        lang: de
+        text: |-
+          Am bequemsten mit dem Zug: Der Alfa Pendular von Lissabon (Santa Apolónia) nach Porto (Campanhã) braucht etwa 2 Std. 50 Min. Tickets gibt es ab 25 € auf https://www.cp.pt, früh buchen lohnt sich.
+      - id: m065
+        role: user
+        lang: de
+        text: |-
+          Gibt es auch einen Bus? Der ist doch billiger.
+      - id: m066
+        role: assistant
+        lang: de
+        text: |-
+          Ja, FlixBus fährt von Lissabon Oriente nach Porto in etwa 3,5 Stunden, ab 9 €. Der Bus ist billiger, aber langsamer und hat weniger Beinfreiheit.
+      - id: m067
+        role: user
+        lang: de
+        text: |-
+          Und fliegen? TAP hat doch auch Inlandsflüge.
+      - id: m068
+        role: assistant
+        lang: de
+        text: |-
+          Der Flug Lissabon–Porto dauert nur 55 Minuten. Mit der Anfahrt zum Flughafen und der Sicherheitskontrolle seid ihr aber nicht schneller als mit dem Zug, und er kostet meist über 60 €.
+      - id: m069
+        role: user
+        lang: de
+        text: |-
+          Dann Zug. Muss ich für Portugal eigentlich etwas beachten, Visum oder so?
+      - id: m070
+        role: assistant
+        lang: de
+        text: |-
+          Nein. Für Portugal brauchst du als EU-Bürger kein Visum, der Personalausweis reicht. Er muss nur während der ganzen Reise gültig sein.
+      - id: m071
+        role: user
+        lang: de
+        text: |-
+          Meine Partnerin hat einen iranischen Pass mit deutschem Aufenthaltstitel. Gilt das für sie auch?
+      - id: m072
+        role: assistant
+        lang: de
+        text: |-
+          Mit einem deutschen Aufenthaltstitel darf sie bis zu 90 Tage in andere Schengen-Länder reisen, ohne Visum. Sie muss den Pass und den Aufenthaltstitel beide dabeihaben.
+      - id: m073
+        role: user
+        lang: de
+        text: |-
+          Brauchen wir für einen Mietwagen in Porto noch etwas?
+      - id: m074
+        role: assistant
+        lang: de
+        text: |-
+          Den Führerschein und eine Kreditkarte für die Kaution. Ein Mietwagen kostet im Mai ab etwa 35 € pro Tag. In Porto selbst braucht ihr ihn nicht, nur für einen Ausflug ins Douro-Tal.
+      - id: m075
+        role: user
+        lang: en
+        text: |-
+          Switching to English so my partner can read along. Hi from both of us!
+      - id: m076
+        role: assistant
+        lang: en
+        text: |-
+          Hi to you both! Happy to go on in English.
+      - id: m077
+        role: user
+        lang: en
+        text: |-
+          One thing: my partner is vegetarian, so please mark restaurants with veggie options.
+      - id: m078
+        role: assistant
+        lang: en
+        text: |-
+          Noted. In Lisbon, Jardim das Cerejas in Chiado is fully vegetarian, with a buffet for about 12 €. Most tascas have at least one veggie dish, but ask for "sem carne", because soups are often cooked with chorizo.
+      - id: m079
+        role: user
+        lang: en
+        text: |-
+          And I'd love to try real seafood at least once. Where?
+      - id: m080
+        role: assistant
+        lang: en
+        text: |-
+          For seafood, Cervejaria Ramiro in Lisbon is famous for garlic prawns and clams. Expect about 35 € per person. Your partner can order sides there: bread, salad and fries.
+      - id: m081
+        role: user
+        lang: en
+        text: |-
+          Also, where do we find the best pastéis de nata?
+      - id: m082
+        role: assistant
+        lang: en
+        text: |-
+          Pastéis de Belém is the classic, about 1.40 € each, but the queue can take 30 minutes. Manteigaria in Chiado is just as good and faster.
+      - id: m083
+        role: user
+        lang: en
+        text: |-
+          What's the weather like in May? Should we bring jackets?
+      - id: m084
+        role: assistant
+        lang: en
+        text: |-
+          Lisbon in May: usually 15–23 °C and mostly dry. Porto is cooler and wetter, about 13–20 °C with rain on one day in three. Bring a light jacket and a small umbrella for Porto.
+      - id: m085
+        role: user
+        lang: en
+        text: |-
+          Is the ocean warm enough to swim?
+      - id: m086
+        role: assistant
+        lang: en
+        text: |-
+          Not really. The Atlantic near Lisbon is around 16 °C in May. Some people swim at Cascais, but most only wade in up to their knees.
+      - id: m087
+        role: user
+        lang: de
+        text: |-
+          Zurück auf Deutsch, meine Partnerin schläft schon :) Was kostet der Eintritt für den Torre de Belém?
+      - id: m088
+        role: assistant
+        lang: de
+        text: |-
+          Der Eintritt kostet 8 €. Mit der Lisboa Card für 24 Stunden (22 €) ist er inklusive, ebenso Bus, Tram und Metro.
+      - id: m089
+        role: user
+        lang: de
+        text: |-
+          Lohnt sich die Lisboa Card?
+      - id: m090
+        role: assistant
+        lang: de
+        text: |-
+          Wenn ihr an einem Tag mindestens drei Museen besucht und viel Tram fahrt, ja. Sonst ist eine aufladbare Viva-Viagem-Karte mit 1,80 € pro Fahrt günstiger.
+      - id: m091
+        role: user
+        lang: de
+        text: |-
+          Wie sieht es mit Trinkgeld aus?
+      - id: m092
+        role: assistant
+        lang: de
+        text: |-
+          In Restaurants sind 5 bis 10 % üblich, wenn der Service gut war. In Cafés rundet man einfach auf.
+      - id: m093
+        role: user
+        lang: de
+        text: |-
+          Kannst du die bisherigen Kosten mal zusammenrechnen?
+      - id: m094
+        role: assistant
+        lang: de
+        text: |-
+          Bisher: Flüge 480 €, Casa do Fado 534 €, Zug 50 €, die Unterkunft in Porto ist noch offen. Zusammen 1.064 €. Für Porto bleiben also etwa 736 €.
+      - id: m095
+        role: user
+        lang: de
+        text: |-
+          Für Porto bitte etwas in der Ribeira, aber höchstens 120 € pro Nacht.
+      - id: m096
+        role: assistant
+        lang: de
+        text: |-
+          In der Ribeira habe ich das Gästehaus Douro Azul gefunden: 108 € pro Nacht mit Frühstück, 4 Nächte vom 15. bis 19. Mai, kostenlos stornierbar bis 7 Tage vorher.
+      - id: m097
+        role: user
+        lang: de
+        text: |-
+          Gebucht! Erinnere mich bitte eine Woche vorher an den Online-Check-in.
+      - id: m098
+        role: assistant
+        lang: de
+        text: |-
+          Mache ich: Am 2. Mai bekommst du eine Erinnerung für den Check-in bei TAP. Er öffnet 36 Stunden vor dem Flug.
+      - id: m099
+        role: user
+        lang: de
+        text: |-
+          Danke, du bist super!
+      - id: m100
+        role: assistant
+        lang: de
+        text: |-
+          Gern! Gute Reise euch beiden, und viel Spaß mit dem Fado in der Alfama.
+
+  - id: c3
+    title: برنامه‌ی آمادگی آیلتس
+    messages:
+      - id: m101
+        role: user
+        lang: fa
+        text: |-
+          سلام. می‌خوام برای آیلتس آکادمیک آماده بشم، نمره‌ی ۷ لازم دارم برای اپلای فوق‌لیسانس. کمکم می‌کنی یه برنامه بریزیم؟
+      - id: m102
+        role: assistant
+        lang: fa
+        text: |-
+          سلام! حتماً. اول بگو الان سطحت چطوره. اگه آزمون آزمایشی دادی، نمره‌ی هر مهارت رو بگو.
+      - id: m103
+        role: user
+        lang: fa
+        text: |-
+          ماه پیش یه ماک دادم: لیسنینگ ۶.۵، ریدینگ ۷، رایتینگ ۵.۵، اسپیکینگ ۶.
+      - id: m104
+        role: assistant
+        lang: fa
+        text: |-
+          خوبه، ریدینگت همین الان به هدف رسیده. بیشترین کار رو باید روی رایتینگ بذاریم، چون رسوندنش از ۵.۵ به ۷ سخت‌ترین قسمته.
+      - id: m105
+        role: user
+        lang: fa
+        text: |-
+          ثبت‌نامم رو انجام دادم، رسیدش رو برات می‌فرستم.
+      - id: m106
+        role: assistant
+        lang: fa
+        text: |-
+          رسید رو دیدم. تاریخ آزمونت ۱۴ دسامبر ۲۰۲۶ هست، ساعت ۸:۳۰ صبح، توی مرکز آزمون خیابون ولیعصر تهران. یعنی حدود هشت هفته وقت داریم.
+      - id: m107
+        role: user
+        lang: fa
+        text: |-
+          نتیجه‌ش کی میاد؟ ددلاین دانشگاه ۱۵ ژانویه‌ست.
+      - id: m108
+        role: assistant
+        lang: fa
+        text: |-
+          نتیجه‌ی آزمون کامپیوتری معمولاً ۳ تا ۵ روز بعد میاد، یعنی حدود ۱۹ دسامبر. تا ۱۵ ژانویه وقت کافی داری، حتی اگه لازم بشه یه بار دیگه امتحان بدی.
+      - id: m109
+        role: user
+        lang: fa
+        text: |-
+          یه ماک دیگه هم وسط راه بدم؟
+      - id: m110
+        role: assistant
+        lang: fa
+        text: |-
+          آره، پیشنهادم اینه که ۲۳ نوامبر یه آزمون آزمایشی کامل بدی، سه هفته قبل از آزمون اصلی، تا ببینیم رایتینگ چقدر بهتر شده.
+      - id: m111
+        role: user
+        lang: fa
+        text: |-
+          فقط یه مشکلی هست: من فقط شب‌ها بعد از ساعت ۹ دو ساعت وقت دارم، روزها سر کارم.
+      - id: m112
+        role: assistant
+        lang: fa
+        text: |-
+          اشکالی نداره. دو ساعت در شب، شش شب در هفته، تا روز آزمون می‌شه حدود ۹۶ ساعت. برای رسیدن به ۷ کافیه، به‌شرطی که منظم باشی.
+      - id: m113
+        role: user
+        lang: fa
+        text: |-
+          جمعه‌ها کل روز آزادم. اونم حساب کن.
+      - id: m114
+        role: assistant
+        lang: fa
+        text: |-
+          عالیه. جمعه‌ها رو برای ماک‌های کوتاه و مرور هفته می‌ذاریم: صبح یه ریدینگ کامل، عصر یه رایتینگ با زمان‌سنج.
+      - id: m115
+        role: user
+        lang: fa
+        text: |-
+          یه برنامه‌ی هفتگی بده که بدونم هر شب چی کار کنم.
+      - id: m116
+        role: assistant
+        lang: fa
+        text: |-
+          برنامه‌ی هفتگی پیشنهادی من، برای هر مهارت جدا:
+          - شنبه و سه‌شنبه: listening (دو بخش آزمون و مرور اشتباه‌ها)
+          - یکشنبه و چهارشنبه: reading
+          - دوشنبه: writing تسک ۱
+          - پنجشنبه: writing تسک ۲ و speaking
+          - جمعه: ماک کوتاه و مرور
+          مهارت‌هایی که ضعیف‌ترن، وقت بیشتری گرفتن.
+      - id: m117
+        role: user
+        lang: fa
+        text: |-
+          برای اسپیکینگ با کی تمرین کنم؟ کسی رو ندارم.
+      - id: m118
+        role: assistant
+        lang: fa
+        text: |-
+          چند تا راه هست: صدای خودت رو ضبط کنی و گوش بدی، یا توی سایت‌هایی مثل https://www.italki.com با یه معلم جلسه‌ی ۳۰ دقیقه‌ای بذاری، حدود ۱۲ دلار. هفته‌ای یه جلسه کافیه.
+      - id: m119
+        role: user
+        lang: fa
+        text: |-
+          کتاب یا منبع خوب چی پیشنهاد می‌کنی؟
+      - id: m120
+        role: assistant
+        lang: fa
+        text: |-
+          منابع اصلی: کتاب‌های کمبریج ۱۶ تا ۱۹ برای تست واقعی، کتاب Collins Writing for IELTS برای رایتینگ، و سایت رسمی https://ielts.org برای نمونه‌سؤال‌ها. کمبریج ۱۹ جدیدترینه.
+      - id: m121
+        role: user
+        lang: fa
+        text: |-
+          یوتیوب چی؟ کانال خوب می‌شناسی؟
+      - id: m122
+        role: assistant
+        lang: fa
+        text: |-
+          برای اسپیکینگ کانال‌های IELTS Liz و E2 IELTS خوبن. ولی ویدیو دیدن جای تمرین رو نمی‌گیره؛ هر ویدیو رو حداکثر ۲۰ دقیقه ببین.
+      - id: m123
+        role: user
+        lang: fa
+        text: |-
+          اپ لغت هم لازمه؟
+      - id: m124
+        role: assistant
+        lang: fa
+        text: |-
+          اگه بخوای، Anki خوبه و یه دسته‌ی آماده‌ی لغات آکادمیک داره. ولی اول ببینیم رایتینگت کجا گیر داره.
+      - id: m125
+        role: user
+        lang: fa
+        text: |-
+          این رایتینگ تسک ۲ دیروزمه، نگاه کن. موضوعش این بود که آیا دولت‌ها باید برای حمل‌ونقل عمومی بیشتر هزینه کنن.
+      - id: m126
+        role: assistant
+        lang: fa
+        text: |-
+          خوندمش. ساختارت خوبه و موضعت روشنه. ولی پاراگراف دوم مثال نداره و چند جا زمان فعل اشتباهه. تخمین من ۶ هست. مهم‌ترین ایراد: نتیجه‌گیری نداره.
+      - id: m127
+        role: user
+        lang: fa
+        text: |-
+          آره، تو بخش writing همیشه وقت کم میارم و تسک ۲ رو نصفه ول می‌کنم.
+      - id: m128
+        role: assistant
+        lang: fa
+        text: |-
+          این خیلی رایجه. یه قانون ساده: تسک ۱ حداکثر ۲۰ دقیقه، تسک ۲ چهل دقیقه. توی تسک ۲ پنج دقیقه طرح بریز، سی دقیقه بنویس و پنج دقیقه‌ی آخر رو برای بازخوانی نگه دار. با تایمر تمرین کن.
+      - id: m129
+        role: user
+        lang: fa
+        text: |-
+          رایتینگ تسک ۱ رو هم بلد نیستم، نمودارها رو چطوری توصیف کنم؟
+      - id: m130
+        role: assistant
+        lang: fa
+        text: |-
+          برای تسک ۱: یه جمله‌ی مقدمه که سؤال رو با کلمه‌های خودت بگه، یه overview با دو روند اصلی، بعد دو پاراگراف جزئیات با عدد. نظر شخصی نده.
+      - id: m131
+        role: user
+        lang: en
+        text: |-
+          Let's do the vocabulary part in English, it helps me think in English.
+      - id: m132
+        role: assistant
+        lang: en
+        text: |-
+          Good idea. In this part I'll write in English.
+      - id: m133
+        role: user
+        lang: en
+        text: |-
+          Can you make me flashcards for academic words, 20 per day?
+      - id: m134
+        role: assistant
+        lang: en
+        text: |-
+          Sure. Each card has the word, a short definition and one example sentence. Today's first five: allocate, coherent, derive, fluctuate, substantial. I'll send all 20 every evening at 21:00, before your study time.
+      - id: m135
+        role: user
+        lang: en
+        text: |-
+          Also a list of linking words for essays, like however and moreover.
+      - id: m136
+        role: assistant
+        lang: en
+        text: |-
+          Linking words by use: contrast (however, whereas, nevertheless), addition (moreover, furthermore), result (therefore, consequently), example (for instance, such as). Don't start every sentence with one.
+      - id: m137
+        role: user
+        lang: en
+        text: |-
+          How many words do I need to know for band 7?
+      - id: m138
+        role: assistant
+        lang: en
+        text: |-
+          There's no fixed number, but candidates at band 7 usually know about 5,000 to 6,000 word families and use less common words correctly. Accuracy counts more than rare words.
+      - id: m139
+        role: user
+        lang: en
+        text: |-
+          Give me a test on the first 20 cards on Friday.
+      - id: m140
+        role: assistant
+        lang: en
+        text: |-
+          Done. On Friday you'll get a quiz with 20 gaps, and you fill in the missing word. Your score goes into the progress table.
+      - id: m141
+        role: user
+        lang: fa
+        text: |-
+          برگردیم فارسی. امروز خیلی خسته‌ام، می‌شه امشب رو استراحت کنم؟
+      - id: m142
+        role: assistant
+        lang: fa
+        text: |-
+          حتماً. یه شب استراحت ضرر نداره، به‌شرطی که عادت نشه. فردا شب رو با listening شروع کن که سبک‌تره.
+      - id: m143
+        role: user
+        lang: fa
+        text: |-
+          نمره‌ی ماک دوم اومد: رایتینگ ۶.۵ شد!
+      - id: m144
+        role: assistant
+        lang: fa
+        text: |-
+          عالیه! یک نمره‌ی کامل بالاتر از دفعه‌ی اول. مهم‌ترین تغییر این بود که هر دو تسک رو تموم کردی.
+      - id: m145
+        role: user
+        lang: fa
+        text: |-
+          از هفته‌ی بعد شیفتم عوض می‌شه، شب‌ها تا ۱۱ کار دارم. برنامه رو بنداز صبح‌ها.
+      - id: m146
+        role: assistant
+        lang: fa
+        text: |-
+          باشه. از شنبه‌ی بعد هر روز ۶ تا ۷:۳۰ صبح، قبل از کار؛ یعنی روزی یک ساعت و نیم. برای جبرانش جمعه‌ها رو سه ساعت می‌کنیم.
+      - id: m147
+        role: user
+        lang: fa
+        text: |-
+          اینترنت خونه خیلی کنده، لیسنینگ آنلاین هی قطع و وصل می‌شه.
+      - id: m148
+        role: assistant
+        lang: fa
+        text: |-
+          فایل‌های صوتی کتاب‌های کمبریج رو یه بار دانلود کن و آفلاین گوش بده. حجم هر کتاب حدود ۳۰۰ مگابایته.
+      - id: m149
+        role: user
+        lang: fa
+        text: |-
+          ممنونم، خیلی کمکم کردی.
+      - id: m150
+        role: assistant
+        lang: fa
+        text: |-
+          خواهش می‌کنم! هشت هفته‌ی دیگه با نمره‌ی ۷ برمی‌گردی. هر وقت سؤالی داشتی بنویس.
+
+  - id: c4
+    title: فروشگاه شمع دست‌ساز
+    messages:
+      - id: m151
+        role: user
+        lang: fa
+        text: |-
+          سلام! من تو خونه شمع سویا درست می‌کنم و می‌خوام جدی‌ترش کنم، از اینستاگرام بفروشم. از کجا شروع کنم؟
+      - id: m152
+        role: assistant
+        lang: fa
+        text: |-
+          سلام! اول هزینه‌ی تموم‌شده‌ی هر شمع رو حساب کنیم تا قیمت‌گذاری درست باشه. موم، فتیله، اسانس، ظرف و برچسب رو با قیمتشون بگو.
+      - id: m153
+        role: user
+        lang: fa
+        text: |-
+          موم سویا کیلویی ۴۲۰ هزار تومن، ظرف شیشه‌ای کوچیک ۳۵ تومن، بزرگ ۶۰ تومن. اسانس هر ۱۰۰ گرم ۲۵۰ تومن.
+      - id: m154
+        role: assistant
+        lang: fa
+        text: |-
+          با این عددها، هزینه‌ی هر شمع کوچیک (۱۵۰ گرم) حدود ۱۲۰ هزار تومن می‌شه و بزرگ (۳۰۰ گرم) حدود ۲۱۰ هزار تومن. برای سود، معمولاً قیمت فروش رو ۱.۵ تا ۲ برابر هزینه می‌ذارن.
+      - id: m155
+        role: user
+        lang: fa
+        text: |-
+          خب، قیمت شمع‌های کوچیک رو بذار ۱۸۰ هزار تومن، بزرگ‌ها ۳۲۰.
+      - id: m156
+        role: assistant
+        lang: fa
+        text: |-
+          ثبت شد: کوچیک ۱۸۰ هزار تومن، بزرگ ۳۲۰ هزار تومن. سود هر کوچیک حدود ۶۰ و هر بزرگ حدود ۱۱۰ هزار تومنه.
+      - id: m157
+        role: user
+        lang: fa
+        text: |-
+          نسبت اسانس به موم چقدر باشه که بوش خوب پخش بشه؟
+      - id: m158
+        role: assistant
+        lang: fa
+        text: |-
+          برای موم سویا نسبت عطر به موم ۸ درصد خوبه؛ یعنی برای ۵۰۰ گرم موم، ۴۰ گرم اسانس. بیشتر از ۱۰ درصد ممکنه روی سطح شمع روغن بزنه.
+      - id: m159
+        role: user
+        lang: fa
+        text: |-
+          دمای ریختن چند باشه؟
+      - id: m160
+        role: assistant
+        lang: fa
+        text: |-
+          اسانس رو تو ۸۵ درجه اضافه کن و دو دقیقه هم بزن، بعد بذار تا ۶۰ درجه خنک بشه و بریز. اگه داغ‌تر بریزی، سطحش ترک برمی‌داره.
+      - id: m161
+        role: user
+        lang: fa
+        text: |-
+          فتیله چه سایزی بگیرم برای ظرف ۸ سانتی؟
+      - id: m162
+        role: assistant
+        lang: fa
+        text: |-
+          برای قطر ۸ سانت، فتیله‌ی پنبه‌ای سایز CD-10 یا ECO-8 مناسبه. اول یه شمع آزمایشی بسوزون و ببین شعله زیادی بلند نشه.
+      - id: m163
+        role: user
+        lang: fa
+        text: |-
+          یه دوستم تو برلین گفت تو Etsy بفروشم، اونجا شمع دست‌ساز خوب فروش می‌ره. نظرت چیه؟
+      - id: m164
+        role: user
+        lang: en
+        text: |-
+          Let's do the Etsy part in English, I want to practise for the listings.
+      - id: m165
+        role: assistant
+        lang: en
+        text: |-
+          Good idea. Since you're in Tehran, who would ship the orders inside the EU?
+      - id: m166
+        role: user
+        lang: en
+        text: |-
+          My sister lives in Berlin. She can make the candles there with the same recipe and ship them.
+      - id: m167
+        role: assistant
+        lang: en
+        text: |-
+          That works. Then the Etsy shop is in her name and in euros. A small candle could sell for 18 € and a large one for 29 €, in line with similar shops.
+      - id: m168
+        role: user
+        lang: en
+        text: |-
+          What does Etsy take?
+      - id: m169
+        role: assistant
+        lang: en
+        text: |-
+          Etsy charges a $0.20 listing fee per item, plus a 6.5% transaction fee on the sale price and shipping. Payment processing in Germany adds about 4% + 0.30 €.
+      - id: m170
+        role: user
+        lang: en
+        text: |-
+          And Instagram? Does it take anything?
+      - id: m171
+        role: assistant
+        lang: en
+        text: |-
+          Instagram itself takes nothing if you sell by direct message and get paid by bank transfer or PayPal. PayPal for goods costs 2.49% + 0.35 € per payment.
+      - id: m172
+        role: user
+        lang: en
+        text: |-
+          What about shipping costs inside Germany?
+      - id: m173
+        role: assistant
+        lang: en
+        text: |-
+          A DHL Päckchen S costs 4.19 € inside Germany and fits one small candle with padding. A large candle needs a parcel up to 2 kg, about 6.19 €.
+      - id: m174
+        role: user
+        lang: en
+        text: |-
+          Can you write a listing title for the small lavender candle?
+      - id: m175
+        role: assistant
+        lang: en
+        text: |-
+          "Lavender Soy Candle 150 g – Hand-Poured, Cotton Wick, 30 h Burn Time". Etsy titles work best when the main words come first.
+      - id: m176
+        role: user
+        lang: en
+        text: |-
+          Let's use the name 'Shab-e Yalda Glow' for the winter collection. Pomegranate and cinnamon scents.
+      - id: m177
+        role: assistant
+        lang: en
+        text: |-
+          Beautiful name. Yalda is on 21 December, so the candles should be online by mid-November; Etsy buyers start their Christmas shopping early.
+      - id: m178
+        role: user
+        lang: en
+        text: |-
+          For summer we had 'Caspian Breeze', with sea salt and lime. Keep it for next year.
+      - id: m179
+        role: assistant
+        lang: en
+        text: |-
+          Saved: the summer collection 'Caspian Breeze' (sea salt, lime) comes back next June.
+      - id: m180
+        role: user
+        lang: en
+        text: |-
+          Logo colors: dark red and gold for the winter labels.
+      - id: m181
+        role: assistant
+        lang: en
+        text: |-
+          OK, winter labels in dark red (#8B1E2D) and gold (#C9A227). The summer labels stay light blue.
+      - id: m182
+        role: user
+        lang: fa
+        text: |-
+          بقیه‌ش رو فارسی بنویسیم. امروز اولین شکایت رو داشتیم 😕
+      - id: m183
+        role: assistant
+        lang: fa
+        text: |-
+          چی شده؟ تعریف کن تا با هم یه جواب خوب بنویسیم.
+      - id: m184
+        role: user
+        lang: fa
+        text: |-
+          یه مشتری از شیراز گفت شمعش تو راه شکسته، چیکار کنم؟
+      - id: m185
+        role: assistant
+        lang: fa
+        text: |-
+          اول ازش عکس بخواه، بعد یا یه شمع جدید بفرست یا پولش رو برگردون. برای دفعه‌های بعد، دور ظرف شیشه‌ای پلاستیک حباب‌دار بپیچ و بذارش تو جعبه‌ی دولایه.
+      - id: m186
+        role: user
+        lang: fa
+        text: |-
+          یکی دیگه هم گفت بوی شمع ضعیفه.
+      - id: m187
+        role: assistant
+        lang: fa
+        text: |-
+          شاید شمع رو زود روشن کرده. شمع سویا باید دو هفته بمونه تا بوش کامل بشه. اینو روی برچسب هم بنویس.
+      - id: m188
+        role: user
+        lang: fa
+        text: |-
+          سفارش تهران سه روزه نرسیده، پست می‌گه تو راهه.
+      - id: m189
+        role: assistant
+        lang: fa
+        text: |-
+          با کد رهگیری از سایت https://tracking.post.ir پیگیری کن. اگه تا پنج روز کاری نرسید، با ۱۴۵۰ تماس بگیر.
+      - id: m190
+        role: user
+        lang: fa
+        text: |-
+          برای عکس محصولات چی‌کار کنم؟ عکس‌هام تاریکن.
+      - id: m191
+        role: assistant
+        lang: fa
+        text: |-
+          برای عکس محصول، نور طبیعی کنار پنجره بهترینه، ولی نه نور مستقیم آفتاب. پس‌زمینه‌ی سفید یا کرم بذار و یه مقوای سفید روبه‌روی پنجره بگیر که سایه‌ها روشن‌تر بشن.
+      - id: m192
+        role: user
+        lang: fa
+        text: |-
+          برای استوری‌ها هم ویدیو بسازم؟
+      - id: m193
+        role: assistant
+        lang: fa
+        text: |-
+          آره، ویدیوی کوتاه از ریختن موم یا روشن شدن فتیله خیلی خوب دیده می‌شه. ۱۵ ثانیه کافیه، با یه موزیک آروم.
+      - id: m194
+        role: user
+        lang: fa
+        text: |-
+          هشتگ‌ها چی باشه؟
+      - id: m195
+        role: assistant
+        lang: fa
+        text: |-
+          ترکیب فارسی و انگلیسی: #شمع_دست_ساز #شمع_سویا #هدیه_یلدا #soycandle #handmadecandle. بیشتر از ۱۰ تا نذار.
+      - id: m196
+        role: user
+        lang: fa
+        text: |-
+          قیمت‌ها رو برای یلدا ۱۰ درصد تخفیف بدیم؟
+      - id: m197
+        role: assistant
+        lang: fa
+        text: |-
+          می‌شه. با ۱۰ درصد تخفیف، کوچیک ۱۶۲ و بزرگ ۲۸۸ هزار تومن می‌شه. سود هنوز مثبته، ولی فقط تا شب یلدا نگهش دار.
+      - id: m198
+        role: user
+        lang: fa
+        text: |-
+          امروز ۱۲ تا سفارش گرفتیم!
+      - id: m199
+        role: assistant
+        lang: fa
+        text: |-
+          عالیه! با این حساب این هفته حدود ۲.۶ میلیون تومن فروش داشتی. موم فقط برای ۲۰ شمع دیگه کافیه؛ زودتر سفارش بده.
+      - id: m200
+        role: user
+        lang: fa
+        text: |-
+          مرسی، فردا موم سفارش می‌دم.
+
+  - id: c5
+    title: Home server backups
+    messages:
+      - id: m201
+        role: user
+        lang: en
+        text: |-
+          My home server is a Raspberry Pi 5 with a 1 TB SSD, running Nextcloud and some Docker containers. I have no backups at all. Help.
+      - id: m202
+        role: assistant
+        lang: en
+        text: |-
+          Let's fix that. First question: where should the backups go? Another drive at home, a NAS, or a cloud bucket? Best is both: one copy at home and one off-site.
+      - id: m203
+        role: user
+        lang: en
+        text: |-
+          I have an old Synology NAS in the basement, nas.local. And maybe Backblaze B2 later.
+      - id: m204
+        role: assistant
+        lang: en
+        text: |-
+          Good. I suggest restic: it encrypts, deduplicates and can write to SFTP and to B2. Install it with `sudo apt install restic`.
+      - id: m205
+        role: user
+        lang: en
+        text: |-
+          Why not just rsync?
+      - id: m206
+        role: assistant
+        lang: en
+        text: |-
+          rsync copies files, but it keeps no history: if a file gets corrupted, the next rsync copies the broken file over the good one. A typical rsync line would be `rsync -av --delete ~/photos/ nas.local:/volume1/photos/`.
+      - id: m207
+        role: user
+        lang: en
+        text: |-
+          OK, restic. How do I start?
+      - id: m208
+        role: assistant
+        lang: en
+        text: |-
+          Create the repository once:
+          ```
+          restic -r sftp:backup@nas.local:/volume1/restic init
+          ```
+          It asks for a password. Put that password in a file only root can read, for example /root/.restic-pass, and never lose it: without it nobody can read the backups.
+      - id: m209
+        role: user
+        lang: en
+        text: |-
+          Done. Now back up my photos, but skip the temp files from the camera app.
+      - id: m210
+        role: assistant
+        lang: en
+        text: |-
+          Run:
+          ```
+          restic -r sftp:backup@nas.local:/volume1/restic backup ~/photos --exclude '*.tmp' --password-file /root/.restic-pass
+          ```
+          The first backup of 180 GB takes a few hours over the LAN; later ones only send what changed.
+      - id: m211
+        role: user
+        lang: en
+        text: |-
+          And how do I get a file back if I delete it?
+      - id: m212
+        role: assistant
+        lang: en
+        text: |-
+          List the snapshots with `restic -r sftp:backup@nas.local:/volume1/restic snapshots`, then restore one file:
+          ```
+          restic -r sftp:backup@nas.local:/volume1/restic restore latest --target /tmp/restore --include /home/pi/photos/2025/beach.jpg
+          ```
+      - id: m213
+        role: user
+        lang: en
+        text: |-
+          How many snapshots should I keep? The NAS has 4 TB.
+      - id: m214
+        role: assistant
+        lang: en
+        text: |-
+          Your data is about 250 GB, so room isn't a problem. A common rule is one a day for a week, one a week for a month, and one a month for half a year.
+      - id: m215
+        role: user
+        lang: en
+        text: |-
+          Keep 7 daily, 4 weekly and 6 monthly snapshots then.
+      - id: m216
+        role: assistant
+        lang: en
+        text: |-
+          Set: `restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune`. I'll run it once a week after the backup, because prune is slow.
+      - id: m217
+        role: user
+        lang: en
+        text: |-
+          How much room does the repository take now?
+      - id: m218
+        role: assistant
+        lang: en
+        text: |-
+          After the first week: 262 GB for 7 snapshots. Deduplication keeps it close to the size of the data itself.
+      - id: m219
+        role: user
+        lang: en
+        text: |-
+          The SSD is at 91% full, what can I delete?
+      - id: m220
+        role: assistant
+        lang: en
+        text: |-
+          The biggest items: Docker images take 38 GB (`docker image prune -a` frees most of that), the Nextcloud trash 22 GB, and old logs in /var/log 4 GB. Deleting those brings you to about 85%.
+      - id: m221
+        role: user
+        lang: en
+        text: |-
+          Are the SSD temperatures OK? It feels hot.
+      - id: m222
+        role: assistant
+        lang: en
+        text: |-
+          smartctl shows 61 °C under load and 48 °C idle. That's within spec (up to 70 °C), but a small fan on the case would help.
+      - id: m223
+        role: user
+        lang: en
+        text: |-
+          Nextcloud is on port 8080 and I want to reach it from outside with HTTPS.
+      - id: m224
+        role: assistant
+        lang: en
+        text: |-
+          Use Caddy as a reverse proxy for Nextcloud; it gets the certificate by itself. The Caddyfile:
+          ```
+          cloud.example.net {
+              reverse_proxy localhost:8080
+          }
+          ```
+          Open ports 80 and 443 on the router and point the DNS name at your IP.
+      - id: m225
+        role: user
+        lang: en
+        text: |-
+          My IP changes every few days.
+      - id: m226
+        role: assistant
+        lang: en
+        text: |-
+          Then use dynamic DNS; DuckDNS is free. A cron job updates the IP every 5 minutes: `*/5 * * * * curl -s "https://www.duckdns.org/update?domains=mycloud&token=$DUCK_TOKEN"`.
+      - id: m227
+        role: user
+        lang: de
+        text: |-
+          Ab jetzt auf Deutsch bitte, abends ist mein Englisch zu müde 😄
+      - id: m228
+        role: assistant
+        lang: de
+        text: |-
+          Kein Problem, ab jetzt auf Deutsch.
+      - id: m229
+        role: user
+        lang: de
+        text: |-
+          Die Backups sollen nur nachts zwischen 2 und 5 Uhr laufen, tagsüber brauche ich die Bandbreite fürs Homeoffice.
+      - id: m230
+        role: assistant
+        lang: de
+        text: |-
+          Dann nehmen wir einen systemd-Timer mit `OnCalendar=*-*-* 02:00:00` und `RuntimeMaxSec=3h`: Das Backup startet um 2 Uhr und wird spätestens um 5 Uhr beendet. Nachts darf restic die volle Leitung nutzen.
+      - id: m231
+        role: user
+        lang: de
+        text: |-
+          Und die Updates? Die laufen bei mir um 4 Uhr.
+      - id: m232
+        role: assistant
+        lang: de
+        text: |-
+          unattended-upgrades startet um 4 Uhr und kann Docker neu starten, mitten im Backup. Ich verschiebe die Updates auf 6 Uhr, nach dem Backup-Fenster.
+      - id: m233
+        role: user
+        lang: de
+        text: |-
+          Kannst du mir ein Skript schreiben, das mich per E-Mail warnt, wenn ein Backup fehlschlägt?
+      - id: m234
+        role: assistant
+        lang: de
+        text: |-
+          Hier ein kleines Skript, das der Timer statt restic direkt aufruft:
+          ```bash
+          #!/bin/sh
+          if ! restic backup /home/pi --password-file /root/.restic-pass; then
+            echo "Backup am $(date) fehlgeschlagen" | mail -s "restic Fehler" ich@example.de
+          fi
+          ```
+      - id: m235
+        role: user
+        lang: de
+        text: |-
+          Statt Mail lieber eine Push-Nachricht aufs Handy?
+      - id: m236
+        role: assistant
+        lang: de
+        text: |-
+          Geht mit ntfy.sh: `curl -d "Backup fehlgeschlagen" https://ntfy.sh/mein-pi-backup`. Die App auf dem Handy abonniert das Thema und zeigt die Nachricht sofort an.
+      - id: m237
+        role: user
+        lang: de
+        text: |-
+          Ich will auch Jellyfin für Filme installieren.
+      - id: m238
+        role: assistant
+        lang: de
+        text: |-
+          Port 8080 ist schon von Nextcloud belegt, nimm für Jellyfin den Standardport 8096. In der docker-compose.yml: `ports: ["8096:8096"]`.
+      - id: m239
+        role: user
+        lang: de
+        text: |-
+          Und wie sieht die Compose-Datei für Nextcloud aus?
+      - id: m240
+        role: assistant
+        lang: de
+        text: |-
+          So:
+          ```yaml
+          services:
+            nextcloud:
+              image: nextcloud:29
+              ports: ["8080:80"]
+              volumes: ["/srv/nextcloud:/var/www/html"]
+          ```
+      - id: m241
+        role: user
+        lang: de
+        text: |-
+          Soll Jellyfin auch über Caddy laufen?
+      - id: m242
+        role: assistant
+        lang: de
+        text: |-
+          Ja, mit einem zweiten Block im Caddyfile: `filme.example.net { reverse_proxy localhost:8096 }`. Dann brauchst du keinen weiteren offenen Port.
+      - id: m243
+        role: user
+        lang: de
+        text: |-
+          Wie teste ich, ob ein Restore wirklich klappt?
+      - id: m244
+        role: assistant
+        lang: de
+        text: |-
+          Einmal im Monat einen zufälligen Ordner nach /tmp wiederherstellen und mit `diff -r` vergleichen. Dazu prüft `restic check --read-data-subset=5%` jede Woche einen Teil der Daten.
+      - id: m245
+        role: user
+        lang: de
+        text: |-
+          Und das Off-site-Backup bei Backblaze B2?
+      - id: m246
+        role: assistant
+        lang: de
+        text: |-
+          B2 kostet 6 $ pro TB und Monat, für deine 250 GB also etwa 1,50 $. restic schreibt direkt dorthin: `restic -r b2:mein-bucket:pi init`. Die Schlüssel kommen als B2_ACCOUNT_ID und B2_ACCOUNT_KEY in die Umgebung.
+      - id: m247
+        role: user
+        lang: de
+        text: |-
+          Wie viel Strom braucht der Pi eigentlich im Jahr?
+      - id: m248
+        role: assistant
+        lang: de
+        text: |-
+          Der Pi 5 mit SSD braucht im Schnitt etwa 6 W, also rund 53 kWh im Jahr. Bei 0,35 € pro kWh sind das etwa 18,50 €.
+      - id: m249
+        role: user
+        lang: de
+        text: |-
+          Perfekt, danke. Jetzt schlafe ich ruhiger.
+      - id: m250
+        role: assistant
+        lang: de
+        text: |-
+          Gern! Das erste Backup läuft heute Nacht um 2 Uhr. Morgen früh siehst du mit `restic snapshots`, ob es geklappt hat.
+
+  - id: c6
+    title: Umzug nach Leipzig
+    messages:
+      - id: m251
+        role: user
+        lang: fa
+        text: |-
+          سلام. ما آخر نوامبر از هامبورگ می‌ریم لایپزیگ. کلی کار داریم و نمی‌دونم از کجا شروع کنم.
+      - id: m252
+        role: assistant
+        lang: fa
+        text: |-
+          سلام! تبریک بابت خونه‌ی جدید. بیا یه لیست بنویسیم: قرارداد قدیمی، اسباب‌کشی، ثبت آدرس، و قراردادهایی مثل اینترنت و برق. اول از همه: قرارداد خونه‌ی قبلی رو فسخ کردی؟
+      - id: m253
+        role: user
+        lang: de
+        text: |-
+          Den Teil zum Vertrag schreibe ich auf Deutsch, das ist ja alles auf Deutsch. Ich habe noch nicht gekündigt.
+      - id: m254
+        role: assistant
+        lang: de
+        text: |-
+          Okay. Wie lange wohnst du schon dort, und was steht im Mietvertrag zur Kündigung?
+      - id: m255
+        role: user
+        lang: de
+        text: |-
+          Ich wohne seit vier Jahren dort. Die Kündigungsfrist für meine alte Wohnung sind drei Monate, also muss ich spätestens Anfang November kündigen, dann ist der letzte Tag der 31. Januar.
+      - id: m256
+        role: assistant
+        lang: de
+        text: |-
+          Genau. Die Kündigung muss schriftlich sein, mit Unterschrift, per Post oder persönlich übergeben – eine E-Mail reicht nicht. Schick sie per Einwurf-Einschreiben, dann hast du einen Beleg.
+      - id: m257
+        role: user
+        lang: de
+        text: |-
+          Die neue Wohnung kostet 780 € warm, die alte 950 €. Zwei Monate doppelte Miete tun weh.
+      - id: m258
+        role: assistant
+        lang: de
+        text: |-
+          Frag den alten Vermieter, ob du früher raus darfst, wenn du einen Nachmieter findest. Viele sind einverstanden, wenn der Nachmieter solvent ist.
+      - id: m259
+        role: user
+        lang: de
+        text: |-
+          Die Kaution von 2.100 € will der alte Vermieter erst nach der Nebenkostenabrechnung zurückzahlen. Darf er das?
+      - id: m260
+        role: assistant
+        lang: de
+        text: |-
+          Ja, er darf einen Teil einbehalten, bis die Nebenkostenabrechnung da ist. Üblich ist ein Betrag in Höhe einer möglichen Nachzahlung, etwa 300 €. Den Rest muss er nach der Übergabe zügig auszahlen; Gerichte geben ihm dafür meist drei bis sechs Monate.
+      - id: m261
+        role: user
+        lang: de
+        text: |-
+          Wie hoch sind die Nebenkosten in der neuen Wohnung?
+      - id: m262
+        role: assistant
+        lang: de
+        text: |-
+          Laut Exposé 210 € Vorauszahlung im Monat, Heizung und Warmwasser inklusive. Die Kaltmiete ist 570 €.
+      - id: m263
+        role: user
+        lang: de
+        text: |-
+          Was muss ich bei der Übergabe der alten Wohnung beachten?
+      - id: m264
+        role: assistant
+        lang: de
+        text: |-
+          Hier die Checkliste für die Wohnungsübergabe: Zählerstände fotografieren, alle Schlüssel zählen, Dübellöcher schließen und ein Übergabeprotokoll mit dem Vermieter unterschreiben. Ohne Protokoll ist später schwer zu beweisen, in welchem Zustand die Wohnung war.
+      - id: m265
+        role: user
+        lang: de
+        text: |-
+          Muss ich die Wände streichen?
+      - id: m266
+        role: assistant
+        lang: de
+        text: |-
+          Nur wenn der Mietvertrag eine gültige Klausel zu Schönheitsreparaturen hat und du die Wohnung renoviert übernommen hast. Starre Fristen wie „alle 3 Jahre streichen" sind meist unwirksam.
+      - id: m267
+        role: user
+        lang: fa
+        text: |-
+          خب، حالا بریم سراغ خود اسباب‌کشی. فارسی بنویسیم.
+      - id: m268
+        role: assistant
+        lang: fa
+        text: |-
+          باشه. چند تا سؤال: چند نفرید، چقدر وسیله دارید، و ماشین دارید یا باید ون کرایه کنید؟
+      - id: m269
+        role: user
+        lang: fa
+        text: |-
+          دو نفریم با یه بچه. برای اسباب‌کشی حدود ۳۰ تا کارتن لازم دارم، خرید از OBI ارزون‌تره یا Bauhaus؟
+      - id: m270
+        role: assistant
+        lang: fa
+        text: |-
+          کارتن‌های OBI بسته‌ی ۱۰ تایی ۱۹.۹۹ یوروئه، Bauhaus حدود ۲۲ یورو. ولی ارزون‌تر از هر دو: توی kleinanzeigen.de کارتن دست‌دوم رو اغلب مجانی می‌دن.
+      - id: m271
+        role: user
+        lang: fa
+        text: |-
+          دوستام می‌تونن کمک کنن، ولی ماشین بزرگ نداریم.
+      - id: m272
+        role: assistant
+        lang: fa
+        text: |-
+          پس یه Transporter کرایه کن. برای یه آپارتمان دوخوابه یه ون ۳.۵ تنی بسه و با گواهینامه‌ی معمولی (کلاس B) می‌شه روندش.
+      - id: m273
+        role: user
+        lang: de
+        text: |-
+          Den Transporter von Sixt habe ich für Samstag, 28. November, von 8 bis 18 Uhr gebucht – 119 € plus 0,29 € pro km.
+      - id: m274
+        role: assistant
+        lang: fa
+        text: |-
+          عالیه. یادت باشه برای پارک ون جلوی خونه می‌تونی از شهرداری تابلوی ممنوعیت توقف موقت (Halteverbotszone) بگیری؛ تو لایپزیگ حداقل دو هفته قبلش باید درخواست بدی.
+      - id: m275
+        role: user
+        lang: fa
+        text: |-
+          یه چیز دیگه: صاحبخونه‌ی جدید گفت حیوون خونگی ممنوعه. گربه‌مو چیکار کنم؟
+      - id: m276
+        role: assistant
+        lang: fa
+        text: |-
+          طبق رأی دادگاه عالی فدرال آلمان، ممنوعیت کلی گربه و سگ تو قرارداد اجاره معتبر نیست؛ صاحبخونه باید هر مورد رو جدا بررسی کنه. ولی بهتره قبل از امضا، اجازه‌ش رو کتبی بگیری.
+      - id: m277
+        role: user
+        lang: fa
+        text: |-
+          تو ساختمون جدید ساعت سکوت هم دارن؟ بچه‌م شب‌ها گریه می‌کنه.
+      - id: m278
+        role: assistant
+        lang: fa
+        text: |-
+          معمولاً تو Hausordnung از ساعت ۲۲ تا ۶ صبح و ظهرها ۱۳ تا ۱۵ سکوته. ولی گریه‌ی بچه جزو سروصدای عادی حساب می‌شه و نمی‌شه بابتش شکایت کرد.
+      - id: m279
+        role: user
+        lang: fa
+        text: |-
+          دوچرخه‌ها رو کجا بذاریم؟ زیرزمین داره؟
+      - id: m280
+        role: assistant
+        lang: fa
+        text: |-
+          طبق آگهی، یه انباری تو زیرزمین (Keller) و یه اتاق دوچرخه تو حیاط داره. دوچرخه‌ها رو تو راه‌پله نذارید، معمولاً ممنوعه.
+      - id: m281
+        role: user
+        lang: de
+        text: |-
+          Jetzt zur Anmeldung in Leipzig. Was brauche ich da?
+      - id: m282
+        role: assistant
+        lang: de
+        text: |-
+          Für die Anmeldung beim Bürgeramt brauchst du deinen Pass oder Personalausweis und die Wohnungsgeberbestätigung vom neuen Vermieter. Du hast nach dem Einzug zwei Wochen Zeit.
+      - id: m283
+        role: user
+        lang: de
+        text: |-
+          Wo bekomme ich einen Termin?
+      - id: m284
+        role: assistant
+        lang: de
+        text: |-
+          Online über https://www.leipzig.de/buergerservice – die Termine sind oft drei bis vier Wochen im Voraus weg. Buch am besten jetzt schon einen für die erste Dezemberwoche.
+      - id: m285
+        role: user
+        lang: de
+        text: |-
+          Muss ich den Rundfunkbeitrag auch ummelden?
+      - id: m286
+        role: assistant
+        lang: de
+        text: |-
+          Ja, online auf rundfunkbeitrag.de mit deiner Beitragsnummer. Die Adresse zu ändern dauert fünf Minuten; der Beitrag bleibt bei 18,36 € im Monat.
+      - id: m287
+        role: user
+        lang: fa
+        text: |-
+          اینترنت چی؟ قرارداد Vodafone دارم.
+      - id: m288
+        role: assistant
+        lang: fa
+        text: |-
+          قرارداد اینترنت Vodafone تا مارس ۲۰۲۷ اعتبار داره. با اسباب‌کشی لازم نیست فسخش کنی؛ با فرم Umzugsmeldung می‌تونی منتقلش کنی به آدرس جدید. اگه Vodafone تو آدرس جدید نتونه همون سرعت رو بده، حق فسخ با سه ماه مهلت داری.
+      - id: m289
+        role: user
+        lang: fa
+        text: |-
+          برق چی؟ الان با E.ON هستم.
+      - id: m290
+        role: assistant
+        lang: fa
+        text: |-
+          قرارداد برق رو معمولاً می‌شه با خودت ببری، ولی قیمت‌ها شهر به شهر فرق می‌کنه. تو لایپزیگ، Stadtwerke Leipzig کیلووات‌ساعتی حدود ۳۲ سنته. شماره‌ی کنتور خونه‌ی جدید رو روز تحویل بنویس.
+      - id: m291
+        role: user
+        lang: fa
+        text: |-
+          تلفن ثابت دیگه لازم نداریم، حذفش کن.
+      - id: m292
+        role: assistant
+        lang: fa
+        text: |-
+          باشه، از لیست حذف شد. توی قرارداد Vodafone هم تلفن ثابت جداست، می‌تونی همون‌جا لغوش کنی.
+      - id: m293
+        role: user
+        lang: fa
+        text: |-
+          یه سؤال دیگه: برای بچه‌م پزشک اطفال تو لایپزیگ چطوری پیدا کنم؟
+      - id: m294
+        role: assistant
+        lang: fa
+        text: |-
+          توی سایت https://www.kvsachsen.de یا Doctolib دنبال Kinderarzt بگرد. خیلی‌ها بیمار جدید قبول نمی‌کنن، پس چند جا رو همزمان امتحان کن.
+      - id: m295
+        role: user
+        lang: fa
+        text: |-
+          کارتن‌ها رسیدن، ۳۰ تا. چسب و نوار هم خریدم.
+      - id: m296
+        role: assistant
+        lang: fa
+        text: |-
+          عالیه. روی هر کارتن بنویس مال کدوم اتاقه، مثلاً «آشپزخونه» یا «اتاق بچه». وسایل شکستنی رو جدا علامت بزن.
+      - id: m297
+        role: user
+        lang: de
+        text: |-
+          Letzte Frage auf Deutsch: Kann ich die Umzugskosten von der Steuer absetzen?
+      - id: m298
+        role: assistant
+        lang: de
+        text: |-
+          Nur wenn der Umzug beruflich bedingt ist, etwa für einen neuen Job. Ein privater Umzug zählt aber als haushaltsnahe Dienstleistung: 20 % der Arbeitskosten einer Umzugsfirma, nicht die Kosten für den Transporter, den du selbst fährst.
+      - id: m299
+        role: user
+        lang: fa
+        text: |-
+          مرسی بابت همه‌چی! بعد از اسباب‌کشی خبرت می‌کنم.
+      - id: m300
+        role: assistant
+        lang: fa
+        text: |-
+          خواهش می‌کنم! امیدوارم روز اسباب‌کشی خوب پیش بره و گربه‌تون هم زود به خونه‌ی جدید عادت کنه.

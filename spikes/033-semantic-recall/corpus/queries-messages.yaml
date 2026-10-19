@@ -1,0 +1,305 @@
+# SPIKE-033 labelled queries over messages.yaml: 60 queries, 20 per
+# language, 15 per kind. See README-messages.md.
+# English
+- id: qm001
+  kind: same_words
+  lang: en
+  query: cron every 30 minutes
+  targets: [{message: m014}]
+- id: qm002
+  kind: same_words
+  lang: en
+  query: prices table schema price_cents
+  targets: [{message: m010}]
+- id: qm003
+  kind: same_words
+  lang: en
+  query: restic backup photos exclude
+  targets: [{message: m210}]
+- id: qm004
+  kind: same_words
+  lang: en
+  query: Caddyfile reverse_proxy Nextcloud
+  targets: [{message: m224}]
+- id: qm005
+  kind: same_words
+  lang: en
+  query: Etsy listing fee
+  targets: [{message: m169}]
+- id: qm006
+  kind: paraphrase
+  lang: en
+  query: which currency did I want?
+  targets: [{message: m025}, {message: m026}]
+- id: qm007
+  kind: paraphrase
+  lang: en
+  query: seasonal product line title
+  targets: [{message: m176}]
+- id: qm008
+  kind: paraphrase
+  lang: en
+  query: running out of disk space
+  targets: [{message: m219}, {message: m220}]
+- id: qm009
+  kind: paraphrase
+  lang: en
+  query: meat-free places to eat
+  targets: [{message: m077}, {message: m078}]
+- id: qm010
+  kind: paraphrase
+  lang: en
+  query: vocabulary practice routine
+  targets: [{message: m133}, {message: m134}]
+- id: qm011
+  kind: cross_language
+  lang: en
+  query: when is the exam?
+  targets: [{message: m106}]
+- id: qm012
+  kind: cross_language
+  lang: en
+  query: when can I leave the flat?
+  targets: [{message: m255}]
+- id: qm013
+  kind: cross_language
+  lang: en
+  query: media server port conflict
+  targets: [{message: m238}]
+- id: qm014
+  kind: cross_language
+  lang: en
+  query: move the internet contract to the new address
+  targets: [{message: m288}]
+- id: qm015
+  kind: cross_language
+  lang: en
+  query: is an ID card enough for entry?
+  targets: [{message: m070}]
+- id: qm016
+  kind: no_answer
+  lang: en
+  query: bitcoin price alert
+  targets: []
+- id: qm017
+  kind: no_answer
+  lang: en
+  query: hotel in Madrid
+  targets: []
+- id: qm018
+  kind: no_answer
+  lang: en
+  query: dentist appointment
+  targets: []
+- id: qm019
+  kind: no_answer
+  lang: en
+  query: wifi password for the guest network
+  targets: []
+- id: qm020
+  kind: no_answer
+  lang: en
+  query: salary negotiation tips
+  targets: []
+# German
+- id: qm021
+  kind: same_words
+  lang: de
+  query: Zug Lissabon Porto
+  targets: [{message: m064}]
+- id: qm022
+  kind: same_words
+  lang: de
+  query: Hotel Alfama Stornierung
+  targets: [{message: m062}]
+- id: qm023
+  kind: same_words
+  lang: de
+  query: Skript E-Mail Backup fehlschlägt
+  targets: [{message: m233}, {message: m234}]
+- id: qm024
+  kind: same_words
+  lang: de
+  query: Checkliste Wohnungsübergabe Zählerstände
+  targets: [{message: m264}]
+- id: qm025
+  kind: same_words
+  lang: de
+  query: Wohnungsgeberbestätigung Anmeldung
+  targets: [{message: m282}]
+- id: qm026
+  kind: paraphrase
+  lang: de
+  query: Obergrenze Reisekosten
+  targets: [{message: m055}]
+- id: qm027
+  kind: paraphrase
+  lang: de
+  query: Zeitfenster Sicherung
+  targets: [{message: m229}, {message: m230}]
+- id: qm028
+  kind: paraphrase
+  lang: de
+  query: wann kann ich ausziehen?
+  targets: [{message: m255}]
+- id: qm029
+  kind: paraphrase
+  lang: de
+  query: Rückgabe Mietsicherheit
+  targets: [{message: m259}, {message: m260}]
+- id: qm030
+  kind: paraphrase
+  lang: de
+  query: Mietwagen für den Umzugstag
+  targets: [{message: m273}]
+- id: qm031
+  kind: cross_language
+  lang: de
+  query: Verkäufer mit schlechter Bewertung ausblenden
+  targets: [{message: m041}, {message: m042}]
+- id: qm032
+  kind: cross_language
+  lang: de
+  query: Duftöl Anteil im Wachs
+  targets: [{message: m158}]
+- id: qm033
+  kind: cross_language
+  lang: de
+  query: Lernkarten Vokabeln täglich
+  targets: [{message: m133}, {message: m134}]
+- id: qm034
+  kind: cross_language
+  lang: de
+  query: Aufbewahrung Schnappschüsse
+  targets: [{message: m215}, {message: m216}]
+- id: qm035
+  kind: cross_language
+  lang: de
+  query: Preisalarm Grafikkarte Nachricht
+  targets: [{message: m033}, {message: m034}]
+- id: qm036
+  kind: no_answer
+  lang: de
+  query: Steuererklärung Frist
+  targets: []
+- id: qm037
+  kind: no_answer
+  lang: de
+  query: Flug nach Mallorca
+  targets: []
+- id: qm038
+  kind: no_answer
+  lang: de
+  query: Hund Tierarzt Impfung
+  targets: []
+- id: qm039
+  kind: no_answer
+  lang: de
+  query: Kita Platz anmelden
+  targets: []
+- id: qm040
+  kind: no_answer
+  lang: de
+  query: Gehaltserhöhung verhandeln
+  targets: []
+# Persian
+- id: qm041
+  kind: same_words
+  lang: fa
+  query: قیمت شمع کوچیک
+  targets: [{message: m155}]
+- id: qm042
+  kind: same_words
+  lang: fa
+  query: منابع کتاب کمبریج
+  targets: [{message: m120}]
+- id: qm043
+  kind: same_words
+  lang: fa
+  query: گزارش هفتگی یکشنبه
+  targets: [{message: m047}]
+- id: qm044
+  kind: same_words
+  lang: fa
+  query: برنامه هفتگی مهارت‌ها
+  targets: [{message: m116}]
+- id: qm045
+  kind: same_words
+  lang: fa
+  query: خرید کارتن اسباب‌کشی
+  targets: [{message: m269}]
+- id: qm046
+  kind: paraphrase
+  lang: fa
+  query: محدودیت زمان مطالعه
+  targets: [{message: m111}, {message: m145}]
+- id: qm047
+  kind: paraphrase
+  lang: fa
+  query: مشکل مدیریت زمان در نگارش
+  targets: [{message: m127}, {message: m128}]
+- id: qm048
+  kind: paraphrase
+  lang: fa
+  query: آسیب دیدن سفارش موقع ارسال
+  targets: [{message: m184}, {message: m185}]
+- id: qm049
+  kind: paraphrase
+  lang: fa
+  query: قانون نگهداری پت در آپارتمان
+  targets: [{message: m275}, {message: m276}]
+- id: qm050
+  kind: paraphrase
+  lang: fa
+  query: تصویربرداری کالا برای فروشگاه
+  targets: [{message: m191}]
+- id: qm051
+  kind: cross_language
+  lang: fa
+  query: هشدار تلگرام برای کارت گرافیک
+  targets: [{message: m033}, {message: m034}]
+- id: qm052
+  kind: cross_language
+  lang: fa
+  query: رستوران‌های گیاهخواری
+  targets: [{message: m077}, {message: m078}]
+- id: qm053
+  kind: cross_language
+  lang: fa
+  query: کارمزد اتسی
+  targets: [{message: m169}]
+- id: qm054
+  kind: cross_language
+  lang: fa
+  query: مدارک لازم برای ثبت آدرس جدید
+  targets: [{message: m282}]
+- id: qm055
+  kind: cross_language
+  lang: fa
+  query: سقف بودجه سفر پرتغال
+  targets: [{message: m055}]
+- id: qm056
+  kind: no_answer
+  lang: fa
+  query: قیمت طلا امروز
+  targets: []
+- id: qm057
+  kind: no_answer
+  lang: fa
+  query: بلیت قطار مشهد
+  targets: []
+- id: qm058
+  kind: no_answer
+  lang: fa
+  query: دستور پخت قرمه‌سبزی
+  targets: []
+- id: qm059
+  kind: no_answer
+  lang: fa
+  query: تمدید پاسپورت ایرانی
+  targets: []
+- id: qm060
+  kind: no_answer
+  lang: fa
+  query: کلاس یوگا نزدیک خونه
+  targets: []
