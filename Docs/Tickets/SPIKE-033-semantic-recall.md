@@ -178,11 +178,12 @@ A file query is 4.3 points, so 9 points is 2 queries. Heading chunks led in the 
 
 **Scan time** (from `scan/`): over 250,000 vectors on all cores, about 25 ms at 384 and 256 wide, 40 ms at 768, and 100 ms at 3,072. int8 isn't faster to scan in plain Go, but it takes 4× less memory and storage.
 
-**Draft decisions, for the user to settle (round 1):**
+**Decisions (round 1).** The drafts are for the user to settle:
 - *Draft:* hybrid search is worth building, for messages and for files. On this corpus it has 2.4 to 3.5 times FTS's recall, and it keeps the FTS hits.
 - *Draft:* store vectors as int8 at full width. int8 lost nothing. 256 lost MRR with prefixes and saves less than int8 does.
 - *Draft:* chunk files by heading. It led in the best conditions, by 2 queries. Round 2 is skipped.
 - *Draft:* query and document prefixes belong in the provider layer. They are set per embedding model in the user's configuration (a preset may fill them), and the text is the same for every model otherwise. Gemma gained 4 to 17 points from them.
 - *Draft:* no fixed score cutoff. No-answer and real scores overlap, and the scores differ by model and width.
-- *Draft:* the built-in embedder can't ship on the Go backend as it is. Its speed is near Ollama's, and the tokenizer bug costs only a few points. But it held up to 10 GB while it embedded, and it needs a cut to the model's window that hugot doesn't apply. On ONNX Runtime it would be 7 to 10 times faster, at the cost of cgo.
+- **Decided (user, 2026-10-19):** no built-in embedder for now. Embeddings come from Ollama or a cloud provider the user sets up, and N-51 (no cgo) stays. The Go backend can't ship as it is: its speed is near Ollama's and the tokenizer bug costs only a few points, but it held up to 10 GB while it embedded, and it needs a cut to the model's window that hugot doesn't apply.
+  - *Later:* a built-in embedder as a separate helper program on ONNX Runtime (7 to 10 times faster than the Go backend). The helper needs cgo, the app doesn't. A crash stops only the helper, and its memory is freed when it exits. The cost is a second program to build, sign and update. Other options weighed: loading ONNX Runtime's library without cgo (unproven), and cgo in the app (breaks N-51).
 - Still open: the cloud model. Gemini's free tier stopped it, so round 1 has no cloud numbers.
