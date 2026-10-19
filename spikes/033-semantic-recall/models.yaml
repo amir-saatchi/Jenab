@@ -1,0 +1,53 @@
+# SPIKE-033's embedders. The kind is chosen here and never guessed from the
+# base URL: ollama (native /api/embed), openai_compatible (/embeddings),
+# builtin (the hugot module in builtin/, not wired yet) or fake (tests).
+# Keys come from .env by key_env and stay in memory.
+#
+# The prefixes are used only in the prefix run (Method 6). The same text
+# and prompts go to every model otherwise.
+embedders:
+  - name: gemma-ollama
+    kind: ollama
+    base_url: http://localhost:11434/
+    model: embeddinggemma-2:270m
+    key_env: ""
+    batch_size: 32
+    matryoshka: true
+    # From the first EmbeddingGemma's card (google/embeddinggemma-300m);
+    # no EmbeddingGemma 2 card text was found on 2026-10-19. Check them
+    # against its card before the run.
+    query_prefix: "task: search result | query: "
+    document_prefix: "title: none | text: "
+
+  # The cloud model is confirmed with the user before any run.
+  - name: gemini
+    kind: openai_compatible
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    model: gemini-embedding-001
+    key_env: GEMINI_API_KEY
+    batch_size: 100
+    matryoshka: true
+    # Gemini takes a task type, not text prefixes, and the OpenAI-compatible
+    # endpoint has no field for it, so there is no prefix run.
+    query_prefix: ""
+    document_prefix: ""
+
+  # The built-in embedder (builtin/), wired in after the pieces are merged.
+  - name: builtin
+    kind: builtin
+    model: embeddinggemma-2:270m
+    batch_size: 32
+    matryoshka: true
+    query_prefix: "task: search result | query: "
+    document_prefix: "title: none | text: "
+
+  # Feature hashing of words, for go test and dry runs. Nothing leaves the
+  # machine.
+  - name: fake
+    kind: fake
+    model: hashed-words
+    dims: 512
+    batch_size: 64
+    matryoshka: true
+    query_prefix: "query: "
+    document_prefix: "passage: "
