@@ -1,0 +1,232 @@
+# File queries for SPIKE-033. Each quote is an exact substring of its file and
+# occurs once in it; the harness turns it into a byte range.
+# Kinds: same_words, paraphrase, cross_language, no_answer. lang is the query's language.
+
+# English queries
+- id: qf001
+  kind: same_words
+  lang: en
+  query: "laptop replacement every four years"
+  targets:
+    - file: employee-handbook-en.md
+      quote: "Company laptops are replaced every four years, or sooner if a repair would cost more than half the price of a new device."
+
+- id: qf002
+  kind: same_words
+  lang: en
+  query: "error E07 outdoor fan"
+  targets:
+    - file: heat-pump-manual-en.md
+      quote: "Outdoor fan blocked or fan motor failed"
+
+- id: qf003
+  kind: same_words
+  lang: en
+  query: "total loans and e-book loans 2025"
+  targets:
+    - file: library-report-en.md
+      quote: "Total loans fell by 3.2 percent to 412,580, while e-book loans rose by 27 percent."
+
+- id: qf004
+  kind: paraphrase
+  lang: en
+  query: "when can I stop working here if I resign"
+  targets:
+    - file: employee-handbook-en.md
+      quote: "After probation, either party may end the employment with two months' written notice, effective at the end of a calendar month."
+
+- id: qf005
+  kind: paraphrase
+  lang: en
+  query: "how do I keep pipes from icing up during a power cut in cold weather"
+  targets:
+    - file: heat-pump-manual-en.md
+      quote: "If the electricity supply fails for longer than two hours when the outdoor temperature is below 0 °C, drain the water circuit through valve V3 or fill it with the approved glycol mixture to protect it against frost damage."
+
+- id: qf006
+  kind: paraphrase
+  lang: en
+  query: "reason school solar panels delayed"
+  targets:
+    - file: board-minutes-en.md
+      quote: "The board agreed to defer the photovoltaic installation at Millbrook Primary until the structural survey of the roof is complete."
+
+- id: qf007
+  kind: cross_language
+  lang: en
+  query: "security deposit for the flat, can it be paid in instalments"
+  targets:
+    - file: rental-contract-de.md
+      quote: "Der Mieter leistet eine Kaution in Höhe von drei Nettokaltmieten. Er ist berechtigt, sie in drei gleichen monatlichen Teilzahlungen zu erbringen."
+
+- id: qf008
+  kind: cross_language
+  lang: en
+  query: "water savings of drip irrigation compared with flood irrigation in pistachio orchards"
+  targets:
+    - file: irrigation-report-fa.md
+      quote: "در مجموع سه سال اجرای طرح، آبیاری قطره‌ای زیرسطحی مصرف آب باغ‌های پسته را نسبت به آبیاری غرقابی به‌طور میانگین ۳۸ درصد کاهش داد."
+
+- id: qf009
+  kind: no_answer
+  lang: en
+  query: "employee stock options vesting schedule"
+  targets: []
+
+- id: qf010
+  kind: no_answer
+  lang: en
+  query: "EV wallbox charger warranty period"
+  targets: []
+
+# German queries
+- id: qf011
+  kind: same_words
+  lang: de
+  query: "Kündigungsfrist Mieter Mietverhältnis"
+  targets:
+    - file: rental-contract-de.md
+      quote: "Der Mieter kann das Mietverhältnis mit einer Kündigungsfrist von drei Monaten zum Ende eines Kalendermonats schriftlich kündigen."
+
+- id: qf012
+  kind: same_words
+  lang: de
+  query: "Jahresbeitrag Erwachsene Erhöhung 2027"
+  targets:
+    - file: club-minutes-de.md
+      quote: "Die Versammlung beschließt mit 87 Ja-Stimmen bei 6 Gegenstimmen, den Jahresbeitrag für Erwachsene ab 1. Januar 2027 von 96 Euro auf 120 Euro zu erhöhen."
+
+- id: qf013
+  kind: same_words
+  lang: de
+  query: "Kalibrierintervall Messschieber Bügelmessschrauben"
+  targets:
+    - file: quality-handbook-de.md
+      quote: "Messschieber und Bügelmessschrauben werden alle zwölf Monate kalibriert, Lehrdorne und Gewindelehren alle 24 Monate."
+
+- id: qf014
+  kind: paraphrase
+  lang: de
+  query: "Wann kommt das Gehalt aufs Konto?"
+  targets:
+    - file: work-contract-de.md
+      quote: "Die Vergütung ist jeweils am letzten Bankarbeitstag des laufenden Monats fällig und wird bargeldlos ausgezahlt."
+
+- id: qf015
+  kind: paraphrase
+  lang: de
+  query: "Ablauf bei Beschwerde wegen mangelhafter Lieferung"
+  targets:
+    - file: quality-handbook-de.md
+      quote: "Geht eine Reklamation ein, eröffnet der Qualitätsbeauftragte innerhalb von 24 Stunden einen 8D-Bericht und informiert den Kunden über die Sofortmaßnahmen."
+
+- id: qf016
+  kind: cross_language
+  lang: de
+  query: "jährliches Weiterbildungsbudget pro Mitarbeiter"
+  targets:
+    - file: employee-handbook-en.md
+      quote: "Every employee has a learning budget of £1,500 per calendar year, which can be spent on courses, conferences, books or certification exams."
+
+- id: qf017
+  kind: cross_language
+  lang: de
+  query: "Öffnungszeiten der Bibliothek am Sonntag"
+  targets:
+    - file: library-report-en.md
+      quote: "From 6 April, the Central Library opened on Sundays from 12:00 to 17:00, funded by the Friends of Eastbrook Library."
+
+- id: qf018
+  kind: cross_language
+  lang: de
+  query: "Vertragsstrafe pro Tag bei Verzug der Renovierungsarbeiten"
+  targets:
+    - file: renovation-contract-fa.md
+      quote: "در صورت تأخیر پیمانکار در تحویل کار، به ازای هر روز تأخیر معادل نیم درصد مبلغ کل قرارداد به‌عنوان وجه التزام از صورت‌وضعیت بعدی کسر می‌شود."
+
+- id: qf019
+  kind: no_answer
+  lang: de
+  query: "Widerrufsrecht Onlineshop Rücksendung 14 Tage"
+  targets: []
+
+- id: qf020
+  kind: no_answer
+  lang: de
+  query: "Prüfintervall Aufzug TÜV Wartung"
+  targets: []
+
+# Persian queries
+- id: qf021
+  kind: same_words
+  lang: fa
+  query: "تضمین لوله‌کشی و عایق‌کاری چند ماه است"
+  targets:
+    - file: renovation-contract-fa.md
+      quote: "پیمانکار کیفیت کارهای لوله‌کشی و عایق‌کاری را به مدت دوازده ماه از تاریخ تحویل موقت تضمین می‌کند."
+
+- id: qf022
+  kind: same_words
+  lang: fa
+  query: "فعال کردن پشتیبان‌گیری خودکار روزانه"
+  targets:
+    - file: accounting-guide-fa.md
+      quote: "برای فعال کردن پشتیبان‌گیری خودکار، از منوی «ابزارها» گزینهٔ «تنظیمات پشتیبان» را باز کنید و زمان اجرای روزانه را مشخص کنید."
+
+- id: qf023
+  kind: paraphrase
+  lang: fa
+  query: "علت بی‌میلی کشاورزان به سیستم نو"
+  targets:
+    - file: irrigation-report-fa.md
+      quote: "مهم‌ترین مانع پذیرش این فناوری، هزینهٔ اولیهٔ خرید لوله‌ها و فیلترها بود که بسیاری از باغداران خرده‌پا توان پرداخت آن را نداشتند."
+
+- id: qf024
+  kind: paraphrase
+  lang: fa
+  query: "اردوی بچه‌ها چه موقع است، خرجش با کیست"
+  targets:
+    - file: school-minutes-fa.md
+      quote: "مقرر شد گردش علمی پایهٔ پنجم به باغ گیاه‌شناسی در نیمهٔ اردیبهشت برگزار شود و هزینهٔ آن از محل کمک‌های داوطلبانهٔ اولیا تأمین گردد."
+
+- id: qf025
+  kind: paraphrase
+  lang: fa
+  query: "رمز یادم رفته، راه چاره چیست"
+  targets:
+    - file: accounting-guide-fa.md
+      quote: "در صورت فراموشی گذرواژه، مدیر سیستم می‌تواند از بخش «کاربران» برای حساب شما گذرواژهٔ موقت بسازد؛ این گذرواژه پس از نخستین ورود باید تغییر کند."
+
+- id: qf026
+  kind: cross_language
+  lang: fa
+  query: "هر چند وقت یک بار باید فیلتر آب پمپ حرارتی را تمیز کرد"
+  targets:
+    - file: heat-pump-manual-en.md
+      quote: "Clean the water filter (strainer) on the return pipe every six months, and after the first two weeks of operation."
+
+- id: qf027
+  kind: cross_language
+  lang: fa
+  query: "ارزیابی تأمین‌کنندگان اصلی هر چند وقت یک بار انجام می‌شود"
+  targets:
+    - file: quality-handbook-de.md
+      quote: "Alle A-Lieferanten werden jährlich anhand von Liefertreue, Qualität und Reaktionszeit bewertet, B-Lieferanten alle zwei Jahre."
+
+- id: qf028
+  kind: no_answer
+  lang: fa
+  query: "شرایط دریافت وام مسکن از بانک"
+  targets: []
+
+- id: qf029
+  kind: no_answer
+  lang: fa
+  query: "برنامهٔ واکسیناسیون دانش‌آموزان"
+  targets: []
+
+- id: qf030
+  kind: no_answer
+  lang: fa
+  query: "قیمت بلیت هواپیما از تهران به مشهد"
+  targets: []
