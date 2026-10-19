@@ -1,0 +1,65 @@
+# Documents for SPIKE-033, as the Markdown TASK-021 makes from a Word file.
+# The text is in corpus/docs/<file>; source_name is the Word file it stands for.
+
+# English
+- file: employee-handbook-en.md
+  lang: en
+  title: "Harbourline Software Ltd — Employee Handbook 2026"
+  source_name: "Harbourline Employee Handbook 2026.docx"
+
+- file: heat-pump-manual-en.md
+  lang: en
+  title: "AeroTherm 9 Air-to-Water Heat Pump — Installation, Operation and Maintenance Manual"
+  source_name: "AeroTherm9_Manual_EN.docx"
+
+- file: library-report-en.md
+  lang: en
+  title: "Eastbrook Public Library Service — Annual Report 2025"
+  source_name: "Annual Report 2025 final.docx"
+
+- file: board-minutes-en.md
+  lang: en
+  title: "Riverside Community Energy Co-operative — Minutes of the Board Meeting, 14 March 2026"
+  source_name: "Board minutes 2026-03-14.docx"
+
+# German
+- file: quality-handbook-de.md
+  lang: de
+  title: "Qualitätsmanagement-Handbuch der Brandt & Kessler Präzisionsteile GmbH"
+  source_name: "QM-Handbuch_Rev7.docx"
+
+- file: rental-contract-de.md
+  lang: de
+  title: "Mietvertrag über Wohnraum"
+  source_name: "Mietvertrag.docx"
+
+- file: work-contract-de.md
+  lang: de
+  title: "Arbeitsvertrag"
+  source_name: "Arbeitsvertrag.docx"
+
+- file: club-minutes-de.md
+  lang: de
+  title: "TSV Lindenau 1911 e. V. — Protokoll der ordentlichen Mitgliederversammlung vom 21. März 2026"
+  source_name: "Protokoll MV 2026.docx"
+
+# Persian
+- file: irrigation-report-fa.md
+  lang: fa
+  title: "گزارش نهایی طرح پژوهشی ارزیابی آبیاری قطره‌ای زیرسطحی در باغ‌های پسته"
+  source_name: "گزارش-نهایی-آبیاری-پسته.docx"
+
+- file: accounting-guide-fa.md
+  lang: fa
+  title: "راهنمای کاربر نرم‌افزار حسابداری دفترنو، نسخهٔ ۵"
+  source_name: "راهنمای-دفترنو-۵.docx"
+
+- file: renovation-contract-fa.md
+  lang: fa
+  title: "قرارداد پیمانکاری بازسازی واحد مسکونی"
+  source_name: "قرارداد-بازسازی.docx"
+
+- file: school-minutes-fa.md
+  lang: fa
+  title: "صورت‌جلسهٔ انجمن اولیا و مربیان دبستان دخترانهٔ نسیم دانش"
+  source_name: "صورت‌جلسه-انجمن-اولیا.docx"
