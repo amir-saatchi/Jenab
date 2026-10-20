@@ -1,6 +1,6 @@
 # SPIKE-033 — Semantic recall: find earlier messages and file passages by meaning
 **Type:** Spike
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** P1-07
 
@@ -104,7 +104,7 @@ Every round 1 condition has run on the three models at each width, for messages 
 - what goes in SPEC 2.3, 3.8 and 4: the vector tables, the chunk table, the background embedding, and what happens when the user changes the embedding model (all vectors embedded again)
 
 ## Result
-### Round 1 (draft)
+### Round 1
 Runs of 2026-10-19. Tables are in `spikes/033-semantic-recall/results/summary.md`, and ranks per query are in `results/queries.jsonl`. Built-in embedder details: `spikes/033-semantic-recall/builtin/results.md`. Scan times: `spikes/033-semantic-recall/scan/results.md`.
 
 **Models:**
@@ -178,12 +178,78 @@ A file query is 4.3 points, so 9 points is 2 queries. Heading chunks led in the 
 
 **Scan time** (from `scan/`): over 250,000 vectors on all cores, about 25 ms at 384 and 256 wide, 40 ms at 768, and 100 ms at 3,072. int8 isn't faster to scan in plain Go, but it takes 4× less memory and storage.
 
-**Decisions (round 1).** The drafts are for the user to settle:
-- **Decided (user, 2026-10-19):** hybrid search is worth building, for messages and for files. On this corpus it has 2.4 to 3.5 times FTS's recall, and it keeps the FTS hits.
-- **Decided (user, 2026-10-19):** store vectors as int8 at full width. int8 lost nothing. 256 lost MRR with prefixes and saves less than int8 does.
-- *Draft:* chunk files by heading. It led in the best conditions, by 2 queries. Round 2 is skipped. The user isn't sure it is always better, so this stays open.
-- **Decided (user, 2026-10-19):** query and document prefixes belong in the provider layer, for the models that need them. They are set per embedding model in the user's configuration (a preset may fill them), and the text is the same for every model otherwise. Gemma gained 4 to 17 points from them.
-- *Draft:* no fixed score cutoff. No-answer and real scores overlap, and the scores differ by model and width.
-- **Decided (user, 2026-10-19):** no built-in embedder for now. Embeddings come from Ollama or a cloud provider the user sets up, and N-51 (no cgo) stays. The Go backend can't ship as it is: its speed is near Ollama's and the tokenizer bug costs only a few points, but it held up to 10 GB while it embedded, and it needs a cut to the model's window that hugot doesn't apply.
-  - *Later:* a built-in embedder as a separate helper program on ONNX Runtime (7 to 10 times faster than the Go backend). The helper needs cgo, the app doesn't. A crash stops only the helper, and its memory is freed when it exits. The cost is a second program to build, sign and update. Other options weighed: loading ONNX Runtime's library without cgo (unproven), and cgo in the app (breaks N-51).
-- **Decided (user, 2026-10-19):** work goes on with `embeddinggemma-2:270m` through Ollama, with its prefixes, as the reference embedding model. It is what the tests use, not a built-in choice: the user still sets up the provider and model. Cloud embedding models come later. Gemini's free tier stopped it, so round 1 has no cloud numbers.
+## Decision
+Decided by the user on 2026-10-19 and 2026-10-20.
+
+**Search**
+- **Hybrid search is worth building,** for messages and for files. On this corpus it has 2.4 to 3.5 times FTS's recall, and it keeps the FTS hits.
+- **`search_history` turns hybrid by itself** once an embedding model is set up. It has no new parameter and no option, since hybrid kept every message FTS found. A message that isn't embedded yet is still found by FTS. `substring: true` stays the Go scan.
+- **The user picks which chats are embedded:** all chats, or only the Mother chat, the one chat that lasts (R-125).
+- **`bucket_search(query, prefix, limit)`**, with a limit of 10 by default and at most 50.
+  - Each hit has the key, a byte offset for `read_ref(key, offset)`, the heading path, a snippet of about 300 characters and `matched`.
+  - It searches the newest version of text files and of documents turned into text (TASK-021). Without an embedding model it is FTS only.
+  - Untrusted files keep their mark (TASK-012).
+  - Web pages, workspace code and other sources come later, each after its own test (R-126).
+- **No fixed score cutoff.** A no-answer query's best score (0.72 to 0.78) is above 7% to 52% of the real hits, and scores differ by model and width.
+  - Instead, each hit says how it matched: `words`, `meaning` or `both`.
+  - When no hit matched by words, the result starts with one line saying the hits are only the closest by meaning.
+  - The text is the same for every model.
+
+**Chunks**
+- **Files are chunked by heading.** It led in the two best conditions, by 2 queries; fixed chunks were ahead once, by 1 query.
+  - Each section is one chunk, led by its file name and heading path.
+  - A long section is split at paragraph ends. A table is split by rows, with its header row repeated.
+  - The budget is 1,200 bytes, counting 3 bytes a token. At 4 bytes a token, 13 chunks were over granite's 512 tokens.
+- **Round 2 wasn't run: it couldn't show a gain on this corpus.**
+  - Gemma with prefixes already found every file target with chunks by heading.
+  - With 23 file queries, one query is 4.3 points, so the 10-point rule is coarse.
+  - Chunking is to be tested again later (see *Later*).
+
+**Vectors and models**
+- **Vectors are stored as int8 at full width.** int8 lost nothing. 256 lost MRR with prefixes and saves less than int8 does.
+- **Vectors go in `index.db`,** one per project, next to `chats.db` and `project.db`.
+  - It holds the message vectors, the file chunks, the chunks' FTS table, the chunk vectors and the embedding model they came from.
+  - It can be rebuilt, so it stays out of the change log and undo (2.5, 2.6) and out of exports. If it is damaged, it is rebuilt in the background.
+  - The message FTS stays in `chats.db`, so `search_history` never depends on `index.db`.
+- **Query and document prefixes belong in the provider layer,** for the models that need them. They are set per embedding model in the user's configuration (a preset may fill them), and the text is the same for every model otherwise. Gemma gained 4 to 17 points from them.
+- **Changing the embedding model asks first.**
+  - The question says every vector will be embedded again, how many texts that is, and about how long it takes.
+  - The user goes ahead or keeps the old model.
+  - While the texts are embedded again, FTS covers search and the progress shows in the bottom bar.
+  - An embedding model per project comes later (R-127).
+
+**Embedding models**
+- **No built-in embedder for now.** Embeddings come from Ollama or a cloud provider the user sets up, and N-51 (no cgo) stays.
+  - The Go backend can't ship as it is. Its speed is near Ollama's, and the tokenizer bug costs only a few points. But it held up to 10 GB while it embedded, and it needs a cut to the model's window that hugot doesn't apply.
+  - *Later:* a built-in embedder as a separate helper program on ONNX Runtime, 7 to 10 times faster than the Go backend.
+    - The helper needs cgo; the app doesn't. A crash stops only the helper, and its memory is freed when it exits.
+    - The cost is a second program to build, sign and update.
+    - Other options weighed: loading ONNX Runtime's library without cgo (unproven), and cgo in the app (breaks N-51).
+- **The reference embedding model is `embeddinggemma-2:270m` through Ollama, with its prefixes.** It is what the tests use, not a built-in choice: the user still sets up the provider and model. Cloud embedding models come later.
+
+**Consent**
+- **The ticket's local/cloud rule is dropped.** The app can't tell a local provider from a cloud one: Ollama can be Ollama Cloud, and the base URL is never read for that.
+- **Setting up an embedding model covers messages.** The setup says where the texts go, since the embedding provider may not be the chat model's.
+- **Files need *Embed files too*,** which is off by default for every provider.
+
+**What goes in the SPEC** (as v0.7, in its own change)
+- **A new `index.db` section** with:
+  - the message vectors, as int8 with a scale
+  - the chunks, with key, version, the text's sha256, byte offset, length and heading path
+  - the chunks' FTS table and their vectors
+  - the model, width and prefixes the vectors came from
+- **2.3:** hybrid `search_history`: the top 50 of each list, RRF with k = 60, and `matched` per hit.
+- **3.8:** an embedding call that marks each text as a query or a document, with prefixes from the model's settings, the `embed` model alias, and int8 made in Go.
+- **4:** `bucket_search`, the chunking, what is indexed, and how the sweep frees old chunks.
+- **7.6:** embedding stored texts is background work within `max_parallel_calls`. A search query is embedded right away.
+- **Settings:** changing the embedding model as above, which chats are embedded (R-125), and *Embed files too*.
+
+**Not done here**
+- **Cloud numbers.** *Done when* asks for three models. Gemini's free tier stopped at 200 of 300 messages, and the user accepted closing without cloud numbers.
+- **Chat smoothness (N-01) while embedding** is measured when semantic recall is built.
+
+**Later**
+- **Chunking, again.** Test context lines (one sentence per chunk on where it sits in its document) and chunks made by a model, on a harder file set: about 60 file queries, and clauses that are almost the same across documents. Run it on the reference model. Context lines are the more promising of the two.
+- **More sources:** web pages, workspace code and others, each with its own chunking test (R-126).
+- **An embedding model per project** (R-127).
+- **A built-in embedder** as a helper program on ONNX Runtime (above).

@@ -161,6 +161,10 @@ A numbered list of what v1 must do, so design, tickets and tests can refer to it
 | R-106 | More block types (e.g. tabs, lists); accent colours and custom themes | Later | – | SPEC 5.10, 5.11 |
 | R-122 | Split view: two pages side by side | Later | – | SPEC 5.12 |
 | R-123 | `llm.decide`: typed questions about short items, with a confidence, on a decision model or any LLM | Later | – | SPEC 6.5 |
+| R-124 | Semantic recall: with an embedding model the user sets up, `search_history` and `bucket_search` also find text by meaning (hybrid with FTS); vectors in a rebuildable `index.db`; changing the model asks first, with the number of texts to embed again and the time it takes | Later | – | SPIKE-033 |
+| R-125 | The user picks which chats are embedded: all chats or only the Mother chat; files only with *Embed files too* | Later | – | SPIKE-033 |
+| R-126 | Semantic search over more sources: web pages, workspace code and others, each after its own chunking test | Later | – | SPIKE-033 |
+| R-127 | An embedding model per project | Later | – | SPIKE-033 |
 
 ## Non-functional requirements
 
