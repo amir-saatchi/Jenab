@@ -161,7 +161,7 @@ Text the model reads is spread across these places. Review them together when th
 ## 5. Open work and what comes later
 
 - **Done since the review:** TASK-006 to TASK-014 (stream heartbeat, tool-call IDs, reasoning and refusals, skill text after a cut, the request cap's answer, prompts that match the tools, the untrusted mark, measuring the harness, and telling the model what this version lacks).
-- **Open:** SPIKE-032, a harness check for numbers no source gave.
+- **Decided:** SPIKE-032, a harness check for numbers no source gave, is not in v1. Telling the model harmed honest answers, and marking flagged about half of the correct answers full of numbers. The check stays spike-only, for the scenario runner.
 - **A loop core.** Today the loop is tied to chats: `runner` writes through `chatState`, the chat store and the event publisher. Subagents, turns started by the app (`system_turn_max_requests`) and model steps in pipelines will need the same loop with their own limits. When the first of them is built, the step → tools → limits → feedback core moves out of the chat code, with chats as one of its users.
 - **More context blocks.** User and project memory, the project card and session notes (Phase 2) fill blocks 2–5, with change notices between cuts (3.1).
 - **Loading tools when needed.** SPIKE-028 may change how `Registry.For` picks the tools a request carries.

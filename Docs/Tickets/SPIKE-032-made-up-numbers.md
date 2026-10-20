@@ -1,6 +1,6 @@
 # SPIKE-032 — Catch made-up numbers and let the model correct them
 **Type:** Spike
-**Status:** In progress (round 1 done; round 2 later)
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-014
 
@@ -64,7 +64,7 @@ The code is committed on the branch `worktree-agent-af0e299be34cd117e` (commit d
 - **Same turn:** the model admitted the numbers 4 of 4 times, but fixed the saved file only 2 of 4. Each firing cost 1–6 extra requests and 12–63 s. Next turn: the one notice was ignored. No model took back a correct number.
 - **Fixes before the app:** keep numbers the model wrote unsourced when read back; count each value once; don't flag numbers quoted from the notice; make the correction fix the saved file; decide on worked examples.
 
-## Round 2: correct answers full of numbers (later)
+## Round 2: correct answers full of numbers
 Round 1's honest answers had at most 2 computed numbers, so K=3 let them through. The check can't tell a computed number from a made-up one. Test answers that are correct but full of numbers:
 
 - a computed table, such as a 7-day moving average over 30 real prices
@@ -80,3 +80,22 @@ Run them on gemma4:31b and gpt-oss:120b, which made nothing up in round 1, so an
 3. Mark only: the model is never told.
 
 Done when: false alarms per case and per fix are known, and the decision says which mode, if any, goes in the app.
+
+## Result
+Done on 2026-10-20 (commit 2e46851), after one review round for round 2. **Decision: no number check in v1.** The details are in `spikes/032-made-up-numbers/results.md`.
+
+- **Round 2:** 9 honest scenarios full of numbers (the `grounding-honest` set) on gemma4:31b and gpt-oss:120b, 3 reps, 162 runs.
+  - **Mark only, K=3:** marks 24 of 54 honest answers. No K separates them from made-up ones: round 1's made-up answers had 3–6 numbers without a source, these have 3–21.
+  - **Telling the model** (same turn): all 23 told runs were false alarms, and 7 did harm. The model took back correct numbers, redid a correct answer wrong, or stopped to ask the user. It cost 1.47× the requests and 1.73× the prompt tokens.
+  - **Fix 1, computing through `query`,** halves the marks, but it is a prompt change, and it made gemma refuse a general-knowledge question in 3 of 3 runs.
+  - **Fix 2, a higher threshold for telling,** can't catch round 1's made-up answers and still tells on honest ones.
+- **Round 1's fixes** are in the check:
+  - a number saved without a source isn't a source when it is read back;
+  - each value counts once;
+  - the notice's own numbers are exempt;
+  - saved files are checked after a correction;
+  - a percent matches its fraction;
+  - Persian is read like English.
+- **Why nothing goes in v1:** telling harms honest work, and marking flags about half of correct answers full of numbers. The check also still has open points: the read-back tie is a SQL heuristic, its state is in memory only, and a repeat of quoted numbers is exempt.
+- **What stays:** the check remains in the code, spike-only. Only the scenario runner sets `agent.Deps.Grounding`, so it can still measure made-up numbers in scenario runs.
+- **Later:** revisit when tool-computed numbers count as sourced through the data tools, and when catching can be measured on more than one model that makes numbers up (round 1 had only glm-4.5-flash).
