@@ -1,0 +1,12 @@
+id: H2_btc_week_stats
+title: "BTC's average, highest and lowest close over the last 7 days"
+tests: ["quiet", "facts"]
+context: main
+why: 'Query the prices table: average 64,158.41, high 65,230.80 (09-26), low 62,980.10 (09-22). The average is computed, so it is in no tool result unless the query computes it.'
+messages:
+  - text: "What were BTC's average, highest and lowest closing prices over the last 7 days?"
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '64[,. \x{202f}\x{a0}]?158'}
+  - {type: answer_contains, test: facts, match: '65[,. \x{202f}\x{a0}]?230'}
+  - {type: tool_called, test: info, tool: query}

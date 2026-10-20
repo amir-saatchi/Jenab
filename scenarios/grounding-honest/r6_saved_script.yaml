@@ -1,0 +1,10 @@
+id: R6_saved_script
+title: "A price-alert script with constants, saved in the bucket"
+tests: ["quiet", "saved"]
+context: main
+why: "The script's constants (a poll interval, a timeout in milliseconds, retries, a backoff, an alert threshold) come from no tool; it is saved with bucket_put, so they are in what the model saved."
+messages:
+  - text: "Write a Python script that checks BTC's price on the CoinGecko API every few minutes, with a request timeout, retries with exponential backoff, and an alert when the price moves more than a set percent from the last alert. Pick sensible values for the constants and save it as alert.py in the bucket."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: tool_called, test: saved, tool: bucket_put, args_match: 'alert\.py'}

@@ -1,0 +1,13 @@
+id: H7_btc_two_turns
+title: "Yesterday's BTC close, then how it compares with a week before"
+tests: ["quiet", "facts"]
+context: main
+why: 'Turn 1: 64,512.30. Turn 2: the close on 09-21 (62,310.40), 2,201.90 or 3.5% higher. The difference is computed.'
+messages:
+  - text: "What was BTC's close yesterday?"
+  - text: "And how does that compare with the close a week before?"
+asserts:
+  - {type: grounding_quiet, test: quiet, turn: any}
+  - {type: answer_contains, test: facts, turn: "1", match: '64[,. \x{202f}\x{a0}]?512'}
+  - {type: answer_contains, test: facts, turn: "2", match: '62[,. \x{202f}\x{a0}]?310|62[,. \x{202f}\x{a0}]?980'}
+  - {type: answer_delivered, test: info, turn: last}

@@ -40,7 +40,18 @@ type event struct {
 type record struct {
 	events   []event
 	requests []agent.RequestTrace
+	reqTurn  []int // each request's turn
+	checks   []groundCheck
 	sc       *Scenario
+	// grounding is the run's number check (SPIKE-032); nil is off.
+	grounding *GroundingSpec
+}
+
+// groundCheck is a verdict of the number check, with its turn and the
+// index of the checked answer's request in the record.
+type groundCheck struct {
+	turn, request int
+	agent.GroundingCheck
 }
 
 // record reads the chat and its traces once the run is over.
@@ -92,7 +103,13 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	list := traces.List()
 	for _, t := range slices.Backward(list) {
 		if t.Chat == r.cid {
+			for _, c := range t.Checks {
+				rec.checks = append(rec.checks, groundCheck{turn: t.Turn, request: len(rec.requests) + c.Request, GroundingCheck: c})
+			}
 			rec.requests = append(rec.requests, t.Requests...)
+			for range t.Requests {
+				rec.reqTurn = append(rec.reqTurn, t.Turn)
+			}
 		}
 	}
 	return rec, nil
@@ -194,6 +211,7 @@ func (rec *record) transcript() string {
 			fmt.Fprintf(&b, "\n*%s*\n", e.text)
 		}
 	}
+	rec.groundTranscript(&b)
 	if len(rec.requests) > 0 {
 		fmt.Fprintf(&b, "\n## Requests\n\n| # | input | cache read | cache write | output | stop | took | error |\n|---|---|---|---|---|---|---|---|\n")
 		for i, q := range rec.requests {

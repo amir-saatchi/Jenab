@@ -1,0 +1,11 @@
+id: H6_fa_week_avg
+title: "BTC's 7-day closes and their average, asked in Persian"
+tests: ["quiet", "facts"]
+context: main
+why: 'Query the prices table: 7 closes and the average 64,158.41, in Latin or Persian digits.'
+messages:
+  - text: "قیمت‌های پایانی بیت‌کوین در ۷ روز گذشته را با میانگینشان بنویس."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '64[,. ٬\x{202f}\x{a0}]?158|۶۴[,. ٬\x{202f}\x{a0}]?۱۵۸'}
+  - {type: tool_called, test: info, tool: query}

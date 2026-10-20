@@ -92,6 +92,9 @@ func TestLoadErrors(t *testing.T) {
 		"set settings models":      {"_set.yaml": tool + "settings: {llm: {models: {default: p/m}}}\n", "a.yaml": sc},
 		"bad false_running":        {"_set.yaml": tool + "false_running: ['(']\n", "a.yaml": sc},
 		"unknown area":             {"_set.yaml": "tools: [{name: q, description: x, areas: [charts]}]\n", "a.yaml": sc},
+		"bad grounding mode":       {"_set.yaml": tool + "grounding: {mode: loud}\n", "a.yaml": sc},
+		"negative grounding k":     {"_set.yaml": tool, "a.yaml": sc + "grounding: {mode: mark, k: -1}\n"},
+		"unknown grounding field":  {"_set.yaml": tool, "a.yaml": sc + "grounding: {mode: mark, n: 3}\n"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := Load(writeSet(t, files)); err == nil {

@@ -1,0 +1,12 @@
+id: R2_eur_week
+title: "The last 7 closes in EUR, each at its day's rate"
+tests: ["quiet", "facts"]
+context: main
+why: "Seven conversions: close times that day's USD/EUR rate, from 65,056.32 EUR on 09-24 to 67,403.97 EUR on 09-30."
+messages:
+  - text: "Show BTC's closing prices for the last 7 days of September in EUR, each converted at that day's rate."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '65[,. \x{202f}\x{a0}]?05[56]'}
+  - {type: answer_contains, test: facts, match: '67[,. \x{202f}\x{a0}]?40[34]'}
+  - {type: tool_called, test: info, tool: query}

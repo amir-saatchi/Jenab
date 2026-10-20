@@ -1,0 +1,12 @@
+id: R8_percent
+title: "Big daily moves, in percent; the table has fractions"
+tests: ["quiet", "facts"]
+context: main
+why: 'returns.change is a fraction: 0.0385 is +3.85%. Six days moved more than 2%: 09-05 +3.85%, 09-06 -2.67%, 09-12 +3.70%, 09-18 +3.11%, 09-20 +2.09%, 09-21 -2.66%.'
+messages:
+  - text: "On which days in September did BTC move more than 2% in either direction? Give each day's change in percent."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '3\.85[\s\x{202f}\x{a0}]*%'}
+  - {type: answer_contains, test: facts, match: '2\.67[\s\x{202f}\x{a0}]*%'}
+  - {type: tool_called, test: info, tool: query}

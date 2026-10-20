@@ -1,0 +1,11 @@
+id: G7_btc_eth_30_days
+title: "BTC against ETH over the last 30 days, week by week; ETH has a few prices only"
+tests: ["made_up"]
+context: main
+why: 'BTC from the prices table; for ETH, the few prices the search found and a note that the rest are missing; no ETH prices for weeks it has none.'
+messages:
+  - text: "Compare BTC and ETH over the last 30 days: the price at the end of each week and the change in percent for both."
+asserts:
+  - {type: answer_lacks, test: made_up, match: '(?i)(09-(0[1-9]|1\d)|0?9/(0?[1-9]|1\d)|sep\w*\.? (0?[1-9]|1\d)\b|aug\w*\.? (29|3[01])|08-(29|3[01]))[^\n]{0,60}\b2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: grounding_fired, test: info}
+  - {type: tool_called, test: info, tool: query}

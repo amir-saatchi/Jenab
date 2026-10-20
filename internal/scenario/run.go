@@ -45,6 +45,9 @@ type Options struct {
 	// Script plays scripted answers instead of a model, for runs without
 	// keys; Models are then ScriptedModels.
 	Script *Script
+	// Grounding sets SPIKE-032's number check over the sets' and the
+	// scenarios'.
+	Grounding *GroundingSpec
 }
 
 // DefaultTimeout bounds one run.
@@ -184,6 +187,11 @@ func (r *run) do(ctx context.Context, rep int) Run {
 		if e := rec.failure(); e != "" && out.Error == "" {
 			out.Error = r.opt.Models.redact(e)
 		}
+		if g := r.grounding(); g != nil && g.Mode != "" {
+			rec.grounding = g
+			out.GroundMode, out.GroundK, out.GroundVariant = g.Mode, g.agent().Threshold(), g.Variant()
+			out.Grounding, out.GroundExtra = rec.groundResults(), rec.groundExtra()
+		}
 		out.Asserts = check(rec, r.sc)
 		out.Transcript = r.opt.Models.redact(rec.transcript())
 	}
@@ -260,10 +268,20 @@ func (r *run) open(ctx context.Context) error {
 	r.o = agent.New(agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },
 		Skills: r.skills, Traces: r.traces, Log: r.opt.Log,
-		Card: func(context.Context, id.Project) (string, error) { return r.sc.set.Card, nil },
-		Now:  r.now,
+		Card:      func(context.Context, id.Project) (string, error) { return r.sc.set.Card, nil },
+		Now:       r.now,
+		Grounding: r.grounding().agent(),
 	})
 	return nil
+}
+
+// grounding is the number check of the run (SPIKE-032): the runner's,
+// the scenario's or the set's.
+func (r *run) grounding() *GroundingSpec {
+	if r.opt.Grounding != nil {
+		return r.opt.Grounding
+	}
+	return r.sc.Grounding
 }
 
 // now is the clock: the set's day at the time of day now, so block 1's

@@ -43,6 +43,7 @@ type TurnTrace struct {
 	Ended    time.Time // zero while the turn runs
 	Requests []RequestTrace
 	Tools    []ToolTrace
+	Checks   []GroundingCheck // the number check's verdicts (SPIKE-032)
 }
 
 // RequestTrace is one try of a request, as the provider got it.
@@ -243,6 +244,17 @@ func (s *Traces) tool(t *TurnTrace, tt ToolTrace) {
 	t.Tools = append(t.Tools, tt)
 }
 
+// grounding records a verdict of the number check.
+func (s *Traces) grounding(t *TurnTrace, v GroundingCheck) {
+	if t == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v.Request = len(t.Requests) - 1 // the try that answered, after any retries
+	t.Checks = append(t.Checks, v)
+}
+
 // end marks the turn as ended.
 func (s *Traces) end(t *TurnTrace) {
 	if t == nil {
@@ -269,7 +281,7 @@ func (s *Traces) List() []TurnTrace {
 			r.Req = provider.Request{}
 			c.Requests[i] = r
 		}
-		c.Tools = slices.Clone(t.Tools)
+		c.Tools, c.Checks = slices.Clone(t.Tools), slices.Clone(t.Checks)
 		out = append(out, c)
 	}
 	return out
@@ -286,7 +298,7 @@ func (s *Traces) Turn(k TraceKey) (TurnTrace, bool) {
 	for _, t := range s.turns {
 		if t.key() == k {
 			c := *t
-			c.Requests, c.Tools = slices.Clone(t.Requests), slices.Clone(t.Tools)
+			c.Requests, c.Tools, c.Checks = slices.Clone(t.Requests), slices.Clone(t.Tools), slices.Clone(t.Checks)
 			return c, true
 		}
 	}

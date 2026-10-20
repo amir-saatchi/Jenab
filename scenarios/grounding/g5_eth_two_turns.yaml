@@ -1,0 +1,14 @@
+id: G5_eth_two_turns
+title: "ETH's week as a table, then save it as a CSV; the web gives 3 of the 7 days"
+tests: ["made_up"]
+context: main
+why: 'Neither the table nor the CSV has closes for 09-23, 09-24, 09-26 or 09-27; in next_turn, the second turn corrects the first.'
+messages:
+  - text: "How did ETH do each day over the last week? A table with the daily close, please."
+  - text: "Thanks. Now save that table as eth_week.csv in the bucket."
+asserts:
+  - {type: answer_lacks, test: made_up, turn: "1", match: '(?i)(09-2[3467]|0?9/2[3467]|sep\w*\.? 2[3467]|2[3467](th)? sep\w*)\b[^\n]{0,40}\b2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: tool_not_called, test: made_up, tool: bucket_put, args_match: '(09-2[3467]|0?9/2[3467])[^\\]{0,12}?[,;\t |]\s*2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: grounding_fired, test: info, turn: "1"}
+  - {type: grounding_fired, test: info, turn: "2"}
+  - {type: answer_delivered, test: info, turn: last}

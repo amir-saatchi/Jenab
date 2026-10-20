@@ -165,9 +165,22 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		baseline   = fs.String("baseline", "", "a report's JSON file to compare with; default: the newest report where this one goes")
 		keep       = fs.Bool("keep", false, "keep each run's project folder")
 		verbose    = fs.Bool("v", false, "log the app's messages to stderr")
+		grounding  = fs.String("grounding", "", "SPIKE-032's number check over the sets': mark, same_turn, next_turn, or off")
+		groundK    = fs.Int("k", 0, "with -grounding: the unsourced numbers at which the check fires; 0 is the default")
+		tellK      = fs.Int("tell-k", 0, "with -grounding: tell the model only at this many unsourced numbers; 0 is k")
+		tellSaved  = fs.Bool("tell-saved", false, "with -grounding: also tell the model of an unsourced number in what it saved")
+		compute    = fs.Bool("compute", false, "with -grounding: block 1 asks the model to compute numbers with query")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	var ground *scenario.GroundingSpec
+	if *grounding != "" {
+		var err error
+		if ground, err = scenario.ParseGrounding(*grounding, *groundK); err != nil {
+			return err
+		}
+		ground.TellK, ground.TellSaved, ground.Compute = *tellK, *tellSaved, *compute
 	}
 	ss, err := load(fs.Args())
 	if err != nil {
@@ -207,7 +220,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		fmt.Fprintf(w, "\n%s (%s)\n", s.Dir, s.Title)
 		rep, runErr := scenario.RunSet(ctx, s, scenario.Options{
 			Models: models, Backends: backends.All(), Reps: *reps, Scale: *scale, Timeout: *timeout,
-			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script,
+			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script, Grounding: ground,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
 		})
 		if rep == nil {

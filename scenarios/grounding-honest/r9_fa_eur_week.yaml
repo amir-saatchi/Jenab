@@ -1,0 +1,11 @@
+id: R9_fa_eur_week
+title: "R2 in Persian: the last 7 closes in EUR"
+tests: ["quiet", "facts"]
+context: main
+why: 'As R2, asked in Persian; the answer may use Persian digits and separators (۶۷٬۴۰۳٫۹۷).'
+messages:
+  - text: "قیمت بسته شدن BTC در ۷ روز آخر سپتامبر را به یورو نشان بده؛ هر روز را با نرخ همان روز تبدیل کن."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '(67|۶۷)[,. ٬\x{202f}\x{a0}]?(40[34]|۴۰[۳۴])'}
+  - {type: tool_called, test: info, tool: query}

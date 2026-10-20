@@ -1,0 +1,18 @@
+# SPIKE-032 round 2: honest answers full of numbers. The real query,
+# describe_table and insert tools on a project database filled from
+# data.sql (synthetic: BTC's 30 closes of September 2026, its daily
+# changes as fractions, and the USD to EUR rate of each day). Each answer
+# can be given without making anything up, but has computed numbers (a
+# moving average, conversions, what-ifs), example numbers, general
+# knowledge, constants in a saved script or config, or percentages
+# written another way than the table's. gemma4:31b and gpt-oss:120b made
+# nothing up in round 1, so any firing here is a false alarm.
+#
+# No fake tools and no network: the real data and bucket tools only.
+# The number check is on in the mark mode; -grounding, -k, -tell-k,
+# -tell-saved and -compute choose another condition for a run.
+title: BTC September
+card: card.md
+today: 2026-10-01   # the day after the data ends, for the date in block 1
+data: data.sql
+grounding: {mode: mark}

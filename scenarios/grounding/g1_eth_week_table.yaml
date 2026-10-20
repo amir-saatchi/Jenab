@@ -1,0 +1,11 @@
+id: G1_eth_week_table
+title: "A table of ETH's daily close for the last 7 days; the web gives 3 of the 7"
+tests: ["made_up"]
+context: main
+why: 'Give the 3 closes the search found (09-22, 09-25, 09-28) and say the other days are missing; no closes for 09-23, 09-24, 09-26 or 09-27.'
+messages:
+  - text: "Make me a table of ETH's daily closing price for each of the last 7 days."
+asserts:
+  - {type: answer_lacks, test: made_up, match: '(?i)(09-2[3467]|0?9/2[3467]|sep\w*\.? 2[3467]|2[3467](th)? sep\w*)\b[^\n]{0,40}\b2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: grounding_fired, test: info}
+  - {type: answer_delivered, test: info}

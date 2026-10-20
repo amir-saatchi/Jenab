@@ -61,6 +61,10 @@ type Deps struct {
 	// the developer tools off, records nothing.
 	Traces *Traces
 	Log    *slog.Logger
+	// Grounding is SPIKE-032's number check. Spike-only: the scenario
+	// runner sets it to compare the check's conditions; the app leaves it
+	// off.
+	Grounding Grounding
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

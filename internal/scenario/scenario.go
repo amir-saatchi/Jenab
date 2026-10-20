@@ -44,6 +44,9 @@ type Set struct {
 	Tools    []*ToolSpec
 	Rules    map[string][]*Rule // fake results every scenario starts from
 	Settings map[string]any     // the context and llm settings every scenario starts from
+	// Grounding is SPIKE-032's number check for every scenario; nil is
+	// off.
+	Grounding *GroundingSpec
 	// FalseRunning is text that says work goes on after the answer, for
 	// no_false_running; nil is the English default.
 	FalseRunning *regexp.Regexp
@@ -65,6 +68,76 @@ type setFile struct {
 	Rules        map[string][]*Rule `yaml:"rules"`
 	Settings     map[string]any     `yaml:"settings"`      // context and llm keys of config.yaml
 	FalseRunning []string           `yaml:"false_running"` // regexes, for a set in another language
+	Grounding    *GroundingSpec     `yaml:"grounding"`     // SPIKE-032: the number check's mode and K
+}
+
+// GroundingSpec is SPIKE-032's number check: its mode (mark, same_turn,
+// next_turn; "" or off is off) and K, the unsourced numbers at which it fires.
+// Spike-only: the runner gives it to the agent; the app has no setting.
+type GroundingSpec struct {
+	Mode string `yaml:"mode"`
+	K    int    `yaml:"k"`
+	// Round 2's ways to cut false alarms: tell the model only at TellK
+	// numbers or with a number in what it saved, and ask it to compute
+	// with query.
+	TellK     int  `yaml:"tell_k"`
+	TellSaved bool `yaml:"tell_saved"`
+	Compute   bool `yaml:"compute"`
+}
+
+// agent is the spec as the agent takes it.
+func (g *GroundingSpec) agent() agent.Grounding {
+	if g == nil {
+		return agent.Grounding{}
+	}
+	return agent.Grounding{Mode: agent.GroundingMode(g.Mode), K: g.K, TellK: g.TellK, TellSaved: g.TellSaved, Compute: g.Compute}
+}
+
+// Variant names round 2's switches that are on, for reports: "tell_k 8,
+// tell_saved, compute", or "".
+func (g *GroundingSpec) Variant() string {
+	if g == nil {
+		return ""
+	}
+	var s []string
+	if g.TellK > 0 {
+		s = append(s, fmt.Sprintf("tell_k %d", g.TellK))
+	}
+	if g.TellSaved {
+		s = append(s, "tell_saved")
+	}
+	if g.Compute {
+		s = append(s, "compute")
+	}
+	return strings.Join(s, ", ")
+}
+
+// parseSpec checks a set's or a scenario's grounding.
+func parseSpec(g *GroundingSpec) (*GroundingSpec, error) {
+	p, err := ParseGrounding(g.Mode, g.K)
+	if err != nil {
+		return nil, err
+	}
+	if g.TellK < 0 {
+		return nil, fmt.Errorf("grounding tell_k %d: it can't be negative", g.TellK)
+	}
+	p.TellK, p.TellSaved, p.Compute = g.TellK, g.TellSaved, g.Compute
+	return p, nil
+}
+
+// ParseGrounding checks a mode and K, as a set, a scenario or a flag
+// gives them.
+func ParseGrounding(mode string, k int) (*GroundingSpec, error) {
+	if mode == "off" {
+		mode = ""
+	}
+	if !slices.Contains(agent.GroundingModes, agent.GroundingMode(mode)) {
+		return nil, fmt.Errorf("grounding mode %q: the modes are mark, same_turn and next_turn", mode)
+	}
+	if k < 0 {
+		return nil, fmt.Errorf("grounding k %d: it can't be negative", k)
+	}
+	return &GroundingSpec{Mode: mode, K: k}, nil
 }
 
 // ChatSpec is a chat the fixture project has besides the one under test,
@@ -147,10 +220,12 @@ type Scenario struct {
 	// Settings are context and llm keys of config.yaml over the set's,
 	// such as llm.turn_max_requests.
 	Settings map[string]any `yaml:"settings"`
-	Asserts  []Assert       `yaml:"asserts"`
-	File     string         `yaml:"-"`
-	set      *Set
-	settings config.Settings // the app settings of its runs, before the models
+	// Grounding is SPIKE-032's number check over the set's.
+	Grounding *GroundingSpec `yaml:"grounding"`
+	Asserts   []Assert       `yaml:"asserts"`
+	File      string         `yaml:"-"`
+	set       *Set
+	settings  config.Settings // the app settings of its runs, before the models
 }
 
 // Message is a scripted user message. Without At it is sent once the chat
@@ -278,6 +353,11 @@ func Load(dir string) (*Set, error) {
 		return nil, fmt.Errorf("%s: %w", SetFile, err)
 	}
 	s.Settings = f.Settings
+	if g := f.Grounding; g != nil {
+		if s.Grounding, err = parseSpec(g); err != nil {
+			return nil, fmt.Errorf("%s: %w", SetFile, err)
+		}
+	}
 	if _, err := parseSettings(s.Settings); err != nil {
 		return nil, fmt.Errorf("%s: settings: %w", SetFile, err)
 	}
@@ -499,6 +579,13 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 	}
 	if sc.settings, err = parseSettings(mergeMaps(s.Settings, sc.Settings)); err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
+	}
+	if g := sc.Grounding; g != nil {
+		if sc.Grounding, err = parseSpec(g); err != nil {
+			return nil, err
+		}
+	} else {
+		sc.Grounding = s.Grounding
 	}
 	for i, a := range sc.Asserts {
 		if need, ok := plannedAsserts[a.Type]; ok {

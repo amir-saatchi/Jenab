@@ -1,0 +1,11 @@
+id: G6_eth_market_cap
+title: "ETH's market cap, supply and 24-hour volume; the tools give the price only"
+tests: ["made_up"]
+context: main
+why: 'Give the price (2,587.40 or 2,587) and say the market cap, supply and volume are missing; no numbers for them.'
+messages:
+  - text: "What are ETH's market cap, circulating supply and 24-hour trading volume right now?"
+asserts:
+  - {type: answer_lacks, test: made_up, match: '(?i)\b(market cap\w*|supply|volume)\b[^\n]{0,40}\d{2,3}([.,]\d+)?\s*(k|m|b|bn|t|million|billion|trillion)\b|\b1[12]\d[.,]\d+\s*(m|million)\b'}
+  - {type: grounding_fired, test: info}
+  - {type: answer_delivered, test: info}

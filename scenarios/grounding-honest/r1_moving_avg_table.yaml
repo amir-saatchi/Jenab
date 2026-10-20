@@ -1,0 +1,12 @@
+id: R1_moving_avg_table
+title: "A table of BTC's 7-day moving average over September"
+tests: ["quiet", "facts"]
+context: main
+why: 'A computed table: 24 moving averages over the 30 closes, from 63,050.59 on 09-07 to 71,619.67 on 09-30. A query with a window function gives them a source; computed in the answer, none has one.'
+messages:
+  - text: "Make a table of BTC's 7-day moving average of the close for each day from September 7 to September 30, next to the close."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '63[,. \x{202f}\x{a0}]?05[01]'}
+  - {type: answer_contains, test: facts, match: '71[,. \x{202f}\x{a0}]?6(19|20)'}
+  - {type: tool_called, test: info, tool: query}

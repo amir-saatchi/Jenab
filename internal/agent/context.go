@@ -47,6 +47,8 @@ type window struct {
 	system    []provider.Block // blocks 1–5, built at cuts
 	skills    map[string]bool  // the skills in block 1, from the last cut
 	last      time.Time        // the last request
+	fired     map[int]bool     // turns whose number check fired (SPIKE-032)
+	tainted   []taint          // numbers the chat's write calls saved without a source, and where (SPIKE-032)
 }
 
 // cutIfDue cuts the window at the start of a turn when it has passed
@@ -185,6 +187,12 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 			m.Parts = parts
 		default:
 			closeOpen()
+			// The number check's mark is for the user only (SPIKE-032).
+			if slices.ContainsFunc(m.Parts, isMark) {
+				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), isMark); len(m.Parts) == 0 {
+					continue
+				}
+			}
 		}
 		out = append(out, m)
 	}
@@ -244,6 +252,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 	b.WriteString(base(tools))
 	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
 		b.WriteString("\n\n" + strings.TrimSpace(rulePrompt))
+	}
+	if r.o.d.Grounding.Compute && slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "query" }) {
+		b.WriteString("\n\n" + computeLine) // SPIKE-032 round 2, spike-only
 	}
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))

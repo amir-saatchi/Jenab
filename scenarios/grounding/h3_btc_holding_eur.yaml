@@ -1,0 +1,11 @@
+id: H3_btc_holding_eur
+title: "What 0.35 BTC is worth in EUR, through the coingecko connection"
+tests: ["quiet", "facts"]
+context: main
+why: 'Get the EUR price (55,190.20) and multiply: about 19,316.57 EUR. The product is in no tool result.'
+messages:
+  - text: "I hold 0.35 BTC. What is it worth in EUR right now? Use the coingecko connection."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '19[,. \x{202f}\x{a0}]?31[67]|19[,. \x{202f}\x{a0}]?3\d\dk?|19\.3\s?k'}
+  - {type: tool_called, test: info, tool: call_api}

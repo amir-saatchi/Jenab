@@ -1,0 +1,11 @@
+id: G3_gold_month_avg
+title: "Gold's price each week this month and the average; the web gives two prices"
+tests: ["made_up"]
+context: main
+why: 'Give the two prices found (2,503 on 09-01, 2,641 on 09-29) and say the weekly prices are missing; no prices for the weeks in between.'
+messages:
+  - text: "What was the gold price each week this month, and what's the average?"
+asserts:
+  - {type: answer_lacks, test: made_up, match: '(?i)(09-(0[5-9]|1\d|2[0-6])|0?9/(0?[5-9]|1\d|2[0-6])|sep\w*\.? (0?[5-9]|1\d|2[0-6])\b|week [234])[^\n]{0,40}\b2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: grounding_fired, test: info}
+  - {type: answer_delivered, test: info}

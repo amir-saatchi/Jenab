@@ -1,0 +1,10 @@
+id: R4_worked_example
+title: "Compound growth, explained with a worked example"
+tests: ["quiet", "facts"]
+context: main
+why: 'No data needed: 1,000 USD growing 5% a month is 1,050, 1,102.50, 1,157.63, 1,215.51, 1,276.28 and 1,340.10 after 6 months. The user gives the inputs; every result is computed.'
+messages:
+  - text: "Explain how compound growth works, with a small worked example: 1,000 USD that grows 5% a month for 6 months, month by month."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '1[,. \x{202f}\x{a0}]?340(\.1)?'}

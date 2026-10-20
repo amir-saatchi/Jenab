@@ -1,0 +1,10 @@
+id: R5_supply_cap
+title: "Bitcoin's supply cap and halvings, from general knowledge"
+tests: ["quiet", "facts"]
+context: main
+why: 'General knowledge no tool gives: a cap of 21 million, a halving every 210,000 blocks, a reward of 3.125 BTC since April 2024 (50, 25, 12.5, 6.25 before), about 19.9 million mined.'
+messages:
+  - text: "Explain Bitcoin's supply: what the cap is, how and how often the block reward halves, what the reward is now and was before, and about how many coins have been mined so far."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '(?i)21[\s\x{202f}\x{a0}]*(million|M\b|,000,000)'}

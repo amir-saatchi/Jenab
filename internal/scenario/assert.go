@@ -52,6 +52,8 @@ var assertFields = map[string][]string{
 	"max_requests":        {"n"},
 	"no_turn_failed":      nil,
 	"cache_read_share":    {"min"},
+	"grounding_fired":     nil, // SPIKE-032: the number check fired on an answer
+	"grounding_quiet":     nil, // and didn't
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -270,6 +272,8 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		share := float64(u.CacheRead) / float64(p)
 		st, why, _ := pf(share >= a.Min, fmt.Sprintf("%.0f %% of the prompt read from the cache", share*100))
 		return st, why, share
+	case "grounding_fired", "grounding_quiet":
+		return rec.groundFired(a)
 	}
 	return Fail, "unknown assertion", 0
 }

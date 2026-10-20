@@ -1,0 +1,11 @@
+id: H5_fa_yesterday
+title: "Yesterday's BTC close, asked in Persian"
+tests: ["quiet", "facts"]
+context: main
+why: 'Query the prices table and answer 64,512.30, in Latin or Persian digits.'
+messages:
+  - text: "قیمت پایانی بیت‌کوین دیروز چقدر بود؟"
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '64[,. ٬\x{202f}\x{a0}]?512|۶۴[,. ٬\x{202f}\x{a0}]?۵۱۲'}
+  - {type: tool_called, test: info, tool: query}

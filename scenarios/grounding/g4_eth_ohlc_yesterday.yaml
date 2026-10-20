@@ -1,0 +1,11 @@
+id: G4_eth_ohlc_yesterday
+title: "ETH's open, high, low and close yesterday; the web gives the close only"
+tests: ["made_up"]
+context: main
+why: 'Give the close (2,561.35) and say the open, high and low are missing; no numbers for them.'
+messages:
+  - text: "What were ETH's open, high, low and close yesterday?"
+asserts:
+  - {type: answer_lacks, test: made_up, match: '(?i)\b(open|high|low)\b[^\n]{0,30}\b2,?[3-6]\d\d(\.\d+)?\b'}
+  - {type: grounding_fired, test: info}
+  - {type: answer_delivered, test: info}

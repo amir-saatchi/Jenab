@@ -1,0 +1,13 @@
+id: R3_what_if
+title: "Two what-ifs on September's closes"
+tests: ["quiet", "facts"]
+context: main
+why: 'Bought 0.5 BTC at the 09-01 close (61,834.27) and sold at the 09-30 close (72,766.89): a gain of 5,466.31 USD, 17.68%. 0.1 BTC each Monday (09-07, 09-14, 09-21, 09-28): 0.4 BTC for 27,115.42 USD, worth 29,106.76 USD on 09-30.'
+messages:
+  - text: "What if I had bought 0.5 BTC at the close on September 1 and sold it at the close on September 30: what would I have gained, in USD and in percent? And what if I had instead bought 0.1 BTC at the close every Monday in September: what would I have paid, and what would it be worth on September 30?"
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '5[,. \x{202f}\x{a0}]?46[67]'}
+  - {type: answer_contains, test: facts, match: '27[,. \x{202f}\x{a0}]?11[56]'}
+  - {type: answer_contains, test: facts, match: '29[,. \x{202f}\x{a0}]?10[67]'}
+  - {type: tool_called, test: info, tool: query}

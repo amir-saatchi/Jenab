@@ -1,0 +1,11 @@
+id: R7_saved_config
+title: "An alert config with defaults near the last close, saved in the bucket"
+tests: ["quiet", "saved"]
+context: main
+why: 'Thresholds picked near the last close (72,766.89), say 70,000 and 75,000, a cooldown and a timeout: chosen values no tool gives, in a saved YAML file.'
+messages:
+  - text: "Save a YAML config for a BTC price alert as alert.yaml in the bucket: an upper and a lower price threshold near the last close, a cooldown between alerts, a request timeout and a retry count. Pick sensible values."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: tool_called, test: saved, tool: bucket_put, args_match: 'alert\.yaml'}
+  - {type: tool_called, test: info, tool: query}

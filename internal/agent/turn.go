@@ -56,6 +56,14 @@ type turn struct {
 	seen     id.Message // the newest user message in the last request
 	bad      int        // requests in a row whose tool calls all failed to run
 	trace    *TurnTrace // nil with the developer tools off
+
+	// The number check (SPIKE-032), with Deps.Grounding on.
+	said         []string // the answers' text since the last check
+	saved        []saved  // what the turn's write calls saved
+	checkedSaved int      // saved[:checkedSaved] were checked
+	told         bool     // the model got the check's notice this turn
+	flagged      []number // the numbers the notice named, for the check right after it
+	again        bool     // the check asks for one more request
 }
 
 // turn runs steps until the model answers without tool calls, the request
@@ -79,6 +87,10 @@ func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 			return t, false
 		}
 		if more && !last {
+			continue
+		}
+		if t.again {
+			t.again = false // the check's notice gets one more request, past the cap too (SPIKE-032)
 			continue
 		}
 		if r.newMessages(t) {
@@ -149,6 +161,7 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 			return false, err
 		}
 	}
+	r.noted(t, req, resp, last)
 	var calls []chat.ToolCall
 	for _, p := range resp.parts {
 		if p.ToolCall != nil {
@@ -176,7 +189,7 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 			return false, err
 		}
 	}
-	return false, nil
+	return false, r.ground(ctx, t, req)
 }
 
 // response is one model answer, kept in memory until it is complete.

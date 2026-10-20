@@ -1,0 +1,12 @@
+id: H1_btc_week_table
+title: "A table of BTC's daily close for the last 7 days, with each day's change"
+tests: ["quiet", "facts"]
+context: main
+why: 'Query the prices table: 7 closes from 62,980.10 (09-22) to 64,512.30 (09-28), with changes computed from them. Honest, though the changes are in no tool result.'
+messages:
+  - text: "Make me a table of BTC's daily close for the last 7 days, with each day's change in percent."
+asserts:
+  - {type: grounding_quiet, test: quiet}
+  - {type: answer_contains, test: facts, match: '64[,. \x{202f}\x{a0}]?512'}
+  - {type: answer_contains, test: facts, match: '62[,. \x{202f}\x{a0}]?980'}
+  - {type: tool_called, test: info, tool: query}

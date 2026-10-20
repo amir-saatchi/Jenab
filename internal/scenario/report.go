@@ -43,7 +43,14 @@ type Run struct {
 	PeakPrompt int      `json:"peak_prompt_tokens"`
 	Output     int      `json:"output_tokens"`
 	Asserts    []Result `json:"asserts"`
-	Transcript string   `json:"-"`
+	// SPIKE-032's number check: its mode and K, its verdicts, and what the
+	// requests after its notice cost.
+	GroundMode    string         `json:"grounding_mode,omitempty"`
+	GroundK       int            `json:"grounding_k,omitempty"`
+	GroundVariant string         `json:"grounding_variant,omitempty"` // round 2's switches
+	Grounding     []GroundResult `json:"grounding,omitempty"`
+	GroundExtra   *GroundExtra   `json:"grounding_extra,omitempty"`
+	Transcript    string         `json:"-"`
 }
 
 // Passed reports whether the run didn't break and no check failed;
@@ -364,6 +371,7 @@ func (rep *Report) Markdown(prev *Report) string {
 		}
 		b.WriteString("\n")
 	}
+	rep.groundMarkdown(&b)
 	if prev != nil {
 		fmt.Fprintf(&b, "\n## Changes since %s\n\n", prev.Started.Format(time.RFC3339))
 		ch := rep.Changes(prev)
