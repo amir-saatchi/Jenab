@@ -48,7 +48,7 @@ type Deps struct {
 	// Settings returns the settings now, so changes apply without a
 	// restart (7.6).
 	Settings func() config.Settings
-	Events   Publisher
+	Events   Publisher  // nil drops the events; the scenario runner reads the store
 	Skills   *skill.Set // the skills chats can load (8.9); nil has none
 	// Card returns the project card (3.2), block 4 of the context. Phase 2
 	// builds it from the schema; the scenario runner gives a fixture's.
@@ -109,6 +109,9 @@ func New(d Deps) *Orchestrator {
 	}
 	if d.Now == nil {
 		d.Now = time.Now
+	}
+	if d.Events == nil {
+		d.Events = noPublisher{}
 	}
 	return &Orchestrator{d: d, ctx: d.Context, pub: safePublisher{d.Events, d.Log}, chats: map[key]*chatState{}}
 }
@@ -779,6 +782,13 @@ func (s safePublisher) recover(event string) {
 		s.log.Error("agent: the event publisher panicked", "event", event, "panic", r)
 	}
 }
+
+// noPublisher drops the events, for Deps without Events.
+type noPublisher struct{}
+
+func (noPublisher) Delta(chat.Delta)   {}
+func (noPublisher) Part(chat.PartDone) {}
+func (noPublisher) Status(chat.Status) {}
 
 var (
 	errStopped = errors.New("stopped by the user")

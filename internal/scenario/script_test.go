@@ -1,7 +1,9 @@
 package scenario
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -151,6 +153,34 @@ func TestScriptedRun(t *testing.T) {
 	}
 	if md := rep.Markdown(nil); !strings.Contains(md, "| Cache read |") || !strings.Contains(md, " 45 % |") {
 		t.Errorf("Markdown:\n%s", md)
+	}
+}
+
+// A run logs no errors: the orchestrator gets no Publisher, and -v showed
+// one "the event publisher panicked" per event while it called a nil one.
+func TestScriptedRunLogsNoErrors(t *testing.T) {
+	s, err := Load(writeSet(t, scriptSet))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(t.TempDir(), "_plays.yaml")
+	if err := os.WriteFile(p, []byte(script), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sc, err := ReadScript(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logged bytes.Buffer
+	log := slog.New(slog.NewTextHandler(&logged, &slog.HandlerOptions{Level: slog.LevelError}))
+	if _, err := RunSet(context.Background(), s, Options{
+		Models: ScriptedModels(sc), Script: sc, Scale: 0.01, Timeout: time.Minute, Temp: t.TempDir(),
+		Only: []string{"capped"}, Log: log,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if logged.Len() > 0 {
+		t.Errorf("the run logged errors:\n%s", logged.String())
 	}
 }
 
