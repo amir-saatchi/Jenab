@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/disk"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
@@ -58,8 +59,8 @@ const (
 // spaceMargin is kept free on top of what an export needs.
 const spaceMargin = 16 << 20
 
-// freeSpace is diskSpace; tests swap it.
-var freeSpace = diskSpace
+// freeSpace is disk.Free; tests swap it.
+var freeSpace = disk.Free
 
 // progressEvery is how often an export reports its progress, at most.
 const progressEvery = 100 * time.Millisecond
@@ -778,20 +779,6 @@ func fileSize(name string) int64 {
 		return 0
 	}
 	return st.Size()
-}
-
-// existingDir is p, or its nearest parent that exists.
-func existingDir(p string) string {
-	for {
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
-		up := filepath.Dir(p)
-		if up == p {
-			return p
-		}
-		p = up
-	}
 }
 
 // bytesText writes n for people, e.g. "12.3 MB".

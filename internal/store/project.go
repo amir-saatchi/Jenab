@@ -51,6 +51,7 @@ type ProjectDB struct {
 	// row, the sweep for writing while it removes (SPEC 4.3).
 	objMu   sync.RWMutex
 	workers *sqlworker.Pool // for agent queries (SPEC 2.2)
+	deps    dependents      // configs that migrations update and check (SPEC 7.5)
 }
 
 func newProjectDB(db *DB, dir string) *ProjectDB {

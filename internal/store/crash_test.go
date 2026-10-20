@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -64,6 +65,8 @@ func TestCrashWorker(t *testing.T) {
 		workParts(ctx, dir)
 	case "changes":
 		workChanges(ctx, dir)
+	case "migrations":
+		workMigrations(ctx, dir)
 	case "undo":
 		workUndo(ctx, dir)
 	}
@@ -809,4 +812,139 @@ func TestCrashUndo(t *testing.T) {
 	if undos == 0 {
 		t.Errorf("no undo finished in %d kills", kills())
 	}
+}
+
+// ---- migrations: the old schema or the new one, and whole snapshots ----
+
+const migrationRows = 100_000
+
+// migrationShapes are t's two shapes. Each migration rebuilds t from one
+// to the other, keeping id, a and the number, and dropping the j column,
+// so it is destructive and takes a snapshot first.
+var migrationShapes = [2]struct{ cols, num, junk string }{
+	{"id,a,b,ja", "b", "ja"},
+	{"id,a,c,jb", "c", "jb"},
+}
+
+func migrationTo(i int) string {
+	s, from := migrationShapes[i], migrationShapes[1-i]
+	return fmt.Sprintf(`[{"op": "rebuild_table", "table": "t", "columns": [{"name": "id", "type": "INTEGER"}, {"name": "a", "type": "TEXT"},
+		{"name": %q, "type": "REAL"}, {"name": %q, "type": "TEXT"}], "primary_key": ["id"], "mapping": {%[1]q: %[3]q, %[2]q: "'x'"}}]`,
+		s.num, s.junk, from.num)
+}
+
+func tShape(t *testing.T, db *DB) int {
+	t.Helper()
+	cols := one[string](t, db, "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('t') ORDER BY cid)")
+	for i, s := range migrationShapes {
+		if cols == s.cols {
+			return i
+		}
+	}
+	t.Fatalf("t has columns %s", cols)
+	return 0
+}
+
+func workMigrations(ctx context.Context, dir string) {
+	p, err := OpenProject(ctx, dir)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("READY")
+	for {
+		d, err := p.DescribeTable(ctx, "t")
+		if err != nil {
+			panic(err)
+		}
+		next := 1
+		if d.Columns[2].Name == "c" {
+			next = 0
+		}
+		var m Migration
+		if err := json.Unmarshal([]byte(migrationTo(next)), &m.Steps); err != nil {
+			panic(err)
+		}
+		r, err := p.Migrate(ctx, id.SourceOf("migration", id.New()), m, MigrateOptions{Approved: true})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("MIGRATED", r.SchemaVersion)
+	}
+}
+
+func TestCrashMigrations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("crash test")
+	}
+	dir := t.TempDir()
+	p, err := OpenProject(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustExec(t, p.DB, "CREATE TABLE t (id INTEGER PRIMARY KEY, a TEXT, b REAL, ja TEXT)")
+	mustExec(t, p.DB, `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+		INSERT INTO t SELECT i, 'row ' || i, i * 1.5, 'x' FROM n`, migrationRows)
+	sum := one[float64](t, p.DB, "SELECT sum(b) FROM t")
+	p.Close(context.Background())
+
+	// check is t in one shape, whole.
+	check := func(k int, db *DB, what string) int {
+		shape := tShape(t, db)
+		n := one[int](t, db, "SELECT count(*) FROM t")
+		s := one[float64](t, db, fmt.Sprintf("SELECT sum(%s) FROM t", migrationShapes[shape].num))
+		if n != migrationRows || s != sum {
+			t.Errorf("kill %d: %s: %d rows, sum %v", k+1, what, n, s)
+		}
+		return shape
+	}
+	midSnap, done, last := 0, 0, 0
+	for k := range kills() {
+		out := killDuring(t, "migrations", dir, 4*time.Second)
+		if m, _ := filepath.Glob(filepath.Join(dir, "snapshots", "*.partial")); len(m) > 0 {
+			midSnap++
+		}
+		p, err := OpenProject(context.Background(), dir) // removes half-written copies
+		if err != nil {
+			t.Fatalf("kill %d: open: %v", k+1, err)
+		}
+		quickCheck(t, p.DB)
+		check(k, p.DB, "project.db")
+		v, _ := p.SchemaVersion(context.Background())
+		if n := one[int](t, p.DB, "SELECT count(*) FROM _jenab_changes WHERE op = 'migrate'"); n != v {
+			t.Errorf("kill %d: schema version %d, %d migrations logged", k+1, v, n)
+		}
+		if v < last {
+			t.Errorf("kill %d: schema version went back from %d to %d", k+1, last, v)
+		}
+		// A migration the worker saw commit is there.
+		for _, l := range out {
+			var seen int
+			if _, err := fmt.Sscanf(l, "MIGRATED %d", &seen); err == nil && seen > v {
+				t.Errorf("kill %d: migration %d committed, but the version is %d", k+1, seen, v)
+			}
+		}
+		done += v - last
+		last = v
+		p.Close(context.Background())
+		m, _ := filepath.Glob(filepath.Join(dir, "snapshots", "*"))
+		// Each commit prunes to keepSnapshots; a kill after the copy leaves
+		// one more.
+		if slices.ContainsFunc(out, func(l string) bool { return strings.HasPrefix(l, "MIGRATED") }) && len(m) > keepSnapshots+1 {
+			t.Errorf("kill %d: %d snapshots", k+1, len(m))
+		}
+		for _, f := range m {
+			if !strings.HasPrefix(filepath.Base(f), snapshotPrefix) || filepath.Ext(f) != ".db" {
+				t.Errorf("kill %d: %s left in snapshots", k+1, filepath.Base(f))
+				continue
+			}
+			s, err := Open(context.Background(), f, Options{ReadOnly: true})
+			if err != nil {
+				t.Fatalf("kill %d: %s: %v", k+1, filepath.Base(f), err)
+			}
+			quickCheck(t, s)
+			check(k, s, filepath.Base(f))
+			s.Close(context.Background())
+		}
+	}
+	t.Logf("%d migrations committed in %d kills; %d kills hit a snapshot in progress", done, kills(), midSnap)
 }

@@ -354,6 +354,57 @@ func Probe(q string) (string, error) {
 	return "SELECT * FROM (" + c.body() + "\n) LIMIT 0", nil
 }
 
+// Body returns q, which must pass Check, as the statement to put inside
+// brackets, as Wrap does: without a final ';', with its parameters
+// numbered. Close the brackets on a new line, so a final -- comment in q
+// can't hide them.
+func Body(q string) (string, error) {
+	c, err := check(q)
+	if err != nil {
+		return "", err
+	}
+	return c.body(), nil
+}
+
+// CheckExpr is layer 1 for an expression that Go puts inside brackets in
+// other SQL, such as a CHECK constraint or a column of a copy: the text
+// check of SELECT e, with e's own brackets balanced and no parameters and
+// no ',' outside them, so e can't close the brackets it is put in or add
+// to the list they are part of. Put e on its own line before the closing
+// bracket, so a final -- comment can't hide it. Positions count from the
+// start of e.
+func CheckExpr(e string) error {
+	const prefix = "SELECT "
+	q := prefix + e + "\n"
+	c, err := check(q)
+	if err != nil {
+		if err.Pos < len(prefix) {
+			return reject(e, err.Layer, -1, "%s", err.Reason)
+		}
+		r := reject(e, err.Layer, err.Pos-len(prefix), "%s", err.Reason)
+		r.Schema = err.Schema
+		return r
+	}
+	if c.end < len(q) { // check drops a final ';'
+		return reject(e, 1, c.end-len(prefix), "an expression can't have a `;`")
+	}
+	depth := 0
+	for _, t := range c.toks[1:] {
+		switch {
+		case t.kind == param:
+			return reject(e, 1, t.pos-len(prefix), "an expression can't have parameters such as %s; write the value into it", t.text)
+		case t.kind != punct:
+		case t.text == "(":
+			depth++
+		case t.text == ")":
+			depth--
+		case t.text == "," && depth == 0:
+			return reject(e, 1, t.pos-len(prefix), "this must be one expression; this `,` starts another")
+		}
+	}
+	return nil
+}
+
 // body is the statement without a final ';', with each ? and ?NNN as ?N,
 // its number: a bare ? keeps its place when Wrap and Probe add theirs,
 // and modernc binds ?01 by the name "01" but ?1 by position.

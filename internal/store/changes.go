@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -57,6 +58,10 @@ const (
 	// migrate). Its rowid places the migration among the row entries, so
 	// an undo of an earlier change to the table sees it (undoRun.migrations).
 	rowMigrated = "migrate"
+	// rowMigratedKept marks a table a migration changed in a way that
+	// leaves its rows as they were: added columns and indexes. An undo of
+	// an earlier change to it doesn't stop there (logMigration).
+	rowMigratedKept = "migrate_keep"
 )
 
 // change is one entry of _jenab_changes.
@@ -106,9 +111,20 @@ func writeChange(tx *sql.Tx, c change, rows []rowEntry) error {
 // them sees the migration in commit order (undoRun.migrations). An undo
 // never reverts it (SPEC 2.6).
 func writeMigration(tx *sql.Tx, src id.Source, tables []string) (id.Change, error) {
+	return logMigration(tx, src, tables, nil, "")
+}
+
+// logMigration is writeMigration with two kinds of tables: block, whose
+// rows or names the migration changed, get a rowMigrated marker; kept,
+// which only got columns or indexes, get a rowMigratedKept marker, which
+// undo doesn't count, as an undo still puts their rows back as they were
+// (the added columns keep their values, or take their defaults). after is
+// the change's after, the steps; "" for none.
+func logMigration(tx *sql.Tx, src id.Source, block, kept []string, after string) (id.Change, error) {
 	if err := checkSource(src); err != nil {
 		return "", err
 	}
+	tables := append(slices.Clone(block), kept...)
 	if len(tables) == 0 {
 		return "", fault("store: a migration names the tables it changes")
 	}
@@ -117,9 +133,16 @@ func writeMigration(tx *sql.Tx, src id.Source, tables []string) (id.Change, erro
 		target = "table:" + tables[0]
 	}
 	c := newChange(src, target, "migrate")
+	if after != "" {
+		c.after = sql.NullString{String: after, Valid: true}
+	}
 	rows := make([]rowEntry, len(tables))
 	for i, t := range tables {
-		rows[i] = rowEntry{table: t, key: "", kind: rowMigrated}
+		kind := rowMigrated
+		if i >= len(block) {
+			kind = rowMigratedKept
+		}
+		rows[i] = rowEntry{table: t, key: "", kind: kind}
 	}
 	return c.id, writeChange(tx, c, rows)
 }

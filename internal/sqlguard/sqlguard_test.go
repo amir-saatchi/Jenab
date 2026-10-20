@@ -573,3 +573,27 @@ func BenchmarkExplain(b *testing.B) {
 		}
 	}
 }
+
+// An expression can't close the brackets Go puts it in, or start another.
+func TestCheckExpr(t *testing.T) {
+	for _, e := range []string{"price * 100", "coalesce(a, (SELECT 1))", "x IN (1, 2) -- note", "')'", `"a,b" > 0`} {
+		if err := CheckExpr(e); err != nil {
+			t.Errorf("%s: %v", e, err)
+		}
+	}
+	for e, want := range map[string]string{
+		`1), "evil col" ANY, b BLOB GENERATED ALWAYS AS (zeroblob(4)) VIRTUAL, CHECK (1`: "line 1:2: this `)` has no matching `(`",
+		"1, 2":                             "line 1:2: this must be one expression",
+		"(1":                               "this `(` is never closed",
+		"a = :v":                           "parameters such as :v",
+		"1; DROP TABLE t":                  "only one statement",
+		"1;":                               "can't have a `;`",
+		"(SELECT key FROM _jenab_objects)": "_jenab_",
+		"load_extension('x')":              "load_extension",
+	} {
+		err := CheckExpr(e)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %v, want %q", e, err, want)
+		}
+	}
+}

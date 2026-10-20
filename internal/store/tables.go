@@ -90,116 +90,123 @@ func (p *ProjectDB) Tables(ctx context.Context) ([]string, error) {
 // DescribeTable describes the agent table name, in one read. A table
 // that isn't there, or is internal, is ErrNotFound.
 func (p *ProjectDB) DescribeTable(ctx context.Context, name string) (Table, error) {
-	return readTx(ctx, p.DB, func(tx *sql.Tx) (Table, error) {
-		var t Table
-		if internalName(name) {
-			return t, fmt.Errorf("store: table %s: %w", name, ErrNotFound)
-		}
-		err := tx.QueryRowContext(ctx, `SELECT name, wr, strict FROM pragma_table_list WHERE schema = 'main' AND type = 'table' AND name = ? COLLATE NOCASE`, name).
-			Scan(&t.Name, &t.WithoutRowid, &t.Strict)
-		if errors.Is(err, sql.ErrNoRows) {
-			return t, fmt.Errorf("store: table %s: %w", name, ErrNotFound)
-		}
-		if err != nil {
-			return t, err
-		}
-		type col struct {
-			Column
-			pk int
-		}
-		cols, err := queryTxContext(ctx, tx, `SELECT name, type, "notnull", dflt_value, pk, hidden FROM pragma_table_xinfo(?) ORDER BY cid`, []any{t.Name},
-			func(r *sql.Rows) (col, error) {
-				var c col
-				var def sql.NullString
-				var hidden int
-				err := r.Scan(&c.Name, &c.Type, &c.NotNull, &def, &c.pk, &hidden)
-				if def.Valid {
-					c.Default = &def.String
-				}
-				c.Generated = hidden == 2 || hidden == 3
-				return c, err
-			})
-		if err != nil {
-			return t, err
-		}
-		var keyed []col
-		for _, c := range cols {
-			t.Columns = append(t.Columns, c.Column)
-			if c.pk > 0 {
-				keyed = append(keyed, c)
-			}
-		}
-		slices.SortFunc(keyed, func(a, b col) int { return a.pk - b.pk })
-		for _, c := range keyed {
-			t.Key = append(t.Key, c.Name)
-		}
-		type part struct {
-			index, origin string
-			unique        bool
-			partial       bool
-			col           sql.NullString
-		}
-		parts, err := queryTxContext(ctx, tx, `SELECT l.name, l.origin, l."unique", l.partial, i.name FROM pragma_index_list(?1) l, pragma_index_info(l.name) i
-			ORDER BY l.name, i.seqno`, []any{t.Name}, func(r *sql.Rows) (part, error) {
-			var p part
-			return p, r.Scan(&p.index, &p.origin, &p.unique, &p.partial, &p.col)
-		})
-		if err != nil {
-			return t, err
-		}
-		pkIndex := false
-		for i, p := range parts {
-			if p.origin == "pk" {
-				pkIndex = true
-				continue // the primary key is listed as Key
-			}
-			if i == 0 || p.index != parts[i-1].index {
-				t.Indexes = append(t.Indexes, Index{Name: p.index, Unique: p.unique, Partial: p.partial})
-			}
-			ix := &t.Indexes[len(t.Indexes)-1]
-			ix.Columns = append(ix.Columns, p.col.String)
-		}
-		t.AutoKey = !t.WithoutRowid && !pkIndex && len(keyed) == 1 && strings.EqualFold(keyed[0].Type, "INTEGER")
-		type ref struct {
-			id                 int
-			table, from        string
-			to                 sql.NullString
-			onUpdate, onDelete string
-		}
-		refs, err := queryTxContext(ctx, tx, `SELECT id, "table", "from", "to", on_update, on_delete FROM pragma_foreign_key_list(?) ORDER BY id, seq`,
-			[]any{t.Name}, func(r *sql.Rows) (ref, error) {
-				var f ref
-				return f, r.Scan(&f.id, &f.table, &f.from, &f.to, &f.onUpdate, &f.onDelete)
-			})
-		if err != nil {
-			return t, err
-		}
-		for i, f := range refs {
-			if i == 0 || f.id != refs[i-1].id {
-				t.ForeignKeys = append(t.ForeignKeys, ForeignKey{Table: f.table, OnDelete: f.onDelete, OnUpdate: f.onUpdate})
-			}
-			fk := &t.ForeignKeys[len(t.ForeignKeys)-1]
-			fk.Columns = append(fk.Columns, f.from)
-			if f.to.Valid {
-				fk.To = append(fk.To, f.to.String)
-			}
-		}
-		kinds, err := queryTxContext(ctx, tx, `SELECT column_name, kind FROM _jenab_columns WHERE table_name = ? COLLATE NOCASE ORDER BY column_name`,
-			[]any{t.Name}, func(r *sql.Rows) ([2]string, error) {
-				var k [2]string
-				return k, r.Scan(&k[0], &k[1])
-			})
-		if err != nil {
-			return t, err
-		}
-		for _, k := range kinds {
-			if c, ok := t.Column(k[0]); ok { // an annotation of a dropped column is skipped
-				c.Kind = k[1]
-			}
-		}
-		err = tx.QueryRowContext(ctx, fmt.Sprintf("SELECT count(*) FROM %s", quote(t.Name))).Scan(&t.Rows)
+	return readTx(ctx, p.DB, func(tx *sql.Tx) (Table, error) { return describe(ctx, tx, name, true) })
+}
+
+// describe describes the agent table name as tx sees it; count adds its
+// rows.
+func describe(ctx context.Context, tx *sql.Tx, name string, count bool) (Table, error) {
+	var t Table
+	if internalName(name) {
+		return t, fmt.Errorf("store: table %s: %w", name, ErrNotFound)
+	}
+	err := tx.QueryRowContext(ctx, `SELECT name, wr, strict FROM pragma_table_list WHERE schema = 'main' AND type = 'table' AND name = ? COLLATE NOCASE`, name).
+		Scan(&t.Name, &t.WithoutRowid, &t.Strict)
+	if errors.Is(err, sql.ErrNoRows) {
+		return t, fmt.Errorf("store: table %s: %w", name, ErrNotFound)
+	}
+	if err != nil {
 		return t, err
+	}
+	type col struct {
+		Column
+		pk int
+	}
+	cols, err := queryTxContext(ctx, tx, `SELECT name, type, "notnull", dflt_value, pk, hidden FROM pragma_table_xinfo(?) ORDER BY cid`, []any{t.Name},
+		func(r *sql.Rows) (col, error) {
+			var c col
+			var def sql.NullString
+			var hidden int
+			err := r.Scan(&c.Name, &c.Type, &c.NotNull, &def, &c.pk, &hidden)
+			if def.Valid {
+				c.Default = &def.String
+			}
+			c.Generated = hidden == 2 || hidden == 3
+			return c, err
+		})
+	if err != nil {
+		return t, err
+	}
+	var keyed []col
+	for _, c := range cols {
+		t.Columns = append(t.Columns, c.Column)
+		if c.pk > 0 {
+			keyed = append(keyed, c)
+		}
+	}
+	slices.SortFunc(keyed, func(a, b col) int { return a.pk - b.pk })
+	for _, c := range keyed {
+		t.Key = append(t.Key, c.Name)
+	}
+	type part struct {
+		index, origin string
+		unique        bool
+		partial       bool
+		col           sql.NullString
+	}
+	parts, err := queryTxContext(ctx, tx, `SELECT l.name, l.origin, l."unique", l.partial, i.name FROM pragma_index_list(?1) l, pragma_index_info(l.name) i
+			ORDER BY l.name, i.seqno`, []any{t.Name}, func(r *sql.Rows) (part, error) {
+		var p part
+		return p, r.Scan(&p.index, &p.origin, &p.unique, &p.partial, &p.col)
 	})
+	if err != nil {
+		return t, err
+	}
+	pkIndex := false
+	for i, p := range parts {
+		if p.origin == "pk" {
+			pkIndex = true
+			continue // the primary key is listed as Key
+		}
+		if i == 0 || p.index != parts[i-1].index {
+			t.Indexes = append(t.Indexes, Index{Name: p.index, Unique: p.unique, Partial: p.partial})
+		}
+		ix := &t.Indexes[len(t.Indexes)-1]
+		ix.Columns = append(ix.Columns, p.col.String)
+	}
+	t.AutoKey = !t.WithoutRowid && !pkIndex && len(keyed) == 1 && strings.EqualFold(keyed[0].Type, "INTEGER")
+	type ref struct {
+		id                 int
+		table, from        string
+		to                 sql.NullString
+		onUpdate, onDelete string
+	}
+	refs, err := queryTxContext(ctx, tx, `SELECT id, "table", "from", "to", on_update, on_delete FROM pragma_foreign_key_list(?) ORDER BY id, seq`,
+		[]any{t.Name}, func(r *sql.Rows) (ref, error) {
+			var f ref
+			return f, r.Scan(&f.id, &f.table, &f.from, &f.to, &f.onUpdate, &f.onDelete)
+		})
+	if err != nil {
+		return t, err
+	}
+	for i, f := range refs {
+		if i == 0 || f.id != refs[i-1].id {
+			t.ForeignKeys = append(t.ForeignKeys, ForeignKey{Table: f.table, OnDelete: f.onDelete, OnUpdate: f.onUpdate})
+		}
+		fk := &t.ForeignKeys[len(t.ForeignKeys)-1]
+		fk.Columns = append(fk.Columns, f.from)
+		if f.to.Valid {
+			fk.To = append(fk.To, f.to.String)
+		}
+	}
+	kinds, err := queryTxContext(ctx, tx, `SELECT column_name, kind FROM _jenab_columns WHERE table_name = ? COLLATE NOCASE ORDER BY column_name`,
+		[]any{t.Name}, func(r *sql.Rows) ([2]string, error) {
+			var k [2]string
+			return k, r.Scan(&k[0], &k[1])
+		})
+	if err != nil {
+		return t, err
+	}
+	for _, k := range kinds {
+		if c, ok := t.Column(k[0]); ok { // an annotation of a dropped column is skipped
+			c.Kind = k[1]
+		}
+	}
+	if !count {
+		return t, nil
+	}
+	err = tx.QueryRowContext(ctx, fmt.Sprintf("SELECT count(*) FROM %s", quote(t.Name))).Scan(&t.Rows)
+	return t, err
 }
 
 // MaxValue is the largest text or blob an agent can write or read, as

@@ -3,13 +3,14 @@ package project
 import (
 	"syscall"
 	"unsafe"
+
+	"github.com/amir-saatchi/jenab/internal/disk"
 )
 
 var (
-	kernel32              = syscall.NewLazyDLL("kernel32.dll")
-	procGetVolumePathName = kernel32.NewProc("GetVolumePathNameW")
-	procGetDriveType      = kernel32.NewProc("GetDriveTypeW")
-	procGetVolumeInfo     = kernel32.NewProc("GetVolumeInformationW")
+	kernel32          = syscall.NewLazyDLL("kernel32.dll")
+	procGetDriveType  = kernel32.NewProc("GetDriveTypeW")
+	procGetVolumeInfo = kernel32.NewProc("GetVolumeInformationW")
 )
 
 const driveRemote = 4 // DRIVE_REMOTE
@@ -53,17 +54,5 @@ func volumeService(p string) string {
 	return ""
 }
 
-// volumeRoot is the root of the volume that holds p, e.g. `C:\`. p need not
-// exist.
-func volumeRoot(p string) (string, bool) {
-	in, err := syscall.UTF16PtrFromString(p)
-	if err != nil {
-		return "", false
-	}
-	buf := make([]uint16, 1024)
-	ok, _, _ := procGetVolumePathName.Call(uintptr(unsafe.Pointer(in)), uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)))
-	if ok == 0 {
-		return "", false
-	}
-	return syscall.UTF16ToString(buf), true
-}
+// volumeRoot is the root of the volume that holds p, e.g. `C:\`.
+var volumeRoot = disk.VolumeRoot
