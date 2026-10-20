@@ -1,5 +1,7 @@
-# Spec v0.6 — Project Storage, Context, Views and Pipelines
+# Spec v0.7 — Project Storage, Context, Views and Pipelines
 
+> **v0.7:** semantic recall, decided in SPIKE-033 and Later in Gate 1 (R-124 to R-127), so the design leaves room for it without a v1 promise: a rebuildable `index.db` per project with message vectors, file chunks, their FTS table and vectors, stored as int8 at full width, out of the change log, undo and exports, and rebuilt when damaged or when the embedding model changes (2.1, 2.7, 2.9); hybrid `search_history`: FTS5 and embedding cosine, the top 50 of each merged with RRF (k = 60), and `matched` on each hit (2.3, 8.1); an embedding call that marks each text as a query or a document, with prefixes from the model's settings, the `embed` alias, and int8 made in Go (3.8, 3.9); `bucket_search`, files chunked by heading at 1,200 bytes, what is indexed, and how the sweep frees old chunks (4.4, 4.9, 8.1); embedding stored texts as background work, and a search query embedded right away (7.6); the embedding model in *Settings → Models*: which chats are embedded, *Embed files too*, and asking before a new model (3.9); no built-in embedder for now (11). The open points were decided the same day (QUESTIONS 37–49): long messages split like files, prefixes only from the user, Ollama and `openai_compatible` first, FTS hits when the query can't be embedded, all chats by default, a new model embedded in open projects at once and in the others when they next open, what `bucket_search` indexes, vectors deleted with their messages, turning search by meaning off, and an FTS-only `bucket_search` first (R-128).
+>
 > **v0.6:** API connections: saved APIs with the user's key, `connect_api`, `call_api` and `api.get`; secrets are used only through connections (6.5, 6.7, 6.9, 8.1); read-only workspace with `list_files`, `read_file` and `search_code`, and the plan for code tools later (8.5); connections and workspace in the project card (3.2) and `registry.db` (2.4); Mother chat, chat titles and roles, `list_chats`, `create_chat` and `send_to_chat` (2.3, 3.1, 8.1, 8.3, 8.6); MCP servers, draft (8.7); layout per chat, the open-page notice and `open_page` (5.9); page header and the `card`, `filter`, `button` and `image` blocks (5.9, 5.10); `set` and `bulk` row actions and the `badge` format (5.3); theme and tones (5.11); approval card, question form and `ask_user`, approval levels (8.8); skills (3.1, 8.1, 8.9), decided in SPIKE-025; *Refresh memory* replaces *Recheck memory*: it applies edits, writes a summary to the session notes and ends with a cut (3.1, 3.3–3.6); model catalog and first run without a wizard (3.9); pipeline page with Flow and Steps views, and *Pause schedule* (6.10); model picker per chat (3.9); app shell, project settings and window sizes (5.12); the waiting bar above the composer (8.8); starter prompts (3.9); Markdown styling with shadcn Typeset (5.8); right-to-left text (5.8); SPIKE-023 decisions: the prompt rule, status polling, `turn_max_requests`, messages during a turn and batched notices (7.6, 8.3), and Mother's delegation guidance (8.6); Gate-2 high-fidelity decisions: Mother's gradient colour (8.6), the folded sidebar rail, a resizable dock and Settings as a full view (5.12), `remark-gfm`, explicit list and table directions and the Vazirmatn font (5.8), *Settings → Usage*, *Other models*, *Open the example* and Ollama first when it runs (3.9), and *Inspect* in the turn footer (8.4); Phase 1 providers: Anthropic, OpenAI, Gemini, OpenAI-compatible and Ollama (3.9); web search with Tavily or SearXNG, Brave later (6.5); `thinking` message parts, stored with their signature so they can be sent back unchanged (2.3, 3.8); running background tasks in Mother's chat list (8.6); the Runtime panel in the developer tools (8.4); what *Stop* cancels, open tool calls closed as cancelled, and kept partial text (8.3); cancelled writes never commit (7.3); LLM stall timeouts (3.8); one source format for who did something, in the change log, chats, objects, links and approvals, with `app` for the Mother chat (2.3, 2.5, 4.2, 4.6, 8.8); subagents: one level, transcripts in the bucket, changes undone with the parent turn (8.1, 8.6); the app is named Jenab, so internal tables start with `_jenab_` and the lock file is `jenab.lock` (was the working name Burrow); Linux as a beta, shipped as an AppImage (2.8); user settings in `config.yaml` instead of `config.toml`, so one YAML library reads every config and comments survive saves (2.1); app files stay in `<user data dir>/Jenab` and only projects move with the data folder (2.1); limits split from provider pressure: chat calls never wait for a slot, `max_parallel_calls` 8 for background calls, a limit per provider, `max_subagents_per_chat` 5, limits change without a restart (7.6), provider error kinds, waits and one pause per provider (3.8), and who retries what (6.5, 8.3); planned limits for `run_command`: the agent states each command's memory need and the app checks it at the start, a hard stop at 500 MB, high count limits as a safety net, and below-normal priority (8.5, SPIKE-026); a rail separate from the left sidebar, with projects, *Waiting*, schedules and Settings, a bottom bar with work, commands, pipelines, context use, memory and provider problems, no tabs, and chat shortcuts (5.12); `llm.decide` planned for later, from SPIKE-027 (6.5); OpenAI through the Responses API, a local Ollama through its native API, and the Anthropic thinking settings (3.8, 3.9); nothing set up when the app ships, presets in *Connect*, base-URL placeholders kept in the keychain, and typed-in models when a provider has no model list (3.9, 7.6); bucket details: a version row for every put, how `move` numbers versions, and how each type is served (4.2, 4.3, 4.7); chats: a sequence number per chat, a `role_changes` table, and what *Clear* removes (2.3, 8.6); history search: a chat column in the index, ranking among the newest 2,000 matches, and a Go scan for *Search inside words* (2.3); readable text: the BOM first in the charset order, `data:` URLs removed, bounds for tables, and the next offset in the preview footer (3.7); `read_messages` at most 20 turns a call and `bucket_list` pages of 100 (8.1); agent loop: a cut on the first turn after a restart, the wait in `chat:status`, *Retry now* ends the provider's pause, the `turn_failed` card, what *Stop* keeps of an unfinished answer, calls in the last request closed unrun, a message during the last request answered, *Clear* only between turns, and the chat list row (3.6, 8.3, 8.6); a message after *Stop* starts a new turn, *Retry* after a restart, a role change waits for the next cut, and the `answer_cut` notice (8.3, 8.6); approvals: `fetch_page` asks for each new host, the Once, Always and Deny grants, the newest decision counts, a card closed by *Stop*, and the level notice (6.7, 8.8); skills: a folder with `SKILL.md` and extra files, `load_with` text added to the tool's result within the limit, the `skill_loaded` chip, and *Clear* keeps loaded skills (8.6, 8.9); Gate 1 priorities: `script.starlark` and the GDELT news source move to later (6.5, 9.2, 11).
 >
 > **v0.5:** model-neutral rule (1, 3.8); dependents in the project card (3.2); query options for view filters (5.2); page format and virtual rows for tables (5.3); chart size rules (5.4); frontend rules (5.8); exact `for_each` rules (6.3) and `flatten` (6.4); `feed.read`, search sources and search providers, no keyless web search (6.5, 8.1); `read_feed` and `read_config` tools (8.1); `op` field for migration steps and full dependent configs for the schema agent (8.2); turns and background work, draft (8.3); scenario runner and turn inspector (8.4); pages built from blocks, a block registry and where pages open (5.9, 5.10), pie charts (5.4) and `stat` views (5.10); corrected Bitcoin example with news from feeds, a news view and a new news key (9); repair loop (10).
@@ -69,6 +71,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
     <project_id>/             stable ULID; the display name is stored separately
       project.db              the project's state
       chats.db                the project's logs
+      index.db                search index for semantic recall, can be rebuilt (2.9, later)
       objects/ab/12/ab12f9…   bucket contents, named by SHA-256 (section 4)
       snapshots/              VACUUM INTO copies taken before destructive migrations
       tmp/                    dry-run copies and partial downloads
@@ -78,7 +81,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 - `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote. An unknown key, a wrong type or a value out of range is logged with its line and replaced by the default, so the app still starts. A file that doesn't parse at all gives the defaults; the next save first keeps a copy of it as `config.yaml.broken`.
 - Only one copy of the app runs at a time: a second one says Jenab is already running and quits.
 - A project folder is self-contained. Backup, export and delete work on the folder.
-- A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. Every `VACUUM INTO` follows the safe-copy rule in 7.5.
+- A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. `index.db` is left out, since it can be rebuilt (2.9). Every `VACUUM INTO` follows the safe-copy rule in 7.5.
 - If `registry.db` is lost, it is rebuilt by scanning `projects/`. The project's name is also stored in `_jenab_meta`.
 - SQLite in WAL mode needs a local disk. Jenab warns when the data folder is on a network drive or inside a folder synced by OneDrive, Dropbox, iCloud Drive or Google Drive, since syncing the `-wal` file separately can corrupt the database. Backups go through export instead.
 
@@ -181,6 +184,15 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
     - It compares with the same normalization, plus lower case and Latin diacritics removed. A `LIKE` scan can't do that.
     - That is about 0.65 s per 100,000 messages, so it stops at 500 ms and returns what it found with a note.
   - **Measured on 100,000 messages (P1-07):** queries take 8 ms p50 and 17 ms p95, and 28 ms p95 in one chat. The index is 0.4 × the text size (SPIKE-011).
+- **Search by meaning** (SPIKE-033). **Later,** not in v1 (Gate 1, R-124). The design below is kept for when it is built.
+  - **Hybrid by itself:** once an embedding model is set up (3.9), `search_history` is hybrid. It has no new parameter and no option. On the spike's corpus, hybrid found 80–89% of the targets in the top 5, against 33% for FTS, and kept every message FTS found.
+  - **Two lists:** the FTS list as above, and the cosine similarity of the query's vector to the message vectors in scope (2.9). The vector list is a brute-force scan in Go, about 40 ms over 250,000 vectors at 768 wide on all cores.
+  - **Merge:** the top 50 of each list, merged with reciprocal rank fusion: score = Σ 1 / (60 + rank). An item in only one list keeps its one term.
+  - **Not embedded yet:** a message without a vector, such as a new one or one in a chat that isn't embedded (3.9), is still found by FTS.
+  - **When the query can't be embedded** (the call fails, or its provider is paused, 3.8), the search returns the FTS hits with one line saying they matched by words only. It never waits.
+  - `substring: true` stays the Go scan above, without vectors.
+  - **No score cutoff:** a vector search always returns something. In the spike, a no-answer query's best score (0.72 to 0.78) was above 7% to 52% of the real hits, and scores differ by model and width. Instead, each hit has `matched`: `words`, `meaning` or `both`. When no hit matched by words, the result starts with one line saying the hits are only the closest by meaning. The text is the same for every model (1).
+  - The message FTS stays in `chats.db`, so `search_history` never depends on `index.db`.
 - **Message before change:** message IDs are ULIDs made in Go. Before a tool call writes to `project.db`, the assistant message and its `tool_call` part are written to `chats.db`. A crash can then leave a message without a change, which is harmless, but never a change pointing to a missing message, which would break *Undo turn*. In SPIKE-008, the reverse order left a dangling entry in 11 of 20 crashes.
 
 ### 2.4 registry.db
@@ -228,13 +240,13 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 
 ### 2.7 Connections and lifecycle
 
-- `project.db` and `chats.db` each have their own writer goroutine and reader pool (section 7).
+- `project.db` and `chats.db` each have their own writer goroutine and reader pool (section 7). So does `index.db`, later (2.9).
 - Connections of a project that has not been used for 10 minutes are closed. The scheduler opens a project when a run starts.
 - At startup, the scheduler reads `_jenab_pipelines` of every project to register triggers, then closes the connections again.
 
 **Recovery after a crash.** Opening a project creates `jenab.lock` in its folder, and a clean close removes it. If the file is already there when the project is opened, the last session did not end cleanly, and before the project is used Jenab:
 
-1. runs `PRAGMA quick_check` on both databases (about 2 ms per MB, so ~0.3 s for 150 MB in SPIKE-008). If it fails, the project opens read-only and offers the latest snapshot
+1. runs `PRAGMA quick_check` on both databases (about 2 ms per MB, so ~0.3 s for 150 MB in SPIKE-008). If it fails, the project opens read-only and offers the latest snapshot. A failed check on `index.db` only rebuilds it (2.9)
 2. marks runs still `running` as `interrupted`. Their committed chunks stay, and *Revert run* removes them if wanted
 3. empties `tmp/` and deletes `snapshots/*.partial` and `*.partial-journal`
 4. sweeps `objects/` for files that no index row points to (4.3)
@@ -264,6 +276,30 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
   - Each `.db` stores it in `PRAGMA user_version`.
   - A newer app backs the file up with `VACUUM INTO` into `snapshots/`, then migrates in one transaction.
   - An older app refuses a newer file without touching it and asks the user to update.
+
+### 2.9 index.db
+
+**Later,** not in v1 (Gate 1, R-124 to R-127). The design below, from SPIKE-033, is kept for when it is built.
+
+`index.db` holds the search index for semantic recall: one per project, next to `project.db` and `chats.db`.
+
+| Table | Holds |
+|---|---|
+| `message_vectors` | One vector per piece of a message text part, split like a file (4.9), so no text is longer than a chunk; a hit on any piece is a hit on the message. With the part's rowid (as in `messages_fts`, 2.3), the chat ID, and the vector as int8 with its scale |
+| `chunks` | File chunks (4.9): key, version, the text's sha256, byte offset, length and heading path |
+| `chunks_fts` | FTS5 index over the chunks, with the tokenizer, normalization and query builder of `messages_fts` (2.3) |
+| `chunk_vectors` | One vector per chunk, as int8 with its scale |
+| `embedding_model` | The model the vectors came from: provider, model ID, width, and the query and document prefixes (3.8) |
+
+- **Vectors** are stored as int8 at the model's full width. In SPIKE-033, int8 kept the same recall as float in every condition, with 4× less storage: 772 bytes per vector at 768 wide.
+- **No vector index.** The driver is modernc.org/sqlite (pure Go, SPIKE-001), which can't load sqlite-vec. Searches scan the vectors in scope in Go (2.3).
+- **It can be rebuilt,** from `chats.db`, the bucket and the embedding model. So:
+  - It stays out of the change log and undo (2.5, 2.6).
+  - It is left out of exports (2.1).
+  - If it is damaged, it is rebuilt in the background (2.7). `search_history` keeps its FTS meanwhile, since that is in `chats.db` (2.3).
+- **Removed messages:** when messages go (*Clear*, a deleted chat) or a chat leaves the embedded set (3.9), their vectors are deleted right after. A check when the project opens removes any left by a crash.
+- **A new embedding model** (3.9): every vector is embedded again. The chunks and `chunks_fts` stay, so FTS covers search while that runs.
+- An embedding model per project comes later (R-127).
 
 ---
 
@@ -483,6 +519,13 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
     - In a stream, a new tool-call id starts a new call even if the index repeats.
     - No `reasoning_effort` for Gemma models.
     - Per-minute 429s also mention "quota" and "billing", so neither word makes an error `quota`.
+- **Embeddings** (SPIKE-033). **Later,** not in v1 (Gate 1, R-124). The design below is kept for when it is built.
+  - `Provider` gets one more call: it embeds a list of texts, each marked as a `query` (a search) or a `document` (a stored message or chunk). Only the `embed` model uses it (3.9).
+  - **Prefixes:** each embedding model has a query prefix and a document prefix, set by the user in the model's settings, from the model's card. No preset fills them: presets fill only the kind and base URL (3.9). The provider layer adds the one that fits to each text. Otherwise the text is sent as it is stored, the same for every model (1). In SPIKE-033, the prefixes from its model card gave `embeddinggemma-2:270m` 4 to 17 more points.
+  - **int8 in Go:** the provider returns floats at the model's full width, and Go turns each vector into int8 with one scale per vector (2.9).
+  - **Reference model:** `embeddinggemma-2:270m` through Ollama's native API, with its prefixes. It is what the tests use, not a built-in choice: the user still sets up the provider and the model. No cloud embedding model has been tested yet.
+  - **Provider kinds:** Ollama's native API and `openai_compatible` (`/embeddings`) first; the `gemini` kind later. A cloud host of either kind works the same way.
+  - Anthropic has no embeddings API.
 
 
 ### 3.9 Models and first run
@@ -502,11 +545,24 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
   - A base URL can hold placeholders, such as Cloudflare's `{account_id}`. The form asks for each value, which must be letters, digits, `-` or `_`. The values are kept in the keychain as `provider:<name>:<field>` and hidden in logs and errors like keys; the settings file keeps the placeholder.
   - Some providers have no model list (Cloudflare's OpenAI-compatible endpoint answers 404 or 405). *Connect* then stores the key anyway, and the user types the model IDs and their context windows. The key is checked at the first call.
 - For Anthropic, OpenAI and Gemini, catalog models are shown first. Models the provider lists but the catalog doesn't know yet appear under *Other models*, off by default; turning one on asks for its context window. For OpenAI-compatible providers and Ollama, the models come from the provider's list; the context window is read from the provider when it reports one (Ollama `/api/show`), otherwise the user enters it.
-- `llm.models` in `config.yaml` maps the aliases `default` and `fast` (used by `llm.*` steps, 6.5) to models. With the first provider they are set from the catalog's suggestions; the user can change them in *Settings → Models*.
+- `llm.models` in `config.yaml` maps the aliases `default` and `fast` (used by `llm.*` steps, 6.5) to models. With the first provider they are set from the catalog's suggestions; the user can change them in *Settings → Models*. Later, a third alias, `embed`, names the embedding model (see below).
 - **Model picker:** a chip in the composer shows the chat's model by its catalog name, e.g. "Gemma 4 31B". Its menu lists the models that are on, grouped by provider, and marks which ones are `default` and `fast`. Providers without a key are listed with *Add key*.
   - The choice applies to that chat and is stored in `chats.model`. New chats use `default`.
   - Changing the model changes nothing else: same prompts, tools and limits (1).
 - **Usage:** *Settings → Usage* shows tokens per day, per chat and per model, with pipeline steps as their own line. The cost comes from the catalog prices; models without a price show tokens only.
+
+**Embedding model** (SPIKE-033). **Later,** not in v1 (Gate 1, R-124, R-125). The design below is kept for when it is built.
+- Nothing is set up when the app ships, as for chat models. Without an embedding model, search is FTS only (2.3, 4.9).
+- The user picks the embedding model in *Settings → Models*, from a provider they set up. It becomes the `embed` alias, with its query and document prefixes (3.8). There is no built-in embedder (11).
+- **Where the texts go:** the setup says that texts are sent to the embedding model's provider, which may not be the chat model's. Setting up an embedding model covers messages, since they were already sent to a chat model.
+- **Which chats are embedded:** all chats (the default), or only the Mother chat, the one chat that lasts (8.6, R-125). The choice is per app, like the model. Messages in other chats are found by FTS only.
+- ***Embed files too:*** files in the bucket are embedded only with this on (4.9). It is off by default for every provider. A file put in the bucket wasn't sent anywhere, and the app can't tell a local provider from a cloud one: an Ollama can be Ollama Cloud, and the base URL is never read for that (3.8). It turns off again when the embedding model moves to another provider, since the consent is about where the files go. A new model on the same provider keeps it.
+- **Changing the embedding model asks first.**
+  - The question says every vector will be embedded again, how many texts that is in the open projects, and about how long it takes, from the rate measured last time. Other projects are embedded again when they next open.
+  - The user goes ahead or keeps the old model.
+  - While the texts are embedded again, FTS covers search (2.9), and the progress shows in the bottom bar (5.12).
+- **Turning it off:** the user can turn off search by meaning in *Settings → Models*. That removes the `embed` alias and deletes every vector: in open projects at once, in the others when they next open. The chunks and `chunks_fts` stay, so search by words keeps working.
+- An embedding model per project comes later (R-127).
 
 **First run.** There is no setup wizard.
 - The app opens to its main window with *Create project* and *Open the example*, which creates the Bitcoin project from section 9 with sample data. Its pipelines run once a provider is set up. The data folder defaults to `~/Jenab` and can be changed in *Settings → General*; the warning from 2.1 shows as a banner if it applies.
@@ -582,6 +638,7 @@ cache_max_size: 500MB      # cache/ is trimmed least-recently-read first
   - When the change-log cleanup drops before-images older than 90 days (2.5), the next sweep frees their bytes.
   - `cache/` keeps its own `expire_after` (30 days): cached pages can be fetched again.
   - Files in `objects/` with no index row at all (left by a crash) and files in `tmp/` older than a day are removed too.
+  - **Later, file chunks** (4.9): an old version keeps its chunks and their vectors in `index.db` until the sweep frees that version. Chunks are keyed by the text's sha256, so a version that becomes current again needs no new embedding while its chunks are kept.
 - **The cost is visible:** project settings and the project card show **"Kept for undo: N files, X MB"**, meaning bytes that only the undo window still holds.
   - **Free now** removes them at once, after a confirmation that names the size. Undo then stops working for those files and says so.
   - The same line appears in the bucket's size total, so the user sees why a project is larger than its visible files.
@@ -616,6 +673,31 @@ Shown next to the bucket in the **Resources** panel. The agent saves sources wit
 ### 4.8 Backend
 
 The bucket sits behind an `ObjectStore` interface (`put`, `get`, `head`, `list`, `delete`). v1 uses the local folder. Later, a project's bucket can use an S3-compatible backend (S3, R2, MinIO) with credentials in the keychain, and presigned links for sharing.
+
+### 4.9 Search across files
+
+**Later,** not in v1 (Gate 1, R-124 to R-126). The design below, from SPIKE-033, is kept for when it is built. An FTS-only `bucket_search` comes first, as its own requirement after TASK-021 (R-128); search by meaning comes with semantic recall.
+
+`read_ref` and `search_ref` read and search one file at a time, by words. `bucket_search` searches across the project's files, and by meaning once an embedding model is set up (3.9).
+
+- **`bucket_search(query, prefix, limit)`** returns passages (8.1). `prefix` keeps the search under a key prefix. `limit` is 10 by default and at most 50.
+- **Each hit** has the key, a byte offset for `read_ref(key, offset)`, the heading path, a snippet of about 300 characters and `matched` (2.3).
+- **Search:**
+  - Without an embedding model, it is FTS only, over `chunks_fts` (2.9) with the rules of 2.3.
+  - With one, it is hybrid like `search_history` (2.3): the top 50 of each list merged with RRF (k = 60), no score cutoff, and the same first line when no hit matched by words.
+  - On the spike's files, hybrid with chunks by heading found 74–100% of the targets in the top 5, against 30% for FTS.
+- **What is indexed:** the newest version of text files (`text/*`, Markdown, CSV, JSON, XML, YAML and code), of documents turned into text (TASK-021), and of subagent transcripts (8.6), up to 10 MB of text a file, with offsets in bytes of that text (3.7). Nothing under `cache/` (web pages, tool outputs) is indexed until R-126.
+  - Files are embedded only with *Embed files too* (3.9). Without it, they are searched by FTS only.
+  - Web pages, workspace code and other sources come later, each after its own chunking test (R-126).
+- **While `index.db` is rebuilt** (2.9), `bucket_search` doesn't wait: it says the file index is being rebuilt and suggests `search_ref` on a known file.
+- **Untrusted:** file text is untrusted, like a web page (3.7). A `bucket_search` result keeps that mark for the turn, as reading the file does (8.8, TASK-012).
+- **Chunks by heading:**
+  - Each section is one chunk, led by its file name and heading path, e.g. `contract.docx › 4 Termination › 4.2 Notice`.
+  - A long section is split at paragraph ends. A table is split by rows, with its header row repeated.
+  - A chunk has at most 1,200 bytes, including the file name and heading path that lead it, counting 3 bytes a token. At 4 bytes a token, 13 of the spike's chunks were over granite's 512-token window.
+  - Chunks by heading led fixed windows in the two best conditions, by 2 of 23 queries. Chunking is tested again later, with a line of context per chunk and chunks made by a model, on a harder file set.
+- **Keyed by the text's sha256,** so the same text is chunked and embedded once. An old version keeps its chunks until the sweep frees them (4.4).
+- A new version is found by FTS at once, and by meaning once its vectors are written (7.6).
 
 ---
 
@@ -1249,7 +1331,7 @@ A project is used by many things at once: several chats, subagents, the schema a
 
 ### 7.2 Connections per database file
 
-`project.db` and `chats.db` each have:
+`project.db` and `chats.db` each have (and `index.db`, later, 2.9):
 
 - **One writer goroutine** that owns the only write connection and processes write requests one at a time from a queue.
 - **A reader pool** of read-only connections. With WAL mode, reads run in parallel and are never blocked by the writer.
@@ -1355,6 +1437,7 @@ llm:
 
 - **Chat calls never wait for a slot.** A turn the user started, including its foreground subagents, sends its calls at once, so a busy app never freezes a chat. These calls count as in use, so background work gets fewer slots while chats are busy. There are few of them, since each turn starts with a message the user sends.
 - **Background calls wait** in one first-come queue, for `max_parallel_calls` and for their provider's limit: pipeline steps, background tasks and subagents, *Refresh memory* (3.5), turns the app starts and Mother's delegations (8.6). Time in the queue doesn't count toward step timeouts (6.5).
+- **Embedding** (later, 2.9, 3.8): embedding stored messages and file chunks is background work, within `max_parallel_calls` and the provider's limit. A search query is embedded right away, like a chat call: it counts but doesn't wait. A message or file is found by FTS at once, and by meaning once its vectors are written. Chat smoothness while embedding (N-01) is measured when this is built.
 - **Pipeline runs** wait for `max_parallel_runs` in their own first-come queue (6.2). This limit also bounds memory: each run can start a script process of up to 256 MB (6.5), and the project it writes to holds a 64 MB write cache (7.2).
 - **Changing a limit:** in *Settings → Models → Limits* or in `config.yaml`. A change applies at once. More slots start waiting work right away; fewer slots let running work finish and start nothing new until the count is below the limit.
 - The 10:1 rule (7.3) is for writes only, since chat calls never queue.
@@ -1398,7 +1481,7 @@ Large results follow the preview-and-ref rules in 3.7.
 |---|---|
 | `update_memory(scope, section, content, expected_revision)` | Edit user or project memory (3.3) |
 | `update_session_notes(content, expected_revision)` | Edit this chat's session notes (3.4) |
-| `search_history(query, scope, substring?, limit?)` | Full-text search over this chat or all chats in the project; returns snippets with message IDs. `substring: true` also finds words inside words, more slowly (2.3) |
+| `search_history(query, scope, substring?, limit?)` | Full-text search over this chat or all chats in the project; returns snippets with message IDs. `substring: true` also finds words inside words, more slowly (2.3). Later, with an embedding model, it also finds by meaning, and each hit says how it matched (2.3) |
 | `read_messages(chat_id, from, to)` | Read the messages of turns `from` to `to`, at most 20 turns a call; `chat_id` defaults to this chat. Thinking is left out |
 | `read_ref(ref, offset)`, `search_ref(ref, query)` | Read or search a stored tool output or page; `search_ref` returns matching lines with their offsets |
 
@@ -1440,6 +1523,7 @@ Large results follow the preview-and-ref rules in 3.7.
 | `bucket_read(key)` | Text as preview and ref; images to vision-capable models |
 | `bucket_put(key, content or from_ref)` | Store content, or keep a cached object under a permanent key |
 | `bucket_delete(key)` | Delete a key (bytes kept until the sweep) |
+| `bucket_search(query, prefix, limit)` | **Later** (4.9): search the project's files; returns passages with key, byte offset, heading path, snippet and `matched`, so `read_ref(key, offset)` continues there |
 | `save_link(url, title, note, tags)` | Save a link to the Resources panel |
 
 **Other**
@@ -2123,3 +2207,5 @@ All errors are returned together, each with its path, so the LLM can fix everyth
 - A gallery view for images
 - `script.starlark` and the GDELT news source (later, 6.5)
 - Automatic *Refresh memory*, e.g. when a chat goes idle or at a cut once enough unread turns build up
+- Semantic recall: embeddings, `index.db` and `bucket_search` (later, Gate 1 R-124 to R-127; 2.9, 4.9)
+- A built-in embedder (SPIKE-033). Later perhaps a separate helper program on ONNX Runtime, so only the helper needs cgo and the app keeps none (N-51)

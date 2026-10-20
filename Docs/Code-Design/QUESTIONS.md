@@ -237,3 +237,33 @@ Questions to answer before writing the high-level code (packages, types, interfa
    **Decided:** `log/slog` with the text handler, to `<data>/logs/`, rotated by size (10 MB × 5) by our own small writer. Info by default, Debug with the developer tools on; *Copy details* copies the matching lines.
    - Logged: IDs, kinds, timings, errors. Never message content, prompts or table data; prompts are seen only in the turn inspector (8.4).
    - `secret.Value` returns `[secret:NAME]` from `LogValue`, `String`, `GoString` and `MarshalJSON`, so a key can't reach a log, an error or a prompt by mistake. Only the provider's auth header calls `Reveal()`.
+
+## 11. Semantic recall (SPEC v0.7, Later)
+Gaps found while writing SPEC v0.7 from SPIKE-033 (2026-10-20). Semantic recall is Later (Gate 1, R-124 to R-127), so all but Q37 can wait until it is built. All were decided on 2026-10-20 and written into SPEC v0.7.
+
+37. Gate 1 names `bucket_search` only in R-124, which is Later. Without an embedding model it is FTS only over the chunks and needs nothing from the user, and nothing else searches across files (4.9). Does an FTS-only `bucket_search` come before semantic recall, as its own requirement, or with it?
+   **Decided:** its own requirement after TASK-021 (Gate 1, R-128, Should, Phase 2), since Word files are the case it helps first. Search by meaning comes with semantic recall.
+38. A message text part can be longer than the embedding model's window. Is only its start embedded, or is it split like a file (2.9, 3.8)? And where does the app get the window: Ollama's `/api/show`, or the user? In the spike, the harness had to cut texts to 512 tokens, since hugot didn't apply the limit and the whole batch failed.
+   **Decided:** split like a file (4.9); a hit on any piece is a hit on the message. A chunk is at most 1,200 bytes, about 400 tokens, so the app doesn't need the window.
+39. Which preset may fill the query and document prefixes (3.8)? A *Connect* preset fills only the kind and base URL, models are never preset, and the catalog holds no prompts or rules for a model (3.9).
+   **Decided:** none. The user sets them from the model's card.
+40. Which provider kinds get the embedding call first: only Ollama's native API, or the OpenAI-compatible `/embeddings` too (3.8)? Does "cloud embedding models come later" mean kinds, or only that none was tested (Gemini stopped on its free tier)?
+   **Decided:** Ollama's native API and `openai_compatible` `/embeddings` first, the `gemini` kind later. A cloud host of either kind works the same; the line now says no cloud embedding model has been tested yet.
+41. When embedding the query fails, or its provider is paused (3.8), does the search return the FTS hits with a note, or wait (2.3, 7.6)?
+   **Decided:** the FTS hits with one line saying they matched by words only, so a search never waits on a pause.
+42. Which chats are embedded: what is the default, all chats or only the Mother chat, and is the choice per app or per project (3.9)?
+   **Decided:** all chats by default; the choice is per app, like the model.
+43. Does *Embed files too* go back to off when the embedding model moves to another provider, since the consent is about where the files go (3.9)?
+   **Decided:** yes. A new model on the same provider keeps it.
+44. The embedding model is one for all projects. Does a change embed every project again at once, or each one when it next opens? How are "how many texts" and "about how long" counted for the question, with closed projects included (2.9, 3.9)?
+   **Decided:** open projects at once, the others when they next open. The question counts the texts in open projects and uses the rate measured last time.
+45. What counts as a text file for `bucket_search` (4.9): which MIME types (CSV, JSON, code), and are subagent transcripts (8.6) in? Is everything under `cache/` left out, since web pages and tool outputs come later (R-126)?
+   **Decided:** `text/*`, Markdown, CSV, JSON, XML, YAML and code, TASK-021 documents, and subagent transcripts, up to 10 MB of text a file. Nothing under `cache/` until R-126.
+46. When messages go (*Clear*, a deleted chat) or a chat leaves the embedded set (only the Mother chat), are their vectors deleted at once, or left to a sweep (2.9, 8.6)?
+   **Decided:** deleted right after; a check when the project opens removes any left by a crash.
+47. While a damaged `index.db` is rebuilt, `chunks_fts` is gone too. Does `bucket_search` say the index is being built, or wait for it (2.9, 4.9)?
+   **Decided:** it doesn't wait. It says the file index is being rebuilt and suggests `search_ref` on a known file.
+48. Does the chunk budget of 1,200 bytes include the file name and heading path that lead each chunk (4.9)?
+   **Decided:** yes.
+49. Can the user turn off embedding and delete all embedded data?
+   **Decided:** yes. Turning off search by meaning in *Settings → Models* removes the `embed` alias and deletes every vector: in open projects at once, in the others when they next open. The chunks and `chunks_fts` stay, so search by words keeps working (3.9).
