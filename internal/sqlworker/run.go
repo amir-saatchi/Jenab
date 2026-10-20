@@ -48,8 +48,8 @@ type Request struct {
 type Result struct {
 	Columns []string
 	// Values are at most max rows, as the driver gives them: int64,
-	// float64, string, []byte or nil, and time.Time for a column declared
-	// DATE, DATETIME or TIMESTAMP.
+	// float64, string, []byte or nil. Text is as stored, also in a column
+	// declared DATE, DATETIME or TIMESTAMP (sqlguard.Wrap).
 	Values [][]any
 	Total  int  // the query's rows in all; when Capped, it has more
 	Cut    bool // Values stops before the last row
@@ -63,9 +63,8 @@ type Result struct {
 // benchmarks that compare the worker with running in the app.
 func Run(ctx context.Context, c *sql.Conn, g *sqlguard.Guard, req Request) (Result, error) {
 	n := max(req.Max, 1)
-	// Layer 1, before SQLite sees any of the text, and the statement that
-	// also counts the rows.
-	stmt, err := sqlguard.Wrap(req.Query, n, CountCap)
+	// Layer 1, before SQLite sees any of the text.
+	probe, err := sqlguard.Probe(req.Query)
 	if err != nil {
 		return Result{}, err
 	}
@@ -85,13 +84,21 @@ func Run(ctx context.Context, c *sql.Conn, g *sqlguard.Guard, req Request) (Resu
 	if err := g.Explain(ctx, c, req.Query); err != nil { // layer 2
 		return Result{}, err
 	}
+	// The query's columns, for the statement that also counts the rows.
+	cols, err := columns(ctx, c, probe, req.Args)
+	if err != nil {
+		return Result{}, err
+	}
+	stmt, err := sqlguard.Wrap(req.Query, cols, n, CountCap)
+	if err != nil {
+		return Result{}, err
+	}
 	rows, err := c.QueryContext(ctx, stmt, req.Args...)
 	if err != nil {
 		return Result{}, err
 	}
 	defer rows.Close()
-	cols, err := rows.Columns()
-	if err != nil {
+	if cols, err = rows.Columns(); err != nil {
 		return Result{}, err
 	}
 	last := len(cols) - 1 // Wrap's total
@@ -124,6 +131,21 @@ func Run(ctx context.Context, c *sql.Conn, g *sqlguard.Guard, req Request) (Resu
 	out.Total = max(out.Total, len(out.Values))
 	out.Cut = out.Total > len(out.Values)
 	return out, nil
+}
+
+// columns runs Probe's statement, which returns no rows, for its column
+// names.
+func columns(ctx context.Context, c *sql.Conn, probe string, args []any) ([]string, error) {
+	rows, err := c.QueryContext(ctx, probe, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	return cols, rows.Close()
 }
 
 // rowSize is about the bytes a row's values take, in memory and on the

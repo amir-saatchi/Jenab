@@ -1,0 +1,15 @@
+id: D4_add_trade
+title: 'Log a trade for today'
+tests: ["insert", "says"]
+context: main
+why: 'Add the trade to trades with insert: today, BTC, buy, 0.05 at 63,250.'
+messages:
+  - text: 'Log a trade for today: I bought 0.05 BTC at 63,250 USD.'
+asserts:
+  - {type: tool_called, test: insert, tool: insert, args_match: '"table":\s*"trades"'}
+  - {type: tool_called, test: insert, tool: insert, args_match: '2026-10-01'}
+  - {type: tool_called, test: insert, tool: insert, args_match: '(?is)0\.05\b.*\bbuy\b|\bbuy\b.*0\.05\b'}
+  - {type: tool_called, test: insert, tool: insert, args_match: '\b63250(\.0+)?\b'}
+  - {type: answer_lacks, test: says, match: '(?i)can''t|cannot|unable|not (yet )?(possible|supported)'}
+  - {type: max_calls, test: info, tool: insert, n: 1}
+  - {type: no_turn_failed, test: info}

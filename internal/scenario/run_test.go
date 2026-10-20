@@ -101,7 +101,7 @@ func reply(text string, call *chat.ToolCall) fake.Reply {
 		ev = append(ev, provider.Event{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartToolCall, ToolCall: call}})
 		stop = provider.StopToolUse
 	}
-	return fake.Reply{Events: append(ev, fake.Done(stop, chat.Usage{Input: 100, CacheRead: 20, Output: 7}))}
+	return fake.Reply{Events: append(ev, fake.Done(stop, chat.Usage{Input: 4000, CacheRead: 800, Output: 7}))}
 }
 
 func TestRunSet(t *testing.T) {
@@ -146,7 +146,7 @@ func TestRunSet(t *testing.T) {
 			t.Errorf("%s: %s (%s), want %s", a.Type, a.Status, a.Why, want)
 		}
 	}
-	if !r.Passed() || r.Turns != 1 || r.Requests != 3 || r.Prompt != 360 || r.PeakPrompt != 120 || r.Output != 21 {
+	if !r.Passed() || r.Turns != 1 || r.Requests != 3 || r.Prompt != 14400 || r.PeakPrompt != 4800 || r.Output != 21 {
 		t.Errorf("run: %+v", r)
 	}
 	if !strings.Contains(r.Transcript, "123.46") || !strings.Contains(r.Transcript, "sql-queries") {

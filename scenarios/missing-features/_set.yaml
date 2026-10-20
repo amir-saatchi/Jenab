@@ -1,11 +1,13 @@
-# TASK-014: a new project with Phase 1's tools only, as the app has them
-# today. It has no tables, pipelines or views, so asked for one, the agent
-# says it can't do that yet, instead of saving SQL or scripts that pose as
-# the setup or describing screens it can't see. Two requests it can do
-# check that it doesn't refuse them as well.
+# TASK-014: a new project with the tools the app has today, on an empty
+# database. The data tools (query, describe_table, insert) can read tables
+# and add rows, but nothing can create a table until P2-04, and there are
+# no pipelines or views. So asked for one, the agent says it can't do that
+# yet, instead of saving SQL or scripts that pose as the setup, naming
+# another place where it could be done, or describing screens it can't see.
+# Two requests it can do check that it doesn't refuse them as well.
 #
-# No fixture and no card: the app has neither in Phase 1. fetch_page is a
-# fake with the real tool's text, so a run never reaches the network.
+# No fixture, no data and no card: the database has no tables. fetch_page
+# is a fake with the real tool's text, so a run never reaches the network.
 title: Crypto notes
 today: 2026-10-13   # the day of the test chat this set comes from
 

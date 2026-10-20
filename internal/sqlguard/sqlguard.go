@@ -8,9 +8,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"modernc.org/sqlite"
@@ -24,6 +24,10 @@ type RejectError struct {
 	Pos    int // byte offset in the query; -1 when there is no position
 	Line   int // Pos as a 1-based line and column; Col counts characters
 	Col    int
+	// Schema: the query names one of Jenab's tables, SQLite's schema or a
+	// PRAGMA function (_jenab_, sqlite_ or pragma_), so it tried to read
+	// the schema; the caller can say where the tables are listed instead.
+	Schema bool
 }
 
 func (e *RejectError) Error() string {
@@ -40,6 +44,12 @@ func reject(q string, layer, pos int, format string, a ...any) *RejectError {
 		e.Line = strings.Count(before, "\n") + 1
 		e.Col = utf8.RuneCountInString(before[strings.LastIndexByte(before, '\n')+1:]) + 1
 	}
+	return e
+}
+
+// schema marks e as a refusal of a schema name.
+func schema(e *RejectError) *RejectError {
+	e.Schema = true
 	return e
 }
 
@@ -197,11 +207,11 @@ func check(q string) (*checked, *RejectError) {
 func checkName(q string, t token, call bool) *RejectError {
 	switch n := lower(t.text); {
 	case strings.HasPrefix(n, "_jenab_"):
-		return reject(q, 1, t.pos, "`%s` is internal", t.text)
+		return schema(reject(q, 1, t.pos, "`%s` is internal", t.text))
 	case strings.HasPrefix(n, "sqlite_"):
-		return reject(q, 1, t.pos, "`%s` is reserved", t.text)
+		return schema(reject(q, 1, t.pos, "`%s` is reserved", t.text))
 	case strings.HasPrefix(n, "pragma_"):
-		return reject(q, 1, t.pos, "`%s` is not allowed: queries can't use PRAGMA functions", t.text)
+		return schema(reject(q, 1, t.pos, "`%s` is not allowed: queries can't use PRAGMA functions", t.text))
 	case call && deniedFuncs[n]:
 		return reject(q, 1, t.pos, "`%s` is not allowed", t.text)
 	case deniedModules[n]:
@@ -235,30 +245,57 @@ func (c *checked) number(t token, names map[string]int) (int, *RejectError) {
 }
 
 // nullArgs binds NULL to every parameter, so EXPLAIN compiles the query
-// whatever the caller's arguments are (2.2). modernc binds ?, ?NNN and
-// $NNN by position and other names by name.
+// whatever the caller's arguments are (2.2). modernc binds ? and ?NNN by
+// position and names by name; the lexer lets only names that start with
+// a letter through.
 func (c *checked) nullArgs() []any {
-	n := c.nVar
 	var named []any
 	seen := map[string]bool{}
 	for _, t := range c.toks {
-		if t.kind != param || t.text[0] == '?' || seen[t.text] {
+		if t.kind != param || t.text[0] == '?' || seen[t.text[1:]] {
 			continue
 		}
-		seen[t.text] = true
-		name := t.text[1:]
-		if p, err := strconv.Atoi(name); err == nil && t.text[0] == '$' {
-			n = max(n, min(p, maxParam))
-			continue
-		}
-		// database/sql refuses a name that doesn't start with a letter, as
-		// it would refuse the caller's own argument; SQLite then says
-		// which one is missing.
-		if r, _ := utf8.DecodeRuneInString(name); unicode.IsLetter(r) {
-			named = append(named, sql.Named(name, nil))
-		}
+		seen[t.text[1:]] = true
+		named = append(named, sql.Named(t.text[1:], nil))
 	}
-	return append(make([]any, n), named...)
+	return append(make([]any, c.nVar), named...)
+}
+
+// Param is one of a query's parameters.
+type Param struct {
+	Number int    // SQLite's number for it, from 1
+	Name   string // :name, @name or $name as written; "" for ? and ?NNN
+}
+
+// Params returns the parameters of q, which must pass Check, in the order
+// of their numbers, each once. A number no parameter has is missing, as
+// ?2 in "SELECT ?1, ?3".
+func Params(q string) ([]Param, error) {
+	c, err := check(q)
+	if err != nil {
+		return nil, err
+	}
+	var out []Param
+	seen := map[int]bool{}
+	p := 0
+	for _, t := range c.toks {
+		if t.kind != param {
+			continue
+		}
+		n := c.params[p]
+		p++
+		if seen[n] {
+			continue
+		}
+		seen[n] = true
+		name := ""
+		if t.text[0] != '?' {
+			name = t.text
+		}
+		out = append(out, Param{Number: n, Name: name})
+	}
+	slices.SortFunc(out, func(a, b Param) int { return a.Number - b.Number })
+	return out, nil
 }
 
 // Wrap returns q, which must pass Check, as one statement that does all of
@@ -270,30 +307,56 @@ func (c *checked) nullArgs() []any {
 // The statement stores at most rows rows of q in a materialized CTE and
 // adds a last column with the total: the stored rows, or, when q filled
 // them, a second count of q that stops after countTo+1 rows. CASE runs
-// that count only when it is needed. The CTE keeps q's row order, and
-// duplicate column names get SQLite's ":1" suffix. A bare ? becomes ?NNN
-// so that both copies of q share their parameters, and a final ';' is
-// dropped.
+// that count only when it is needed. The CTE keeps q's row order. A bare ?
+// becomes ?NNN so that both copies of q share their parameters, and a
+// final ';' is dropped.
+//
+// cols are q's columns as Probe gives them, duplicates with SQLite's ":1"
+// suffix. Each comes back as +column, an expression, so it has no
+// declared type: the driver gives a DATE or DATETIME column's text as it
+// is stored, not as a time.Time the model would see in another form.
 //
 // Both copies of q sit where no outer table is in scope, so a name in q
 // means what it means in q alone: SQLite lets a subquery in FROM see the
 // columns of the query around it, and a "double-quoted" string that isn't
 // a column of q could otherwise turn into one of _jenab_rows.
-func Wrap(q string, rows, countTo int) (string, error) {
+func Wrap(q string, cols []string, rows, countTo int) (string, error) {
 	c, err := check(q)
 	if err != nil {
 		return "", err
 	}
+	if len(cols) == 0 {
+		return "", fmt.Errorf("sqlguard: a query with no columns")
+	}
 	body := c.body()
 	m, n := strconv.Itoa(rows), strconv.Itoa(countTo+1)
-	return "WITH _jenab_rows AS MATERIALIZED (SELECT * FROM (" + body + "\n) LIMIT " + m + "),\n" +
+	names := make([]string, len(cols))
+	out := make([]string, len(cols))
+	for i, col := range cols {
+		names[i] = "_jenab_c" + strconv.Itoa(i)
+		out[i] = "+_jenab_rows." + names[i] + ` AS "` + strings.ReplaceAll(col, `"`, `""`) + `"`
+	}
+	return "WITH _jenab_rows(" + strings.Join(names, ", ") + ") AS MATERIALIZED (SELECT * FROM (" + body + "\n) LIMIT " + m + "),\n" +
 		"_jenab_total AS MATERIALIZED (SELECT CASE WHEN (SELECT count(*) FROM _jenab_rows) < " + m +
 		" THEN (SELECT count(*) FROM _jenab_rows)\n" +
 		"ELSE (SELECT count(*) FROM (SELECT 1 FROM (" + body + "\n) LIMIT " + n + ")) END AS n)\n" +
-		"SELECT _jenab_rows.*, _jenab_total.n FROM _jenab_rows, _jenab_total", nil
+		"SELECT " + strings.Join(out, ", ") + ", _jenab_total.n FROM _jenab_rows, _jenab_total", nil
 }
 
-// body is the statement without a final ';', with each bare ? numbered.
+// Probe returns q, which must pass Check, as a statement that gives q's
+// columns as Wrap's CTE names them, and no rows. Its parameters are
+// numbered as Wrap's.
+func Probe(q string) (string, error) {
+	c, err := check(q)
+	if err != nil {
+		return "", err
+	}
+	return "SELECT * FROM (" + c.body() + "\n) LIMIT 0", nil
+}
+
+// body is the statement without a final ';', with each ? and ?NNN as ?N,
+// its number: a bare ? keeps its place when Wrap and Probe add theirs,
+// and modernc binds ?01 by the name "01" but ?1 by position.
 func (c *checked) body() string {
 	var b strings.Builder
 	last, p := 0, 0
@@ -301,10 +364,10 @@ func (c *checked) body() string {
 		if t.kind != param {
 			continue
 		}
-		if t.text == "?" {
+		if t.text[0] == '?' {
 			b.WriteString(c.q[last:t.pos])
 			b.WriteString("?" + strconv.Itoa(c.params[p]))
-			last = t.pos + 1
+			last = t.pos + len(t.text)
 		}
 		p++
 	}

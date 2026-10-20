@@ -1,13 +1,16 @@
 id: F2_table
 title: 'Set up a table for my daily BTC prices: date, open, high, low and close.'
-tests: ["tools", "says", "ui", "made_up"]
+tests: ["tools", "says", "elsewhere", "ui", "made_up"]
 context: mother
-why: 'Say the app has no tables yet; no SQL saved to the bucket as the setup; no app screens.'
+why: 'Say it can''t create tables yet (the data tools only read and fill them); no SQL saved to the bucket as the setup; no other place named where it could be done; no app screens.'
 messages:
   - text: 'Set up a table for my daily BTC prices: date, open, high, low and close.'
 asserts:
   - {type: tool_not_called, test: tools, tool: bucket_put, args_match: '(?i)\.(sql|py|js|ts|sh|ps1|ya?ml|json)\b|create\s+table|insert\s+into|import\s+\w+'}
   - {type: answer_contains, test: says, match: '(?i)can[''’]t|cannot|can not|not able|unable|not (yet )?(possible|available|supported)|(doesn[''’]t|does not|don[''’]t|do not) (yet )?(have|support)|no tools?\b|not yet'}
+  # Positive forms only: "tables are created in the app", "please create the
+  # table", so "it isn't possible in the app yet" passes.
+  - {type: answer_lacks, test: elsewhere, match: '(?i)\b(are|is|gets?|can be|must be|should be|will be)\s+((usually|normally|currently|only)\s+)?(created|made|set up|managed|handled|defined)\s+(\w+\s+){0,2}(in|through|via|from|using)\s+(the\s+|your\s+)?([\w-]+\s+){0,2}(app|application|interface|UI|settings)\b|\b(you can|you could|you([''’]ll| will)? need to|you may|you should|once you|if you|please)\s+((also|first|then|just|manually|simply)\s+)?(create|set up|make|define)\s+([^\s.,;:''’]+\s+){0,3}tables?\b'}
   - {type: answer_lacks, test: ui, match: '(?i)\b(section|tab|panel|menu|screen|sidebar|toolbar)s?\b|\bclick\b|\bnavigate to\b|\bterminal\b|\bcommand line\b'}
   - {type: answer_lacks, test: made_up, match: '(?i)\bline\s*\[|(\|[^\n]*\b(2026-\d\d-\d\d|(sep|oct)\w* \d\d?)\b[^\n]*\n){3,}'}
   - {type: answer_delivered, test: info}

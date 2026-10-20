@@ -21,13 +21,18 @@ import (
 // internet. A set fakes it when its scenarios need it.
 var realOff = []string{"fetch_page"}
 
-// tools are the run's tools: the real Phase 1 tools that need no network,
-// with the set's fakes in place of real ones of the same name.
+// dataTools work on one database: a set that fakes one of them gets none
+// of the real ones, which would see the project's empty database.
+var dataTools = []string{"query", "describe_table", "insert"}
+
+// tools are the run's tools: the real ones that need no network, with the
+// set's fakes in place of real ones of the same name.
 func (r *run) tools() *tool.Registry {
 	reg := tool.NewRegistry()
+	fakesData := slices.ContainsFunc(dataTools, func(n string) bool { return r.sc.set.tool(n) != nil })
 	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
 		n := t.Spec().Name
-		if !slices.Contains(realOff, n) && r.sc.set.tool(n) == nil {
+		if !slices.Contains(realOff, n) && r.sc.set.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) {
 			reg.Add(t)
 		}
 	}

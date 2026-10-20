@@ -8,5 +8,5 @@ messages:
 asserts:
   - {type: answer_contains, test: plain, match: '(?i)average'}
   - {type: answer_lacks, test: plain, match: '(?i)can[''’]t|cannot|unable'}
-  - {type: max_calls, test: info, tools: [bucket_put, fetch_page], n: 0}
+  - {type: max_calls, test: info, tools: [bucket_put, fetch_page, query, describe_table, insert], n: 0}
   - {type: answer_delivered, test: info}

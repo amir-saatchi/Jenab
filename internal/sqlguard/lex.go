@@ -3,6 +3,7 @@ package sqlguard
 import (
 	"fmt"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -113,6 +114,11 @@ func lex(q string) ([]token, *RejectError) {
 			}
 			if j < len(q) && (q[j] == '(' || q[j] == '$' || strings.HasPrefix(q[j:], "::")) {
 				return nil, reject(q, 1, i, "parameter names are letters, digits and '_' only")
+			}
+			// database/sql binds only names that start with a letter, so
+			// any other name could never get its value.
+			if r, _ := utf8.DecodeRuneInString(q[i+1 : j]); !unicode.IsLetter(r) {
+				return nil, reject(q, 1, i, "parameter names start with a letter, like %cname; for a numbered parameter write ?1", c)
 			}
 			out = append(out, token{param, q[i:j], i})
 			i = j

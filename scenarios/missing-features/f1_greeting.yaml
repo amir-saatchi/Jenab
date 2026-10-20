@@ -2,10 +2,12 @@ id: F1_greeting
 title: 'Hi! What can you do in this project?'
 tests: ["offer", "ui"]
 context: mother
-why: 'Offer only what the tools can do: no tables, pipelines or views, and no app screens.'
+why: 'Offer only what the tools can do: reading and filling tables, but not creating them, and no pipelines, views or app screens.'
 messages:
   - text: 'Hi! What can you do in this project?'
 asserts:
-  - {type: answer_lacks, test: offer, match: '(?i)\b(I can|I[''’]ll|let me|we can|I could)\s[^.\n]{0,40}\b(tables?|pipelines?|views?|dashboards?)\b'}
+  # An offer to make one: the verb comes right after "I can" or the like,
+  # so "I can read tables, but I can't create them" isn't one.
+  - {type: answer_lacks, test: offer, match: '(?i)\b(I can|I[''’]ll|I will|let me|we can|I could)\s+((also|then|easily|help( you)?( to)?)\s+){0,2}(create|set up|build|make|design|define|schedule|automate)\s+([^\s.,;:''’]+\s+){0,2}(tables?|pipelines?|views?|dashboards?)\b'}
   - {type: answer_lacks, test: ui, match: '(?i)\b(section|tab|panel|menu|screen|sidebar|toolbar)s?\b|\bclick\b|\bnavigate to\b|\bterminal\b|\bcommand line\b'}
   - {type: answer_delivered, test: info}

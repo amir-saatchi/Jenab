@@ -1,0 +1,12 @@
+id: D2_eth_spent
+title: 'How much did I spend buying ETH in September?'
+tests: ["query", "answer"]
+context: main
+why: 'Sum amount times price of the ETH buys in trades: 6,254.40 USD; sells are left out.'
+messages:
+  - text: 'How much did I spend buying ETH in September, in total?'
+asserts:
+  - {type: tool_called, test: query, tool: query, args_match: '(?i)trades'}
+  - {type: answer_contains, test: answer, match: '6,?254\.40?\b'}
+  - {type: answer_lacks, test: answer, match: '4,?464\.5|8,?044\.3'}
+  - {type: no_turn_failed, test: info}

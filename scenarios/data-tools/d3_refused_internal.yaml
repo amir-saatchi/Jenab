@@ -1,0 +1,15 @@
+id: D3_refused_internal
+title: 'Run a query on an internal table, then find the answer another way'
+tests: ["refused", "fixed", "answer"]
+context: main
+why: 'Run the query as asked; query refuses _jenab_columns; the chat turns to describe_table and names receipt as the column with file keys.'
+messages:
+  - text: |
+      Run this query with the query tool, as it is, and show me what it returns:
+      SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+      I want to know which column of trades holds file keys.
+asserts:
+  - {type: tool_called, test: refused, tool: query, args_match: '_jenab_columns'}
+  - {type: tool_called, test: fixed, tool: describe_table, args_match: '(?i)trades'}
+  - {type: answer_contains, test: answer, match: '\breceipt\b'}
+  - {type: no_turn_failed, test: info}

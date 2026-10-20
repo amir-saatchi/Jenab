@@ -179,11 +179,11 @@ type Deps struct {
 	Web *web.Client
 }
 
-// Builtin returns the Phase 1 tools of this package.
+// Builtin returns the tools of this package.
 func Builtin(d Deps) []Tool {
-	return []Tool{
+	return append([]Tool{
 		searchHistory(), readMessages(), listChats(),
 		readRef(), searchRef(), newFetchPage(d.Web),
 		bucketList(), bucketRead(), bucketPut(), bucketDelete(),
-	}
+	}, DataTools()...)
 }

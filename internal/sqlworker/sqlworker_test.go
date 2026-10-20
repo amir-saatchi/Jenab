@@ -116,8 +116,17 @@ func TestPoolQuery(t *testing.T) {
 	// the worker stays.
 	_, err = query(t, p, 5*time.Second, "SELECT * FROM _jenab_meta")
 	var re *sqlguard.RejectError
-	if !errors.As(err, &re) || re.Layer != 1 || err.Error() != "line 1:15: `_jenab_meta` is internal" {
+	if !errors.As(err, &re) || re.Layer != 1 || !re.Schema || err.Error() != "line 1:15: `_jenab_meta` is internal" {
 		t.Errorf("refusal: %v", err)
+	}
+	for _, c := range []struct{ q, want string }{
+		{"SELECT load_extension('x')", "line 1:8: `load_extension` is not allowed"},
+		{"SELECT * FROM fts5vocab('x', 'row')", "line 1:15: `fts5vocab` is not allowed: json_each and json_tree are the only virtual tables"},
+	} {
+		_, err = query(t, p, 5*time.Second, c.q)
+		if !errors.As(err, &re) || re.Schema || err.Error() != c.want {
+			t.Errorf("refusal not about the schema: %v, %+v", err, re)
+		}
 	}
 	_, err = query(t, p, 5*time.Second, "SELECT nope FROM prices")
 	if err == nil || errors.As(err, &re) || !strings.Contains(err.Error(), "no such column: nope") {

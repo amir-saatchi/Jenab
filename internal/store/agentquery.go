@@ -20,8 +20,8 @@ const agentTimeout = 10 * time.Second
 type Rows struct {
 	Columns []string
 	// Values are at most max rows, as the driver gives them: int64,
-	// float64, string, []byte or nil, and time.Time for a column declared
-	// DATE, DATETIME or TIMESTAMP.
+	// float64, string, []byte or nil. Text is as stored, also in a column
+	// declared DATE, DATETIME or TIMESTAMP.
 	Values [][]any
 	Total  int  // the query's rows in all; when Capped, it has more
 	Cut    bool // Values stops before the last row

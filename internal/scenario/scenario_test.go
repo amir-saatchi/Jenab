@@ -102,3 +102,25 @@ func TestLoadErrors(t *testing.T) {
 		})
 	}
 }
+
+// A set that fakes a data tool gets none of the real ones, which would see
+// the project's empty database; a set with data gets them all.
+func TestDataTools(t *testing.T) {
+	for _, set := range []string{"skill-loading", "data-tools"} {
+		s, err := Load(filepath.Join("..", "..", "scenarios", set))
+		if err != nil {
+			t.Fatal(err)
+		}
+		reg := (&run{sc: s.Scenarios[0]}).tools()
+		for _, n := range dataTools {
+			_, ok := reg.Get(n)
+			faked := s.tool(n) != nil
+			switch {
+			case set == "data-tools" && (!ok || faked):
+				t.Errorf("%s: no real %s", set, n)
+			case set == "skill-loading" && ok != faked:
+				t.Errorf("%s: %s is there: %v, faked: %v", set, n, ok, faked)
+			}
+		}
+	}
+}

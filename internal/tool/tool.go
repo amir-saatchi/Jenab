@@ -145,12 +145,15 @@ type Env struct {
 // Result is what a tool returns. A tool that stores its own output, such
 // as fetch_page, sets Ref and puts the preview in Text. Whole keeps a
 // long Text whole instead of storing it with a preview, for text the
-// model must read at once, such as a skill (8.9).
+// model must read at once, such as a skill (8.9). A tool that previews a
+// long Text its own way, such as query, sets Preview: Output stores Text
+// as it stores any long one, and Preview(ref) enters the context.
 type Result struct {
-	Text   string
-	Ref    string
-	Images []chat.Image
-	Whole  bool
+	Text    string
+	Ref     string
+	Images  []chat.Image
+	Whole   bool
+	Preview func(ref string) string
 }
 
 // Error is a mistake the model can fix, such as bad arguments, a missing

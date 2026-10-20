@@ -1,0 +1,18 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/data-tools/_offline.yaml scenarios/data-tools
+# Each scenario gets the replies a model that passes would give, in order.
+# The calls reach the real data tools on the run's project database.
+scenarios:
+  D1_highest_close:
+    - calls: [{name: query, args: {sql: "SELECT date, close FROM prices WHERE coin = :coin ORDER BY close DESC LIMIT 1", params: {coin: BTC}}}]
+    - text: The highest BTC close in September was 64,336 USD, on 2026-09-27.
+  D2_eth_spent:
+    - calls: [{name: query, args: {sql: "SELECT round(sum(amount * price), 2) AS spent FROM trades WHERE coin = 'ETH' AND side = 'buy'"}}]
+    - text: You spent 6,254.40 USD buying ETH in September.
+  D3_refused_internal:
+    - calls: [{name: query, args: {sql: "SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'"}}]
+    - calls: [{name: describe_table, args: {name: trades}}]
+    - text: That table is internal to Jenab, so the query was refused. describe_table shows that receipt holds file keys in trades.
+  D4_add_trade:
+    - calls: [{name: insert, args: {table: trades, rows: [{date: "2026-10-01", coin: BTC, side: buy, amount: 0.05, price: 63250}]}}]
+    - text: I logged it in trades.

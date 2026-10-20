@@ -68,9 +68,9 @@ asserts:
 const script = `scenarios:
   capped:
     - calls: [{name: load_skill, args: {name: sql-queries}}]
-      usage: {input: 100, cache_write: 900}
+      usage: {input: 200, cache_write: 1800}
     - calls: [{name: web_search, args: {query: a}}]
-      usage: {input: 100, cache_read: 900}
+      usage: {input: 200, cache_read: 1800}
     - text: Found it.
   free:
     - calls: [{name: web_search, args: {query: a}}]
@@ -111,7 +111,7 @@ func TestScriptedRun(t *testing.T) {
 		t.Errorf("models %v", rep.Models)
 	}
 	want := map[string][]string{
-		"capped":  {Pass, Pass, Fail, Pass}, // 900 of 2000 read from the cache
+		"capped":  {Pass, Pass, Fail, Pass}, // 1800 of 4000 read from the cache
 		"free":    {Fail, Skip},
 		"during":  {Pass, Fail},
 		"between": {Pass, Fail},
@@ -127,13 +127,13 @@ func TestScriptedRun(t *testing.T) {
 		}
 		switch r.Scenario {
 		case "capped":
-			if r.Requests != 2 || r.Input != 200 || r.CacheRead != 900 || r.CacheWrite != 900 || r.Prompt != 2000 {
+			if r.Requests != 2 || r.Input != 400 || r.CacheRead != 1800 || r.CacheWrite != 1800 || r.Prompt != 4000 {
 				t.Errorf("capped: %+v", r)
 			}
 			if r.Asserts[2].Test != "info" || !strings.Contains(r.Asserts[2].Why, "45 %") {
 				t.Errorf("cache_read_share: %+v", r.Asserts[2])
 			}
-			if !strings.Contains(r.Transcript, "| 2 | 100 | 900 | 0 |") {
+			if !strings.Contains(r.Transcript, "| 2 | 200 | 1800 | 0 |") {
 				t.Errorf("transcript lacks the cache columns:\n%s", r.Transcript)
 			}
 		case "free":
@@ -154,9 +154,15 @@ func TestScriptedRun(t *testing.T) {
 	}
 }
 
-// The skill-loading set passes with its offline script, without keys.
+// The sets with an offline script pass with it, without keys: data-tools
+// through the real data tools on its data.
 func TestOfflineScript(t *testing.T) {
-	dir := filepath.Join("..", "..", "scenarios", "skill-loading")
+	for _, set := range []string{"skill-loading", "data-tools"} {
+		t.Run(set, func(t *testing.T) { offline(t, filepath.Join("..", "..", "scenarios", set)) })
+	}
+}
+
+func offline(t *testing.T, dir string) {
 	s, err := Load(dir)
 	if err != nil {
 		t.Fatal(err)

@@ -80,7 +80,13 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 	if err != nil {
 		return nil, err
 	}
-	skills, err := skill.New(append(builtin.For(chat.KindMother), s.Skills...)...)
+	// A set's skill replaces the built-in one of its name, as its fake
+	// tools replace the real ones.
+	own := builtin.For(chat.KindMother)
+	own = slices.DeleteFunc(own, func(b skill.Skill) bool {
+		return slices.ContainsFunc(s.Skills, func(sk skill.Skill) bool { return sk.Name == b.Name })
+	})
+	skills, err := skill.New(append(own, s.Skills...)...)
 	if err != nil {
 		return nil, fmt.Errorf("scenario: the set's skills: %w", err)
 	}
@@ -300,13 +306,22 @@ func (r *run) restart(ctx context.Context) error {
 	return nil
 }
 
-// setup adds the set's other chats and the chat under test.
+// setup fills the project's database and adds the set's other chats and
+// the chat under test.
 func (r *run) setup(ctx context.Context) error {
 	p, err := r.pm.Open(ctx, r.pid)
 	if err != nil {
 		return err
 	}
 	defer p.Release()
+	if r.sc.set.Data != "" {
+		_, err := store.Do(ctx, p.DB.DB, limit.Interactive, func(tx *sql.Tx) (sql.Result, error) {
+			return tx.ExecContext(ctx, r.sc.set.Data)
+		})
+		if err != nil {
+			return fmt.Errorf("data: %w", err)
+		}
+	}
 	for _, c := range r.sc.set.Chats {
 		ch, err := p.Chats.CreateChat(ctx, id.SourceUser, chat.Chat{Title: c.Title, Role: c.Role})
 		if err != nil {

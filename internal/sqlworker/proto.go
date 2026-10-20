@@ -297,6 +297,7 @@ func encodeResponse(r Result, err error) []byte {
 		e.varint(int64(re.Pos))
 		e.uvarint(uint64(re.Line))
 		e.uvarint(uint64(re.Col))
+		e.byte(boolByte(re.Schema))
 	case err != nil:
 		e.byte(respError)
 		e.uvarint(uint64(errorCode(err)))
@@ -348,12 +349,29 @@ type workerError struct {
 
 func (e *workerError) Error() string { return e.msg }
 
+// IsSQLite reports whether err is an error the worker sent back for a
+// query, other than a refusal: SQLite's own, such as a column that doesn't
+// exist, or the driver's, such as an argument it can't bind. The query's
+// author can fix either.
+func IsSQLite(err error) bool {
+	var we *workerError
+	return errors.As(err, &we)
+}
+
+func boolByte(b bool) byte {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func decodeResponse(b []byte) (Result, error) {
 	d := &dec{b: b}
 	var r Result
 	switch d.byte() {
 	case respReject:
-		re := &sqlguard.RejectError{Layer: int(d.uvarint()), Reason: d.str(), Pos: int(d.varint()), Line: int(d.uvarint()), Col: int(d.uvarint())}
+		re := &sqlguard.RejectError{Layer: int(d.uvarint()), Reason: d.str(), Pos: int(d.varint()), Line: int(d.uvarint()), Col: int(d.uvarint()),
+			Schema: d.byte() == 1}
 		if d.err != nil {
 			return r, d.err
 		}

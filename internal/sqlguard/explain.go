@@ -104,11 +104,11 @@ func firstColumn(c *sql.Conn, q string) (name string, err error) {
 // so no other virtual table can have the same address while c lives.
 func jsonTables(ctx context.Context, c *sql.Conn) (map[string]bool, error) {
 	m := map[string]bool{}
-	err := scanProgram(ctx, c, "SELECT * FROM json_each('[]'), json_tree('[]')", nil, func(op, p4 string, _, _, _ int64) string {
+	err := scanProgram(ctx, c, "SELECT * FROM json_each('[]'), json_tree('[]')", nil, func(op, p4 string, _, _, _ int64) *RejectError {
 		if op == "VOpen" {
 			m[p4] = true
 		}
-		return ""
+		return nil
 	})
 	if err == nil && len(m) != 2 {
 		err = fmt.Errorf("sqlguard: json_each and json_tree open %d virtual tables, want 2", len(m))
@@ -120,12 +120,12 @@ func jsonTables(ctx context.Context, c *sql.Conn) (map[string]bool, error) {
 // and refuses it if a step does something agent queries may not. vtabs
 // are the virtual tables it may open.
 func program(ctx context.Context, c *sql.Conn, body string, args []any, tables map[int64]string, vtabs map[string]bool) error {
-	return scanProgram(ctx, c, body, args, func(op, p4 string, p2, p3, p5 int64) string {
+	return scanProgram(ctx, c, body, args, func(op, p4 string, p2, p3, p5 int64) *RejectError {
 		return refusal(op, p2, p3, p5, p4, tables, vtabs)
 	})
 }
 
-func scanProgram(ctx context.Context, c *sql.Conn, body string, args []any, step func(op, p4 string, p2, p3, p5 int64) string) error {
+func scanProgram(ctx context.Context, c *sql.Conn, body string, args []any, step func(op, p4 string, p2, p3, p5 int64) *RejectError) error {
 	rows, err := c.QueryContext(ctx, "EXPLAIN "+body, args...)
 	if err != nil {
 		return err
@@ -137,8 +137,8 @@ func scanProgram(ctx context.Context, c *sql.Conn, body string, args []any, step
 		if err := rows.Scan(&addr, &op, &p1, &p2, &p3, &p4, &p5, &comment); err != nil {
 			return err
 		}
-		if why := step(op.String, p4.String, p2.Int64, p3.Int64, p5.Int64); why != "" {
-			return &RejectError{Layer: 2, Reason: why, Pos: -1}
+		if e := step(op.String, p4.String, p2.Int64, p3.Int64, p5.Int64); e != nil {
+			return e
 		}
 	}
 	return rows.Err()
@@ -166,38 +166,39 @@ var funcOps = map[string]bool{
 // register, known only when it runs.
 const p2IsReg = 0x10
 
-// refusal says why one step of the program refuses the query, or "".
-func refusal(op string, p2, p3, p5 int64, p4 string, tables map[int64]string, vtabs map[string]bool) string {
+// refusal is why one step of the program refuses the query, or nil.
+func refusal(op string, p2, p3, p5 int64, p4 string, tables map[int64]string, vtabs map[string]bool) *RejectError {
+	no := func(why string) *RejectError { return &RejectError{Layer: 2, Reason: why, Pos: -1} }
 	switch {
 	case op == "Transaction" && p2 != 0, writeOps[op]:
-		return "only read queries are allowed; this one would change the database"
+		return no("only read queries are allowed; this one would change the database")
 	case op == "OpenRead" || op == "ReopenIdx":
 		if p3 != 0 {
-			return "the query reads the temp schema or another database file"
+			return no("the query reads the temp schema or another database file")
 		}
 		if p5&p2IsReg != 0 {
-			return "the query opens a table chosen while it runs"
+			return no("the query opens a table chosen while it runs")
 		}
 		name, ok := tables[p2]
 		if !ok {
-			return "`sqlite_schema` is reserved" // page 1, or a page no table owns
+			return schema(no("`sqlite_schema` is reserved")) // page 1, or a page no table owns
 		}
 		switch n := lower(name); {
 		case strings.HasPrefix(n, "_jenab_"):
-			return "`" + name + "` is internal"
+			return schema(no("`" + name + "` is internal"))
 		case strings.HasPrefix(n, "sqlite_"):
-			return "`" + name + "` is reserved"
+			return schema(no("`" + name + "` is reserved"))
 		}
 	case op == "VOpen" && !vtabs[p4]:
-		return "json_each(...) and json_tree(...) are the only virtual tables a query can use"
+		return no("json_each(...) and json_tree(...) are the only virtual tables a query can use")
 	case funcOps[op]:
 		// The function list is an allow-list here: layer 1 can't tell a
 		// function from a column, the program can.
 		if f, _, _ := strings.Cut(p4, "("); !allowedFuncs[lower(f)] {
-			return "`" + f + "` is not allowed"
+			return no("`" + f + "` is not allowed")
 		}
 	}
-	return ""
+	return nil
 }
 
 // tableMap returns the root page map for c's file, read again when its

@@ -95,7 +95,8 @@ func Stub(r chat.ToolResult) string {
 // error result for the model; any other error is returned, as it is a
 // system failure. A result larger than env.PreviewTokens is stored under
 // cache/tool/<chat>/<message>-<n> and enters as a preview with its ref; n
-// is the call's place in the message.
+// is the call's place in the message. A result with Preview is stored
+// there whatever its size, and enters as its own preview.
 func Output(ctx context.Context, call Call, name string, n int, r Result, err error) (chat.ToolResult, error) {
 	out := chat.ToolResult{CallID: call.ID}
 	if err != nil {
@@ -107,7 +108,7 @@ func Output(ctx context.Context, call Call, name string, n int, r Result, err er
 		return out, nil
 	}
 	env := call.Env
-	if r.Ref != "" || r.Whole || tokens(r.Text) <= env.PreviewTokens {
+	if r.Preview == nil && (r.Ref != "" || r.Whole || tokens(r.Text) <= env.PreviewTokens) {
 		out.Text, out.Ref = r.Text, r.Ref
 		return out, nil
 	}
@@ -115,6 +116,10 @@ func Output(ctx context.Context, call Call, name string, n int, r Result, err er
 	_, err = env.Project.DB.PutObject(ctx, env.Priority, env.Source, key, strings.NewReader(r.Text), store.PutOptions{Source: "tool"})
 	if err != nil {
 		return out, fmt.Errorf("tool: storing the output of %s: %w", name, err)
+	}
+	if r.Preview != nil {
+		out.Text, out.Ref = r.Preview(key), key
+		return out, nil
 	}
 	out.Text, out.Ref = preview("output of "+name, key, r.Text, env.PreviewTokens), key
 	return out, nil

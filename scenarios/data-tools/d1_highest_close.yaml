@@ -1,0 +1,13 @@
+id: D1_highest_close
+title: 'What was the highest BTC close in September, and on which day?'
+tests: ["query", "answer"]
+context: main
+why: 'Answer from the prices table with query: 64,336 USD on 2026-09-27.'
+messages:
+  - text: 'What was the highest BTC close in September, and on which day?'
+asserts:
+  - {type: tool_called, test: query, tool: query, args_match: '(?i)prices'}
+  - {type: answer_contains, test: answer, match: '64,?336'}
+  - {type: answer_contains, test: answer, match: '(?i)\b27\b|2026-09-27'}
+  - {type: max_calls, test: info, tool: query, n: 3}
+  - {type: no_turn_failed, test: info}

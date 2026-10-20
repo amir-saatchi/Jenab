@@ -402,8 +402,18 @@ func keysJSON(keys [][]any) (string, error) {
 	return string(b), err
 }
 
+// RowError is a write that failed at one row of its request; Row counts
+// the request's rows from 0.
+type RowError struct {
+	Row int
+	Err error
+}
+
+func (e *RowError) Error() string { return fmt.Sprintf("store: row %d: %v", e.Row, e.Err) }
+func (e *RowError) Unwrap() error { return e.Err }
+
 // rowErr names the row of the request a check failed for.
-func rowErr(i int, err error) error { return fault("store: row %d: %w", i, err) }
+func rowErr(i int, err error) error { return invalid{&RowError{Row: i, Err: err}} }
 
 // affinity is the type a column declared decl has its affinity with,
 // by SQLite's rules in their order (3.1); "" for none.
@@ -741,7 +751,7 @@ func (p *ProjectDB) Insert(ctx context.Context, pr limit.Priority, src id.Source
 				l.res.Skipped++
 				continue
 			case err != nil:
-				return fmt.Errorf("store: row %d: %w", from+j, checkErr(err))
+				return &RowError{Row: from + j, Err: checkErr(err)}
 			}
 			if b, ok := before[key]; ok {
 				l.add(tab.name, key, rowUpdated, sql.NullString{String: b, Valid: true})

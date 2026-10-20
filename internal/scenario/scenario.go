@@ -37,8 +37,9 @@ type Set struct {
 	Card     string            // the project card (3.2), block 4
 	Today    time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
 	Fixture  string            // a SQL script for the fixture database
+	Data     string            // a SQL script run on the project's own database, for the real data tools
 	Configs  map[string]string // stored configs by id, for config tools
-	Skills   []skill.Skill     // the set's own skills, besides the built-in ones
+	Skills   []skill.Skill     // the set's own skills, besides the built-in ones; one with a built-in's name replaces it
 	Chats    []ChatSpec        // other chats in the project
 	Tools    []*ToolSpec
 	Rules    map[string][]*Rule // fake results every scenario starts from
@@ -55,6 +56,7 @@ type setFile struct {
 	Card         string             `yaml:"card"`          // a file in the set
 	Today        string             `yaml:"today"`         // YYYY-MM-DD, the day the fixture is from
 	Fixture      string             `yaml:"fixture"`       // a .sql file in the set
+	Data         string             `yaml:"data"`          // a .sql file in the set, run on the project's database
 	Configs      string             `yaml:"configs"`       // a folder of <id>.yaml files
 	Skills       string             `yaml:"skills"`        // a folder of skill folders
 	MotherSkills []string           `yaml:"mother_skills"` // set skills only the Mother chat lists
@@ -244,6 +246,9 @@ func Load(dir string) (*Set, error) {
 		}
 	}
 	if s.Fixture, err = read(f.Fixture); err != nil {
+		return nil, err
+	}
+	if s.Data, err = read(f.Data); err != nil {
 		return nil, err
 	}
 	if f.Configs != "" {

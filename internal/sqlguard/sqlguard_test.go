@@ -107,6 +107,8 @@ func TestCheck(t *testing.T) {
 		{"SELECT a$b FROM data", "line 1:9: `$` can only start a parameter name"},
 		{"SELECT : a", "line 1:8: `:` must start a parameter name, like :name"},
 		{"SELECT @", "line 1:8: `@` must start a parameter name, like @name"},
+		{"SELECT :_c", "line 1:8: parameter names start with a letter, like :name; for a numbered parameter write ?1"},
+		{"SELECT $1", "line 1:8: parameter names start with a letter, like $name; for a numbered parameter write ?1"},
 		{"SELECT * FROM \uFEFF_jenab_meta", "line 1:15: the character U+FEFF is not allowed outside strings"},
 		{"SELECT * FROM \uFEFFpragma_table_info('data')", "line 1:15: the character U+FEFF is not allowed outside strings"},
 		{"\uFEFFSELECT 1", "line 1:1: the character U+FEFF is not allowed outside strings"},
@@ -146,12 +148,20 @@ func TestCheck(t *testing.T) {
 			var re *RejectError
 			if !errors.As(err, &re) || re.Layer != 1 {
 				t.Errorf("%q: %T %v, want a layer 1 *RejectError", c.q, err, err)
+			} else if re.Schema != schemaReason(c.want) {
+				t.Errorf("%q: Schema = %v", c.q, re.Schema)
 			}
 		}
 		if got != c.want {
 			t.Errorf("%q:\n got %q\nwant %q", c.q, got, c.want)
 		}
 	}
+}
+
+// schemaReason says a refusal is of a schema name, which RejectError.Schema
+// marks.
+func schemaReason(why string) bool {
+	return strings.HasSuffix(why, "is internal") || strings.HasSuffix(why, "is reserved") || strings.Contains(why, "PRAGMA functions")
 }
 
 // cteChain is n CTEs, each reading the one before.
@@ -292,19 +302,20 @@ func TestModulesCovered(t *testing.T) {
 }
 
 func TestParams(t *testing.T) {
-	c, err := check("SELECT ?, :a, ?, ?5, ?, :a, $7, @b;")
+	const q = "SELECT ?, :a, ?, ?05, ?, :a, $c, @b;"
+	c, err := check(q)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if want := []int{1, 2, 3, 5, 6, 2, 7, 8}; !slices.Equal(c.params, want) {
 		t.Errorf("params = %v, want %v", c.params, want)
 	}
-	if got, want := c.body(), "SELECT ?1, :a, ?3, ?5, ?6, :a, $7, @b"; got != want {
+	if got, want := c.body(), "SELECT ?1, :a, ?3, ?5, ?6, :a, $c, @b"; got != want { // ?05 as ?5: modernc binds ?05 by name
 		t.Errorf("body = %q, want %q", got, want)
 	}
 	args := c.nullArgs()
-	if len(args) != 10 { // 8 by position, then a and b by name
-		t.Errorf("%d null args, want 10: %v", len(args), args)
+	if len(args) != 11 { // 8 by position, then a, c and b by name
+		t.Errorf("%d null args, want 11: %v", len(args), args)
 	}
 	for _, a := range args[:8] {
 		if a != nil {
@@ -313,6 +324,20 @@ func TestParams(t *testing.T) {
 	}
 	if a, ok := args[8].(sql.NamedArg); !ok || a.Name != "a" || a.Value != nil {
 		t.Errorf("args[8] = %#v", args[8])
+	}
+	ps, perr := Params(q)
+	want := []Param{{1, ""}, {2, ":a"}, {3, ""}, {5, ""}, {6, ""}, {7, "$c"}, {8, "@b"}}
+	if perr != nil || !slices.Equal(ps, want) {
+		t.Errorf("Params = %v, %v; want %v", ps, perr, want)
+	}
+	// database/sql binds only names that start with a letter.
+	for _, q := range []string{"SELECT :_c", "SELECT $1", "SELECT @9x"} {
+		if _, err := Params(q); err == nil || !strings.Contains(err.Error(), "parameter names start with a letter") {
+			t.Errorf("%s: %v", q, err)
+		}
+	}
+	if ps, err := Params("SELECT :بها, :b2"); err != nil || len(ps) != 2 {
+		t.Errorf("Persian name: %v, %v", ps, err)
 	}
 }
 
@@ -408,6 +433,8 @@ func TestExplain(t *testing.T) {
 			t.Errorf("%s: %v, want SQLite's error", tc.q, err)
 		case tc.want != "" && tc.want != "error" && (!errors.As(err, &re) || re.Layer != 2 || re.Error() != tc.want):
 			t.Errorf("%s:\n got %v\nwant %s", tc.q, err, tc.want)
+		case re != nil && re.Schema != schemaReason(tc.want):
+			t.Errorf("%s: Schema = %v", tc.q, re.Schema)
 		}
 	}
 	var on int

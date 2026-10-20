@@ -1,0 +1,11 @@
+# P2-05: the real query, describe_table and insert tools on a project
+# database filled from data.sql: a synthetic ledger of September 2026 with
+# daily closes and the user's trades. The chat answers from the tables,
+# fixes a query the SQL guard refuses (an internal table), and adds a row.
+#
+# No fake tools: the set uses the real data tools and the built-in
+# sql-queries skill. The card names the tables, not their columns.
+title: Crypto ledger
+card: card.md
+today: 2026-10-01   # the day after the data ends, for the date in block 1
+data: data.sql

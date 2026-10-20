@@ -235,6 +235,10 @@ func TestBuiltin(t *testing.T) {
 	if !ok || strings.Join(cg.LoadWith, ",") != "save_view,save_page" || !strings.Contains(cg.Description, "Load before save_view or save_page") {
 		t.Fatalf("config-guide: %+v", cg)
 	}
+	sq, ok := s.Get(chat.KindChat, "sql-queries")
+	if !ok || len(sq.LoadWith) != 0 || !strings.Contains(sq.Body, "describe_table") {
+		t.Fatalf("sql-queries: %+v", sq)
+	}
 }
 
 func names(ss []Skill) string {

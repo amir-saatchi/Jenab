@@ -287,7 +287,12 @@ func readTx[T any](ctx context.Context, db *DB, fn func(*sql.Tx) (T, error)) (T,
 
 // queryTx is Query inside a transaction.
 func queryTx[T any](tx *sql.Tx, q string, args []any, scan func(*sql.Rows) (T, error)) ([]T, error) {
-	rows, err := tx.Query(q, args...)
+	return queryTxContext(context.Background(), tx, q, args, scan)
+}
+
+// queryTxContext is queryTx that ctx can stop.
+func queryTxContext[T any](ctx context.Context, tx *sql.Tx, q string, args []any, scan func(*sql.Rows) (T, error)) ([]T, error) {
+	rows, err := tx.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}

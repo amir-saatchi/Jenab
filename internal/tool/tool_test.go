@@ -101,8 +101,8 @@ func contains(t *testing.T, got string, want ...string) {
 func TestBuiltinSpecs(t *testing.T) {
 	r := NewRegistry()
 	r.Add(Builtin(Deps{Web: web.NewClient(web.Options{})})...) // panics on a bad schema or name
-	want := []string{"bucket_delete", "bucket_list", "bucket_put", "bucket_read", "fetch_page", "list_chats",
-		"read_messages", "read_ref", "search_history", "search_ref"}
+	want := []string{"bucket_delete", "bucket_list", "bucket_put", "bucket_read", "describe_table", "fetch_page", "insert",
+		"list_chats", "query", "read_messages", "read_ref", "search_history", "search_ref"}
 	var got []string
 	for _, tl := range r.For(chat.KindChat) {
 		s := tl.Spec()
@@ -127,6 +127,15 @@ func TestBuiltinSpecs(t *testing.T) {
 		if tl, _ := r.Get(n); tl.Spec().Effects&Untrusted != 0 {
 			t.Errorf("%s is Untrusted", n)
 		}
+	}
+	// The data tools name the tables area, so block 1 does (TASK-014).
+	for _, n := range []string{"query", "describe_table", "insert"} {
+		if tl, _ := r.Get(n); tl.Spec().Areas != Tables {
+			t.Errorf("%s: areas %v", n, tl.Spec().Areas)
+		}
+	}
+	if tl, _ := r.Get("insert"); tl.Spec().Effects != WritesDB {
+		t.Errorf("insert: effects %v", tl.Spec().Effects)
 	}
 }
 
