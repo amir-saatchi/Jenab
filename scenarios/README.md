@@ -29,7 +29,7 @@ Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one tr
 | `role-skills` | SPIKE-025 T-roles | Mother gives a new chat the skills its role needs. |
 | `acceptance` | P1-18 | Phase 1's "done when": a chat of 25 turns with tool calls survives a restart, and turn 25 finds turn 3 with `search_history`. |
 | `data-tools` | P2-05 | The real `query`, `describe_table` and `insert` on a ledger in the project's database: answers from the tables, a query the SQL guard refuses (an internal table) that the chat fixes, and a row added by hand. |
-| `missing-features` | TASK-014 | A new project on an empty database: the data tools can read tables and add rows, but nothing can create a table until P2-04, and there are no pipelines or views. Asked for a table, a pipeline or a view, the agent says it can't do that yet: no SQL or scripts saved as the setup, no other place named where it could be done, no app screens. A plain question and a note it can save check it doesn't refuse those too. |
+| `missing-features` | TASK-014 | A new project on an empty database: the data tools can read tables and add rows, but nothing can create a table until P2-06, and there are no pipelines or views. Asked for a table, a pipeline or a view, the agent says it can't do that yet: no SQL or scripts saved as the setup, no other place named where it could be done, no app screens. A plain question and a note it can save check it doesn't refuse those too. |
 
 SPIKE-021's config tasks (T1–T4) come with Phase 2, when the app can check configs.
 

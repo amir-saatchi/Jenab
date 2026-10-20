@@ -47,6 +47,6 @@ Done on 2026-10-20 (commit 1626ef9), after three review rounds.
   - `db.query`'s own result limit is left for the pipelines ticket.
 - **Known limits:**
   - The probe costs as much as the query when a CTE used twice in FROM is materialized, so such a query reaches the 10 s limit at half its old length.
-  - missing-features F2 is 0/3 on both models: they tell the user to create the table themselves, and no such path exists yet. P2-04's create-table removes the cause; rerun the set and update F2 then.
+  - missing-features F2 is 0/3 on both models: they tell the user to create the table themselves, and no such path exists yet. The agent can create tables once P2-06 adds `request_schema_change` (P2-04 is only Go's migration engine); rerun the set and update F2 then.
   - The F1 check misses a list such as "I can query tables and build views".
 - **Follow-ups:** `insert` doesn't return the keys SQLite picks for INTEGER PRIMARY KEY rows, and `describe_table` doesn't show CHECK constraints.
