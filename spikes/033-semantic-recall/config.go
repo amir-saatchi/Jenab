@@ -16,7 +16,7 @@ import (
 // guessed from the base URL.
 type modelSpec struct {
 	Name    string `yaml:"name"`
-	Kind    string `yaml:"kind"` // ollama, openai_compatible, builtin, fake
+	Kind    string `yaml:"kind"` // ollama, openai_compatible, builtin, cached, fake
 	BaseURL string `yaml:"base_url"`
 	Model   string `yaml:"model"`
 	KeyEnv  string `yaml:"key_env"`
@@ -30,9 +30,18 @@ type modelSpec struct {
 	DocumentPrefix string `yaml:"document_prefix"`
 	// Dims is the fake embedder's width; the others report their own.
 	Dims int `yaml:"dims"`
+	// The built-in embedder's settings. Dir is the model folder; a relative
+	// one is inside -builtin-models. The other three pick the graph, its
+	// output and the pooling, as builtin.Config does.
+	Dir      string `yaml:"dir"`
+	OnnxFile string `yaml:"onnx_file"`
+	Output   string `yaml:"output"`
+	Pooling  string `yaml:"pooling"`
+	// MaxTokens cuts a longer text to fit the model's window (built-in only).
+	MaxTokens int `yaml:"max_tokens"`
 }
 
-var kinds = []string{"ollama", "openai_compatible", "builtin", "fake"}
+var kinds = []string{"ollama", "openai_compatible", "builtin", "cached", "fake"}
 
 func (m modelSpec) hasPrefixes() bool { return m.QueryPrefix != "" || m.DocumentPrefix != "" }
 
@@ -60,6 +69,8 @@ func loadModels(path string) ([]modelSpec, error) {
 			return nil, fmt.Errorf("%s: %s: kind must be one of %s", path, m.Name, strings.Join(kinds, ", "))
 		case (m.Kind == "ollama" || m.Kind == "openai_compatible") && (m.BaseURL == "" || m.Model == ""):
 			return nil, fmt.Errorf("%s: %s: a %s embedder needs base_url and model", path, m.Name, m.Kind)
+		case m.Kind == "builtin" && m.Dir == "":
+			return nil, fmt.Errorf("%s: %s: a builtin embedder needs dir, its model folder", path, m.Name)
 		}
 		if m.BatchSize <= 0 {
 			f.Embedders[i].BatchSize = 32

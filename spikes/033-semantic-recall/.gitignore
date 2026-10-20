@@ -1,2 +1,4 @@
 # The built-in model is downloaded here; it is not committed.
 results/models/
+# Temporary files and builds of the round 1 runs (TEMP, TMP, GOTMPDIR).
+results/tmp/

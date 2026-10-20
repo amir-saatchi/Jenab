@@ -248,7 +248,13 @@ func evaluate(ctx context.Context, c *corpus, o options) (*outcome, error) {
 			o.Log("%s: %v", spec.Name, err)
 			continue
 		}
+		if b, ok := e.(*builtinEmbedder); ok {
+			b.log = o.Log
+		}
 		dims, err := evaluateModel(ctx, spec, e, sets, ftsLists, o, out)
+		if err := release(e); err != nil {
+			o.Log("%s: close: %v", spec.Name, err)
+		}
 		out.Models = append(out.Models, modelInfo{Spec: spec, Dims: dims})
 		if err != nil {
 			if ctx.Err() != nil {
@@ -281,6 +287,9 @@ func evaluateModel(ctx context.Context, spec modelSpec, e embedder, sets []*set,
 			}
 			o.Log("%s: embedding %d items of %s (prefix %v)", spec.Name, len(texts), s.Name, withPrefix)
 			docs, err := embedAll(ctx, e, o.Cache, cacheKey{model, s.Use, withPrefix}, docPrefix, texts, spec.BatchSize)
+			if err == nil {
+				err = release(e)
+			}
 			if err != nil {
 				return dims, err
 			}
@@ -297,6 +306,9 @@ func evaluateModel(ctx context.Context, spec modelSpec, e embedder, sets []*set,
 				}
 				qvecs[i] = one.vecs[0]
 				sp.Query = append(sp.Query, one.ns)
+			}
+			if err := release(e); err != nil {
+				return dims, err
 			}
 			out.Speeds = append(out.Speeds, sp)
 			if dims, err = width(dims, docs.vecs, qvecs); err != nil {
@@ -330,6 +342,15 @@ func evaluateModel(ctx context.Context, spec modelSpec, e embedder, sets []*set,
 		}
 	}
 	return dims, nil
+}
+
+// release frees a model that loads, such as the built-in one, after each
+// embedding job.
+func release(e embedder) error {
+	if l, ok := e.(loader); ok {
+		return l.release()
+	}
+	return nil
 }
 
 var errWidth = errors.New("vectors of different widths")

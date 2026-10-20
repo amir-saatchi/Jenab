@@ -1,6 +1,7 @@
 # SPIKE-033's embedders. The kind is chosen here and never guessed from the
 # base URL: ollama (native /api/embed), openai_compatible (/embeddings),
-# builtin (the hugot module in builtin/, not wired yet) or fake (tests).
+# builtin (the hugot module in builtin/), cached (vectors another tool
+# wrote into vectors.db) or fake (tests).
 # Keys come from .env by key_env and stay in memory.
 #
 # The prefixes are used only in the prefix run (Method 6). The same text
@@ -13,9 +14,9 @@ embedders:
     key_env: ""
     batch_size: 32
     matryoshka: true
-    # From the first EmbeddingGemma's card (google/embeddinggemma-300m);
-    # no EmbeddingGemma 2 card text was found on 2026-10-19. Check them
-    # against its card before the run.
+    # The "query" and "document" prompts in EmbeddingGemma 2's
+    # config_sentence_transformers.json (onnx-community/embeddinggemma-2-ONNX),
+    # checked on 2026-10-19. They are the same as the first EmbeddingGemma's.
     query_prefix: "task: search result | query: "
     document_prefix: "title: none | text: "
 
@@ -32,14 +33,39 @@ embedders:
     query_prefix: ""
     document_prefix: ""
 
-  # The built-in embedder (builtin/), wired in after the pieces are merged.
-  - name: builtin
+  # The built-in embedder (builtin/): granite fp32 on hugot's pure-Go
+  # backend, as it would ship. The provisional pick in builtin/results.md.
+  # dir is inside -builtin-models (builtin/models by default). The Go
+  # tokenizer is wrong for this model (every Persian ZWNJ becomes <unk>);
+  # it runs as it is. No Matryoshka and no prefixes.
+  - name: granite
     kind: builtin
-    model: embeddinggemma-2:270m
+    model: granite-embedding-107m-multilingual
+    dir: granite-embedding-107m-multilingual
+    onnx_file: model.onnx
+    output: logits
+    pooling: cls
+    # XLM-R takes 512 tokens (514 positions, less 2). hugot doesn't apply
+    # its limit on the Go backend, so the harness cuts longer texts, as the
+    # app would have to. reftok.py cuts at 512 too.
+    max_tokens: 512
     batch_size: 32
-    matryoshka: true
-    query_prefix: "task: search result | query: "
-    document_prefix: "title: none | text: "
+    matryoshka: false
+    query_prefix: ""
+    document_prefix: ""
+
+  # The same model with the reference tokenizer: reftok.py writes its
+  # vectors into vectors.db (Python tokenizers and ONNX Runtime, which
+  # computes the same vectors as the Go backend when the ids match). It
+  # shows what the Go tokenizer costs in recall. Its times are ONNX
+  # Runtime's, not the Go backend's.
+  - name: granite-reftok
+    kind: cached
+    model: granite-embedding-107m-multilingual
+    batch_size: 32
+    matryoshka: false
+    query_prefix: ""
+    document_prefix: ""
 
   # Feature hashing of words, for go test and dry runs. Nothing leaves the
   # machine.

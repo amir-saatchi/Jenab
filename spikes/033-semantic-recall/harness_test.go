@@ -418,8 +418,18 @@ func TestHTTPEmbedders(t *testing.T) {
 	if _, err := newEmbedder(modelSpec{Name: "c", Kind: "openai_compatible", KeyEnv: "UNSET_SPIKE033_KEY"}, keys{}); err == nil {
 		t.Error("a missing key: no error")
 	}
-	if _, err := newEmbedder(modelSpec{Name: "b", Kind: "builtin"}, k); err == nil || !strings.Contains(err.Error(), "not wired yet") {
-		t.Errorf("builtin: %v", err)
+	if _, err := newEmbedder(modelSpec{Name: "b", Kind: "builtin"}, k); err == nil || !strings.Contains(err.Error(), "no model folder") {
+		t.Errorf("builtin without dir: %v", err)
+	}
+	if _, err := newEmbedder(modelSpec{Name: "b", Kind: "builtin", Dir: t.TempDir()}, k); err == nil || !strings.Contains(err.Error(), "no model in") {
+		t.Errorf("builtin without a model: %v", err)
+	}
+	ce, err := newEmbedder(modelSpec{Name: "r", Kind: "cached"}, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ce.Embed(ctx, []string{"a"}); !errors.Is(err, errNotCached) {
+		t.Errorf("cached: %v", err)
 	}
 }
 
@@ -428,7 +438,7 @@ func TestModelsFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pickModels(ms, []string{"gemma-ollama", "gemini", "builtin", "fake"}); err != nil {
+	if _, err := pickModels(ms, []string{"gemma-ollama", "gemini", "granite", "granite-reftok", "fake"}); err != nil {
 		t.Fatal(err)
 	}
 	bad := filepath.Join(t.TempDir(), "m.yaml")
@@ -445,7 +455,9 @@ func TestEvaluate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	models, _ := pickModels(all, []string{"fake", "builtin"})
+	models, _ := pickModels(all, []string{"fake"})
+	// A built-in model whose folder has no model stops; the others go on.
+	models = append(models, modelSpec{Name: "builtin", Kind: "builtin", Dir: t.TempDir(), BatchSize: 32})
 	dir := t.TempDir()
 	cache, err := openCache(filepath.Join(dir, "vectors.db"))
 	if err != nil {
@@ -526,5 +538,68 @@ func TestEvaluate(t *testing.T) {
 		if s.Fresh != 0 {
 			t.Errorf("rerun speed %+v", s)
 		}
+	}
+}
+
+// loadingFake loads like the built-in embedder: before a job with texts to
+// embed, and it must be released after each one.
+type loadingFake struct {
+	*fakeEmbedder
+	loaded          bool
+	loads, releases int
+}
+
+func (l *loadingFake) load(context.Context) error {
+	if !l.loaded {
+		l.loaded = true
+		l.loads++
+	}
+	return nil
+}
+
+func (l *loadingFake) release() error {
+	if l.loaded {
+		l.loaded = false
+		l.releases++
+	}
+	return nil
+}
+
+func (l *loadingFake) Embed(ctx context.Context, texts []string) ([][]float32, error) {
+	if !l.loaded {
+		return nil, errors.New("embed before load")
+	}
+	return l.fakeEmbedder.Embed(ctx, texts)
+}
+
+func TestLoaderReleased(t *testing.T) {
+	ctx := context.Background()
+	c := loadFixture(t)
+	cache, err := openCache(filepath.Join(t.TempDir(), "vectors.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cache.Close()
+	var ls []*loadingFake
+	o := options{Models: []modelSpec{{Name: "l", Kind: "fake", Model: "m", BatchSize: 4}}, Cache: cache, Chunkings: chunkers,
+		newEmbedder: func(m modelSpec, _ keys) (embedder, error) {
+			l := &loadingFake{fakeEmbedder: newFake(m.Name, 64)}
+			ls = append(ls, l)
+			return l, nil
+		}}
+	out, err := evaluate(ctx, c, o)
+	if err != nil || len(out.Stops) != 0 {
+		t.Fatalf("%v %v", err, out.Stops)
+	}
+	// Per set: the items, then the queries. The file queries repeat across
+	// chunkings, so the second chunking finds them in the cache.
+	if l := ls[0]; l.loaded || l.loads != 5 || l.releases != 5 {
+		t.Errorf("loaded %v, %d loads, %d releases; want 5 each", l.loaded, l.loads, l.releases)
+	}
+	if _, err := evaluate(ctx, c, o); err != nil {
+		t.Fatal(err)
+	}
+	if ls[1].loads != 0 {
+		t.Errorf("a cached rerun loaded the model %d times", ls[1].loads)
 	}
 }

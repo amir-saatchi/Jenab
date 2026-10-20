@@ -39,6 +39,20 @@ Run the models, one at a time:
 go run . -v -model gemma-ollama,gemini
 ```
 
+Run the built-in model from a model folder kept elsewhere. Run it alone: it holds 8 to 12 GB while it embeds.
+
+```bash
+go run . -v -model granite -builtin-models ../path/to/builtin/models
+```
+
+Write the reference-tokenizer vectors for `granite-reftok` (Python with onnxruntime, tokenizers and numpy, as for `builtin/ortcheck.py`), then read them like any model:
+
+```bash
+go run . -texts results/tmp/texts.jsonl
+python -I reftok.py builtin/models/granite-embedding-107m-multilingual results/tmp/texts.jsonl results/vectors.db
+go run . -model granite-reftok
+```
+
 Try the whole run on the test corpus with the fake embedder. Nothing leaves the machine:
 
 ```bash
@@ -57,17 +71,26 @@ Flags:
 - `-env`: the `.env` file with the keys (`../../.env`).
 - `-chunking`: `fixed`, `heading` or both.
 - `-results`: where `vectors.db`, `queries.jsonl` and `summary.md` go (`results`).
+- `-builtin-models`: the folder that holds the built-in models' folders (`builtin/models`).
+- `-texts`: write every text a model would embed to a file, then stop.
 
 ## models.yaml
 
 Each embedder has:
-- `kind`: `ollama` (native `/api/embed`), `openai_compatible` (`/embeddings`), `builtin` or `fake`. The kind is chosen here. It is never guessed from the URL.
+- `kind`: `ollama` (native `/api/embed`), `openai_compatible` (`/embeddings`), `builtin`, `cached` or `fake`. The kind is chosen here. It is never guessed from the URL.
 - `base_url`, `model`, and `key_env`, the name of the key in `.env`.
 - `batch_size`: the most texts in one request.
 - `matryoshka`: yes for models trained to be cut, which get the 256 run.
 - `query_prefix`, `document_prefix`: from the model's card. They are used only in the prefix run.
 
-The built-in embedder is the `builtin` kind. `newEmbedder` in `embed.go` returns "not wired yet" for it. After the merge, that one case builds the embedder from `builtin/`, which has the same shape: `Name()`, `Dims()`, `Embed(ctx, texts)`.
+The built-in embedder is the `builtin` kind. It runs the nested module `builtin/` (a `replace` in `go.mod`, so the harness needs Go 1.27) on hugot's pure-Go backend. Its settings:
+- `dir`: the model folder, inside `-builtin-models` when relative.
+- `onnx_file`, `output`, `pooling`: as in `builtin.Config`.
+- `max_tokens`: a longer text is cut to its longest start that fits. hugot doesn't apply the model's limit on the Go backend, and the model fails on a longer text.
+
+The harness loads the model before each job (a set's items, or its queries) and closes it after, since the Go backend keeps its memory until the model is closed. The load time is logged, not counted in the embedding time. A run that finds every vector in the cache never loads the model.
+
+The `cached` kind can't embed. It reads vectors another tool wrote into `vectors.db`, such as `reftok.py`'s. A text not in the cache stops it.
 
 ## How it measures
 
@@ -87,6 +110,7 @@ The built-in embedder is the `builtin` kind. `newEmbedder` in `embed.go` returns
 - `results/queries.jsonl`: one line per query and condition, with the targets' ranks and the top 5 with their scores. ChatsDB.Search gives no score, so message FTS scores are 0.
 - `results/vectors.db`: the cache (git-ignored). It holds the model's raw vectors by model, use (messages, a chunking or queries), prefix setting and the sha256 of the text as sent. The 256 and int8 forms are made from these when loaded. Delete it if a model changes behind the same name.
 - `results/models/`: the built-in model's download (git-ignored).
+- `results/tmp/`: temporary files, builds and run logs (git-ignored).
 
 ## Keys and safety
 
@@ -101,7 +125,9 @@ The built-in embedder is the `builtin` kind. `newEmbedder` in `embed.go` returns
 - `corpus.go`: loads the corpus and checks it; quotes become byte ranges.
 - `chunk.go`: the `chunker` interface and the two chunkers. Round 2's model-made chunks would be a third.
 - `fts.go`: message FTS through the store, chunk FTS, and the copied query builder.
-- `embed.go`: the Ollama, OpenAI-compatible and fake embedders, and the place for the built-in one.
+- `embed.go`: the Ollama, OpenAI-compatible and fake embedders.
+- `builtin.go`: the built-in embedder's wrapper (load, close, cut) and the `cached` kind.
+- `reftok.py`: granite with the reference tokenizer, through ONNX Runtime, into `vectors.db`.
 - `cache.go`: `vectors.db` and batching.
 - `vector.go`: the forms, the scan and RRF.
 - `eval.go`, `report.go`: the conditions, the measures and the output.

@@ -47,9 +47,9 @@ func newEmbedder(m modelSpec, k keys) (embedder, error) {
 	case "fake":
 		return newFake(m.Name, m.Dims), nil
 	case "builtin":
-		// The built-in embedder is the nested module in builtin/, with the
-		// same shape. It is wired in here after the pieces are merged.
-		return nil, fmt.Errorf("%s: the built-in embedder is not wired yet", m.Name)
+		return newBuiltin(m)
+	case "cached":
+		return cachedEmbedder{m}, nil
 	}
 	return nil, fmt.Errorf("%s: unknown kind %q", m.Name, m.Kind)
 }

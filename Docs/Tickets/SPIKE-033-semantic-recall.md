@@ -104,3 +104,86 @@ Every round 1 condition has run on the three models at each width, for messages 
 - what goes in SPEC 2.3, 3.8 and 4: the vector tables, the chunk table, the background embedding, and what happens when the user changes the embedding model (all vectors embedded again)
 
 ## Result
+### Round 1 (draft)
+Runs of 2026-10-19. Tables are in `spikes/033-semantic-recall/results/summary.md`, and ranks per query are in `results/queries.jsonl`. Built-in embedder details: `spikes/033-semantic-recall/builtin/results.md`. Scan times: `spikes/033-semantic-recall/scan/results.md`.
+
+**Models:**
+- **Local: `embeddinggemma-2:270m` through Ollama** (0.40.6, Q8_0, 768 wide). Ollama 0.21.0 couldn't pull it, so the user installed 0.40.6. Port 11434 was free this time. The prefixes are the "query" and "document" prompts in the model's own `config_sentence_transformers.json`.
+- **Built-in: granite-embedding-107m-multilingual,** fp32, on hugot's pure-Go backend, run as it would ship. EmbeddingGemma 2 was dropped for the Go backend (about 32 minutes per 100 pages, and out of memory on 16 GB). multilingual-e5-small lost to granite on Persian (`builtin/results.md`). granite has no Matryoshka and no prefixes, so it has no 256 run and no prefix run.
+- **granite with the reference tokenizer** (`granite-reftok`): an extra condition. It is the same model, tokenized by Python `tokenizers` and run in ONNX Runtime (`reftok.py`). The Go tokenizer is wrong for this model (every Persian ZWNJ becomes `<unk>`), and this condition shows what that costs. Its times are ONNX Runtime's.
+- **Cloud: gemini-embedding-001 stopped on the free tier.** The first two batches of 100 messages went through. The third got `429`: `embed_content_free_tier_requests, limit: 100`. That is 100 a minute, and it counts each text as a request. It stopped there, as the ticket asks. It has 200 of 300 message vectors and no queries, so it has no recall numbers. At that limit, one pass over the 1,469 texts would take at least 15 minutes.
+
+**Recall@5 and MRR, hybrid, full width** (no-answer queries left out; 45 message queries, 23 file queries):
+
+| Set | FTS | granite | granite-reftok | Gemma | Gemma + prefixes |
+|---|---|---|---|---|---|
+| messages | 33%, 0.32 | 82%, 0.69 | 84%, 0.72 | 80%, 0.70 | 89%, 0.80 |
+| files, fixed chunks | 26%, 0.26 | 65%, 0.56 | 70%, 0.61 | 87%, 0.73 | 91%, 0.87 |
+| files, chunks by heading | 30%, 0.30 | 74%, 0.67 | 74%, 0.70 | 83%, 0.72 | 100%, 0.81 |
+
+- **FTS finds only same-words queries:** all of them for messages, 75% (fixed) and 88% (heading) for files. It finds no paraphrase and no cross-language query.
+- **Hybrid has the recall of vector search and a higher MRR.** Vector-only Recall@5 is the same in every cell above. Hybrid keeps every message FTS finds. One file query drops from rank 1 to rank 2 (qf003, chunks by heading, a table row) on both models. No same-words query is lost.
+- **Persian is the weakest language.** On messages: Gemma with prefixes en 93%, de 100%, fa 73%; granite en 87%, de 87%, fa 73%; FTS 33% in each. On files with prefixes, Gemma found every Persian target.
+- **Prefixes matter for Gemma:** +9 points on messages, +4 on fixed chunks and +17 on chunks by heading, and MRR +0.09 to +0.14. Without them, Gemma is close to granite on messages.
+- **Widths:**
+  - **int8 costs nothing:** the same Recall@5 in every condition, and MRR within 0.02.
+  - **256 (Gemma only):** with prefixes, the same Recall@5 and an MRR 0.05 to 0.08 lower. Without prefixes, Recall@5 moves by a query either way.
+  - granite's int8 messages run (87%, against 82% at full width) is 2 queries; that is noise, not a gain.
+- **The Go tokenizer costs granite a few points:** 82% against 84% on messages, 65% against 70% on fixed chunks, 74% on both by heading. MRR is 0.02 to 0.05 lower. Ranks move both ways on single queries. Most texts are not Persian, and a ZWNJ is only part of a Persian text, so the loss is smaller than the Persian check in `builtin/results.md` suggested.
+
+**Chunking and round 2:** round 2 is not triggered. No model has a 10-point gap between the chunkings in file Recall@5:
+- granite: heading 74%, fixed 65%, 9 points (int8 the same). With the reference tokenizer: 4 points.
+- Gemma with prefixes: heading 100%, fixed 91%, 9 points (256 and int8 the same).
+- Gemma without prefixes: fixed is ahead, 87% against 83% (and 91% against 87% at 256).
+
+A file query is 4.3 points, so 9 points is 2 queries. Heading chunks led in the two best conditions, but by less than the line. Round 2 is skipped.
+
+**No-answer queries:** FTS returned nothing for all of them (15 of 15 messages, 7 of 7 files). Vector search always returns something, and its scores overlap the real hits:
+
+| | messages: no-answer max / hits kept | fixed | heading |
+|---|---|---|---|
+| granite | 0.769 / 48% | 0.750 / 67% | 0.735 / 82% |
+| Gemma + prefixes | 0.776 / 59% | 0.725 / 65% | 0.718 / 93% |
+
+*Hits kept* is the share of real hits (target ranked first) above the highest no-answer score. A cutoff there would lose the rest. The scores also differ by model and by width.
+
+**A chunk can be longer than the model's window.** The app counts 4 bytes a token, so a chunk has at most 1,600 bytes. With granite's XLM-R tokenizer, 13 chunks of each chunking are over 512 tokens (up to 701). Most are German and table chunks. hugot sets the Go tokenizer's limit to `max_position_embeddings` (514), but the limit isn't applied. The model then fails on the whole batch ("BroadcastToShape: incompatible dimensions"). The harness now cuts such a text to its longest start that fits 512 tokens (`max_tokens` in `models.yaml`), as the app would have to. The Go tokenizer cut 28 texts, the reference tokenizer 26. The cut-off end of a chunk is not embedded.
+
+**Embedding time:**
+
+| | per 1,000 messages | per 100 pages, fixed | per 100 pages, heading | query p50 / p95 |
+|---|---|---|---|---|
+| Gemma, Ollama (CPU) | 2m12s | 2m49s | 3m03s | 46 ms / 65 ms |
+| Gemma + prefixes | 2m20s | 2m54s | 3m03s | 58–63 ms / 75 ms |
+| granite, Go backend | 2m31s | 2m30s | 4m09s | 78–99 ms / 0.77–1.31 s |
+| granite, ONNX Runtime | 22 s | 22 s | 26 s | 11–12 ms / 23–27 ms |
+
+- The built-in on the Go backend is about as fast as Gemma in Ollama, for a model under half its size. On ONNX Runtime it is 7 to 10 times faster.
+- There are 687 chunks by heading against 392 fixed ones, since sections are short and each chunk is led by its heading path. On the Go backend they took 66% longer per page; in Ollama, 8% longer.
+- The Go backend's p95 for a query includes compiling a new shape after each load.
+- **Built-in memory and load:** the model loaded in 1.3 to 4.4 s. The harness loads it for each job and closes it after. The process held 6 GB after the messages, 7 GB after the fixed chunks, and peaked at 9.9 GB private bytes on the heading chunks. Free commit fell to 2.1 GB on this 16 GB machine.
+- Machine: Intel Core i5-1235U (10 cores, 12 logical CPUs), 16 GB RAM, no GPU, Windows 11 Pro. Other sessions ran on it at the same time. During the granite runs, free physical memory was 0.1 to 1.8 GB. Treat the times as rough.
+- Chat smoothness while embedding (N-01) wasn't measured.
+
+**Storage** (bytes; FTS is 0.4 × the text):
+
+| | per vector | per message | per page, fixed | per page, heading |
+|---|---|---|---|---|
+| Gemma full (768) | 3,072 | 3,072 | 4,973 | 8,715 |
+| Gemma 256 | 1,024 | 1,024 | 1,658 | 2,905 |
+| Gemma int8 | 772 | 772 | 1,250 | 2,190 |
+| granite full (384) | 1,536 | 1,536 | 2,486 | 4,357 |
+| granite int8 | 388 | 388 | 628 | 1,101 |
+| FTS | — | 51 | 967 | 1,040 |
+
+**Scan time** (from `scan/`): over 250,000 vectors on all cores, about 25 ms at 384 and 256 wide, 40 ms at 768, and 100 ms at 3,072. int8 isn't faster to scan in plain Go, but it takes 4× less memory and storage.
+
+**Decisions (round 1).** The drafts are for the user to settle:
+- **Decided (user, 2026-10-19):** hybrid search is worth building, for messages and for files. On this corpus it has 2.4 to 3.5 times FTS's recall, and it keeps the FTS hits.
+- **Decided (user, 2026-10-19):** store vectors as int8 at full width. int8 lost nothing. 256 lost MRR with prefixes and saves less than int8 does.
+- *Draft:* chunk files by heading. It led in the best conditions, by 2 queries. Round 2 is skipped. The user isn't sure it is always better, so this stays open.
+- **Decided (user, 2026-10-19):** query and document prefixes belong in the provider layer, for the models that need them. They are set per embedding model in the user's configuration (a preset may fill them), and the text is the same for every model otherwise. Gemma gained 4 to 17 points from them.
+- *Draft:* no fixed score cutoff. No-answer and real scores overlap, and the scores differ by model and width.
+- **Decided (user, 2026-10-19):** no built-in embedder for now. Embeddings come from Ollama or a cloud provider the user sets up, and N-51 (no cgo) stays. The Go backend can't ship as it is: its speed is near Ollama's and the tokenizer bug costs only a few points, but it held up to 10 GB while it embedded, and it needs a cut to the model's window that hugot doesn't apply.
+  - *Later:* a built-in embedder as a separate helper program on ONNX Runtime (7 to 10 times faster than the Go backend). The helper needs cgo, the app doesn't. A crash stops only the helper, and its memory is freed when it exits. The cost is a second program to build, sign and update. Other options weighed: loading ONNX Runtime's library without cgo (unproven), and cgo in the app (breaks N-51).
+- **Decided (user, 2026-10-19):** work goes on with `embeddinggemma-2:270m` through Ollama, with its prefixes, as the reference embedding model. It is what the tests use, not a built-in choice: the user still sets up the provider and model. Cloud embedding models come later. Gemini's free tier stopped it, so round 1 has no cloud numbers.
