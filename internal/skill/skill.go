@@ -43,8 +43,11 @@ type Skill struct {
 	Name        string
 	Description string
 	LoadWith    []string // tools whose first call in a chat also loads the skill
-	Body        string
-	Files       map[string]string // extra files by name, e.g. "recipes.md"
+	// Needs are tools the skill is about: without every one of them, the
+	// skill is hidden, as it would point to work the chat can't do.
+	Needs []string
+	Body  string
+	Files map[string]string // extra files by name, e.g. "recipes.md"
 	// Mother: only the Mother chat lists it, as delegation (8.6). Set by
 	// the app for built-in skills, never by a file.
 	Mother bool
@@ -112,8 +115,8 @@ func Parse(file string, src []byte) (Skill, error) {
 		return bad("front matter", "%v", err)
 	}
 	for _, k := range slices.Sorted(maps.Keys(keys)) {
-		if k != "name" && k != "description" && k != "load_with" {
-			return bad(k, "unknown field; the fields are name, description and load_with")
+		if k != "name" && k != "description" && k != "load_with" && k != "needs" {
+			return bad(k, "unknown field; the fields are name, description, load_with and needs")
 		}
 	}
 	var sk Skill
@@ -155,22 +158,33 @@ func Parse(file string, src []byte) (Skill, error) {
 	}
 	sk.Description = d
 
-	if n, ok := keys["load_with"]; ok {
-		var with []string
-		if err := n.Decode(&with); err != nil {
-			return bad("load_with", "must be a list of tool names")
+	tools := func(field string) ([]string, error) {
+		n, ok := keys[field]
+		if !ok {
+			return nil, nil
 		}
-		for _, t := range with {
+		var list, out []string
+		if err := n.Decode(&list); err != nil {
+			return nil, &Error{File: file, Field: field, Msg: "must be a list of tool names"}
+		}
+		for _, t := range list {
 			switch {
 			case !toolRE.MatchString(t):
-				return bad("load_with", "%q is not a tool name", t)
-			case t == "load_skill":
-				return bad("load_with", "load_skill can't load a skill")
-			case slices.Contains(sk.LoadWith, t):
-				return bad("load_with", "%q is listed twice", t)
+				return nil, &Error{File: file, Field: field, Msg: fmt.Sprintf("%q is not a tool name", t)}
+			case t == "load_skill" && field == "load_with":
+				return nil, &Error{File: file, Field: field, Msg: "load_skill can't load a skill"}
+			case slices.Contains(out, t):
+				return nil, &Error{File: file, Field: field, Msg: fmt.Sprintf("%q is listed twice", t)}
 			}
-			sk.LoadWith = append(sk.LoadWith, t)
+			out = append(out, t)
 		}
+		return out, nil
+	}
+	if sk.LoadWith, err = tools("load_with"); err != nil {
+		return Skill{}, err
+	}
+	if sk.Needs, err = tools("needs"); err != nil {
+		return Skill{}, err
 	}
 
 	body = strings.TrimSpace(body)

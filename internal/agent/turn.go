@@ -588,6 +588,18 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		Skill: func(ctx context.Context, name, file string) (tool.Result, error) {
 			return r.loadSkill(ctx, t, tm, name, file)
 		},
+		Approve: func(ctx context.Context, a chat.Approval) (chat.Approval, error) {
+			return r.approveNow(ctx, tm, a)
+		},
+		Progress: func(text string) {
+			r.cs.mu.Lock()
+			r.cs.doing = text
+			r.o.publishStatus(r.cs)
+			r.cs.mu.Unlock()
+		},
+	}
+	env.Subagent = func(ctx context.Context, s tool.Subagent) (tool.SubagentResult, error) {
+		return r.subagent(ctx, t, env, s)
 	}
 	call := tool.Call{ID: c.ID, Args: c.Args, Env: env}
 	needs := tool.Needs{Effects: tl.Spec().Effects}
@@ -613,7 +625,7 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	// The level's approvals are recorded once the cards are approved, so a
 	// denied call grants nothing.
 	for _, a := range autos {
-		if err := r.autoApprove(ctx, tm, a); err != nil {
+		if _, err := r.autoApprove(ctx, tm, a); err != nil {
 			return failed(err)
 		}
 	}
@@ -654,6 +666,9 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	if !out.IsError {
 		for _, img := range res.Images {
 			parts = append(parts, chat.Part{Kind: chat.PartImage, Image: &img})
+		}
+		for _, n := range res.Notices {
+			parts = append(parts, chat.Part{Kind: chat.PartNotice, Notice: &n})
 		}
 	}
 	return parts, bad
@@ -750,7 +765,7 @@ func (r *runner) finish(ctx context.Context, t *turn, err error) {
 // idle marks the turn as ended. cs.mu is held.
 func (r *runner) idle(failed bool) {
 	cs := r.cs
-	cs.running, cs.stopping, cs.cancel, cs.retryNow, cs.retry, cs.resp = false, false, nil, nil, nil, nil
+	cs.running, cs.stopping, cs.cancel, cs.retryNow, cs.retry, cs.resp, cs.doing = false, false, nil, nil, nil, nil, ""
 	cs.failed = failed
 	r.o.publishStatus(cs)
 }

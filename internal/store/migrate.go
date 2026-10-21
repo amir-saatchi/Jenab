@@ -29,9 +29,10 @@ import (
 // dependents, the change-log entry and the schema version, or not at all.
 
 var (
-	// ErrNeedsApproval is a migration with destructive steps that the user
-	// hasn't approved (SPEC 8.8). Nothing ran; the report lists them.
-	ErrNeedsApproval = errors.New("store: the migration has destructive steps, which need the user's approval")
+	// ErrNeedsApproval is a migration that drops data or changes a primary
+	// key, which the user hasn't approved (SPEC 8.8). Nothing ran; the
+	// report lists the steps and keys.
+	ErrNeedsApproval = errors.New("store: the migration drops data or changes a primary key, which needs the user's approval")
 	// ErrNoSpace is a long or destructive migration without enough free
 	// disk space for it (SPEC 7.5). Nothing ran.
 	ErrNoSpace = errors.New("store: not enough free disk space for the migration")
@@ -98,6 +99,51 @@ type Dependent interface {
 	Check(tx *sql.Tx) ([]Problem, error)
 }
 
+// DependentInfo is one saved config that depends on the schema, with the
+// columns it uses, for the schema agent and the approval card (SPEC 8.2).
+type DependentInfo struct {
+	Kind  string   `json:"kind"`
+	ID    string   `json:"id"`
+	Title string   `json:"title,omitempty"`
+	Uses  []string `json:"uses"` // table.column, or a table alone
+}
+
+// DependentLister is optional for a Dependent: it lists the configs of
+// its kind, as tx has them.
+type DependentLister interface {
+	List(ctx context.Context, tx *sql.Tx) ([]DependentInfo, error)
+}
+
+// Dependents lists the saved configs of every kind that can list them, by
+// kind and ID, in one read.
+func (p *ProjectDB) Dependents(ctx context.Context) ([]DependentInfo, error) {
+	kinds := p.dependentKinds()
+	if len(kinds) == 0 {
+		return nil, nil
+	}
+	return readTx(ctx, p.DB, func(tx *sql.Tx) ([]DependentInfo, error) {
+		var out []DependentInfo
+		for _, k := range sortedKeys(kinds) {
+			l, ok := kinds[k].(DependentLister)
+			if !ok {
+				continue
+			}
+			ds, err := l.List(ctx, tx)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, ds...)
+		}
+		slices.SortStableFunc(out, func(a, b DependentInfo) int {
+			if c := strings.Compare(a.Kind, b.Kind); c != 0 {
+				return c
+			}
+			return strings.Compare(a.ID, b.ID)
+		})
+		return out, nil
+	})
+}
+
 // dependents are a project's Dependent kinds.
 type dependents struct {
 	mu sync.Mutex
@@ -129,22 +175,35 @@ type MigrateOptions struct {
 	// Try runs it and rolls it back, for the report (SPEC 7.5). A long
 	// try runs on a copy, so it doesn't hold the writer.
 	Try bool
-	// Approved: the user approved its destructive steps (SPEC 8.8).
-	// Without it, a migration with any is refused with ErrNeedsApproval.
+	// Approved: the user approved its destructive steps and key changes
+	// (SPEC 8.2, 8.8). Without it, a migration with any is refused with
+	// ErrNeedsApproval.
 	Approved bool
+	// Planned, when set, is the try the user approved on a card. It
+	// approves what its Lost and KeysChanged list, and nothing more: a
+	// migration that drops data or changes a key beyond them, e.g. after
+	// another migration ran while the card waited, is refused with
+	// ErrNeedsApproval.
+	Planned *MigrationReport
+	// Long, if set, is called before a long migration or try runs, with
+	// its estimate, such as to show it in the chat's status (SPEC 7.5).
+	Long func(Estimate)
 }
 
 // MigrationReport says what a migration did, or would do.
 type MigrationReport struct {
-	Change        id.Change    `json:"change,omitempty"` // its change-log entry; "" for a try
-	SchemaVersion int          `json:"schema_version"`   // after it
-	Tried         bool         `json:"tried,omitempty"`
-	Steps         []StepReport `json:"steps"`
-	Destructive   []int        `json:"destructive,omitempty"` // the steps that drop data
-	Estimate      Estimate     `json:"estimate"`
-	Snapshot      string       `json:"snapshot,omitempty"` // taken before it, in snapshots/
-	Updated       []string     `json:"updated,omitempty"`  // dependents saved, as kind:id
-	Problems      []Problem    `json:"problems,omitempty"`
+	Change        id.Change        `json:"change,omitempty"` // its change-log entry; "" for a try
+	SchemaVersion int              `json:"schema_version"`   // after it
+	Tried         bool             `json:"tried,omitempty"`
+	Steps         []StepReport     `json:"steps"`
+	Destructive   []int            `json:"destructive,omitempty"`  // the steps that drop data
+	Lost          []string         `json:"lost,omitempty"`         // what they drop: "table" or "table.column", in lower case
+	KeysChanged   []string         `json:"keys_changed,omitempty"` // the tables whose primary key changes, in lower case
+	LostRows      map[string]int64 `json:"lost_rows,omitempty"`    // the rows of those tables at the step, by lower-case name
+	Estimate      Estimate         `json:"estimate"`
+	Snapshot      string           `json:"snapshot,omitempty"` // taken before it, in snapshots/
+	Updated       []string         `json:"updated,omitempty"`  // dependents saved, as kind:id
+	Problems      []Problem        `json:"problems,omitempty"`
 }
 
 // StepReport is what one step did.
@@ -165,8 +224,8 @@ type Estimate struct {
 	Long  bool          `json:"long"`
 }
 
-// LongRows is where a migration becomes long (SPEC 7.5).
-const LongRows = 500_000
+// LongRows is where a migration becomes long (SPEC 7.5). Tests lower it.
+var LongRows int64 = 500_000
 
 // Time per row, from SPIKE-010's 1M-row runs, at their slow end.
 const (
@@ -729,6 +788,7 @@ func (d *tableDef) sql(name string) string {
 type simTable struct {
 	name  string
 	cols  []string
+	key   []string // the primary key's columns
 	rows  int64
 	bytes int64
 }
@@ -755,14 +815,26 @@ type planner struct {
 	est      Estimate
 	destruct []int
 	lost     []string // what the destructive steps drop: "table" or "table.column"
+	keys     []string // the tables whose primary key changes
+	rows     map[string]int64
 }
 
-// drops marks step i destructive; what is what it drops.
-func (pl *planner) drops(i int, what ...string) {
+// drops marks step i, on table t, destructive; what is what it drops.
+func (pl *planner) drops(i int, t *simTable, what ...string) {
 	pl.destruct = append(pl.destruct, i)
 	for _, w := range what {
 		pl.lost = append(pl.lost, strings.ToLower(w))
 	}
+	pl.counts(t)
+}
+
+// counts keeps the rows of t at this step, for the card.
+func (pl *planner) counts(t *simTable) {
+	if pl.rows == nil {
+		pl.rows = map[string]int64{}
+	}
+	k := strings.ToLower(t.name)
+	pl.rows[k] = max(pl.rows[k], t.rows)
 }
 
 func (pl *planner) add(path, format string, a ...any) {
@@ -783,7 +855,7 @@ func (pl *planner) get(name string) (*simTable, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &simTable{name: d.Name, rows: int64(d.Rows)}
+	t := &simTable{name: d.Name, key: d.Key, rows: int64(d.Rows)}
 	for _, c := range d.Columns {
 		t.cols = append(t.cols, c.Name)
 	}
@@ -891,7 +963,7 @@ func (pl *planner) step(i int, s *step) error {
 			pl.add(s.path+".table", "the table %q already exists", t.name)
 			return nil
 		}
-		t := &simTable{name: s.table}
+		t := &simTable{name: s.table, key: s.def.key}
 		for _, c := range s.def.cols {
 			t.cols = append(t.cols, c.name)
 		}
@@ -937,6 +1009,10 @@ func (pl *planner) step(i int, s *step) error {
 			return nil
 		}
 		t.cols[slices.Index(t.cols, c)] = s.to
+		if k := slices.IndexFunc(t.key, func(x string) bool { return strings.EqualFold(x, c) }); k >= 0 {
+			t.key = slices.Clone(t.key)
+			t.key[k] = s.to
+		}
 	case "create_index":
 		t, err := pl.need(s.path+".table", s.table)
 		if t == nil {
@@ -990,8 +1066,13 @@ func (pl *planner) step(i int, s *step) error {
 			lost = append(lost, t.name+"."+c)
 		}
 		if len(lost) > 0 {
-			pl.drops(i, lost...)
+			pl.drops(i, t, lost...)
 		}
+		if !slices.EqualFunc(t.key, s.def.key, strings.EqualFold) {
+			pl.keys = append(pl.keys, strings.ToLower(t.name))
+			pl.counts(t)
+		}
+		t.key = s.def.key
 		t.cols = nil
 		for _, c := range s.def.cols {
 			t.cols = append(t.cols, c.name)
@@ -1009,7 +1090,7 @@ func (pl *planner) step(i int, s *step) error {
 			return nil
 		}
 		t.cols = slices.DeleteFunc(t.cols, func(x string) bool { return x == c })
-		pl.drops(i, t.name+"."+c)
+		pl.drops(i, t, t.name+"."+c)
 		pl.cost(t.rows, rateDropColumn, t.bytes)
 	case "drop_table":
 		t, err := pl.need(s.path+".table", s.table)
@@ -1017,7 +1098,7 @@ func (pl *planner) step(i int, s *step) error {
 			return err
 		}
 		pl.tables[strings.ToLower(s.table)] = nil
-		pl.drops(i, t.name)
+		pl.drops(i, t, t.name)
 	}
 	return nil
 }
@@ -1072,10 +1153,11 @@ func mappedFrom(e string, old []Column) (string, bool) {
 // steps[2].column.type. src is migration:<id>.
 //
 // Before it runs, Go replays the steps on the schema to find the
-// destructive ones and the rows it rewrites or scans. Destructive steps
-// need o.Approved and get a snapshot first; a long migration needs free
-// disk space for itself (2× the rewritten tables on the project's drive,
-// 0.5× on the temp drive), and is checkpointed after. With o.Try it runs
+// destructive ones, the primary keys it changes and the rows it rewrites
+// or scans. Destructive steps and key changes need o.Approved (or
+// o.Planned), and destructive steps get a snapshot first. A long
+// migration needs free disk space for itself (2× the rewritten tables on
+// the project's drive, 0.5× on the temp drive), and is checkpointed after. With o.Try it runs
 // and rolls back; a long try runs on a copy, not on the writer.
 func (p *ProjectDB) Migrate(ctx context.Context, src id.Source, m Migration, o MigrateOptions) (MigrationReport, error) {
 	rep := MigrationReport{Tried: o.Try}
@@ -1107,16 +1189,26 @@ func (p *ProjectDB) Migrate(ctx context.Context, src id.Source, m Migration, o M
 		return rep, err
 	}
 	pl.report(&rep)
-	basis.lost = pl.lost
+	basis.lost, basis.keys = pl.lost, pl.keys
 	if len(pl.probs) > 0 {
 		rep.Problems = pl.probs
 		return rep, &MigrationError{Problems: pl.probs}
 	}
-	if len(rep.Destructive) > 0 && !o.Try && !o.Approved {
+	if o.Planned != nil && !o.Try {
+		// The plan is checked against what the user approved, here and
+		// again in the transaction.
+		basis.lost, basis.keys = o.Planned.Lost, o.Planned.KeysChanged
+		if err := basis.covers(pl, "the schema changed after the try"); err != nil {
+			return rep, err
+		}
+	} else if (len(rep.Destructive) > 0 || len(rep.KeysChanged) > 0) && !o.Try && !o.Approved {
 		return rep, ErrNeedsApproval
 	}
 	dir := filepath.Dir(p.path)
 	long := rep.Estimate.Long
+	if long && o.Long != nil {
+		o.Long(rep.Estimate)
+	}
 	if o.Try && long {
 		return p.tryOnCopy(ctx, src, steps, m, rep)
 	}
@@ -1168,17 +1260,39 @@ func plan(ctx context.Context, tx *sql.Tx, steps []*step) (*planner, error) {
 
 // report puts the plan's estimate and destructive steps in rep.
 func (pl *planner) report(rep *MigrationReport) {
-	rep.Estimate, rep.Destructive = pl.est, pl.destruct
+	rep.Estimate, rep.Destructive, rep.Lost = pl.est, pl.destruct, pl.lost
+	rep.KeysChanged, rep.LostRows = pl.keys, pl.rows
 	for i := range rep.Steps {
 		rep.Steps[i].Destructive = slices.Contains(pl.destruct, i)
 	}
 }
 
 // planBasis is what a plan was made on: the schema cookie, and what its
-// destructive steps drop.
+// steps drop and whose key they change, or what the user approved of
+// that.
 type planBasis struct {
 	version int64
 	lost    []string
+	keys    []string
+}
+
+// covers refuses a plan that drops data or changes keys beyond the basis.
+func (b *planBasis) covers(pl *planner, why string) error {
+	var more []string
+	for _, w := range pl.lost {
+		if !slices.Contains(b.lost, w) {
+			more = append(more, w)
+		}
+	}
+	for _, t := range pl.keys {
+		if !slices.Contains(b.keys, t) {
+			more = append(more, "the primary key of "+t)
+		}
+	}
+	if len(more) > 0 {
+		return fmt.Errorf("%w: %s, and now it drops or changes %s too", ErrNeedsApproval, why, strings.Join(more, ", "))
+	}
+	return nil
 }
 
 // replan plans the steps again in the migration's transaction when the
@@ -1201,14 +1315,8 @@ func replan(ctx context.Context, tx *sql.Tx, steps []*step, rep *MigrationReport
 		return &MigrationError{Problems: pl.probs}
 	}
 	pl.report(rep)
-	var more []string
-	for _, w := range pl.lost {
-		if !slices.Contains(planned.lost, w) {
-			more = append(more, w)
-		}
-	}
-	if commit && len(more) > 0 {
-		return fmt.Errorf("%w: the schema changed while the migration waited, and now it drops %s too", ErrNeedsApproval, strings.Join(more, ", "))
+	if commit {
+		return planned.covers(pl, "the schema changed while the migration waited")
 	}
 	return nil
 }

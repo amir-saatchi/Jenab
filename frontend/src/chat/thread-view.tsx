@@ -27,7 +27,7 @@ import { showError } from "@/lib/errors"
 import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { modelName, starters } from "@/chat/composer"
-import { AgentText, CopyButton, ImagePart, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
+import { AgentText, CopyButton, ImagePart, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
 import { copyText, firstRows, lastNotice, results, rows, splitJoining, toolTurn, type Row } from "@/chat/rows"
 import { UndoTurn } from "@/chat/undo"
@@ -372,7 +372,9 @@ function PartView({
     case PartKind.PartNotice:
       // A skill's text is for the model; its chip stands for it.
       if (!p.notice || p.notice.kind === NoticeKind.NoticeSkillText) return null
-      return p.notice.kind === NoticeKind.NoticeSkillLoaded ? <SkillChip text={p.notice.text} /> : <NoticeLine notice={p.notice} />
+      if (p.notice.kind === NoticeKind.NoticeSkillLoaded) return <SkillChip text={p.notice.text} />
+      if (p.notice.kind === NoticeKind.NoticeMigration) return <MigrationChip notice={p.notice} />
+      return <NoticeLine notice={p.notice} />
     case PartKind.PartApproval:
     case PartKind.PartQuestion: {
       const live = (w?.message === message.id && w.index === index) || busy

@@ -140,6 +140,45 @@ type Env struct {
 	// Skill loads a skill into the chat, or reads one of its extra files
 	// when file is set (load_skill, 8.9). The agent sets it.
 	Skill func(ctx context.Context, name, file string) (Result, error)
+	// Approve asks for an approval that a call finds it needs while it
+	// runs, such as a migration the schema agent has tried (8.8). The
+	// approval level applies as for a preflight's: the card comes back
+	// answered, by the user or the level, with Answer GrantOnce when the
+	// level doesn't ask. The agent sets it.
+	Approve func(ctx context.Context, a chat.Approval) (chat.Approval, error)
+	// Progress shows what the call is doing in the chat's status and the
+	// project's activity, such as a long migration (7.5); "" clears it.
+	// The agent sets it; nil shows nothing.
+	Progress func(text string)
+	// Subagent runs a subagent on the chat's model (8.6). The agent sets
+	// it; nil inside a subagent, which can't start another.
+	Subagent func(ctx context.Context, s Subagent) (SubagentResult, error)
+}
+
+// Subagent is a run of its own inside a tool call (8.6): its messages
+// stay in memory, its writes use the parent's source, and its transcript
+// goes to the bucket when it ends.
+type Subagent struct {
+	Name   string   // what it is, such as "schema agent", for its transcript
+	System string   // its instructions
+	Skills []string // skills loaded from the start, after System (8.9)
+	Task   string   // its first message
+	Tools  []Tool   // its tools; a subagent tool is never among them
+	// Done, if set, is asked after each request's tool calls; true ends
+	// the run without another request, such as once a migration applied.
+	Done func() bool
+}
+
+// SubagentResult is how a subagent ended.
+type SubagentResult struct {
+	Text     string // its last answer's text; "" when Done ended it
+	Ref      string // its transcript in the bucket
+	Requests int
+	// Capped: it reached its request limit before it answered.
+	Capped bool
+	// Cut: its last answer was cut off by the output limit, so it ended
+	// without the tool calls it was writing (3.8).
+	Cut bool
 }
 
 // Result is what a tool returns. A tool that stores its own output, such
@@ -148,12 +187,15 @@ type Env struct {
 // model must read at once, such as a skill (8.9). A tool that previews a
 // long Text its own way, such as query, sets Preview: Output stores Text
 // as it stores any long one, and Preview(ref) enters the context.
+// Notices are chips shown after the result, which the model doesn't
+// read, such as an applied migration (8.2).
 type Result struct {
 	Text    string
 	Ref     string
 	Images  []chat.Image
 	Whole   bool
 	Preview func(ref string) string
+	Notices []chat.Notice
 }
 
 // Error is a mistake the model can fix, such as bad arguments, a missing

@@ -25,14 +25,24 @@ var realOff = []string{"fetch_page"}
 // of the real ones, which would see the project's empty database.
 var dataTools = []string{"query", "describe_table", "insert"}
 
+// schemaTools change the schema: a set that fakes one of them, or a data
+// tool, gets no real request_schema_change, whose schema agent would work
+// on the project's empty database.
+var schemaTools = []string{"request_schema_change", "apply_migration"}
+
 // tools are the run's tools: the real ones that need no network, with the
 // set's fakes in place of real ones of the same name.
 func (r *run) tools() *tool.Registry {
 	reg := tool.NewRegistry()
-	fakesData := slices.ContainsFunc(dataTools, func(n string) bool { return r.sc.set.tool(n) != nil })
+	fakes := func(names []string) bool {
+		return slices.ContainsFunc(names, func(n string) bool { return r.sc.set.tool(n) != nil })
+	}
+	fakesData := fakes(dataTools)
+	fakesSchema := fakesData || fakes(schemaTools)
 	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
 		n := t.Spec().Name
-		if !slices.Contains(realOff, n) && r.sc.set.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) {
+		if !slices.Contains(realOff, n) && r.sc.set.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) &&
+			!(fakesSchema && n == "request_schema_change") {
 			reg.Add(t)
 		}
 	}

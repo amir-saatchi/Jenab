@@ -52,6 +52,11 @@ export interface Live {
     "streaming"?: id$0.Message;
 
     /**
+     * as Status.Doing
+     */
+    "doing"?: string;
+
+    /**
      * its finished parts
      */
     "parts"?: chat$0.Part[] | null;

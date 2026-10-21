@@ -392,7 +392,7 @@ func describeTable() Tool {
 		if err != nil {
 			return Result{}, tableError(ctx, env, a.Name, err)
 		}
-		return Result{Text: describe(t)}, nil
+		return Result{Text: Describe(t)}, nil
 	})
 }
 
@@ -408,8 +408,9 @@ func tableError(ctx context.Context, env *Env, name string, err error) error {
 	return &Error{Msg: fmt.Sprintf("there is no table %q; %s", name, tableList(ctx, env)), Err: err}
 }
 
-// describe is a table as describe_table shows it.
-func describe(t store.Table) string {
+// Describe is a table as describe_table shows it; the schema agent gets
+// the project's tables this way too (8.2).
+func Describe(t store.Table) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Table %s: %s", t.Name, plural(t.Rows, "row"))
 	var kind []string

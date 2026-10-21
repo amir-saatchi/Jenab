@@ -71,6 +71,9 @@ type Status struct {
 	Retry   *Retry     `json:"retry,omitempty"`   // set while a turn waits to retry a request (8.3)
 	// Streaming is the answer being streamed now, not yet stored.
 	Streaming id.Message `json:"streaming,omitempty"`
+	// Doing is what a running tool call shows in the chat's status line,
+	// such as "applying a schema change, about 3 minutes" (7.5).
+	Doing string `json:"doing,omitempty"`
 }
 
 // Retry is a turn's wait before it tries a failed request again, so the

@@ -46,28 +46,40 @@ const (
 	// content since the user's last message, so a web page can't steer the
 	// agent into sending data somewhere.
 	autoIfTrusted
+	// noAsk: the level doesn't ask, and nothing is recorded or shown.
+	noAsk
 )
 
 // rules are the 8.8 table by approval kind: Strict, Standard, Auto. Kinds
-// not listed, such as destructive migrations and connections, ask at every
-// level. Schema changes, schedules, memory edits, MCP tools and commands
-// come with their phases.
+// not listed, such as connections, ask at every level. A schema change
+// that deletes nothing is "schema"; a destructive one is "migration", which
+// always asks. Schedules, memory edits, MCP tools and commands come with
+// their phases.
 var rules = map[string][3]decision{
-	"host":     {ask, ask, autoIfTrusted},
-	"starlark": {ask, ask, autoApprove},
+	"host":      {ask, ask, autoIfTrusted},
+	"starlark":  {ask, ask, autoApprove},
+	"schema":    {ask, noAsk, noAsk},
+	"migration": {ask, ask, ask},
+}
+
+// levelDecision is what level l does with an approval of kind.
+func levelDecision(l project.Level, kind string, untrusted bool) decision {
+	i := map[project.Level]int{project.Strict: 0, project.Standard: 1, project.Auto: 2}[l]
+	switch d := rules[kind][i]; d {
+	case autoIfTrusted:
+		if untrusted {
+			return ask
+		}
+		return autoApprove
+	default:
+		return d
+	}
 }
 
 // auto reports whether level l approves an approval of kind without
 // asking.
 func auto(l project.Level, kind string, untrusted bool) bool {
-	i := map[project.Level]int{project.Strict: 0, project.Standard: 1, project.Auto: 2}[l]
-	switch rules[kind][i] {
-	case autoApprove:
-		return true
-	case autoIfTrusted:
-		return !untrusted
-	}
-	return false
+	return levelDecision(l, kind, untrusted) == autoApprove
 }
 
 // approve splits a call's approvals in one place: those already given
@@ -89,9 +101,9 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 		if err != nil {
 			return nil, nil, err
 		}
-		switch {
-		case ok:
-		case auto(level, a.Kind, untrusted):
+		switch d := levelDecision(level, a.Kind, untrusted); {
+		case ok, d == noAsk:
+		case d == autoApprove:
 			autos = append(autos, a)
 		default:
 			asks = append(asks, a)
@@ -100,9 +112,28 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 	return asks, autos, nil
 }
 
+// approveNow is Env.Approve: an approval a call finds it needs while it
+// runs. The level and the untrusted mark apply as in approve; the card
+// comes back answered, with Answer GrantOnce and no By when nothing was
+// asked or recorded.
+func (r *runner) approveNow(ctx context.Context, tm *toolMsg, a chat.Approval) (chat.Approval, error) {
+	asks, autos, err := r.approve(ctx, tool.Needs{Approvals: []chat.Approval{a}})
+	switch {
+	case err != nil:
+		return a, err
+	case len(asks) > 0:
+		p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartApproval, Approval: &a})
+		return *p.Approval, err
+	case len(autos) > 0:
+		return r.autoApprove(ctx, tm, a)
+	}
+	a.Answer = chat.GrantOnce
+	return a, nil
+}
+
 // autoApprove records an approval the level gave, and shows it as a chip:
 // the card, answered by "auto". It grants Always where the card has it.
-func (r *runner) autoApprove(ctx context.Context, tm *toolMsg, a chat.Approval) error {
+func (r *runner) autoApprove(ctx context.Context, tm *toolMsg, a chat.Approval) (chat.Approval, error) {
 	a.Answer = chat.GrantOnce
 	if _, ok := a.Option(chat.GrantAlways); ok {
 		a.Answer = chat.GrantAlways
@@ -110,10 +141,10 @@ func (r *runner) autoApprove(ctx context.Context, tm *toolMsg, a chat.Approval) 
 	at := stamp()
 	a.By, a.AnsweredAt = id.SourceAuto, &at
 	if err := r.record(ctx, a); err != nil {
-		return err
+		return a, err
 	}
 	_, err := tm.add(ctx, chat.Part{Kind: chat.PartApproval, Approval: &a})
-	return err
+	return a, err
 }
 
 // record stores an answered approval in _jenab_approvals.

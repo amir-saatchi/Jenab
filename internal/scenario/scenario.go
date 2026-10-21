@@ -251,6 +251,12 @@ type Assert struct {
 	ArgsMatch   string   `yaml:"args_match"`
 	ArgsNot     string   `yaml:"args_not_match"`
 	AnswerMatch string   `yaml:"answer_match"`
+	// ResultMatch: for tool_called, tool_not_called and max_calls, the
+	// call's result must match too, such as an applied schema change.
+	// ResultLine: and one line of that result matches every one of these,
+	// such as a table's columns.
+	ResultMatch string   `yaml:"result_match"`
+	ResultLine  []string `yaml:"result_line_all"`
 	Turn        string   `yaml:"turn"` // first, last, finish, any (the default) or a turn number
 	N           int      `yaml:"n"`
 	MaxOverlap  float64  `yaml:"max_overlap"`
@@ -664,7 +670,7 @@ func (s *Set) checkAssert(a Assert) error {
 	if n, err := strconv.Atoi(a.Turn); !slices.Contains(turnNames, a.Turn) && (err != nil || n < 1) {
 		return fmt.Errorf("turn must be first, last, finish, any or a turn number")
 	}
-	for _, re := range append([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch}, a.Markers...) {
+	for _, re := range slices.Concat([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch, a.ResultMatch}, a.ResultLine, a.Markers) {
 		if _, err := regexp.Compile(re); err != nil {
 			return err
 		}

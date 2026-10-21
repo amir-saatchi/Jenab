@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -386,6 +387,52 @@ func (fakeViews) Check(tx *sql.Tx) ([]Problem, error) {
 		}
 	}
 	return probs, nil
+}
+
+// List gives each view with the tables its query names, for Dependents.
+func (fakeViews) List(_ context.Context, tx *sql.Tx) ([]DependentInfo, error) {
+	return queryTx(tx, `SELECT id, query FROM _jenab_test_views ORDER BY id DESC`, nil, func(r *sql.Rows) (DependentInfo, error) {
+		d := DependentInfo{Kind: "view"}
+		var q string
+		err := r.Scan(&d.ID, &q)
+		for _, f := range strings.Fields(q) {
+			if strings.HasPrefix(f, "btc_") {
+				d.Uses = append(d.Uses, f)
+			}
+		}
+		return d, err
+	})
+}
+
+// Dependents lists the configs of the kinds that can list them, by kind
+// and ID; a migration's report says what its destructive steps drop.
+func TestDependents(t *testing.T) {
+	p := ethereumProject(t)
+	p.AddDependent(&rawDependent{})
+	ctx := context.Background()
+	ds, err := p.Dependents(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []DependentInfo{{Kind: "view", ID: "btc_today", Uses: []string{"btc_prices"}}, {Kind: "view", ID: "news", Uses: []string{"btc_news"}}}
+	if !reflect.DeepEqual(ds, want) {
+		t.Errorf("Dependents %+v, want %+v", ds, want)
+	}
+	rep, err := p.Migrate(ctx, id.SourceUser, Migration{Steps: []json.RawMessage{
+		json.RawMessage(`{"op": "drop_column", "table": "btc_prices", "column": "_Run_ID"}`),
+		json.RawMessage(`{"op": "create_table", "table": "tmp", "columns": [{"name": "a", "type": "TEXT"}], "primary_key": ["a"]}`),
+		json.RawMessage(`{"op": "drop_table", "table": "tmp"}`)}}, MigrateOptions{Try: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(rep.Lost, []string{"btc_prices._run_id", "tmp"}) || !slices.Equal(rep.Destructive, []int{0, 2}) {
+		t.Errorf("Lost %v, Destructive %v", rep.Lost, rep.Destructive)
+	}
+
+	empty, _ := openTestProject(t)
+	if ds, err := empty.Dependents(ctx); err != nil || ds != nil {
+		t.Errorf("no kinds: %v, %v", ds, err)
+	}
 }
 
 func ethereumProject(t *testing.T) *ProjectDB {
@@ -808,6 +855,79 @@ func TestMigrateReplan(t *testing.T) {
 	}
 	// Planned again now, it goes through.
 	migrateOK(t, p, js, MigrateOptions{Approved: true})
+}
+
+// A migration with the try the user approved drops nothing more than
+// the try did: a column added while the card waited is not dropped with
+// the rest (P2-06).
+func TestMigratePlanned(t *testing.T) {
+	p := pricesProject(t)
+	ctx := context.Background()
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('BTC', 'd1', 1, 'n'), ('BTC', 'd2', 2, NULL)`)
+	js := `[{"op": "rebuild_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT"}, {"name": "date", "type": "TEXT"},
+		{"name": "price", "type": "REAL"}], "primary_key": ["coin", "date"]}]`
+	try := migrateOK(t, p, js, MigrateOptions{Try: true})
+	if !reflect.DeepEqual(try.Lost, []string{"prices.note"}) || try.LostRows["prices"] != 2 || len(try.KeysChanged) > 0 {
+		t.Fatalf("try %+v", try)
+	}
+	mustExec(t, p.DB, `ALTER TABLE prices ADD COLUMN extra TEXT`)
+	r, err := p.Migrate(ctx, mig("1"), steps(t, js), MigrateOptions{Planned: &try})
+	if !errors.Is(err, ErrNeedsApproval) || !strings.Contains(err.Error(), "prices.extra") || r.Snapshot != "" {
+		t.Fatalf("%v, report %+v", err, r)
+	}
+	if got := one[string](t, p.DB, `SELECT group_concat(name) FROM pragma_table_info('prices')`); got != "coin,date,price,note,extra" {
+		t.Errorf("columns %s", got)
+	}
+	// Tried and approved again, it goes through.
+	try = migrateOK(t, p, js, MigrateOptions{Try: true})
+	if r := migrateOK(t, p, js, MigrateOptions{Planned: &try}); r.Snapshot == "" {
+		t.Errorf("report %+v", r)
+	}
+	if got := dump(t, p, "prices"); got != "prices: [BTC d1 1] [BTC d2 2]" {
+		t.Errorf("rows %s", got)
+	}
+}
+
+// A rebuild that changes the primary key keeps every column, but needs
+// approval anyway (SPEC 8.2), and the report names the table.
+func TestMigrateKeysChanged(t *testing.T) {
+	p := pricesProject(t)
+	ctx := context.Background()
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('BTC', 'd1', 1, 'n'), ('ETH', 'd1', 2, NULL)`)
+	js := `[{"op": "rename_column", "table": "prices", "from": "coin", "to": "symbol"},
+		{"op": "rebuild_table", "table": "prices", "columns": [{"name": "symbol", "type": "TEXT"}, {"name": "date", "type": "TEXT"},
+		{"name": "price", "type": "REAL"}, {"name": "note", "type": "TEXT"}], "primary_key": ["symbol"]}]`
+	try := migrateOK(t, p, js, MigrateOptions{Try: true})
+	if !reflect.DeepEqual(try.KeysChanged, []string{"prices"}) || len(try.Lost) > 0 || len(try.Destructive) > 0 || try.LostRows["prices"] != 2 {
+		t.Fatalf("try %+v", try)
+	}
+	if _, err := p.Migrate(ctx, mig("1"), steps(t, js), MigrateOptions{}); !errors.Is(err, ErrNeedsApproval) {
+		t.Fatalf("without approval: %v", err)
+	}
+	if _, err := p.Migrate(ctx, mig("1"), steps(t, js), MigrateOptions{Planned: &MigrationReport{}}); !errors.Is(err, ErrNeedsApproval) ||
+		!strings.Contains(err.Error(), "the primary key of prices") {
+		t.Fatalf("with a try that changed no key: %v", err)
+	}
+	migrateOK(t, p, js, MigrateOptions{Planned: &try})
+	// A renamed key column is the same key.
+	js = `[{"op": "rename_column", "table": "prices", "from": "symbol", "to": "coin"},
+		{"op": "rebuild_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT"}, {"name": "date", "type": "TEXT"},
+		{"name": "price", "type": "REAL"}, {"name": "note", "type": "TEXT"}], "primary_key": ["COIN"]}]`
+	if r := migrateOK(t, p, js, MigrateOptions{}); len(r.KeysChanged) > 0 {
+		t.Errorf("report %+v", r)
+	}
+}
+
+// The rows of a table renamed before a step drops from it are its own,
+// under the new name.
+func TestMigrateLostRows(t *testing.T) {
+	p := pricesProject(t)
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('BTC', 'd1', 1, 'n'), ('BTC', 'd2', 2, NULL)`)
+	r := migrateOK(t, p, `[{"op": "rename_table", "from": "prices", "to": "quotes"}, {"op": "drop_column", "table": "quotes", "column": "note"}]`,
+		MigrateOptions{Try: true})
+	if !reflect.DeepEqual(r.Lost, []string{"quotes.note"}) || !reflect.DeepEqual(r.LostRows, map[string]int64{"quotes": 2}) {
+		t.Errorf("report %+v", r)
+	}
 }
 
 // A copy's deadline comes from the planner's count of the rows it reads,

@@ -214,6 +214,11 @@ export interface Notice {
      * skill_loaded and skill_text: the skill's name
      */
     "skill"?: string;
+
+    /**
+     * Details are shown when the chip unfolds, such as a migration's steps.
+     */
+    "details"?: string;
 }
 
 /**
@@ -282,6 +287,13 @@ export enum NoticeKind {
      * skill moves into block 1 (8.9).
      */
     NoticeSkillText = "skill_text",
+
+    /**
+     * NoticeMigration is the chip of a migration the schema agent applied,
+     * in the tool message, so the model doesn't read it; Details has its
+     * steps for *View steps* (8.2).
+     */
+    NoticeMigration = "migration",
 };
 
 /**
@@ -462,6 +474,12 @@ export interface Status {
      * Streaming is the answer being streamed now, not yet stored.
      */
     "streaming"?: id$0.Message;
+
+    /**
+     * Doing is what a running tool call shows in the chat's status line,
+     * such as "applying a schema change, about 3 minutes" (7.5).
+     */
+    "doing"?: string;
 }
 
 /**

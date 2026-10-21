@@ -102,6 +102,10 @@ const (
 	// is not shown; the request joins it to the call's result, until the
 	// skill moves into block 1 (8.9).
 	NoticeSkillText NoticeKind = "skill_text"
+	// NoticeMigration is the chip of a migration the schema agent applied,
+	// in the tool message, so the model doesn't read it; Details has its
+	// steps for *View steps* (8.2).
+	NoticeMigration NoticeKind = "migration"
 )
 
 // Notice is a short note from the app to the agent, shown in the chat.
@@ -109,6 +113,8 @@ type Notice struct {
 	Kind  NoticeKind `json:"kind"`
 	Text  string     `json:"text"`
 	Skill string     `json:"skill,omitempty"` // skill_loaded and skill_text: the skill's name
+	// Details are shown when the chip unfolds, such as a migration's steps.
+	Details string `json:"details,omitempty"`
 }
 
 // Approval is an approval card (SPEC 8.8). Kind and Target name what is

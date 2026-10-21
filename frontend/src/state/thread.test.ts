@@ -87,6 +87,16 @@ test("a new try ends the joining messages; old statuses are dropped", () => {
   expect(next.streamed).toEqual(["a1", "a2"])
 })
 
+test("what a long tool call is doing comes from Live and statuses", () => {
+  let t = fromSnapshot(undefined, "p1", snap([], 2, 1, { running: true, doing: "trying a schema change, about 3 minutes" }))
+  expect(t.doing).toBe("trying a schema change, about 3 minutes")
+  t = withStatus(t, status(3, ChatState.StateWorking))
+  expect(t.doing).toBe("")
+  t = withStatus(t, { ...status(4, ChatState.StateWorking), doing: "applying a schema change, about 3 minutes" })
+  expect(t.doing).toBe("applying a schema change, about 3 minutes")
+  expect(withStatus(t, status(5, ChatState.StateIdle)).doing).toBe("")
+})
+
 test("a new snapshot keeps older turns and unchanged messages", () => {
   const old = [msg("m1", 1, Role.RoleUser, "one"), msg("m2", 2, Role.RoleUser, "two")]
   const prev: Thread = { ...fromSnapshot(undefined, "p1", snap(old.slice(1), 3, 2)), messages: old, from: 1 }

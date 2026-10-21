@@ -33,6 +33,7 @@ export interface Thread {
   state: ChatState
   waiting: Waiting | null
   retry: Retry | null
+  doing: string // what a running tool call shows, such as a long schema change
   streaming: string // the answer streaming now, not yet stored
   streamed: string[] // answers streamed since the chat was read: the assistant's
   joining: string[] // sent during a turn; they join at its next request
@@ -65,6 +66,7 @@ export function fromSnapshot(prev: Thread | undefined, project: string, snap: Ch
     state: live.waiting ? ChatState.StateWaiting : live.running ? ChatState.StateWorking : ChatState.StateIdle,
     waiting: live.waiting ?? null,
     retry: live.retry ?? null,
+    doing: live.doing ?? "",
     streaming: live.streaming ?? "",
     streamed: live.streaming ? [live.streaming] : [],
     joining: live.running ? [...new Set([...(prev?.joining ?? []), ...joiningIn(messages, live)])] : [],
@@ -159,6 +161,7 @@ export function withStatus(t: Thread, s: ChatStatus): Thread {
     state: s.state,
     waiting: s.waiting ?? null,
     retry: s.retry ?? null,
+    doing: s.doing ?? "",
     streaming,
     streamed: started ? [...t.streamed, streaming] : t.streamed,
     joining: started || s.state === ChatState.StateIdle ? [] : t.joining,

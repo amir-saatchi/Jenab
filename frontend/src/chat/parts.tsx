@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -130,6 +130,36 @@ export function SkillChip({ text }: { text: string }) {
       <SparklesIcon data-icon="inline-start" />
       <span dir="auto">{text}</span>
     </Badge>
+  )
+}
+
+// MigrationChip marks a schema change the schema agent applied (SPEC 8.2).
+// View steps unfolds its steps with their SQL, which stays left to right.
+export function MigrationChip({ notice }: { notice: ChatNotice }) {
+  return (
+    <Collapsible className="flex flex-col gap-1.5 not-typeset">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground">
+          <DatabaseIcon data-icon="inline-start" />
+          <span dir="auto">{notice.text}</span>
+        </Badge>
+        {notice.details && (
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="xs" className="w-fit text-muted-foreground">
+              View steps
+              <ChevronRightIcon data-icon="inline-end" className="transition-transform group-data-[state=open]/button:rotate-90" />
+            </Button>
+          </CollapsibleTrigger>
+        )}
+      </div>
+      {notice.details && (
+        <CollapsibleContent>
+          <pre dir="ltr" className="overflow-x-auto rounded-lg bg-muted/60 p-3 text-start font-mono text-xs">
+            {notice.details}
+          </pre>
+        </CollapsibleContent>
+      )}
+    </Collapsible>
   )
 }
 

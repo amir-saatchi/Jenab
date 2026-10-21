@@ -147,9 +147,10 @@ type chatState struct {
 	// that started the turn, so Auto asks where the rules say so (8.8).
 	// A message that joins the turn leaves it set.
 	untrusted bool
-	failed    bool // the last turn stopped on an error; Retry continues it
-	titling   bool // a title request is running
-	clears    int  // counts Clear and Delete, so a late title is dropped
+	failed    bool   // the last turn stopped on an error; Retry continues it
+	doing     string // what a tool call shows in the status, such as a long migration (7.5)
+	titling   bool   // a title request is running
+	clears    int    // counts Clear and Delete, so a late title is dropped
 	started   time.Time
 	active    time.Time     // the start of the current request or tool call
 	moved     atomic.Int64  // the last stream event, in Unix nanoseconds
@@ -345,6 +346,7 @@ func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error
 		if err != nil {
 			return err
 		}
+		o.dropTranscripts(ctx, proj.DB, c)
 		cs.bumpSeq(seq)
 		o.d.Traces.drop(p, c) // turn numbers start again
 		return nil
@@ -356,7 +358,11 @@ func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error
 // is in a turn.
 func (o *Orchestrator) Delete(ctx context.Context, p id.Project, c id.Chat) error {
 	err := o.empty(ctx, p, c, func(proj *project.Project, _ *chatState) error {
-		return proj.Chats.DeleteChat(ctx, c)
+		if err := proj.Chats.DeleteChat(ctx, c); err != nil {
+			return err
+		}
+		o.dropTranscripts(ctx, proj.DB, c)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -433,6 +439,7 @@ type Live struct {
 	Retry     *chat.Retry   `json:"retry,omitempty"`
 	Waiting   *chat.Waiting `json:"waiting,omitempty"`
 	Streaming id.Message    `json:"streaming,omitempty"`
+	Doing     string        `json:"doing,omitempty"` // as Status.Doing
 	Parts     []chat.Part   `json:"parts,omitempty"` // its finished parts
 	Kind      chat.PartKind `json:"kind,omitempty"`  // the part being streamed
 	Text      string        `json:"text,omitempty"`  // its text so far
@@ -446,7 +453,7 @@ func (o *Orchestrator) Live(p id.Project, c id.Chat) Live {
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	l := Live{Running: cs.running || cs.queued, Turn: cs.turn, Seq: cs.seq.Load(), Retry: cs.retry}
+	l := Live{Running: cs.running || cs.queued, Turn: cs.turn, Seq: cs.seq.Load(), Retry: cs.retry, Doing: cs.doing}
 	if w := cs.waiting; w != nil {
 		l.Waiting = &w.w
 	}
@@ -698,6 +705,7 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 		cs.mu.Lock()
 		if cs.gen == gen && cs.runner {
 			cs.runner, cs.running, cs.queued, cs.cancel, cs.retryNow, cs.retry, cs.resp, cs.waiting, cs.failed = false, false, false, nil, nil, nil, nil, nil, true
+			cs.doing = ""
 			o.publishStatus(cs)
 		}
 		cs.mu.Unlock()
@@ -733,7 +741,7 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 
 // publishStatus sends the chat's status. cs.mu is held.
 func (o *Orchestrator) publishStatus(cs *chatState) {
-	st := chat.Status{Project: cs.key.p, Chat: cs.key.c, State: cs.state(), Retry: cs.retry}
+	st := chat.Status{Project: cs.key.p, Chat: cs.key.c, State: cs.state(), Retry: cs.retry, Doing: cs.doing}
 	if cs.resp != nil {
 		st.Streaming = cs.resp.id
 	}
@@ -759,6 +767,9 @@ func (cs *chatState) Status() []project.Status {
 	}
 	st := project.Status{ID: string(cs.key.c), Kind: "turn", Title: cs.title, State: "running", Started: cs.started, LastActivity: last,
 		Limit: cs.limit, Progress: fmt.Sprintf("turn %d, request %d", cs.turn, cs.requests)}
+	if cs.doing != "" {
+		st.Progress += ", " + cs.doing
+	}
 	if cs.waiting != nil {
 		st.State, st.Limit = "waiting", 0
 		st.Progress += ", waiting for the user"

@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ChatKind } from "@/lib/api"
-import { RetryBar, WaitingBar } from "@/chat/cards"
+import { DoingBar, RetryBar, WaitingBar } from "@/chat/cards"
 import { Composer } from "@/chat/composer"
 import { ThreadView } from "@/chat/thread-view"
 import { useChats } from "@/state/chats"
@@ -18,7 +18,7 @@ import { useUI } from "@/state/ui"
 import { subline } from "@/shell/chat-sidebar"
 
 // ChatView is the main area with one chat: its messages, the bars for a
-// retry or a waiting card, and the composer.
+// long tool call, a retry or a waiting card, and the composer.
 export function ChatView({ project, chat }: { project: string; chat: string }) {
   const item = useChats((s) => s.byProject[project]?.find((it) => it.chat.id === chat))
   const damage = useProjects((s) => s.opened[project]?.damage)
@@ -45,6 +45,7 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
         <>
           <ThreadView key={chat} thread={thread} mother={mother} />
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-6 empty:hidden [&:not(:empty)]:pb-2">
+            {thread.doing && <DoingBar text={thread.doing} />}
             {thread.retry && <RetryBar project={project} chat={chat} retry={thread.retry} />}
             {thread.waiting && (
               <WaitingBar

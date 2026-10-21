@@ -104,7 +104,7 @@ func (rec *record) check(a Assert) (string, string, float64) {
 	case "tool_called", "tool_not_called":
 		var hit *event
 		for _, e := range rec.calls(a.Turn) {
-			if slices.Contains(tools, e.tool) && argsFit(a, e.args) {
+			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e.callID) {
 				hit = &e
 				break
 			}
@@ -122,7 +122,7 @@ func (rec *record) check(a Assert) (string, string, float64) {
 	case "max_calls":
 		n := 0
 		for _, e := range rec.calls("") {
-			if slices.Contains(tools, e.tool) && argsFit(a, e.args) {
+			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e.callID) {
 				n++
 			}
 		}
@@ -276,6 +276,28 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		return rec.groundFired(a)
 	}
 	return Fail, "unknown assertion", 0
+}
+
+// resultFits reports whether the result of call callID matches
+// a.ResultMatch, with one line that matches every a.ResultLine; a call
+// without a result fits only when there are none.
+func (rec *record) resultFits(a Assert, callID string) bool {
+	if a.ResultMatch == "" && len(a.ResultLine) == 0 {
+		return true
+	}
+	for _, e := range rec.events {
+		if e.kind != evResult || e.callID != callID {
+			continue
+		}
+		if a.ResultMatch != "" && !regexp.MustCompile(a.ResultMatch).MatchString(e.text) {
+			return false
+		}
+		return len(a.ResultLine) == 0 || slices.ContainsFunc(strings.Split(e.text, "\n"), func(line string) bool {
+			line = strings.TrimSuffix(line, "\r")
+			return !slices.ContainsFunc(a.ResultLine, func(re string) bool { return !regexp.MustCompile(re).MatchString(line) })
+		})
+	}
+	return false
 }
 
 func argsFit(a Assert, args string) bool {

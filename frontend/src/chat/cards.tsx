@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Questionnaire,
   QuestionnaireActions,
@@ -54,6 +55,7 @@ function Kicker({ children }: { children: React.ReactNode }) {
 const kinds: Record<string, string> = {
   host: "New host",
   migration: "Schema change",
+  schema: "Schema change",
   starlark: "Script",
   connection: "Connection",
   mcp: "MCP server",
@@ -346,6 +348,23 @@ export function RetryBar({ project, chat, retry }: { project: string; chat: stri
           Cancel
         </Button>
       </ItemActions>
+    </Item>
+  )
+}
+
+// DoingBar is what a running tool call is doing, such as "applying a
+// schema change, about 3 minutes" (7.5).
+export function DoingBar({ text }: { text: string }) {
+  return (
+    <Item variant="muted" size="xs" className="not-typeset">
+      <ItemMedia>
+        <Spinner className="size-4 text-muted-foreground" />
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="font-normal" dir="auto">
+          {text.charAt(0).toUpperCase() + text.slice(1)}
+        </ItemTitle>
+      </ItemContent>
     </Item>
   )
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -76,6 +77,9 @@ func TestParseErrors(t *testing.T) {
 		{fm(name, desc, "load_with: [save-view]"), "load_with", "not a tool name"},
 		{fm(name, desc, "load_with: [query, query]"), "load_with", "twice"},
 		{fm(name, desc, "load_with: [load_skill]"), "load_with", "can't load a skill"},
+		{fm(name, desc, "needs: query"), "needs", "list of tool names"},
+		{fm(name, desc, "needs: [query, query]"), "needs", "twice"},
+		{fm(name, desc, "needs: [Query]"), "needs", "not a tool name"},
 		{fm(name, desc, "load_with: [a"+strings.Repeat("b", 64)+"]"), "load_with", "not a tool name"},
 		{"---\n---\nThe body.\n", "front matter", "empty"},
 		{"---\n  \n---\nThe body.\n", "front matter", "empty"},
@@ -226,6 +230,37 @@ func TestSet(t *testing.T) {
 	}
 }
 
+// Usable hides a skill whose load_with tools are all missing, and one
+// that needs a missing tool (P2-06).
+func TestUsable(t *testing.T) {
+	s, err := New(
+		Skill{Name: "views", Description: "V.", LoadWith: []string{"save_view", "save_page"}, Body: "V."},
+		Skill{Name: "plain", Description: "P.", Body: "P."},
+		Skill{Name: "design", Description: "D.", Needs: []string{"request_schema_change"}, Body: "D."},
+		Skill{Name: "both", Description: "B.", LoadWith: []string{"query"}, Needs: []string{"query", "insert"}, Body: "B."},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		tools []string
+		want  string
+	}{
+		{nil, "plain"},
+		{[]string{"save_page", "query"}, "plain,views"},
+		{[]string{"request_schema_change", "query", "insert"}, "both,design,plain"},
+	} {
+		got := names(s.Usable(func(t string) bool { return slices.Contains(c.tools, t) }).For(chat.KindChat))
+		if got != c.want {
+			t.Errorf("with %v: %s, want %s", c.tools, got, c.want)
+		}
+	}
+	sk, err := Parse("a/SKILL.md", []byte("---\nname: a\ndescription: d\nneeds: [request_schema_change]\n---\nbody"))
+	if err != nil || !slices.Equal(sk.Needs, []string{"request_schema_change"}) {
+		t.Errorf("%+v, %v", sk, err)
+	}
+}
+
 func TestBuiltin(t *testing.T) {
 	s, err := Builtin()
 	if err != nil {
@@ -234,6 +269,9 @@ func TestBuiltin(t *testing.T) {
 	cg, ok := s.Get(chat.KindChat, "config-guide")
 	if !ok || strings.Join(cg.LoadWith, ",") != "save_view,save_page" || !strings.Contains(cg.Description, "Load before save_view or save_page") {
 		t.Fatalf("config-guide: %+v", cg)
+	}
+	if dd, ok := s.Get(chat.KindChat, "database-design"); !ok || !slices.Equal(dd.Needs, []string{"request_schema_change"}) {
+		t.Fatalf("database-design: %+v", dd)
 	}
 	sq, ok := s.Get(chat.KindChat, "sql-queries")
 	if !ok || len(sq.LoadWith) != 0 || !strings.Contains(sq.Body, "describe_table") {
