@@ -1,6 +1,6 @@
 # P2-06 — Schema agent
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 2)
 **Needs:** P2-04, P2-05
 **Requirements:** R-30, R-84, R-18, R-54, N-22, N-40
@@ -23,3 +23,26 @@
 - P2-07's scenario sets pass.
 
 ## Result
+Done on 2026-10-21 (commit 51d2f57), after two review rounds.
+
+- **Built:**
+  - `request_schema_change` in `internal/agent/schema.go`, with the in-memory subagent run in `subagent.go` and its prompt in `prompts/schema.md`. The transcript goes to the bucket with source `chat:<id>`, and the parent's result carries its ref.
+  - The built-in skills `database-design` (`needs: [request_schema_change]`) and `migrations` (loaded with the tool).
+  - Store: `MigrateOptions.Planned` and `Long`, and `MigrationReport.Lost`, `LostRows` and `KeysChanged`, so the card shows what a plan drops.
+  - Tools: `Env.Approve`, `Env.Subagent`, `Env.Progress` and `Result.Notices`.
+  - Chat: `Status.Doing` and the *Doing* bar while the schema agent works, and the migration chip (`NoticeMigration`) with its steps.
+- **Tests:** 16 tests with `provider/fake` cover applied, rejected after 4 failed tries, a destructive plan approved and denied, Strict asking for `create_table`, *Stop* during the card, planned losses, key changes, undo keeping the transcript, progress, a clipped long plan, a missing skill and provider errors.
+- **Scenarios (missing-features, 3 runs each):**
+  - gemma4:31b: 18 of 18.
+  - gemini-3.5-flash-lite: 16 of 18. Both failures are F4 (a BTC chart). Every fetched page gave only today's price, yet the agent made up the other 29 days, saved them in a new `prices` table and charted them as stored data. This is a model failure we record, and the scenario stays as it is.
+- **Decided here:**
+  - `needs_approval` is handled inside the call: the card is shown and the answer goes back to the schema agent, so the main agent sees only `applied` or `rejected`.
+  - A plan's losses are matched to its steps by table and column name (`Planned`).
+  - A skill can list the tools it `needs`, and it is offered only when they are there.
+- **Changes from the ticket:**
+  - "P2-07's scenario sets pass" moved to P2-07. Here the missing-features set was rerun, and F2 now expects `request_schema_change` to be applied.
+- **Open points:**
+  - `read_config` on dependents comes once there are dependents.
+  - Subagent traces aren't shown in the UI.
+  - The schema agent's input lists every table, which gets long on big projects.
+  - HARNESS.md and CODE-OUTLINE.md could mention `Env.Approve`, `Subagent`, `Progress` and `Result.Notices`.
