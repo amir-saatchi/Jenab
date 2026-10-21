@@ -590,8 +590,10 @@ func workChanges(ctx context.Context, dir string) {
 		_, err := tx.Exec("CREATE TABLE IF NOT EXISTS t (req INTEGER, i INTEGER, pad TEXT, PRIMARY KEY (req, i))")
 		return 0, err
 	})
+	// Requests count from 1; the interactive writes' rows have req -1, and
+	// may be all a kill before the first request left.
 	req := 0
-	Query(ctx, p.DB, "SELECT coalesce(max(req), 0) FROM t", nil, func(r *sql.Rows) (int, error) { return 0, r.Scan(&req) })
+	Query(ctx, p.DB, "SELECT coalesce(max(req), 0) FROM t WHERE req > 0", nil, func(r *sql.Rows) (int, error) { return 0, r.Scan(&req) })
 	ms, _, _ := c.Messages(ctx, mother.ID, 0, 0)
 	turn := len(ms) + 1
 	// Interactive writes take turns with the chunks.
