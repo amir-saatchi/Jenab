@@ -204,7 +204,7 @@ func (r *run) play(ctx context.Context, res *runResult) error {
 	r.o = agent.New(agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: r.h.models, Tools: r.tools(), Events: nopPublisher{},
 		Settings: func() config.Settings { return set }, Traces: r.tr, Log: r.h.log,
-		Card: func(ctx context.Context, _ id.Project) (string, error) { return r.card(ctx), nil },
+		Card: func(ctx context.Context, _ *project.Project) (string, error) { return r.card(ctx), nil },
 	})
 	defer func() {
 		r.o.Refuse()

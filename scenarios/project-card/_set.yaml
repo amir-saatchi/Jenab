@@ -1,0 +1,16 @@
+# P2-08: the real project card. The app builds block 4 from the run's
+# project database (data.sql), and rebuilds it at once after a migration
+# in the turn. The chat makes a table through the schema agent and uses
+# it in the same turn, in a query or an insert, without describe_table.
+#
+# This set checks that the model uses the new table without
+# describe_table. It doesn't prove the card is rebuilt: the applied
+# result already lists the tables as they are now, so the runs would pass
+# without it. TestCardAfterMigration (internal/agent) is the proof.
+#
+# No fake tools: the real data tools and request_schema_change, whose
+# cards the runner approves.
+title: Bitcoin tracker
+project_card: true
+today: 2026-10-01   # the day after the data ends, for the date in block 1
+data: data.sql

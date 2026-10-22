@@ -13,6 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/web"
@@ -167,8 +168,8 @@ func TestCardBlock(t *testing.T) {
 	h := newHarness(t, t.TempDir(), "", testSettings())
 	defer h.stop()
 	var asked []id.Project
-	h.o.d.Card = func(_ context.Context, p id.Project) (string, error) {
-		asked = append(asked, p)
+	h.o.d.Card = func(_ context.Context, p *project.Project) (string, error) {
+		asked = append(asked, p.ID)
 		return "Project card\nTables: prices", nil
 	}
 	c := h.newChat(chat.Chat{Title: "Prices"})

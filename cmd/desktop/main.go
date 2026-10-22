@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/amir-saatchi/jenab/frontend"
 	"github.com/amir-saatchi/jenab/internal/agent"
@@ -132,7 +133,8 @@ func run(_ []string) (err error) {
 		traces = agent.NewTraces()
 	}
 	orch := agent.New(agent.Deps{Context: ctx, Projects: projects, Models: models, Tools: tools,
-		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Traces: traces, Log: log})
+		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Traces: traces, Log: log,
+		Card: func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, time.Now()) }})
 
 	wapp.Bind(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,
 		Secrets: secrets, Settings: live, Traces: traces, Logs: paths.Logs, Log: log,

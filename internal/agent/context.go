@@ -45,6 +45,8 @@ type window struct {
 	stubbed   map[string]bool  // tool calls whose results in-turn trimming made stubs
 	chatList  string           // Mother's chat list, refreshed at cuts (8.6)
 	system    []provider.Block // blocks 1–5, built at cuts
+	schema    int              // the schema version the project card was built at
+	cardFail  int              // the turn whose card failed: it is tried again in the next turn
 	skills    map[string]bool  // the skills in block 1, from the last cut
 	last      time.Time        // the last request
 	fired     map[int]bool     // turns whose number check fired (SPIKE-032)
@@ -80,11 +82,11 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		}
 		w.chatList = list
 	}
-	sys, err := r.system(ctx, t)
+	sys, schema, err := r.system(ctx, t)
 	if err != nil {
 		return err
 	}
-	w.system = sys
+	w.system, w.schema = sys, schema
 	w.skills = map[string]bool{}
 	for _, name := range t.ch.Skills {
 		if _, ok := r.o.skills().Get(t.ch.Kind, name); ok {
@@ -99,6 +101,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 // prefix holds, but asks for an answer without calls (8.3).
 func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Request, error) {
 	w := &r.cs.win
+	r.refreshCard(ctx, t)
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
 		return provider.Request{}, err
@@ -243,10 +246,11 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 	return changed
 }
 
-// system is blocks 1–5 of the context (3.1) for the window. Phase 1 has the
-// system prompt, the date, the role, the skills and Mother's chat list.
-// The cache point is after the last block.
-func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) {
+// system is blocks 1–5 of the context (3.1) for the window, and the
+// schema version its project card was built at. It has the system
+// prompt, the date, the role, the skills, the project card and Mother's
+// chat list. The cache point is after the last block.
+func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
 	tools := r.o.d.Tools.For(t.ch.Kind)
 	var b strings.Builder
 	b.WriteString(base(tools))
@@ -272,14 +276,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 		b.WriteString("\n\n" + s)
 	}
 	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
-	if f := r.o.d.Card; f != nil {
-		card, err := f(ctx, r.cs.key.p)
-		if err != nil {
-			return nil, err
-		}
-		if card = strings.TrimSpace(card); card != "" {
-			blocks = append(blocks, provider.Block{Text: card, Name: "Project card"})
-		}
+	card, schema, _ := r.card(ctx, t)
+	if card != "" {
+		blocks = append(blocks, provider.Block{Text: card, Name: cardBlock})
 	}
 	w := &r.cs.win
 	if t.ch.Kind == chat.KindMother {
@@ -289,7 +288,96 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, error) 
 		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
 	}
 	blocks[len(blocks)-1].Cache = true
-	return blocks, nil
+	return blocks, schema, nil
+}
+
+// cardBlock is the project card's block name, as the turn inspector shows
+// it.
+const cardBlock = "Project card"
+
+// noCard is the schema version of a card that failed, so the next turn
+// tries again.
+const noCard = -1
+
+// card is the project card (3.2), and the schema version read before it
+// was built, so a migration that lands meanwhile rebuilds it again. The
+// card is best effort: a failure is logged, and ok is false.
+func (r *runner) card(ctx context.Context, t *turn) (card string, schema int, ok bool) {
+	f := r.o.d.Card
+	if f == nil {
+		return "", 0, true
+	}
+	v, err := r.p.DB.SchemaVersion(ctx)
+	if err == nil {
+		if card, err = f(ctx, r.p); err == nil {
+			r.cardWorks()
+			return strings.TrimSpace(card), v, true
+		}
+	}
+	r.cardFailed(ctx, t, err)
+	return "", noCard, false
+}
+
+// cardFailed keeps the card from being tried again in turn t, and logs
+// the error once per project until a card works again: a cause that
+// lasts would otherwise log on every turn of every chat.
+func (r *runner) cardFailed(ctx context.Context, t *turn, err error) {
+	r.cs.win.cardFail = t.n
+	if ctx.Err() != nil {
+		return
+	}
+	r.o.mu.Lock()
+	logged := r.o.cardDown[r.p.ID]
+	r.o.cardDown[r.p.ID] = true
+	r.o.mu.Unlock()
+	if !logged {
+		r.o.d.Log.Error("agent: building the project card", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+	}
+}
+
+func (r *runner) cardWorks() {
+	r.o.mu.Lock()
+	delete(r.o.cardDown, r.p.ID)
+	r.o.mu.Unlock()
+}
+
+// refreshCard rebuilds the project card in the window's system blocks
+// when a migration has run since it was built, by this chat or another:
+// the one change between cuts that doesn't wait for the next one (3.1).
+// Plain writes leave it alone, so the cached prefix holds. When the card
+// fails, the old block stays and the next turn tries again.
+func (r *runner) refreshCard(ctx context.Context, t *turn) {
+	w := &r.cs.win
+	if r.o.d.Card == nil || w.system == nil || w.cardFail == t.n {
+		return
+	}
+	v, err := r.p.DB.SchemaVersion(ctx)
+	if err != nil {
+		r.cardFailed(ctx, t, err)
+		return
+	}
+	if v == w.schema {
+		return
+	}
+	card, v, ok := r.card(ctx, t)
+	if !ok {
+		return
+	}
+	// A new slice, as the traces of earlier requests hold the old one.
+	sys := slices.Clone(w.system)
+	i := slices.IndexFunc(sys, func(b provider.Block) bool { return b.Name == cardBlock })
+	switch {
+	case i >= 0 && card == "":
+		sys = slices.Delete(sys, i, i+1)
+	case i >= 0:
+		sys[i].Text = card
+	case card != "":
+		sys = slices.Insert(sys, 1, provider.Block{Text: card, Name: cardBlock})
+	}
+	for j := range sys {
+		sys[j].Cache = j == len(sys)-1
+	}
+	w.system, w.schema = sys, v
 }
 
 // areaText is how block 1 names each area (tool.AreaNames' order).

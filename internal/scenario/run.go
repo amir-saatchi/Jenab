@@ -265,10 +265,14 @@ func (r *run) open(ctx context.Context) error {
 	})
 	appCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
 	r.stop = stop
+	card := func(context.Context, *project.Project) (string, error) { return r.sc.set.Card, nil }
+	if r.sc.set.ProjectCard {
+		card = func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, r.now()) }
+	}
 	r.o = agent.New(agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },
 		Skills: r.skills, Traces: r.traces, Log: r.opt.Log,
-		Card:      func(context.Context, id.Project) (string, error) { return r.sc.set.Card, nil },
+		Card:      card,
 		Now:       r.now,
 		Grounding: r.grounding().agent(),
 	})

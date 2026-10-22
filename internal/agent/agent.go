@@ -50,10 +50,13 @@ type Deps struct {
 	Settings func() config.Settings
 	Events   Publisher  // nil drops the events; the scenario runner reads the store
 	Skills   *skill.Set // the skills chats can load (8.9); nil has none
-	// Card returns the project card (3.2), block 4 of the context. Phase 2
-	// builds it from the schema; the scenario runner gives a fixture's.
-	// Nil, or "", leaves the block out.
-	Card func(ctx context.Context, p id.Project) (string, error)
+	// Card returns the open project's card (3.2), block 4 of the context:
+	// the app builds it from the project (store.ProjectDB.Card); the
+	// scenario runner can give a fixture's. It is built at a cut and again
+	// when the schema version changes (3.1). It is best effort: an error
+	// is logged and leaves the block as it was. Nil, or "", leaves the
+	// block out.
+	Card func(ctx context.Context, p *project.Project) (string, error)
 	// Now is the clock for block 1's date (3.1); nil is time.Now. The
 	// scenario runner gives a fixture's day.
 	Now func() time.Time
@@ -91,8 +94,11 @@ type Orchestrator struct {
 	mu      sync.Mutex
 	chats   map[key]*chatState
 	refused bool
-	busy    int           // calls in progress and runners
-	idle    chan struct{} // closed when busy drops to 0
+	// cardDown has the projects whose card failure is logged, until a
+	// card of theirs works again.
+	cardDown map[id.Project]bool
+	busy     int           // calls in progress and runners
+	idle     chan struct{} // closed when busy drops to 0
 }
 
 type key struct {
@@ -117,7 +123,7 @@ func New(d Deps) *Orchestrator {
 	if d.Events == nil {
 		d.Events = noPublisher{}
 	}
-	return &Orchestrator{d: d, ctx: d.Context, pub: safePublisher{d.Events, d.Log}, chats: map[key]*chatState{}}
+	return &Orchestrator{d: d, ctx: d.Context, pub: safePublisher{d.Events, d.Log}, chats: map[key]*chatState{}, cardDown: map[id.Project]bool{}}
 }
 
 // chatState is what the Orchestrator keeps per chat between turns. The

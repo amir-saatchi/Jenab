@@ -32,18 +32,21 @@ const SetFile = "_set.yaml"
 
 // Set is a folder of scenarios and what they share.
 type Set struct {
-	Dir      string
-	Title    string
-	Card     string            // the project card (3.2), block 4
-	Today    time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
-	Fixture  string            // a SQL script for the fixture database
-	Data     string            // a SQL script run on the project's own database, for the real data tools
-	Configs  map[string]string // stored configs by id, for config tools
-	Skills   []skill.Skill     // the set's own skills, besides the built-in ones; one with a built-in's name replaces it
-	Chats    []ChatSpec        // other chats in the project
-	Tools    []*ToolSpec
-	Rules    map[string][]*Rule // fake results every scenario starts from
-	Settings map[string]any     // the context and llm settings every scenario starts from
+	Dir   string
+	Title string
+	Card  string // the project card (3.2), block 4
+	// ProjectCard: the app builds the card from the run's project, as it
+	// does outside the runner (P2-08), instead of a fixture's.
+	ProjectCard bool
+	Today       time.Time         // the fixture's day, for block 1's date (3.1); zero is the real date
+	Fixture     string            // a SQL script for the fixture database
+	Data        string            // a SQL script run on the project's own database, for the real data tools
+	Configs     map[string]string // stored configs by id, for config tools
+	Skills      []skill.Skill     // the set's own skills, besides the built-in ones; one with a built-in's name replaces it
+	Chats       []ChatSpec        // other chats in the project
+	Tools       []*ToolSpec
+	Rules       map[string][]*Rule // fake results every scenario starts from
+	Settings    map[string]any     // the context and llm settings every scenario starts from
 	// Grounding is SPIKE-032's number check for every scenario; nil is
 	// off.
 	Grounding *GroundingSpec
@@ -57,6 +60,7 @@ type Set struct {
 type setFile struct {
 	Title        string             `yaml:"title"`
 	Card         string             `yaml:"card"`          // a file in the set
+	ProjectCard  bool               `yaml:"project_card"`  // the app builds the card from the project
 	Today        string             `yaml:"today"`         // YYYY-MM-DD, the day the fixture is from
 	Fixture      string             `yaml:"fixture"`       // a .sql file in the set
 	Data         string             `yaml:"data"`          // a .sql file in the set, run on the project's database
@@ -320,6 +324,9 @@ func Load(dir string) (*Set, error) {
 	}
 	if s.Card, err = read(f.Card); err != nil {
 		return nil, err
+	}
+	if s.ProjectCard = f.ProjectCard; s.ProjectCard && f.Card != "" {
+		return nil, fmt.Errorf("%s: card and project_card both give the card; keep one", SetFile)
 	}
 	if f.Today != "" {
 		if s.Today, err = time.ParseInLocation(time.DateOnly, f.Today, time.Local); err != nil {

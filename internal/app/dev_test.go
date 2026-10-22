@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -120,6 +121,33 @@ func TestDevScreensShowWhatWasSentWithoutSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)
+}
+
+// The project card is its own block, with its size (P2-08).
+func TestDevCardBlock(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	op, err := e.svc.Project.Create(ctx, "Cards")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "hello"); err != nil {
+		t.Fatal(err)
+	}
+	e.idle(op.Mother)
+	v, err := e.svc.Dev.Turn(ctx, op.ID, op.Mother, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bs := v.Requests[0].Blocks
+	i := slices.IndexFunc(bs, func(b BlockView) bool { return b.Name == "Project card" })
+	if i < 0 || bs[i].Tokens == 0 {
+		t.Fatalf("blocks %+v", bs)
+	}
+	text, err := e.svc.Dev.Block(ctx, op.ID, op.Mother, 1, 0, i)
+	if err != nil || !strings.HasPrefix(text, `Project card of "Cards", as of `) || len(text)/4 != bs[i].Tokens {
+		t.Errorf("card block %d tokens: %q, %v", bs[i].Tokens, text, err)
+	}
 }
 
 func TestDevUnknownTurn(t *testing.T) {

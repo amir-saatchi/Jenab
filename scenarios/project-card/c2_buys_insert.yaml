@@ -1,0 +1,16 @@
+id: C2_buys_insert
+title: 'Make a table of BTC buys, then log one'
+tests: ["made", "used", "no_describe"]
+context: main
+why: 'Make the buys table with request_schema_change, then insert today''s buy into it in the same turn, from the card and the result, without describe_table.'
+messages:
+  - text: 'Make a table for my BTC buys: the date, the amount and the price in USD. Then log today''s buy: 0.1 BTC at 63,000 USD.'
+asserts:
+  - {type: tool_called, test: made, tool: request_schema_change, result_match: '^\[request_schema_change: applied'}
+  - {type: tool_called, test: used, tool: insert, args_match: '2026-10-01', result_match: '^Inserted 1 row into \w+\.$'}
+  - {type: tool_called, test: used, tool: insert, args_match: ':\s*"?0?\.1"?\s*[,}]', result_match: '^Inserted 1 row into \w+\.$'}
+  - {type: tool_called, test: used, tool: insert, args_match: ':\s*"?63,?000(\.0+)?"?\s*[,}]', result_match: '^Inserted 1 row into \w+\.$'}
+  - {type: tool_not_called, test: used, tool: insert, args_match: '"table":\s*"btc_(prices|news)"'}
+  - {type: tool_not_called, test: no_describe, tool: describe_table}
+  - {type: max_calls, test: info, tool: insert, n: 1}
+  - {type: no_turn_failed, test: info}
