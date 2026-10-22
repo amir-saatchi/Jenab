@@ -99,7 +99,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-05](P2-05-data-tools.md) | Data tools: query, describe_table, insert | P2-01, P2-02 | Done |
 | [P2-06](P2-06-schema-agent.md) | Schema agent | P2-04, P2-05 | Done |
 | [P2-07](P2-07-schema-skills-and-checks.md) | Schema skills and model checks | P2-06, TASK-013 | Open |
-| [P2-08](P2-08-project-card.md) | Project card | P2-04 | Open |
+| [P2-08](P2-08-project-card.md) | Project card | P2-04 | Done |
 | [P2-09](P2-09-memory.md) | User and project memory | P2-02, P2-03 | Open |
 | [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09, SPIKE-028, SPIKE-029 | Open |
 | [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Open |
