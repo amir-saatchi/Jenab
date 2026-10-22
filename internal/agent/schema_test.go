@@ -459,7 +459,7 @@ func TestSchemaAgentPlannedLoss(t *testing.T) {
 		w := h.waiting(c.ID)
 		h.open(func(p *project.Project) {
 			_, err := p.DB.Migrate(context.Background(), id.SourceUser, store.Migration{Steps: []json.RawMessage{
-				json.RawMessage(`{"op": "add_column", "table": "prices", "column": {"name": "note", "type": "TEXT"}}`)}}, store.MigrateOptions{})
+				json.RawMessage(`{"op": "add_column", "table": "prices", "column": {"name": "note", "type": "TEXT"}, "value": "NULL"}`)}}, store.MigrateOptions{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -533,6 +533,52 @@ func TestSchemaAgentKeyChange(t *testing.T) {
 			t.Errorf("cards %+v", cs)
 		}
 	})
+}
+
+// A widened key keeps the rows apart, so its card doesn't warn of equal
+// keys, and the steps show the new name.
+func TestSchemaAgentWidenCard(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := schemaHarness(t)
+		defer h.stop()
+		h.setLevel(project.Auto)
+		h.pricesTable()
+		c := h.newChat(chat.Chat{Title: "Coins"})
+		h.fp.Push(schemaGoal("track every coin"),
+			applyCall("s1", "Widen prices for every coin.",
+				`{"op": "widen_table", "table": "prices", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'", "to": "coin_prices"}`),
+			read(fake.Text("done"), 5000))
+		h.send(c.ID, "track every coin")
+		w := h.waiting(c.ID)
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantOnce})
+		h.wait()
+		cs := cards(h.messages(c.ID))
+		if len(cs) != 1 || cs[0].Kind != "migration" ||
+			cs[0].Risk != "It puts a new column in front of the primary key of prices (2 rows); the rows keep their data." ||
+			!strings.Contains(cs[0].Details, "1. widen_table prices → coin_prices, 2 rows written") {
+			t.Fatalf("cards %+v", cs)
+		}
+	})
+}
+
+// A table that a widen and another step both rekey is listed once, with
+// the warning about equal keys.
+func TestSchemaCardMixedKeys(t *testing.T) {
+	sc := &schemaChange{plan: "Rekey and widen prices."}
+	for _, tc := range []struct {
+		rep  store.MigrationReport
+		risk string
+	}{
+		{store.MigrationReport{KeysChanged: []string{"prices", "prices"}, LostRows: map[string]int64{"prices": 2}},
+			"It changes the primary key of prices (2 rows). If two rows get the same key, it fails and nothing changes."},
+		{store.MigrationReport{KeysChanged: []string{"prices", "news"}, KeysWidened: []string{"news"}, LostRows: map[string]int64{"prices": 2, "news": 1}},
+			"It puts a new column in front of the primary key of news (1 row); the rows keep their data. " +
+				"It changes the primary key of prices (2 rows). If two rows get the same key, it fails and nothing changes."},
+	} {
+		if a := sc.card(nil, tc.rep); a.Risk != tc.risk {
+			t.Errorf("risk %q, want %q", a.Risk, tc.risk)
+		}
+	}
 }
 
 // Undo turn leaves the transcript, which is the chat's record, and the

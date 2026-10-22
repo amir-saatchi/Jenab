@@ -137,12 +137,49 @@ func TestMigrateAddColumn(t *testing.T) {
 		t.Error("the default wasn't set")
 	}
 	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "TEXT", "not_null": true}}]`,
-		"steps[0].column.default", "rebuild_table")
+		"steps[0].value", "widen_table")
 	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "Volume", "type": "TEXT"}}]`,
 		"steps[0].column.name", "already has")
 	// A check the rows break.
-	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "y", "type": "INTEGER", "check": "y IS NOT NULL"}}]`,
+	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "y", "type": "INTEGER", "check": "y IS NOT NULL"}, "value": "NULL"}]`,
 		"steps[0]", "CHECK constraint failed")
+	// The old rows get their value explicitly (8.2).
+	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "src", "type": "TEXT"}}]`,
+		"steps[0].value", "widen_table")
+	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "src", "type": "TEXT"}, "value": "nope("}]`,
+		"steps[0].value", "")
+	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "src", "type": "TEXT"}, "value": "'feed-' || coin"}]`, MigrateOptions{})
+	if got := one[string](t, p.DB, `SELECT src FROM prices`); got != "feed-BTC" {
+		t.Errorf("src %q", got)
+	}
+	if one[int](t, p.DB, `SELECT count(*) FROM pragma_table_info('prices') WHERE name = 'src' AND dflt_value IS NULL`) != 1 {
+		t.Error("src has a default")
+	}
+	// An empty table needs no value.
+	mustExec(t, p.DB, `CREATE TABLE e (k TEXT PRIMARY KEY)`)
+	migrateOK(t, p, `[{"op": "add_column", "table": "e", "column": {"name": "v", "type": "TEXT"}}]`, MigrateOptions{})
+	// NOT NULL without a default: a rebuild with the column last, the
+	// indexes kept.
+	mustExec(t, p.DB, `CREATE INDEX by_price ON prices (price)`)
+	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "TEXT", "not_null": true}, "value": "NULL"}]`,
+		"steps[0].value", "failed: prices.x: value must give every old row a value")
+	migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "TEXT", "not_null": true, "check": "x <> 'BTC'"}, "value": "coin"}]`,
+		"steps[0]", "CHECK constraint failed")
+	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "TEXT", "not_null": true}, "value": "lower(coin)"}]`, MigrateOptions{})
+	if got := one[string](t, p.DB, `SELECT group_concat(name || ':' || "notnull" || ':' || pk) FROM pragma_table_info('prices')`); !strings.HasSuffix(got, ",x:1:0") {
+		t.Errorf("columns %s", got)
+	}
+	if got := dump(t, p, "prices"); !strings.Contains(got, "btc]") {
+		t.Errorf("rows %s", got)
+	}
+	if one[int](t, p.DB, `SELECT count(*) FROM sqlite_schema WHERE name = 'by_price'`) != 1 {
+		t.Error("the index is gone")
+	}
+	mustExec(t, p.DB, `INSERT INTO e (k) VALUES ('a')`)
+	migrateOK(t, p, `[{"op": "add_column", "table": "e", "column": {"name": "w", "type": "TEXT", "not_null": true}, "value": "k || '!'"}]`, MigrateOptions{})
+	if got := dump(t, p, "e"); got != "e: [a <nil> a!]" {
+		t.Errorf("rows %s", got)
+	}
 }
 
 func TestMigrateRenames(t *testing.T) {
@@ -281,6 +318,123 @@ func TestMigrateRebuild(t *testing.T) {
 		{"name": "x", "type": "TEXT", "not_null": true}], "primary_key": ["coin", "date"]}]`, "steps[0].mapping", "NOT NULL")
 	migrateFails(t, p, `[{"op": "rebuild_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT"}, {"name": "date", "type": "TEXT"}],
 		"primary_key": ["coin", "date"], "mapping": {"date": "date || 'x'"}}]`, "schema", "rows of alerts refer to rows of prices")
+	// A default never labels the old rows (SPEC 8.2).
+	migrateFails(t, p, `[{"op": "rebuild_table", "table": "prices", "columns": [{"name": "coin", "type": "TEXT"}, {"name": "date", "type": "TEXT"},
+		{"name": "src", "type": "TEXT", "default": "api"}], "primary_key": ["coin", "date"], "mapping": {"src": "'api'"}}]`, "steps[0].columns[2].default", "leave out the default")
+}
+
+func TestMigrateWiden(t *testing.T) {
+	p, _ := openTestProject(t)
+	mustExec(t, p.DB, `CREATE TABLE btc_news (url TEXT NOT NULL PRIMARY KEY, title TEXT NOT NULL, slug TEXT UNIQUE, n INTEGER DEFAULT 0, _run_id TEXT, file TEXT)`)
+	mustExec(t, p.DB, `CREATE INDEX btc_news_title ON btc_news (title)`)
+	mustExec(t, p.DB, `INSERT INTO btc_news VALUES ('u1', 'A', 's1', 1, 'r1', NULL), ('u2', 'B', NULL, 2, 'r2', NULL)`)
+	mustExec(t, p.DB, `INSERT INTO _jenab_columns VALUES ('btc_news', 'file', 'object_ref')`)
+	js := `[{"op": "widen_table", "table": "btc_news", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'", "to": "news"}]`
+	try := migrateOK(t, p, js, MigrateOptions{Try: true})
+	if !reflect.DeepEqual(try.KeysChanged, []string{"btc_news"}) || len(try.Lost) > 0 || try.LostRows["btc_news"] != 2 {
+		t.Fatalf("try %+v", try)
+	}
+	if _, err := p.Migrate(context.Background(), mig("1"), steps(t, js), MigrateOptions{}); !errors.Is(err, ErrNeedsApproval) {
+		t.Fatalf("without approval: %v", err)
+	}
+	migrateOK(t, p, js, MigrateOptions{Planned: &try})
+	if got := dump(t, p, "news"); !strings.Contains(got, "[BTC u1 A s1 1 r1 <nil>]") || !strings.Contains(got, "[BTC u2 B <nil> 2 r2 <nil>]") {
+		t.Errorf("rows %s", got)
+	}
+	for q, want := range map[string]string{
+		`SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('news') WHERE pk > 0 ORDER BY pk)`:           "coin,url",
+		`SELECT group_concat(i.name) FROM pragma_index_list('news') l, pragma_index_info(l.name) i WHERE l.origin = 'u'`: "coin,slug",
+		`SELECT "notnull" || ifnull(dflt_value, '') FROM pragma_table_info('news') WHERE name = 'coin'`:                  "1",
+		`SELECT ifnull(dflt_value, '') FROM pragma_table_info('news') WHERE name = 'n'`:                                  "0",
+		`SELECT tbl_name FROM sqlite_schema WHERE name = 'btc_news_title'`:                                               "news",
+		`SELECT table_name FROM _jenab_columns`:                                                                          "news",
+	} {
+		if got := one[string](t, p.DB, q); got != want {
+			t.Errorf("%s: %q, want %q", q, got, want)
+		}
+	}
+	if one[int](t, p.DB, `SELECT count(*) FROM sqlite_schema WHERE name = 'btc_news'`) != 0 {
+		t.Error("btc_news is still there")
+	}
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "coin", "type": "TEXT"}, "value": "'ETH'"}]`,
+		"steps[0].column.name", "already has a column")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT", "default": "en"}, "value": "'en'"}]`,
+		"steps[0].column.default", "no default")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT"}, "value": "nope("}]`,
+		"steps[0].value", "")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT"}, "value": "NULL"}]`,
+		"steps[0].value", "every old row a value")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "BLOB"}, "value": "x''"}]`,
+		"steps[0].column.type", "BLOB")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT"}, "value": "'en'", "to": "btc_news_title"}]`,
+		"steps[0].to", "is taken (index)")
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT", "check": "nope(lang)"}, "value": "'en'"}]`,
+		"steps[0].column.check", "")
+	// Column CHECKs stay; a table CHECK can't be carried over.
+	mustExec(t, p.DB, `CREATE TABLE prices (date TEXT PRIMARY KEY, price REAL CHECK (price > 0) CHECK (price <> ')'), note TEXT)`)
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('d1', 5, NULL)`)
+	migrateFails(t, p, `[{"op": "widen_table", "table": "news", "column": {"name": "lang", "type": "TEXT"}, "value": "'en'", "to": "prices"}]`,
+		"steps[0].to", "already exists")
+	migrateOK(t, p, `[{"op": "widen_table", "table": "prices", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'"}]`, MigrateOptions{Approved: true})
+	if _, err := Do(context.Background(), p.DB, limit.Interactive, func(tx *sql.Tx) (sql.Result, error) {
+		return tx.Exec(`INSERT INTO prices VALUES ('ETH', 'd1', -1, NULL)`)
+	}); err == nil || !strings.Contains(err.Error(), "CHECK") {
+		t.Errorf("a negative price: %v", err)
+	}
+	mustExec(t, p.DB, `CREATE TABLE quotes (date TEXT PRIMARY KEY, bid REAL, ask REAL, CHECK (bid <= ask))`)
+	migrateFails(t, p, `[{"op": "widen_table", "table": "quotes", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'"}]`,
+		"steps[0].table", "table CHECK")
+	// A key changed by a rebuild and then widened is not only widened.
+	mustExec(t, p.DB, `CREATE TABLE rk (a TEXT NOT NULL, b TEXT NOT NULL, PRIMARY KEY (a))`)
+	mustExec(t, p.DB, `CREATE TABLE wk (d TEXT PRIMARY KEY)`)
+	r, err := p.Migrate(context.Background(), mig("rk"), steps(t, `[{"op": "rebuild_table", "table": "rk",
+		"columns": [{"name": "a", "type": "TEXT", "not_null": true}, {"name": "b", "type": "TEXT", "not_null": true}], "primary_key": ["a", "b"]},
+		{"op": "widen_table", "table": "rk", "column": {"name": "c", "type": "TEXT"}, "value": "'x'"},
+		{"op": "widen_table", "table": "wk", "column": {"name": "c", "type": "TEXT"}, "value": "'x'"}]`), MigrateOptions{Try: true})
+	if err != nil || !slices.Equal(r.KeysChanged, []string{"rk", "rk", "wk"}) || !slices.Equal(r.KeysWidened, []string{"wk"}) {
+		t.Errorf("%v, keys %v, widened %v", err, r.KeysChanged, r.KeysWidened)
+	}
+	// A carried-over check goes through layer 1 again.
+	mustExec(t, p.DB, `CREATE TABLE odd (date TEXT PRIMARY KEY, v REAL CHECK (v > 0 OR sqlite_version() <> ''))`)
+	migrateFails(t, p, `[{"op": "widen_table", "table": "odd", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'"}]`,
+		"steps[0].table", `refuses the CHECK of "v"`)
+}
+
+// widen_table puts the new column in front of unique indexes and foreign
+// keys to the table itself, and refuses what it can't widen.
+func TestMigrateWidenRefs(t *testing.T) {
+	p, _ := openTestProject(t)
+	widen := func(table string) string {
+		return `[{"op": "widen_table", "table": "` + table + `", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'"}]`
+	}
+	// A unique index from create_index, with a collation.
+	mustExec(t, p.DB, `CREATE TABLE prices (date TEXT PRIMARY KEY, price REAL)`)
+	mustExec(t, p.DB, `CREATE UNIQUE INDEX by_date ON prices (date COLLATE NOCASE DESC)`)
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('d1', 1)`)
+	migrateOK(t, p, widen("prices"), MigrateOptions{Approved: true})
+	mustExec(t, p.DB, `INSERT INTO prices VALUES ('ETH', 'd1', 2)`)
+	if got := one[string](t, p.DB, `SELECT sql FROM sqlite_schema WHERE name = 'by_date'`); got != `CREATE UNIQUE INDEX "by_date" ON "prices" ("coin", "date" COLLATE "NOCASE" DESC)` {
+		t.Errorf("by_date %s", got)
+	}
+	mustExec(t, p.DB, `CREATE TABLE p2 (date TEXT PRIMARY KEY, price REAL)`)
+	mustExec(t, p.DB, `CREATE UNIQUE INDEX p2_big ON p2 (price) WHERE price > 10`)
+	migrateFails(t, p, widen("p2"), "steps[0].table", "unique index p2_big")
+	// A foreign key from another table, and one to the table itself.
+	mustExec(t, p.DB, `CREATE TABLE news (url TEXT PRIMARY KEY, parent TEXT REFERENCES news)`)
+	mustExec(t, p.DB, `CREATE TABLE notes (id INTEGER PRIMARY KEY, url TEXT REFERENCES news (url))`)
+	mustExec(t, p.DB, `INSERT INTO news VALUES ('u1', NULL), ('u2', 'u1')`)
+	mustExec(t, p.DB, `INSERT INTO notes VALUES (1, 'u2')`)
+	migrateFails(t, p, widen("news"), "steps[0].table", "rebuild_table notes before this step, with a coin column and the foreign key (coin, url)")
+	migrateOK(t, p, `[{"op": "rebuild_table", "table": "notes", "columns": [{"name": "id", "type": "INTEGER"}, {"name": "coin", "type": "TEXT"}, {"name": "url", "type": "TEXT"}],
+		"primary_key": ["id"], "foreign_keys": [{"columns": ["coin", "url"], "table": "news", "to": ["coin", "url"]}], "mapping": {"coin": "'BTC'"}},
+		{"op": "widen_table", "table": "news", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'"}]`, MigrateOptions{Approved: true})
+	if got := one[string](t, p.DB, `SELECT group_concat("from" || '>' || ifnull("to", '')) FROM pragma_foreign_key_list('news')`); got != "coin>,parent>" {
+		t.Errorf("news refers to itself by %s", got)
+	}
+	mustExec(t, p.DB, `PRAGMA foreign_key_check`)
+	// A rowid key.
+	mustExec(t, p.DB, `CREATE TABLE memos (id INTEGER PRIMARY KEY, text TEXT)`)
+	migrateFails(t, p, widen("memos"), "steps[0].table", "numbers new rows by itself")
 }
 
 func TestMigrateDropColumn(t *testing.T) {
@@ -302,9 +456,14 @@ func TestMigrateDropColumn(t *testing.T) {
 	if s := schemaSQL(t, p, "coins"); !strings.Contains(s, `"rank" INTEGER DEFAULT 0`) {
 		t.Errorf("coins %q", s)
 	}
-	// One with a CHECK can't be rebuilt from the schema.
-	mustExec(t, p.DB, `CREATE TABLE c2 (a TEXT PRIMARY KEY, b TEXT UNIQUE CHECK (b <> ''))`)
-	migrateFails(t, p, `[{"op": "drop_column", "table": "c2", "column": "b"}]`, "steps[0].column", "use rebuild_table")
+	// Column CHECKs are carried over; a table CHECK can't be.
+	mustExec(t, p.DB, `CREATE TABLE c2 (a TEXT PRIMARY KEY, b TEXT UNIQUE CHECK (b <> ''), "c ""x""" TEXT CHECK (length("c ""x""") < 9))`)
+	migrateOK(t, p, `[{"op": "drop_column", "table": "c2", "column": "b"}]`, MigrateOptions{Approved: true})
+	if s := schemaSQL(t, p, "c2"); !strings.Contains(s, `CHECK (length("c ""x""") < 9`) {
+		t.Errorf("c2 %q", s)
+	}
+	mustExec(t, p.DB, `CREATE TABLE c3 (a TEXT PRIMARY KEY, b TEXT UNIQUE, c TEXT, CONSTRAINT bc CHECK (b <> c))`)
+	migrateFails(t, p, `[{"op": "drop_column", "table": "c3", "column": "b"}]`, "steps[0].column", "use rebuild_table")
 }
 
 func TestMigrateDropTable(t *testing.T) {
@@ -550,7 +709,7 @@ func TestMigrateRollbackBytes(t *testing.T) {
 	m := steps(t, ethereumSteps)
 	m.Updates = ethereumUpdates()
 	// The eighth step fails in SQLite, after the seven before it ran.
-	m.Steps = append(m.Steps, json.RawMessage(`{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "INTEGER", "check": "x IS NOT NULL"}}`))
+	m.Steps = append(m.Steps, json.RawMessage(`{"op": "add_column", "table": "prices", "column": {"name": "x", "type": "INTEGER", "check": "x IS NOT NULL"}, "value": "NULL"}`))
 	r, err := p.Migrate(ctx, mig("eth"), m, MigrateOptions{Approved: true})
 	if !errors.Is(err, ErrInvalid) || !strings.Contains(fmt.Sprint(r.Problems), "steps[7]") || r.Steps[3].Rows != 1000 {
 		t.Fatalf("%v, problems %v, steps %+v", err, r.Problems, r.Steps)
@@ -594,7 +753,9 @@ func TestMigrateUndo(t *testing.T) {
 		Keys: []Row{{"coin": "BTC", "date": "d1"}}}); err != nil {
 		t.Fatal(err)
 	}
-	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "volume", "type": "REAL"}},
+	// A value for the old rows writes only the new column, so undo of the
+	// turns before passes (2.6).
+	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "volume", "type": "REAL"}, "value": "price * 10"},
 		{"op": "create_index", "table": "prices", "columns": ["volume"]}]`, MigrateOptions{})
 	if _, err := p.Update(ctx, limit.Interactive, msg("01VOL"), UpdateReq{Table: "prices", Set: Row{"volume": 5.0},
 		Keys: []Row{{"coin": "BTC", "date": "d1"}}}); err != nil {
@@ -602,13 +763,37 @@ func TestMigrateUndo(t *testing.T) {
 	}
 	undoOK(t, p, []id.Source{msg("01VOL")}, UndoOptions{})
 	undoOK(t, p, []id.Source{msg("01EDIT")}, UndoOptions{})
-	if got := dump(t, p, "prices"); got != "prices: [BTC d1 1 <nil> <nil>]" {
+	if got := dump(t, p, "prices"); got != "prices: [BTC d1 1 <nil> 20]" {
 		t.Errorf("after undo %s", got)
 	}
 	migrateOK(t, p, `[{"op": "rename_column", "table": "prices", "from": "note", "to": "memo"}]`, MigrateOptions{})
 	r, err := p.Undo(ctx, turn, UndoOptions{})
 	if !errors.Is(err, ErrUndoConflict) || len(r.Conflicts) != 1 || r.Conflicts[0].Reason != ConflictSchema {
 		t.Fatalf("%v, conflicts %+v", err, r.Conflicts)
+	}
+}
+
+// An add_column that writes the rows costs a copy or a rebuild of them.
+func TestMigrateEstimateAddColumn(t *testing.T) {
+	p := ethereumProject(t)
+	for _, tc := range []struct {
+		col, value string
+		rate       time.Duration
+	}{
+		{`{"name": "x", "type": "TEXT"}`, "NULL", 0},
+		{`{"name": "x", "type": "TEXT"}`, "'x'", rateCopy},
+		{`{"name": "x", "type": "TEXT", "not_null": true}`, "'x'", rateRebuild},
+	} {
+		r, err := p.Migrate(context.Background(), mig("add"), steps(t, `[{"op": "add_column", "table": "btc_prices", "column": `+tc.col+`, "value": "`+tc.value+`"}]`),
+			MigrateOptions{Try: true})
+		switch {
+		case err != nil:
+			t.Errorf("%s: %v", tc.value, err)
+		case tc.rate == 0 && (r.Estimate.Rows != 0 || r.Estimate.Bytes != 0):
+			t.Errorf("%s: estimate %+v", tc.value, r.Estimate)
+		case tc.rate != 0 && (r.Estimate.Rows != 1000 || r.Estimate.Time != 1000*tc.rate || r.Estimate.Bytes <= 0):
+			t.Errorf("%s %s: estimate %+v", tc.col, tc.value, r.Estimate)
+		}
 	}
 }
 
@@ -1052,18 +1237,18 @@ func TestMigrateAddColumnCheckFirst(t *testing.T) {
 	mustExec(t, p.DB, `INSERT INTO prices VALUES ('BTC', 'd1', 1, NULL)`)
 	mustExec(t, p.DB, `CREATE VIEW keys AS SELECT key FROM _jenab_objects`)
 	r := migrateFails(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "z", "type": "TEXT",
-		"check": "z IN (SELECT key FROM keys)"}}]`, "steps[0].column.check", "internal")
+		"check": "z IN (SELECT key FROM keys)"}, "value": "NULL"}]`, "steps[0].column.check", "internal")
 	if len(r.Steps[0].SQL) != 0 {
 		t.Errorf("ran %v", r.Steps[0].SQL)
 	}
 	mustExec(t, p.DB, `DROP VIEW keys`) // the schema guard refuses views
 	// The check sees the table's name and rowid, as it does in SQLite.
-	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "vol", "type": "REAL", "check": "prices.vol >= 0"}},
-		{"op": "add_column", "table": "prices", "column": {"name": "n", "type": "INTEGER", "check": "rowid > 0 AND n > 0"}}]`, MigrateOptions{})
+	migrateOK(t, p, `[{"op": "add_column", "table": "prices", "column": {"name": "vol", "type": "REAL", "check": "prices.vol >= 0"}, "value": "NULL"},
+		{"op": "add_column", "table": "prices", "column": {"name": "n", "type": "INTEGER", "check": "rowid > 0 AND n > 0"}, "value": "NULL"}]`, MigrateOptions{})
 	mustExec(t, p.DB, `CREATE TABLE w (k TEXT PRIMARY KEY NOT NULL) WITHOUT ROWID`)
 	mustExec(t, p.DB, `INSERT INTO w VALUES ('a')`)
-	migrateOK(t, p, `[{"op": "add_column", "table": "w", "column": {"name": "vol", "type": "REAL", "check": "w.vol >= 0"}}]`, MigrateOptions{})
-	migrateFails(t, p, `[{"op": "add_column", "table": "w", "column": {"name": "n", "type": "INTEGER", "check": "rowid > 0"}}]`,
+	migrateOK(t, p, `[{"op": "add_column", "table": "w", "column": {"name": "vol", "type": "REAL", "check": "w.vol >= 0"}, "value": "NULL"}]`, MigrateOptions{})
+	migrateFails(t, p, `[{"op": "add_column", "table": "w", "column": {"name": "n", "type": "INTEGER", "check": "rowid > 0"}, "value": "NULL"}]`,
 		"steps[0].column.check", "rowid")
 }
 

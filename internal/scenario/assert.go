@@ -54,6 +54,8 @@ var assertFields = map[string][]string{
 	"cache_read_share":    {"min"},
 	"grounding_fired":     nil, // SPIKE-032: the number check fired on an answer
 	"grounding_quiet":     nil, // and didn't
+	"db_query":            {"query", "match"},
+	"approval_shown":      {"match"},
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -103,8 +105,8 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		return Skip, "no tool was called", 0
 	case "tool_called", "tool_not_called":
 		var hit *event
-		for _, e := range rec.calls(a.Turn) {
-			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e.callID) {
+		for _, e := range rec.callsOf(a.Agent, a.Turn) {
+			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e) {
 				hit = &e
 				break
 			}
@@ -121,8 +123,8 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		return Pass, "", 0
 	case "max_calls":
 		n := 0
-		for _, e := range rec.calls("") {
-			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e.callID) {
+		for _, e := range rec.callsOf(a.Agent, "") {
+			if slices.Contains(tools, e.tool) && argsFit(a, e.args) && rec.resultFits(a, e) {
 				n++
 			}
 		}
@@ -274,19 +276,43 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		return st, why, share
 	case "grounding_fired", "grounding_quiet":
 		return rec.groundFired(a)
+	case "db_query":
+		return rec.dbCheck(a)
+	case "approval_shown":
+		re := regexp.MustCompile(a.Match)
+		in := rec.inTurns(a.Turn)
+		var seen []string
+		for _, e := range rec.events {
+			if e.kind != evApproval || !in(e.turn) {
+				continue
+			}
+			if re.MatchString(e.text) {
+				return Pass, clip(e.text, 160), 0
+			}
+			seen = append(seen, clip(e.text, 120))
+		}
+		if len(seen) == 0 {
+			return Fail, "no approval card", 0
+		}
+		return Fail, "no card matches: " + strings.Join(seen, " | "), 0
 	}
 	return Fail, "unknown assertion", 0
 }
 
-// resultFits reports whether the result of call callID matches
-// a.ResultMatch, with one line that matches every a.ResultLine; a call
-// without a result fits only when there are none.
-func (rec *record) resultFits(a Assert, callID string) bool {
+// resultFits reports whether the result of call matches a.ResultMatch,
+// with one line that matches every a.ResultLine; a call without a result
+// fits only when there are none. A subagent's call IDs are its own run's,
+// so its result is looked up under the same parent.
+func (rec *record) resultFits(a Assert, call event) bool {
 	if a.ResultMatch == "" && len(a.ResultLine) == 0 {
 		return true
 	}
-	for _, e := range rec.events {
-		if e.kind != evResult || e.callID != callID {
+	events := rec.events
+	if a.Agent != "" {
+		events = rec.sub
+	}
+	for _, e := range events {
+		if e.kind != evResult || e.callID != call.callID || e.agent != a.Agent || e.parent != call.parent {
 			continue
 		}
 		if a.ResultMatch != "" && !regexp.MustCompile(a.ResultMatch).MatchString(e.text) {
@@ -356,11 +382,19 @@ func (rec *record) finishTurns() []int {
 	return out
 }
 
-func (rec *record) calls(sel string) []event {
+func (rec *record) calls(sel string) []event { return rec.callsOf("", sel) }
+
+// callsOf are the calls of a subagent, or the chat's for "", in the turns
+// sel picks.
+func (rec *record) callsOf(agent, sel string) []event {
 	in := rec.inTurns(sel)
+	events := rec.events
+	if agent != "" {
+		events = rec.sub
+	}
 	var out []event
-	for _, e := range rec.events {
-		if e.kind == evCall && in(e.turn) {
+	for _, e := range events {
+		if e.kind == evCall && e.agent == agent && in(e.turn) {
 			out = append(out, e)
 		}
 	}

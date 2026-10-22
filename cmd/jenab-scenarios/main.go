@@ -318,9 +318,20 @@ func line(r scenario.Run) string {
 		}
 	}
 	if len(failed) > 0 {
-		return fmt.Sprintf("%s  fail in %s: %s", head, secs(r.Seconds), strings.Join(failed, ", "))
+		return fmt.Sprintf("%s  fail in %s%s: %s", head, secs(r.Seconds), reqs(r), strings.Join(failed, ", "))
 	}
-	return fmt.Sprintf("%s  pass in %s", head, secs(r.Seconds))
+	return fmt.Sprintf("%s  pass in %s%s", head, secs(r.Seconds), reqs(r))
+}
+
+// reqs is a run's requests, with the subagents' after a "+".
+func reqs(r scenario.Run) string {
+	switch {
+	case r.Requests == 0 && r.SubRequests == 0:
+		return ""
+	case r.SubRequests > 0:
+		return fmt.Sprintf(", %d+%d requests", r.Requests, r.SubRequests)
+	}
+	return fmt.Sprintf(", %d requests", r.Requests)
 }
 
 func secs(s float64) string { return (time.Duration(s*10) * time.Second / 10).String() }

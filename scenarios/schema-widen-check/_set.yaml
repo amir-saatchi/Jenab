@@ -1,0 +1,12 @@
+# P2-07, SPIKE-021 T4 as in schema-widen, on tables with column CHECKs
+# (price >= 0, a title that isn't empty), which must stay. The Bitcoin
+# project of 9.1, with 10 days of prices, 4 news and 2 keywords. There are
+# no pipelines or views yet (Phases 3 and 4), so the change is the
+# migration only. The checks read the project's database at the end, and
+# the approval card the runner approved.
+#
+# No fake tools: the real data tools and request_schema_change.
+title: Bitcoin tracker
+project_card: true
+today: 2026-10-01   # the day after the data ends
+data: data.sql

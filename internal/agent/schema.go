@@ -33,6 +33,10 @@ import (
 //go:embed prompts/schema.md
 var schemaPrompt string
 
+// Subagents are the names of the subagents the agent runs, as their
+// transcripts give them.
+var Subagents = []string{schemaAgent}
+
 const (
 	schemaAgent = "schema agent"
 	schemaTries = 5 // the first try and 4 more (8.2)
@@ -54,7 +58,7 @@ func requestSchemaChange() tool.Tool {
 	return tool.Func(tool.Spec{
 		Name: "request_schema_change",
 		Description: "Change the project's tables: create a table, add, rename or drop columns, add an index, or restructure or drop a table. " +
-			"Only this tool changes the schema. Give the goal in plain words: what the table holds, its columns and key, and any data to keep or move. " +
+			"Only this tool changes the schema. Give the goal in plain words: what the user wants, the names they gave, and any data to keep or move; the schema agent designs the rest. " +
 			"The schema agent writes the migration and tries it; the user approves it when it deletes data or the approval level asks. " +
 			"Returns applied with the migration and the tables as they are now, rejected with the reason, or the user's denial.",
 		Schema: json.RawMessage(`{
@@ -253,7 +257,7 @@ func (sc *schemaChange) applyTool() tool.Tool {
 					"type": "array", "minItems": 1,
 					"items": {
 						"type": "object",
-						"properties": {"op": {"type": "string", "enum": ["create_table", "add_column", "rename_table", "rename_column", "create_index", "drop_index", "annotate_column", "insert_rows", "copy_data", "rebuild_table", "drop_column", "drop_table"]}},
+						"properties": {"op": {"type": "string", "enum": ["create_table", "add_column", "rename_table", "rename_column", "create_index", "drop_index", "annotate_column", "insert_rows", "copy_data", "rebuild_table", "widen_table", "drop_column", "drop_table"]}},
 						"required": ["op"]
 					}
 				},
@@ -434,11 +438,26 @@ func (sc *schemaChange) card(steps []json.RawMessage, rep store.MigrationReport)
 		if a.Kind != "migration" {
 			a.Kind, a.Ask = "migration", "Apply a schema change that changes a primary key?"
 		}
-		keys := make([]string, len(rep.KeysChanged))
-		for i, t := range rep.KeysChanged {
-			keys[i] = fmt.Sprintf("%s (%s)", t, count(int(rep.LostRows[t]), "row", "rows"))
+		// A widened key keeps every row's key apart; another change may not.
+		var keys, wide, seen []string
+		for _, t := range rep.KeysChanged {
+			if slices.Contains(seen, t) {
+				continue
+			}
+			seen = append(seen, t)
+			k := fmt.Sprintf("%s (%s)", t, count(int(rep.LostRows[t]), "row", "rows"))
+			if slices.Contains(rep.KeysWidened, t) {
+				wide = append(wide, k)
+			} else {
+				keys = append(keys, k)
+			}
 		}
-		risk = append(risk, "It changes the primary key of "+strings.Join(keys, ", ")+". If two rows get the same key, it fails and nothing changes.")
+		if len(wide) > 0 {
+			risk = append(risk, "It puts a new column in front of the primary key of "+strings.Join(wide, ", ")+"; the rows keep their data.")
+		}
+		if len(keys) > 0 {
+			risk = append(risk, "It changes the primary key of "+strings.Join(keys, ", ")+". If two rows get the same key, it fails and nothing changes.")
+		}
 	}
 	if len(risk) > 0 {
 		a.Risk = strings.Join(risk, " ")
@@ -503,6 +522,9 @@ func stepList(rep store.MigrationReport, sql bool) string {
 		fmt.Fprintf(&b, "%d. %s", i+1, s.Op)
 		if s.Table != "" {
 			b.WriteString(" " + s.Table)
+		}
+		if s.To != "" && s.To != s.Table {
+			b.WriteString(" → " + s.To)
 		}
 		if s.Destructive {
 			b.WriteString(" (deletes data)")

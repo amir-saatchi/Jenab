@@ -182,6 +182,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 	}
 	if rec != nil {
 		out.Turns, out.Requests, out.Prompt, out.PeakPrompt, out.Output = rec.turns(), len(rec.requests), rec.prompt(), rec.peak(), rec.output()
+		out.SubRequests = rec.subRequests
 		u := rec.usage()
 		out.Input, out.CacheRead, out.CacheWrite = u.Input, u.CacheRead, u.CacheWrite
 		if e := rec.failure(); e != "" && out.Error == "" {

@@ -13,12 +13,13 @@ import (
 
 // Event kinds of a record, in the chat's order.
 const (
-	evUser   = "user"   // a user message's text
-	evNotice = "notice" // a notice part, such as turn_failed
-	evSkill  = "skill"  // the skill_loaded chip: a skill came into the chat
-	evText   = "text"   // the agent's text
-	evCall   = "call"   // a tool call
-	evResult = "result" // a tool result
+	evUser     = "user"     // a user message's text
+	evNotice   = "notice"   // a notice part, such as turn_failed
+	evSkill    = "skill"    // the skill_loaded chip: a skill came into the chat
+	evText     = "text"     // the agent's text
+	evCall     = "call"     // a tool call
+	evResult   = "result"   // a tool result
+	evApproval = "approval" // an approval card, with its answer
 )
 
 // event is one part of the chat, as the checks read it.
@@ -34,6 +35,8 @@ type event struct {
 	final  bool // text of an assistant message without tool calls
 	notice chat.NoticeKind
 	skill  string
+	agent  string // a subagent's name; "" for the chat
+	parent string // a subagent's event: the chat's call that ran it
 }
 
 // record is what a run did: the chat's parts and the requests' traces.
@@ -42,7 +45,15 @@ type record struct {
 	requests []agent.RequestTrace
 	reqTurn  []int // each request's turn
 	checks   []groundCheck
-	sc       *Scenario
+	// sub are the subagents' parts, read from their transcripts (8.6), in
+	// the order of the calls that ran them.
+	sub []event
+	// subRequests and subUsage are the subagents' requests.
+	subRequests int
+	subUsage    chat.Usage
+	// db are the answers of the db_query checks, by query and table regex.
+	db map[string][]dbAnswer
+	sc *Scenario
 	// grounding is the run's number check (SPIKE-032); nil is off.
 	grounding *GroundingSpec
 }
@@ -56,12 +67,12 @@ type groundCheck struct {
 
 // record reads the chat and its traces once the run is over.
 func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*record, error) {
-	p, err := r.pm.Open(ctx, r.pid)
+	proj, err := r.pm.Open(ctx, r.pid)
 	if err != nil {
 		return nil, err
 	}
-	defer p.Release()
-	ms, _, err := p.Chats.Messages(ctx, r.cid, 1, 0)
+	defer proj.Release()
+	ms, _, err := proj.Chats.Messages(ctx, r.cid, 1, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +99,13 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 			case p.ToolResult != nil:
 				e.kind, e.text, e.callID, e.err = evResult, p.ToolResult.Text, p.ToolResult.CallID, p.ToolResult.IsError
 				e.tool = rec.callTool(e.callID)
+				if strings.HasPrefix(p.ToolResult.Ref, subagentDir) {
+					if err := rec.readSub(ctx, proj, m.Turn, e.callID, p.ToolResult.Ref); err != nil {
+						return nil, err
+					}
+				}
+			case p.Approval != nil:
+				e.kind, e.text = evApproval, approvalText(p.Approval)
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillText:
 				continue // the skill's text, which the chip stands for
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillLoaded:
@@ -99,6 +117,9 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 			}
 			rec.events = append(rec.events, e)
 		}
+	}
+	if rec.db, err = r.dbQueries(ctx, proj); err != nil {
+		return nil, err
 	}
 	list := traces.List()
 	for _, t := range slices.Backward(list) {
@@ -201,6 +222,9 @@ func (rec *record) transcript() string {
 			}
 		case evCall:
 			fmt.Fprintf(&b, "\n> call %s %s\n", e.tool, clip(e.args, 600))
+			rec.subTranscript(&b, e.callID)
+		case evApproval:
+			fmt.Fprintf(&b, "\n> card %s\n", strings.ReplaceAll(clip(e.text, 1200), "\n", "\n> "))
 		case evResult:
 			mark := ""
 			if e.err {
@@ -212,6 +236,22 @@ func (rec *record) transcript() string {
 		}
 	}
 	rec.groundTranscript(&b)
+	if len(rec.db) > 0 {
+		b.WriteString("\n## Database at the end\n")
+		for _, a := range rec.sc.Asserts {
+			if a.Type != "db_query" {
+				continue
+			}
+			fmt.Fprintf(&b, "\n> %s\n", strings.ReplaceAll(strings.TrimSpace(a.Query), "\n", "\n> "))
+			for _, d := range rec.db[dbKey(a)] {
+				fmt.Fprintf(&b, "\n%s\n", d)
+			}
+		}
+	}
+	if rec.subRequests > 0 {
+		u := rec.subUsage
+		fmt.Fprintf(&b, "\nSubagent requests: %d (input %d, cache read %d, output %d)\n", rec.subRequests, u.Input, u.CacheRead, u.Output)
+	}
 	if len(rec.requests) > 0 {
 		fmt.Fprintf(&b, "\n## Requests\n\n| # | input | cache read | cache write | output | stop | took | error |\n|---|---|---|---|---|---|---|---|\n")
 		for i, q := range rec.requests {

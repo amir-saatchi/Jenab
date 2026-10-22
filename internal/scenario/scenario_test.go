@@ -76,6 +76,7 @@ func TestLoadErrors(t *testing.T) {
 		"assert extra field":       {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: answer_delivered, test: x, match_all: [a]}]\n"},
 		"assert bad turn":          {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: answer_delivered, test: x, turn: middle}]\n"},
 		"assert turn 0":            {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: answer_delivered, test: x, turn: \"0\"}]\n"},
+		"unknown subagent":         {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: max_calls, test: x, agent: schema agnet, tool: web_search, n: 1}]\n"},
 		"delay for no tool":        {"_set.yaml": tool, "a.yaml": sc + "delays: {fetch: 1s}\n"},
 		"bad duration":             {"_set.yaml": tool, "a.yaml": sc + "delays: {web_search: soon}\n"},
 		"bad skill":                {"_set.yaml": "skills: skills\n" + tool, "a.yaml": sc, "skills/x/SKILL.md": "no front matter"},

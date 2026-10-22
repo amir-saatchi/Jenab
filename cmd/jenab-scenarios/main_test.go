@@ -37,6 +37,8 @@ func TestLine(t *testing.T) {
 		{scenario.Run{Error: "p: 429\ntoo many", Seconds: 1.25}, "broke after 1.2s: p: 429 too many"},
 		{scenario.Run{Seconds: 3, Asserts: []scenario.Result{{Type: "tool_called", Status: scenario.Fail}, {Type: "no_repeat", Test: "info", Status: scenario.Fail}}}, "fail in 3s: tool_called"},
 		{scenario.Run{Seconds: 61}, "pass in 1m1s"},
+		{scenario.Run{Seconds: 5, Requests: 3}, "pass in 5s, 3 requests"},
+		{scenario.Run{Seconds: 5, Requests: 3, SubRequests: 2}, "pass in 5s, 3+2 requests"},
 	} {
 		if got := line(c.r); !strings.HasSuffix(got, c.want) {
 			t.Errorf("%q, want suffix %q", got, c.want)

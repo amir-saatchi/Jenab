@@ -1,0 +1,10 @@
+# P2-07, SPIKE-021 T1: the Bitcoin tables (SPEC 9.1), designed in a
+# conversation on a new, empty project. The main agent hands the goal to
+# the schema agent through request_schema_change; the checks read the
+# project's database at the end of the run.
+#
+# No fake tools: the real data tools and request_schema_change, whose
+# cards the runner approves.
+title: Bitcoin tracker
+project_card: true
+today: 2026-10-01

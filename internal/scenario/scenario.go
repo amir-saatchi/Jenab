@@ -270,6 +270,15 @@ type Assert struct {
 	Allow       []string `yaml:"allow"`
 	Min         float64  `yaml:"min"`  // cache_read_share: the least share, from 0 to 1
 	When        string   `yaml:"when"` // after_message: during or between (turns)
+	// Agent: for tool_called, tool_not_called and max_calls, the calls of
+	// that subagent, such as "schema agent", instead of the chat's.
+	Agent string `yaml:"agent"`
+	// Query: for db_query, SQL run on the project's database at the end of
+	// the run. With Table, a regex, it runs once per table whose name
+	// matches, with {table} replaced by the quoted name and {name} by the
+	// name as an SQL string, and one answer must match.
+	Query string `yaml:"query"`
+	Table string `yaml:"table"`
 	// Other holds fields only planned checks use.
 	Other map[string]any `yaml:",inline"`
 }
@@ -677,7 +686,16 @@ func (s *Set) checkAssert(a Assert) error {
 	if n, err := strconv.Atoi(a.Turn); !slices.Contains(turnNames, a.Turn) && (err != nil || n < 1) {
 		return fmt.Errorf("turn must be first, last, finish, any or a turn number")
 	}
-	for _, re := range slices.Concat([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch, a.ResultMatch}, a.ResultLine, a.Markers) {
+	if a.Agent != "" && !slices.Contains([]string{"tool_called", "tool_not_called", "max_calls"}, a.Type) {
+		return fmt.Errorf("agent is for tool_called, tool_not_called and max_calls")
+	}
+	if a.Agent != "" && !slices.Contains(agent.Subagents, a.Agent) {
+		return fmt.Errorf("unknown agent %q; the subagents are %s", a.Agent, strings.Join(agent.Subagents, ", "))
+	}
+	if (a.Query != "" || a.Table != "") && a.Type != "db_query" {
+		return fmt.Errorf("query and table are for db_query")
+	}
+	for _, re := range slices.Concat([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch, a.ResultMatch, a.Table}, a.ResultLine, a.Markers) {
 		if _, err := regexp.Compile(re); err != nil {
 			return err
 		}
@@ -690,7 +708,7 @@ func (s *Set) checkAssert(a Assert) error {
 	}
 	has := map[string]bool{
 		"match": a.Match != "", "tools": a.Tool != "" || len(a.Tools) > 0, "n": a.N > 0,
-		"skills": a.Skill != "" || len(a.Skills) > 0, "min": a.Min > 0,
+		"skills": a.Skill != "" || len(a.Skills) > 0, "min": a.Min > 0, "query": a.Query != "",
 	}
 	for _, f := range need {
 		if !has[f] {

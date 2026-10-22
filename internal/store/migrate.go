@@ -199,6 +199,7 @@ type MigrationReport struct {
 	Destructive   []int            `json:"destructive,omitempty"`  // the steps that drop data
 	Lost          []string         `json:"lost,omitempty"`         // what they drop: "table" or "table.column", in lower case
 	KeysChanged   []string         `json:"keys_changed,omitempty"` // the tables whose primary key changes, in lower case
+	KeysWidened   []string         `json:"keys_widened,omitempty"` // those whose key changes are all widen_table steps
 	LostRows      map[string]int64 `json:"lost_rows,omitempty"`    // the rows of those tables at the step, by lower-case name
 	Estimate      Estimate         `json:"estimate"`
 	Snapshot      string           `json:"snapshot,omitempty"` // taken before it, in snapshots/
@@ -210,6 +211,7 @@ type MigrationReport struct {
 type StepReport struct {
 	Op          string   `json:"op"`
 	Table       string   `json:"table,omitempty"`
+	To          string   `json:"to,omitempty"` // the new name of a renamed or widened table
 	Destructive bool     `json:"destructive,omitempty"`
 	SQL         []string `json:"sql,omitempty"`   // the statements Go chose
 	Rows        int64    `json:"rows,omitempty"`  // rows written
@@ -239,7 +241,7 @@ const (
 // Step ops (SPEC 8.2) and the fields each takes.
 var opFields = map[string][]string{
 	"create_table":    {"table", "columns", "primary_key", "unique", "foreign_keys"},
-	"add_column":      {"table", "column"},
+	"add_column":      {"table", "column", "value"},
 	"rename_table":    {"from", "to"},
 	"rename_column":   {"table", "from", "to"},
 	"create_index":    {"table", "columns", "name", "unique"},
@@ -248,12 +250,13 @@ var opFields = map[string][]string{
 	"insert_rows":     {"table", "rows"},
 	"copy_data":       {"into", "columns", "from"},
 	"rebuild_table":   {"table", "columns", "primary_key", "unique", "foreign_keys", "mapping"},
+	"widen_table":     {"table", "column", "value", "to"},
 	"drop_column":     {"table", "column"},
 	"drop_table":      {"table"},
 }
 
 var opNames = []string{"create_table", "add_column", "rename_table", "rename_column", "create_index", "drop_index",
-	"annotate_column", "insert_rows", "copy_data", "rebuild_table", "drop_column", "drop_table"}
+	"annotate_column", "insert_rows", "copy_data", "rebuild_table", "widen_table", "drop_column", "drop_table"}
 
 // Limits of a step.
 const (
@@ -305,8 +308,8 @@ type step struct {
 	op, path string
 	table    string // the table it works on: into for copy_data, from for rename_table
 	def      *tableDef
-	col      *columnDef // add_column
-	from, to string     // renames
+	col      *columnDef // add_column, widen_table
+	from, to string     // renames; widen_table's new name, if any
 	column   string     // annotate_column, drop_column
 	cols     []string   // create_index, copy_data
 	name     string     // create_index, drop_index
@@ -315,6 +318,7 @@ type step struct {
 	rows     []map[string]any
 	query    string            // copy_data
 	mapping  map[string]string // rebuild_table: new column → expression over the old columns
+	value    string            // add_column, widen_table: the old rows' value of the new column, as SQL
 	raw      json.RawMessage
 	est      int64 // rows the planner expects a copy or rebuild to read, for its deadline
 }
@@ -512,6 +516,11 @@ func parseSteps(raws []json.RawMessage) ([]*step, []Problem) {
 						p.add(at, "the new table has no column %q", c)
 					case s.mapping[s.def.cols[i].name] != "":
 						p.add(at, "the column %q has a mapping already", s.def.cols[i].name)
+					case s.def.cols[i].dflt != "":
+						// SPEC 8.2: a default never labels the old rows; it
+						// would also label new rows that lack a value.
+						p.add(fmt.Sprintf("%s[%d].default", o.at("columns"), i),
+							"the mapping gives the old rows of %q their values; leave out the default, which would also label new rows that lack one", s.def.cols[i].name)
 					default:
 						s.mapping[s.def.cols[i].name] = raw[c]
 					}
@@ -523,6 +532,9 @@ func parseSteps(raws []json.RawMessage) ([]*step, []Problem) {
 				s.col = p.columnDef(o.at("column"), o.m["column"])
 			} else {
 				p.add(o.at("column"), "is required")
+			}
+			if s.value = o.str("value", false); s.value != "" {
+				p.checkExpr(o.at("value"), s.value)
 			}
 		case "rename_table":
 			s.from, s.to = o.str("from", true), o.str("to", true)
@@ -576,6 +588,31 @@ func parseSteps(raws []json.RawMessage) ([]*step, []Problem) {
 				} else if ps, err := sqlguard.Params(s.query); err == nil && len(ps) > 0 {
 					p.add(o.at("from"), "the query can't have parameters such as %s; write the values into it", ps[0].Name)
 				}
+			}
+		case "widen_table":
+			s.table = o.str("table", true)
+			if o.has("column") {
+				s.col = p.columnDef(o.at("column"), o.m["column"])
+			} else {
+				p.add(o.at("column"), "is required")
+			}
+			if s.col != nil {
+				// A key column: every row has one, and new rows set theirs
+				// (SPEC 8.2: no default labels rows).
+				s.col.notNull = true
+				if s.col.dflt != "" {
+					p.add(o.at("column.default"), "a widened key has no default; the old rows get value, and new rows set the column")
+				}
+				if s.col.typ == "BLOB" {
+					p.add(o.at("column.type"), "the column joins the key, so it can't be a BLOB; keys are TEXT, INTEGER or REAL")
+				}
+			}
+			s.value = o.str("value", true)
+			if s.value != "" {
+				p.checkExpr(o.at("value"), s.value)
+			}
+			if s.to = o.str("to", false); s.to != "" {
+				p.checkName(o.at("to"), s.to)
 			}
 		case "drop_column":
 			s.table, s.column = o.str("table", true), o.str("column", true)
@@ -816,6 +853,8 @@ type planner struct {
 	destruct []int
 	lost     []string // what the destructive steps drop: "table" or "table.column"
 	keys     []string // the tables whose primary key changes
+	widened  []string // those changed by widen_table
+	rekeyed  []string // those changed by another step
 	rows     map[string]int64
 }
 
@@ -976,8 +1015,23 @@ func (pl *planner) step(i int, s *step) error {
 		if _, ok := t.col(s.col.name); ok {
 			pl.add(s.path+".column.name", "the table %q already has a column %q", t.name, s.col.name)
 		}
+		if t.rows > 0 && s.value == "" && s.col.dflt == "" {
+			// SPEC 8.2: old rows get their values explicitly.
+			pl.add(s.path+".value", "the table %q has %s: give them their %s with value, an SQL expression such as 'BTC', or NULL. "+
+				"If %s tells rows apart and belongs in the key, use widen_table instead", t.name, plural(int(t.rows), "row", "rows"), s.col.name, s.col.name)
+		}
 		t.cols = append(t.cols, s.col.name)
-		if s.col.check != "" || s.col.notNull {
+		switch {
+		case s.col.notNull && s.col.dflt == "":
+			// The run rebuilds the table.
+			s.est = t.rows
+			pl.cost(t.rows, rateRebuild, t.bytes)
+		case s.value != "" && !strings.EqualFold(strings.TrimSpace(s.value), "NULL"):
+			// The run updates every row.
+			s.est = t.rows
+			pl.cost(t.rows, rateCopy, t.bytes)
+		case s.col.check != "" || s.col.notNull:
+			// SQLite checks the rows as it adds the column.
 			pl.cost(t.rows, rateScan, 0)
 		}
 	case "rename_table":
@@ -1070,12 +1124,42 @@ func (pl *planner) step(i int, s *step) error {
 		}
 		if !slices.EqualFunc(t.key, s.def.key, strings.EqualFold) {
 			pl.keys = append(pl.keys, strings.ToLower(t.name))
+			pl.rekeyed = append(pl.rekeyed, strings.ToLower(t.name))
 			pl.counts(t)
 		}
 		t.key = s.def.key
 		t.cols = nil
 		for _, c := range s.def.cols {
 			t.cols = append(t.cols, c.name)
+		}
+		s.est = t.rows
+		pl.cost(t.rows, rateRebuild, t.bytes)
+	case "widen_table":
+		t, err := pl.need(s.path+".table", s.table)
+		if t == nil || s.col == nil {
+			return err
+		}
+		if c, ok := t.col(s.col.name); ok {
+			pl.add(s.path+".column.name", "the table %q already has a column %q", t.name, c)
+			return nil
+		}
+		if s.to != "" && !strings.EqualFold(s.to, t.name) {
+			if u, err := pl.get(s.to); err != nil {
+				return err
+			} else if u != nil {
+				pl.add(s.path+".to", "the table %q already exists", u.name)
+				return nil
+			}
+		}
+		pl.keys = append(pl.keys, strings.ToLower(t.name))
+		pl.widened = append(pl.widened, strings.ToLower(t.name))
+		pl.counts(t)
+		t.key = append([]string{s.col.name}, t.key...)
+		t.cols = append([]string{s.col.name}, t.cols...)
+		if s.to != "" {
+			pl.tables[strings.ToLower(t.name)] = nil
+			t.name = s.to
+			pl.tables[strings.ToLower(s.to)] = t
 		}
 		s.est = t.rows
 		pl.cost(t.rows, rateRebuild, t.bytes)
@@ -1173,6 +1257,9 @@ func (p *ProjectDB) Migrate(ctx context.Context, src id.Source, m Migration, o M
 	}
 	for _, s := range steps {
 		rep.Steps = append(rep.Steps, StepReport{Op: s.op, Table: s.table})
+		if s.op == "rename_table" || s.op == "widen_table" {
+			rep.Steps[len(rep.Steps)-1].To = s.to
+		}
 	}
 	if len(probs) > 0 {
 		rep.Problems = probs
@@ -1262,6 +1349,12 @@ func plan(ctx context.Context, tx *sql.Tx, steps []*step) (*planner, error) {
 func (pl *planner) report(rep *MigrationReport) {
 	rep.Estimate, rep.Destructive, rep.Lost = pl.est, pl.destruct, pl.lost
 	rep.KeysChanged, rep.LostRows = pl.keys, pl.rows
+	rep.KeysWidened = nil
+	for _, t := range pl.widened {
+		if !slices.Contains(pl.rekeyed, t) && !slices.Contains(rep.KeysWidened, t) {
+			rep.KeysWidened = append(rep.KeysWidened, t)
+		}
+	}
 	for i := range rep.Steps {
 		rep.Steps[i].Destructive = slices.Contains(pl.destruct, i)
 	}
@@ -1648,10 +1741,6 @@ func (r *run) step(s *step) error {
 		if err != nil {
 			return err
 		}
-		if s.col.notNull && s.col.dflt == "" {
-			return problem("column.default", "SQLite needs a default to add a NOT NULL column to a table; "+
-				"add it without not_null, or use rebuild_table with a mapping that gives the rows their values")
-		}
 		// SQLite runs the check on the rows as it adds the column, so
 		// layer 2 sees it first, over the rows with the new column, under
 		// the table's name and with its rowid.
@@ -1667,48 +1756,32 @@ func (r *run) step(s *step) error {
 		if err := r.explainChecks("column", from, []columnDef{*s.col}); err != nil {
 			return err
 		}
+		if s.col.notNull && s.col.dflt == "" {
+			// SQLite adds a NOT NULL column only with a default, so the
+			// table is rebuilt with the column last and value in it.
+			return r.addRebuilt(t, old, s)
+		}
 		if _, err := r.exec("ALTER TABLE " + quote(t) + " ADD COLUMN " + s.col.sql()); err != nil {
 			return err
 		}
 		r.mark(t, false)
+		// NULL leaves the rows as ALTER TABLE made them.
+		if s.value != "" && !strings.EqualFold(strings.TrimSpace(s.value), "NULL") {
+			n, err := r.guarded("value", "SELECT ("+s.value+"\n) FROM "+quote(t),
+				"UPDATE "+quote(t)+" SET "+quote(s.col.name)+" = ("+s.value+"\n)", r.rows(t))
+			if err != nil {
+				return err
+			}
+			// The old columns keep their values, so undo can pass (2.6).
+			r.cur.Rows = n
+			r.written[t] = true
+		}
 	case "rename_table":
 		t, err := r.table("from", s.from)
 		if err != nil {
 			return err
 		}
-		if u, err := r.table("", s.to); err == nil && !strings.EqualFold(u, t) {
-			return problem("to", "the table %q already exists", u)
-		}
-		if t == s.to {
-			return problem("to", "the table is named %q already", t)
-		}
-		if strings.EqualFold(t, s.to) {
-			// SQLite takes a new name that differs only in case for one
-			// that is taken, so the rename goes through another name.
-			mid, err := r.freeName(t + "_rename")
-			if err != nil {
-				return err
-			}
-			if _, err := r.exec("ALTER TABLE " + quote(t) + " RENAME TO " + quote(mid)); err != nil {
-				return err
-			}
-			if _, err := r.exec("ALTER TABLE " + quote(mid) + " RENAME TO " + quote(s.to)); err != nil {
-				return err
-			}
-		} else if _, err := r.exec("ALTER TABLE " + quote(t) + " RENAME TO " + quote(s.to)); err != nil {
-			return err
-		}
-		if _, err := r.tx.ExecContext(r.ctx, `UPDATE _jenab_columns SET table_name = ? WHERE table_name = ? COLLATE NOCASE`, s.to, t); err != nil {
-			return err
-		}
-		r.mark(t, true)
-		r.mark(s.to, true)
-		for _, m := range []map[string]bool{r.written, r.made} {
-			if m[t] {
-				delete(m, t)
-				m[s.to] = true
-			}
-		}
+		return r.renameTable(t, s.to)
 	case "rename_column":
 		t, err := r.table("table", s.table)
 		if err != nil {
@@ -1757,6 +1830,8 @@ func (r *run) step(s *step) error {
 			return err
 		}
 		return r.rebuild(t, s.def, s.mapping)
+	case "widen_table":
+		return r.widen(s)
 	case "drop_column":
 		return r.dropColumn(s)
 	case "drop_table":
@@ -2045,6 +2120,290 @@ func (r *run) checkObjectRefs(field, t string) error {
 	return nil
 }
 
+// widen rebuilds a table for a wider goal (SPEC 8.2): the new column
+// leads the primary key, every UNIQUE constraint and unique index, and
+// the table's foreign keys to itself; the old rows get value, and the
+// other columns, checks, foreign keys and indexes stay. With to, the
+// table is renamed too.
+func (r *run) widen(s *step) (err error) {
+	defer func() { err = stepPaths(err, 0) }()
+	t, err := r.table("table", s.table)
+	if err != nil {
+		return err
+	}
+	old, err := describe(r.ctx, r.tx, t, false)
+	if err != nil {
+		return err
+	}
+	col := s.col.name
+	if c, ok := old.Column(col); ok {
+		return problem("column.name", "the table %q already has a column %q", t, c.Name)
+	}
+	if len(old.Key) == 0 {
+		return problem("table", "the table %q has no primary key to widen; use rebuild_table with the new key", t)
+	}
+	if k, _ := old.Column(old.Key[0]); len(old.Key) == 1 && !old.WithoutRowid && strings.EqualFold(k.Type, "INTEGER") {
+		// (col, id) would be a plain key, and new rows would need an id.
+		return problem("table", "the key %s of %q numbers new rows by itself, which a wider key would stop; add %s with add_column and a unique index (%s, %s) instead",
+			k.Name, t, col, col, k.Name)
+	}
+	d, why, err := r.defFromSchema(old)
+	if err != nil {
+		return err
+	}
+	if d == nil {
+		return problem("table", "Go can't widen %q: %s; use rebuild_table with the whole new definition", t, why)
+	}
+	// The new column's CHECK, over the old rows, before SQLite sees it.
+	from := "(SELECT *, NULL AS " + quote(col) + " FROM " + quote(t) + ") AS " + quote(t)
+	if err := r.explainChecks("column", from, []columnDef{*s.col}); err != nil {
+		return err
+	}
+	wide := func(cols []string) []string { return append([]string{col}, cols...) }
+	d.cols = append([]columnDef{*s.col}, d.cols...)
+	d.key = wide(d.key)
+	for i, u := range d.unique {
+		d.unique[i] = wide(u)
+	}
+	for i, f := range d.fks {
+		if strings.EqualFold(f.table, t) {
+			d.fks[i].cols = wide(f.cols)
+			if len(f.to) > 0 {
+				d.fks[i].to = wide(f.to)
+			}
+		}
+	}
+	indexes, err := r.uniqueIndexes(t)
+	if err != nil {
+		return err
+	}
+	unique := slices.Clone(d.unique)
+	for _, ix := range indexes {
+		unique = append(unique, wide(ix.names))
+	}
+	if err := r.refsFit(t, col, d.key, unique); err != nil {
+		return err
+	}
+	// The rebuild would make the unique indexes again as they are.
+	for _, ix := range indexes {
+		if _, err := r.exec("DROP INDEX " + quote(ix.name)); err != nil {
+			return err
+		}
+	}
+	if err := r.rebuild(t, d, map[string]string{col: s.value}); err != nil {
+		return err
+	}
+	for _, ix := range indexes {
+		if _, err := r.exec("CREATE UNIQUE INDEX " + quote(ix.name) + " ON " + quote(t) + " (" + quote(col) + ", " + strings.Join(ix.cols, ", ") + ")"); err != nil {
+			return err
+		}
+	}
+	if s.to == "" || s.to == t {
+		return nil
+	}
+	return r.renameTable(t, s.to)
+}
+
+// addRebuilt adds a NOT NULL column without a default: it rebuilds t with
+// the column last and value for the old rows.
+func (r *run) addRebuilt(t string, old Table, s *step) (err error) {
+	defer func() { err = stepPaths(err, len(old.Columns)) }()
+	d, why, err := r.defFromSchema(old)
+	if err != nil {
+		return err
+	}
+	if d == nil {
+		return problem("table", "Go can't add a NOT NULL column to %q without a default: %s; use rebuild_table with the whole new definition", t, why)
+	}
+	value := s.value
+	if value == "" {
+		value = "NULL"
+	}
+	d.cols = append(d.cols, *s.col)
+	return r.rebuild(t, d, map[string]string{s.col.name: value})
+}
+
+// stepPaths moves the problems of a widen's or an add's rebuild to the
+// step's fields: the new column, columns[i], is column, the old ones are
+// the table's, and the mapping is value.
+func stepPaths(err error, col int) error {
+	var me *MigrationError
+	if !errors.As(err, &me) {
+		return err
+	}
+	at := fmt.Sprintf("columns[%d]", col)
+	for i, pr := range me.Problems {
+		switch {
+		case pr.Path == "mapping":
+			me.Problems[i].Path = "value"
+			me.Problems[i].Msg = strings.ReplaceAll(pr.Msg, "give the column a value for the old rows in the mapping", "value must give every old row a value, not NULL")
+		case strings.HasPrefix(pr.Path, at):
+			me.Problems[i].Path = "column" + strings.TrimPrefix(pr.Path, at)
+		case strings.HasPrefix(pr.Path, "columns["):
+			me.Problems[i].Path = "table"
+		}
+	}
+	return err
+}
+
+// widenIndex is a unique index made by create_index: its columns as
+// SQL, with their collation and order, and their names.
+type widenIndex struct {
+	name        string
+	cols, names []string
+}
+
+// uniqueIndexes returns t's unique indexes from create_index. One with a
+// WHERE or an expression is a problem: Go can't put a column in front.
+func (r *run) uniqueIndexes(t string) ([]widenIndex, error) {
+	type entry struct {
+		name    string
+		partial bool
+	}
+	list, err := queryTxContext(r.ctx, r.tx, `SELECT name, partial FROM pragma_index_list(?) WHERE origin = 'c' AND "unique" = 1 ORDER BY name`,
+		[]any{t}, func(rs *sql.Rows) (entry, error) {
+			var e entry
+			return e, rs.Scan(&e.name, &e.partial)
+		})
+	if err != nil {
+		return nil, err
+	}
+	var out []widenIndex
+	for _, e := range list {
+		type part struct {
+			cid        int
+			name, coll string
+			desc       bool
+		}
+		parts, err := queryTxContext(r.ctx, r.tx, `SELECT cid, coalesce(name, ''), coll, "desc" FROM pragma_index_xinfo(?) WHERE key = 1 ORDER BY seqno`,
+			[]any{e.name}, func(rs *sql.Rows) (part, error) {
+				var p part
+				return p, rs.Scan(&p.cid, &p.name, &p.coll, &p.desc)
+			})
+		if err != nil {
+			return nil, err
+		}
+		if e.partial || slices.ContainsFunc(parts, func(p part) bool { return p.cid < 0 }) {
+			return nil, problem("table", "the unique index %s of %q has a WHERE or an expression, so Go can't widen it; drop it with drop_index before this step, and create the index you need after it", e.name, t)
+		}
+		ix := widenIndex{name: e.name}
+		for _, p := range parts {
+			c := quote(p.name)
+			if !strings.EqualFold(p.coll, "BINARY") {
+				c += " COLLATE " + quote(p.coll)
+			}
+			if p.desc {
+				c += " DESC"
+			}
+			ix.cols, ix.names = append(ix.cols, c), append(ix.names, p.name)
+		}
+		out = append(out, ix)
+	}
+	return out, nil
+}
+
+// refsFit reports the foreign keys of other tables to t that would match
+// no key once t is widened with col: key is t's new primary key, unique
+// its new unique column lists. A foreign key rebuilt for the new key in
+// an earlier step fits.
+func (r *run) refsFit(t, col string, key []string, unique [][]string) error {
+	tables, err := listAgentTables(r.ctx, r.tx)
+	if err != nil {
+		return err
+	}
+	same := func(a, b []string) bool {
+		return len(a) == len(b) && !slices.ContainsFunc(a, func(x string) bool {
+			return !slices.ContainsFunc(b, func(y string) bool { return strings.EqualFold(x, y) })
+		})
+	}
+	type ref struct {
+		id   int
+		from string
+		to   sql.NullString
+	}
+	var probs []Problem
+	for _, u := range tables {
+		if strings.EqualFold(u, t) {
+			continue
+		}
+		refs, err := queryTxContext(r.ctx, r.tx, `SELECT id, "from", "to" FROM pragma_foreign_key_list(?) WHERE "table" = ? COLLATE NOCASE ORDER BY id, seq`,
+			[]any{u, t}, func(rs *sql.Rows) (ref, error) {
+				var x ref
+				return x, rs.Scan(&x.id, &x.from, &x.to)
+			})
+		if err != nil {
+			return err
+		}
+		for i := 0; i < len(refs); {
+			var from, to []string
+			j := i
+			for ; j < len(refs) && refs[j].id == refs[i].id; j++ {
+				from = append(from, refs[j].from)
+				if refs[j].to.Valid {
+					to = append(to, refs[j].to.String)
+				}
+			}
+			i = j
+			fits := len(to) == 0 && len(from) == len(key) ||
+				len(to) > 0 && (same(to, key) || slices.ContainsFunc(unique, func(k []string) bool { return same(to, k) }))
+			if !fits {
+				probs = append(probs, Problem{Path: "table", Msg: fmt.Sprintf(
+					"the foreign key (%s) of %s points to %q and would match no key after the widen; rebuild_table %s before this step, with a %s column and the foreign key (%s, %s)",
+					strings.Join(from, ", "), u, t, u, col, col, strings.Join(from, ", "))})
+			}
+		}
+	}
+	if len(probs) > 0 {
+		return &MigrationError{Problems: probs}
+	}
+	return nil
+}
+
+// renameTable renames table t to to, with its annotations.
+func (r *run) renameTable(t, to string) error {
+	if u, err := r.table("", to); err == nil && !strings.EqualFold(u, t) {
+		return problem("to", "the table %q already exists", u)
+	}
+	if t == to {
+		return problem("to", "the table is named %q already", t)
+	}
+	var kind string
+	err := r.tx.QueryRowContext(r.ctx, `SELECT type FROM sqlite_schema WHERE name = ? COLLATE NOCASE AND type <> 'table'`, to).Scan(&kind)
+	if err == nil {
+		return problem("to", "the name %q is taken (%s)", to, kind)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if strings.EqualFold(t, to) {
+		// SQLite takes a new name that differs only in case for one
+		// that is taken, so the rename goes through another name.
+		mid, err := r.freeName(t + "_rename")
+		if err != nil {
+			return err
+		}
+		if _, err := r.exec("ALTER TABLE " + quote(t) + " RENAME TO " + quote(mid)); err != nil {
+			return err
+		}
+		if _, err := r.exec("ALTER TABLE " + quote(mid) + " RENAME TO " + quote(to)); err != nil {
+			return err
+		}
+	} else if _, err := r.exec("ALTER TABLE " + quote(t) + " RENAME TO " + quote(to)); err != nil {
+		return err
+	}
+	if _, err := r.tx.ExecContext(r.ctx, `UPDATE _jenab_columns SET table_name = ? WHERE table_name = ? COLLATE NOCASE`, to, t); err != nil {
+		return err
+	}
+	r.mark(t, true)
+	r.mark(to, true)
+	for _, m := range []map[string]bool{r.written, r.made} {
+		if m[t] {
+			delete(m, t)
+			m[to] = true
+		}
+	}
+	return nil
+}
+
 // rebuild replaces table t with one defined by d, following SQLite's
 // documented procedure (SPEC 7.5): create the new table, copy the rows,
 // drop the old one, rename the new one, and create the indexes again
@@ -2109,7 +2468,9 @@ func (r *run) rebuild(t string, d *tableDef, mapping map[string]string) error {
 			r.rows(t))
 		if err != nil {
 			if strings.Contains(err.Error(), "NOT NULL") {
-				return problem("mapping", "%s: give the column a value for the old rows in the mapping", sqliteMsg(err))
+				// SQLite names the new table, which the step never named.
+				msg := strings.ReplaceAll(sqliteMsg(err), tmp+".", t+".")
+				return problem("mapping", "%s: give the column a value for the old rows in the mapping", msg)
 			}
 			return err
 		}
@@ -2304,20 +2665,181 @@ func sqlWords(s string) map[string]bool {
 	return out
 }
 
+// sqlToken is a token of a CREATE TABLE statement: a word, a quoted name
+// or string, or one other character. Spaces and comments are left out.
+type sqlToken struct {
+	text       string
+	start, end int
+	quoted     bool
+}
+
+func sqlTokens(s string) []sqlToken {
+	var out []sqlToken
+	for i := 0; i < len(s); {
+		c := s[i]
+		switch {
+		case c == '\'' || c == '"' || c == '`' || c == '[':
+			end := c
+			if c == '[' {
+				end = ']'
+			}
+			j := i + 1
+			for j < len(s) {
+				if s[j] == end {
+					if end != ']' && j+1 < len(s) && s[j+1] == end {
+						j += 2 // a doubled quote
+						continue
+					}
+					break
+				}
+				j++
+			}
+			if j >= len(s) {
+				return out
+			}
+			out = append(out, sqlToken{s[i : j+1], i, j + 1, true})
+			i = j + 1
+		case strings.HasPrefix(s[i:], "--"):
+			j := strings.IndexByte(s[i:], '\n')
+			if j < 0 {
+				return out
+			}
+			i += j
+		case strings.HasPrefix(s[i:], "/*"):
+			j := strings.Index(s[i+2:], "*/")
+			if j < 0 {
+				return out
+			}
+			i += j + 4
+		case c == ' ' || c == '\t' || c == '\n' || c == '\r':
+			i++
+		case c == '_' || c >= 0x80 || unicode.IsLetter(rune(c)) || unicode.IsDigit(rune(c)):
+			j := i
+			for j < len(s) && (s[j] == '_' || s[j] >= 0x80 || unicode.IsLetter(rune(s[j])) || unicode.IsDigit(rune(s[j]))) {
+				j++
+			}
+			out = append(out, sqlToken{s[i:j], i, j, false})
+			i = j
+		default:
+			out = append(out, sqlToken{s[i : i+1], i, i + 1, false})
+			i++
+		}
+	}
+	return out
+}
+
+// unquoteName is a quoted name's text.
+func unquoteName(t sqlToken) string {
+	if !t.quoted {
+		return t.text
+	}
+	q, in := t.text[0], t.text[1:len(t.text)-1]
+	if q == '[' {
+		return in
+	}
+	return strings.ReplaceAll(in, string(q)+string(q), string(q))
+}
+
+// columnChecks reads the column CHECK constraints of a CREATE TABLE
+// statement, by column name in lower case; two on one column are joined
+// with AND. A table CHECK, which a tableDef can't hold, gives ok false.
+func columnChecks(ddl string) (checks map[string]string, ok bool) {
+	toks := sqlTokens(ddl)
+	open := slices.IndexFunc(toks, func(t sqlToken) bool { return t.text == "(" && !t.quoted })
+	if open < 0 {
+		return nil, false
+	}
+	checks = map[string]string{}
+	// closing returns the index of the ")" that closes the "(" at i.
+	closing := func(i int) int {
+		depth := 0
+		for ; i < len(toks); i++ {
+			switch {
+			case toks[i].quoted:
+			case toks[i].text == "(":
+				depth++
+			case toks[i].text == ")":
+				if depth--; depth == 0 {
+					return i
+				}
+			}
+		}
+		return -1
+	}
+	end := closing(open)
+	if end < 0 {
+		return nil, false
+	}
+	for i := open + 1; i < end; {
+		// One column definition or table constraint, up to a comma at
+		// this depth.
+		j := i
+		var parts [][2]int // the CHECK expressions, as token ranges
+		for j < end && (toks[j].quoted || toks[j].text != ",") {
+			if toks[j].quoted || toks[j].text != "(" {
+				if !toks[j].quoted && strings.EqualFold(toks[j].text, "CHECK") && j+1 < end && toks[j+1].text == "(" && !toks[j+1].quoted {
+					c := closing(j + 1)
+					if c < 0 {
+						return nil, false
+					}
+					parts = append(parts, [2]int{j + 1, c})
+					j = c + 1
+					continue
+				}
+				j++
+				continue
+			}
+			c := closing(j)
+			if c < 0 {
+				return nil, false
+			}
+			j = c + 1
+		}
+		first := toks[i]
+		if !first.quoted && slices.ContainsFunc([]string{"CONSTRAINT", "PRIMARY", "UNIQUE", "CHECK", "FOREIGN"}, func(w string) bool { return strings.EqualFold(w, first.text) }) {
+			if len(parts) > 0 {
+				return nil, false
+			}
+		} else if len(parts) > 0 {
+			var exprs []string
+			for _, p := range parts {
+				exprs = append(exprs, strings.TrimSpace(ddl[toks[p[0]].end:toks[p[1]].start]))
+			}
+			e := exprs[0]
+			if len(exprs) > 1 {
+				e = "(" + strings.Join(exprs, "\n) AND (") + "\n)"
+			}
+			checks[strings.ToLower(unquoteName(first))] = e
+		}
+		i = j + 1
+	}
+	return checks, true
+}
+
 // defFromSchema reads t's definition back from the schema for a rebuild.
-// Parts the pragmas don't show, such as CHECK constraints, collations,
-// generated and AUTOINCREMENT columns, deferred or MATCH foreign keys and
-// ON CONFLICT clauses, would be lost, so a table with any gets no
-// definition, and why.
+// Column CHECKs come from the CREATE TABLE statement. Other parts the
+// pragmas don't show, such as table CHECKs, collations, generated and
+// AUTOINCREMENT columns, deferred or MATCH foreign keys and ON CONFLICT
+// clauses, would be lost, so a table with any gets no definition, and
+// why.
 func (r *run) defFromSchema(t Table) (*tableDef, string, error) {
 	var text string
 	if err := r.tx.QueryRowContext(r.ctx, `SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?`, t.Name).Scan(&text); err != nil {
 		return nil, "", err
 	}
 	words := sqlWords(text)
-	for _, w := range []string{"CHECK", "COLLATE", "GENERATED", "AUTOINCREMENT", "DEFERRABLE", "MATCH", "CONFLICT", "DESC"} {
+	for _, w := range []string{"COLLATE", "GENERATED", "AUTOINCREMENT", "DEFERRABLE", "MATCH", "CONFLICT", "DESC"} {
 		if words[w] {
 			return nil, "its definition has " + w + ", which Go can't carry over", nil
+		}
+	}
+	checks, ok := columnChecks(text)
+	if !ok {
+		return nil, "its definition has a table CHECK, which Go can't carry over", nil
+	}
+	for c, e := range checks {
+		if len(e) > maxExpr || sqlguard.CheckExpr(e) != nil {
+			return nil, fmt.Sprintf("Go refuses the CHECK of %q", c), nil
 		}
 	}
 	d := &tableDef{key: t.Key, withoutRowid: t.WithoutRowid, strict: t.Strict}
@@ -2325,7 +2847,7 @@ func (r *run) defFromSchema(t Table) (*tableDef, string, error) {
 		if c.Generated {
 			return nil, "it has generated columns", nil
 		}
-		cd := columnDef{name: c.Name, typ: c.Type, notNull: c.NotNull}
+		cd := columnDef{name: c.Name, typ: c.Type, notNull: c.NotNull, check: checks[strings.ToLower(c.Name)]}
 		if c.Default != nil {
 			cd.dflt = *c.Default
 		}

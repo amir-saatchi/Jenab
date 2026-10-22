@@ -1,0 +1,17 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/schema-widen-check/_offline.yaml scenarios/schema-widen-check
+# The replies of a run that passes, in order: the main agent's call, the
+# schema agent's migration (SPEC 9.5 with widen_table, without the
+# dependents), and the main agent's answer. The calls reach the real
+# tools and database.
+scenarios:
+  T4_track_ethereum_check:
+    - calls: [{name: request_schema_change, args: {goal: "Track Ethereum too: move btc_prices into prices(coin, date, price) with coin BTC for the old rows, keeping _run_id and _fetched_at; give each news item a coin (BTC for the old ones) with the key (coin, url); then drop btc_prices."}}]
+    - calls:
+        - name: apply_migration
+          args:
+            plan: "Widen btc_prices into a general prices table and give each news item a coin, so Ethereum fits; the BTC rows keep their data."
+            steps:
+              - {op: widen_table, table: btc_prices, column: {name: coin, type: TEXT}, value: "'BTC'", to: prices}
+              - {op: widen_table, table: btc_news, column: {name: coin, type: TEXT}, value: "'BTC'", to: news}
+    - text: Done. The prices are now in one prices table with a coin column, with the 10 BTC days kept, and each news item has a coin. btc_prices is gone.

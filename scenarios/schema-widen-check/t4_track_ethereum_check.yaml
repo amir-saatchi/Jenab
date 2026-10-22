@@ -1,0 +1,38 @@
+id: T4_track_ethereum_check
+title: 'Also track Ethereum, on tables with CHECKs, which stay'
+tests: ["applied", "card", "prices", "news", "rows", "checks"]
+context: main
+why: 'request_schema_change. The schema agent widens btc_prices to prices(coin, date, price, _run_id, _fetched_at) with the key (coin, date) and coin BTC on the 10 old rows, and gives the news a coin, BTC on the old rows, with the key (coin, url). btc_prices is gone, renamed or copied and dropped. The key change or the drop asks on a card with the plan. No rows are lost or made up, and the CHECKs on price and title stay.'
+messages:
+  - text: 'Also track Ethereum. Move the prices into one general table prices(coin, date, price), keeping every BTC row collected so far (coin ''BTC''), give each news item a coin, and drop btc_prices once nothing needs it. The pipeline and the views come later.'
+asserts:
+  - {type: tool_called, test: applied, tool: request_schema_change, result_match: '^\[request_schema_change: applied'}
+  # The card: a migration that changes the key of btc_prices or deletes
+  # it, with the agent's plan on its second line, approved by the runner.
+  - {type: approval_shown, test: card, match: '(?s)^migration: .*(deletes|primary key of)[^\n]*btc_prices.*\nanswer: once$'}
+  - {type: approval_shown, test: card, match: '(?i)^migration: [^\n]*\n[^\n]*(coin|ethereum|\beth\b|prices)'}
+  # prices: the key (coin, date) and the pipeline columns; btc_prices is
+  # gone.
+  - {type: db_query, test: prices, query: "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('prices') WHERE pk > 0 ORDER BY pk)", match: '^coin,date$'}
+  - {type: db_query, test: prices, query: "SELECT count(*) FROM pragma_table_info('prices') WHERE name IN ('_run_id', '_fetched_at')", match: '^2$'}
+  - {type: db_query, test: prices, query: "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = 'btc_prices'", match: '^0$'}
+  # The 10 BTC rows with their prices, run ids and times, and no others.
+  - {type: db_query, test: rows, query: "SELECT count(*), sum(price), count(DISTINCT _run_id), min(_fetched_at), max(_fetched_at) FROM prices WHERE coin = 'BTC' AND _run_id LIKE 'run-%'", match: '^10\|616100\|10\|2026-09-21T08:00:00Z\|2026-09-30T08:00:00Z$'}
+  - {type: db_query, test: rows, query: "SELECT count(*) FROM prices", match: '^10$'}
+  # The news, renamed or not (one table): BTC on the 4 old rows with their
+  # data kept, and the key (coin, url).
+  - {type: db_query, test: news, query: "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name IN ('btc_news', 'news')", match: '^1$'}
+  - {type: db_query, test: rows, table: '^(btc_)?news$', query: "SELECT count(*), sum(coin = 'BTC'), count(DISTINCT url), sum(_run_id LIKE 'run-%' AND reason <> '') FROM {table}", match: '^4\|4\|4\|4$'}
+  - {type: db_query, test: news, table: '^(btc_)?news$', query: "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info({name}) WHERE pk > 0 ORDER BY pk)", match: '^coin,url$'}
+  - {type: db_query, test: rows, query: "SELECT count(*) FROM watch_keywords", match: '^2$'}
+  # The CHECKs stay.
+  - {type: db_query, test: checks, query: "SELECT count(*) FROM sqlite_schema WHERE name = 'prices' AND replace(sql, ' ', '') LIKE '%CHECK(price>=0%'", match: '^1$'}
+  - {type: db_query, test: checks, table: '^(btc_)?news$', query: "SELECT count(*) FROM sqlite_schema WHERE name = {name} AND replace(sql, ' ', '') LIKE '%CHECK(title<>%'", match: '^1$'}
+  # No default labels new rows (8.2).
+  - {type: db_query, test: prices, query: "SELECT coalesce(dflt_value, 'no default') FROM pragma_table_info('prices') WHERE name = 'coin'", match: '^no default$'}
+  - {type: db_query, test: news, table: '^(btc_)?news$', query: "SELECT coalesce(dflt_value, 'no default') FROM pragma_table_info({name}) WHERE name = 'coin'", match: '^no default$'}
+  # Reported only: the tables and the tries.
+  - {type: db_query, test: info, query: "SELECT group_concat(name, ', ') FROM (SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite%' AND substr(name, 1, 7) <> '_jenab_' ORDER BY name)", match: '.'}
+  - {type: max_calls, test: info, agent: schema agent, tool: apply_migration, n: 1}
+  - {type: max_calls, test: info, tool: request_schema_change, n: 1}
+  - {type: no_turn_failed, test: info}

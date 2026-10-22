@@ -1,0 +1,30 @@
+id: T1_bitcoin_tables
+title: 'Design the Bitcoin tables in a short conversation, then make them'
+tests: ["proposal", "applied", "prices", "news", "keywords"]
+context: main
+why: 'Turn 1 proposes tables. Turn 2 makes btc_prices (key date, a numeric price), btc_news (key url, date, title, reason), both with _run_id and _fetched_at because a pipeline fills them, and watch_keywords (key id INTEGER, keyword NOT NULL and unique), through request_schema_change.'
+messages:
+  - text: 'New project: I want to track the daily Bitcoin price and the news most likely to move it. A pipeline will fill both every day, later. Before we build anything, what tables would you make?'
+  - text: 'Sounds good. Make them, with these names: btc_prices, one row per day with the date and the price in USD; btc_news, keyed by the article''s url, with its date, title and the reason it matters; and watch_keywords, keywords I type myself to steer the news search, with an integer id and the keyword, which is required and unique. Only the tables for now; the pipeline and the views come later.'
+asserts:
+  # The user asks for a proposal first: no change in turn 1.
+  - {type: tool_not_called, test: proposal, tool: request_schema_change, turn: first}
+  - {type: tool_called, test: applied, tool: request_schema_change, result_match: '^\[request_schema_change: applied'}
+  # btc_prices: the key is the date; a numeric price; the pipeline columns.
+  - {type: db_query, test: prices, query: "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('btc_prices') WHERE pk > 0 ORDER BY pk)", match: '^date$'}
+  - {type: db_query, test: prices, query: "SELECT count(*) FROM pragma_table_info('btc_prices') WHERE (name LIKE '%price%' OR name IN ('close', 'usd')) AND upper(type) IN ('REAL', 'NUMERIC', 'INTEGER')", match: '^[1-9]$'}
+  - {type: db_query, test: prices, query: "SELECT count(*) FROM pragma_table_info('btc_prices') WHERE name IN ('_run_id', '_fetched_at')", match: '^2$'}
+  # btc_news: the key is the url; date, title and reason; the pipeline
+  # columns.
+  - {type: db_query, test: news, query: "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('btc_news') WHERE pk > 0 ORDER BY pk)", match: '^url$'}
+  - {type: db_query, test: news, query: "SELECT count(*) FROM pragma_table_info('btc_news') WHERE name IN ('date', 'title', 'reason')", match: '^3$'}
+  - {type: db_query, test: news, query: "SELECT count(*) FROM pragma_table_info('btc_news') WHERE name IN ('_run_id', '_fetched_at')", match: '^2$'}
+  # watch_keywords: an integer id key; keyword NOT NULL and unique alone.
+  - {type: db_query, test: keywords, query: "SELECT name || ' ' || upper(type) FROM pragma_table_info('watch_keywords') WHERE pk > 0", match: '^id INTEGER$'}
+  - {type: db_query, test: keywords, query: "SELECT \"notnull\" FROM pragma_table_info('watch_keywords') WHERE name = 'keyword'", match: '^1$'}
+  - {type: db_query, test: keywords, query: "SELECT count(*) FROM pragma_index_list('watch_keywords') AS l WHERE l.\"unique\" = 1 AND (SELECT group_concat(name) FROM pragma_index_info(l.name)) = 'keyword'", match: '^[1-9]$'}
+  # Reported only: the tables made and the tries.
+  - {type: db_query, test: info, query: "SELECT group_concat(name, ', ') FROM (SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite%' AND substr(name, 1, 7) <> '_jenab_' ORDER BY name)", match: '^btc_news, btc_prices, watch_keywords$'}
+  - {type: max_calls, test: info, agent: schema agent, tool: apply_migration, n: 1}
+  - {type: max_calls, test: info, tool: request_schema_change, n: 1}
+  - {type: no_turn_failed, test: info}
