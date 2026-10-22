@@ -1557,7 +1557,8 @@ Large results follow the preview-and-ref rules in 3.7.
 | `op` | Fields | Destructive |
 |---|---|---|
 | `create_table` | `table`, `columns` (name, type, `not_null`, `default`, `check`), `primary_key`, `unique` (a list of column lists), `foreign_keys` | no |
-| `add_column` | `table`, `column` | no |
+| `add_column` | `table`, `column`, `value` (the old rows' value as SQL; required when the table has rows and the column has no default, `NULL` for none) | no |
+| `widen_table` | `table`, `column`, `value`, `to` (optional): the new NOT NULL column goes first in the primary key and in each unique set, old rows get `value`, and every other column, check, foreign key and index is kept | no, but it changes a key |
 | `rename_table` | `from`, `to` | no |
 | `rename_column` | `table`, `from`, `to` | no |
 | `create_index` | `table`, `columns`, `name`, `unique` (`true` / `false`) | no |
@@ -1576,7 +1577,7 @@ Dependent updates (views, pipelines, forms) are sent in the same request as full
 - Design for the goal as stated. When the user widens it (e.g. a second coin), migrate to a general table such as `prices(coin, …)` instead of adding parallel tables like `eth_prices`.
 - Every table has an explicit primary key (2.2).
 - Tables for pipeline data get `_run_id` and `_fetched_at`. Copied rows keep both.
-- Existing rows get new values explicitly, through `copy_data` or the `rebuild_table` mapping. A column `default` is never used to label old rows, because it would also silently label new rows that lack a value.
+- Existing rows get new values explicitly, through `value`, `copy_data` or the `rebuild_table` mapping. A column `default` is never used to label old rows, because it would also silently label new rows that lack a value.
 - A key must fit the widened goal: when news is tracked per coin, the key is `(coin, url)`, not `url`.
 - Columns that hold bucket keys are marked as `object_ref`.
 - Never drop tables or columns, or change keys, without approval.
@@ -2142,6 +2143,8 @@ The user says *"also track Ethereum."* The schema agent returns `needs_approval`
 6. Drop `btc_prices` (destructive, hence the approval).
 
 As migration steps (8.2), items 1–3 and 6 are seven steps: `create_table` + `insert_rows`, `create_table` + `copy_data`, `rebuild_table` + `rename_table`, and `drop_table`. Items 4 and 5 are dependent updates (one pipeline and three views), sent in the same request.
+
+With `widen_table`, items 2 and 3 are one step each: widen `btc_prices` by `coin` to `prices`, and `btc_news` by `coin` to `news`. Nothing is dropped, but both keys change, so the user still approves (P2-07).
 
 After approval, a snapshot is taken, and the seven steps and the dependent updates run in one transaction (7.5). Nothing already collected is lost.
 
