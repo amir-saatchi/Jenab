@@ -310,6 +310,7 @@ func TestEnds(t *testing.T) {
 		{"no completed", reply{200, "event: step.start\ndata: {\"index\":0,\"step\":{\"type\":\"model_output\"},\"event_type\":\"step.start\"}\n\n"}, "", provider.Transport},
 		{"failed", reply{200, sse(start, `{"interaction":{"status":"failed","errors":[{"code":"internal","message":"An internal error occurred"}]},"event_type":"interaction.completed"}`)}, "", provider.Overloaded},
 		{"error in stream", reply{200, sse(start, `{"error":{"code":"resource_exhausted","message":"Resource has been exhausted"},"event_type":"error"}`)}, "", provider.RateLimited},
+		{"high demand in stream", reply{200, sse(start, `{"error":{"code":"service_unavailable","message":"gemma-4-31b-it is currently experiencing high demand"},"event_type":"error"}`)}, "", provider.Overloaded},
 		{"rate limit", reply{429, `{"error":{"code":"resource_exhausted","message":"Too many requests","details":[{"retryDelay":"7s"}]}}`}, "", provider.RateLimited},
 		{"daily quota", reply{429, `{"error":{"code":"resource_exhausted","message":"Quota exceeded for metric generate_content_free_tier_requests, limit: GenerateRequestsPerDayPerProjectPerModel-FreeTier"}}`}, "", provider.Quota},
 		{"no such model", reply{404, `{"error":{"message":"Model 'gemini-9' not found.","code":"not_found"}}`}, "", provider.BadRequest},

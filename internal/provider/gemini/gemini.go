@@ -477,7 +477,7 @@ func (b *backend) failed(code, msg string) *provider.Error {
 	switch code {
 	case "resource_exhausted", "rate_limit_exceeded", "too_many_requests":
 		status = http.StatusTooManyRequests
-	case "unavailable", "internal", "overloaded", "deadline_exceeded", "failed":
+	case "unavailable", "service_unavailable", "internal", "overloaded", "deadline_exceeded", "failed":
 		status = http.StatusServiceUnavailable
 	}
 	if code != "" {
