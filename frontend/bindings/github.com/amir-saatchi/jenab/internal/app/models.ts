@@ -16,6 +16,9 @@ import * as id$0 from "../id/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as project$0 from "../project/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as store$0 from "../store/models.js";
 
 /**
  * BlockView is one context block (3.1). Tokens are estimated. Cache says
@@ -127,6 +130,68 @@ export interface ExportRequest {
      * hosts, for the user's own backup.
      */
     "include_approvals": boolean;
+}
+
+/**
+ * MemoryEdit is an edit of one section from the settings. Empty content
+ * deletes it.
+ */
+export interface MemoryEdit {
+    "section": string;
+    "content": string;
+
+    /**
+     * the revision the user edited; 0 for a new section
+     */
+    "revision": number;
+}
+
+/**
+ * MemorySaved is the memory after an edit. When the section changed since
+ * the user opened it, nothing is saved: Conflict is the section now, for
+ * the user to merge.
+ */
+export interface MemorySaved {
+    "memory": MemoryView;
+    "conflict"?: store$0.MemorySection | null;
+}
+
+/**
+ * MemoryUndo says what the chip's undo did. When the section changed
+ * since, nothing changed and Changed says so. Undone is the edit's state
+ * now, for the chip's button.
+ */
+export interface MemoryUndo {
+    "done": boolean;
+    "changed": boolean;
+    "undone": boolean;
+}
+
+/**
+ * MemoryUndoRequest is the [undo] of a chip "Memory updated: …", or its
+ * redo: the chip's notice's Target and Change.
+ */
+export interface MemoryUndoRequest {
+    /**
+     * memory:user/<section> or memory:project/<section>
+     */
+    "target": string;
+    "change": string;
+    "redo": boolean;
+}
+
+/**
+ * MemoryView is one memory for its settings page.
+ */
+export interface MemoryView {
+    "scope": store$0.MemoryScope;
+
+    /**
+     * the live ones, default sections first
+     */
+    "sections": store$0.MemorySection[] | null;
+    "tokens": number;
+    "cap": number;
 }
 
 /**

@@ -114,7 +114,7 @@ func TestChangeLogFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer p2.Close(context.Background())
-	if v := one[int](t, p2.DB, "PRAGMA user_version"); v != 3 {
+	if v := one[int](t, p2.DB, "PRAGMA user_version"); v != ProjectFormat.current() {
 		t.Errorf("version %d after the update", v)
 	}
 	if one[int](t, p2.DB, "SELECT count(*) FROM _jenab_changes") != 0 {

@@ -1,5 +1,6 @@
 import * as React from "react"
-import { BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { BookmarkIcon, BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
@@ -7,9 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
 import { Spinner } from "@/components/ui/spinner"
-import { NoticeKind, type ChatNotice, type Part, type ToolCall, type ToolResult } from "@/lib/api"
+import { ChatService, NoticeKind, type ChatNotice, type Part, type ToolCall, type ToolResult } from "@/lib/api"
+import { showError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { Markdown } from "@/chat/markdown"
+import { openMemory } from "@/shell/open"
 
 export function AgentText({ text, stopped }: { text: string; stopped?: boolean }) {
   return (
@@ -160,6 +163,60 @@ export function MigrationChip({ notice }: { notice: ChatNotice }) {
         </CollapsibleContent>
       )}
     </Collapsible>
+  )
+}
+
+// MemoryChip marks a memory edit the agent made (SPEC 3.3): Memory
+// updated: preferences [undo] [edit]. Undo reverts that edit, and the
+// chats see it as the user's; Redo puts it back. Edit opens the section in
+// the settings. The backend says whether the edit is undone, so the chip
+// is right after a reload or an undo of its turn.
+export function MemoryChip({ project, notice }: { project: string; notice: ChatNotice }) {
+  const [undone, setUndone] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+  const target = notice.target ?? ""
+  const change = notice.change ?? ""
+  React.useEffect(() => {
+    if (!target || !change) return
+    let live = true
+    ChatService.MemoryUndone(project, { target, change, redo: false })
+      .then((u) => live && setUndone(u))
+      .catch(() => {}) // the chip keeps Undo; a click says what is wrong
+    return () => {
+      live = false
+    }
+  }, [project, target, change])
+  const flip = async () => {
+    setBusy(true)
+    try {
+      const r = await ChatService.UndoMemory(project, { target, change, redo: undone })
+      setUndone(r.undone)
+      if (r.changed) toast.info("The section changed since, so it was left as it is. Edit it in the settings.")
+      else if (!r.done) toast.info(r.undone ? "This edit was already undone." : "This edit is already back.")
+    } catch (err) {
+      showError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 not-typeset">
+      <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground">
+        <BookmarkIcon data-icon="inline-start" />
+        <span dir="auto">{notice.text}</span>
+        {undone && <span>· undone</span>}
+      </Badge>
+      {target && notice.change && (
+        <Button variant="ghost" size="xs" className="text-muted-foreground" disabled={busy} onClick={() => void flip()}>
+          {undone ? "Redo" : "Undo"}
+        </Button>
+      )}
+      {target && (
+        <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openMemory(project, target)}>
+          Edit
+        </Button>
+      )}
+    </div>
   )
 }
 

@@ -525,7 +525,10 @@ func TestPrivateHostsReachTheTool(t *testing.T) {
 // is fetched.
 func TestFetchPageAsksForTheHost(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		h := newHarness(t, t.TempDir(), "", testSettings(), tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})})...)
+		// fetch_page alone: the fake reports few input tokens, so a request
+		// with every tool would look truncated (SPEC 3.8).
+		pages := slices.DeleteFunc(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})}), func(tl tool.Tool) bool { return tl.Spec().Name != "fetch_page" })
+		h := newHarness(t, t.TempDir(), "", testSettings(), pages...)
 		defer h.stop()
 		c := h.newChat(chat.Chat{Title: "Pages"})
 		h.fp.Push(fake.ToolCall("c1", "fetch_page", map[string]string{"url": "https://Example.COM/a"}), fake.Text("ok"))

@@ -141,15 +141,15 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		re := regexp.MustCompile(a.Match)
 		if a.Turn == "finish" && len(rec.finishTurns()) == 0 {
 			// The rest given in the same turn is fine; never given isn't.
-			if re.MatchString(rec.text("")) {
+			if re.MatchString(rec.text("", a.Final)) {
 				return Skip, "no finish turn; the rest was given in the first turn", 0
 			}
 			return Fail, "no finish turn, and the rest was never given", 0
 		}
-		txt := rec.text(a.Turn)
+		txt := rec.text(a.Turn, a.Final)
 		return pf(re.MatchString(txt), clip(txt, 160))
 	case "answer_lacks":
-		txt := rec.text(a.Turn)
+		txt := rec.text(a.Turn, a.Final)
 		if m := regexp.MustCompile(a.Match).FindString(txt); m != "" {
 			return Fail, "says " + clip(m, 80) + ": " + clip(txt, 120), 0
 		}
@@ -250,7 +250,7 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		if rec.sc.set.FalseRunning != nil {
 			re = rec.sc.set.FalseRunning
 		}
-		if m := re.FindString(rec.text("")); m != "" {
+		if m := re.FindString(rec.text("", false)); m != "" {
 			return Fail, "says: " + m, 0
 		}
 		return Pass, "", 0
@@ -401,12 +401,13 @@ func (rec *record) callsOf(agent, sel string) []event {
 	return out
 }
 
-// text is the agent's text in the turns sel picks.
-func (rec *record) text(sel string) string {
+// text is the agent's text in the turns sel picks; with final, only the
+// answers', the messages without tool calls.
+func (rec *record) text(sel string, final bool) string {
 	in := rec.inTurns(sel)
 	var b strings.Builder
 	for _, e := range rec.events {
-		if e.kind == evText && in(e.turn) {
+		if e.kind == evText && in(e.turn) && (e.final || !final) {
 			b.WriteString(e.text + "\n")
 		}
 	}

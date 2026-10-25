@@ -236,11 +236,16 @@ type Scenario struct {
 // is idle; with At, that long after the scenario's start, also during a
 // turn, where it joins the running turn (8.3). With Restart the app
 // restarts before it: the chat is idle, the app closes its projects and
-// opens them again from disk.
+// opens them again from disk. With NewChat it goes to a new chat in the
+// same project, with the scenario's role and skills, once the chat is
+// idle; the messages after it go there too. The record joins the chats,
+// and their turns count on: a second chat's first turn follows the first
+// chat's last.
 type Message struct {
 	Text    string    `yaml:"text"`
 	At      *Duration `yaml:"at"`
 	Restart bool      `yaml:"restart"`
+	NewChat bool      `yaml:"new_chat"`
 }
 
 // Assert is one check on a finished run. Each type uses some fields.
@@ -270,6 +275,9 @@ type Assert struct {
 	Allow       []string `yaml:"allow"`
 	Min         float64  `yaml:"min"`  // cache_read_share: the least share, from 0 to 1
 	When        string   `yaml:"when"` // after_message: during or between (turns)
+	// Final: for answer_contains and answer_lacks, only the answers' text,
+	// the messages without tool calls, not text before a tool call.
+	Final bool `yaml:"final"`
 	// Agent: for tool_called, tool_not_called and max_calls, the calls of
 	// that subagent, such as "schema agent", instead of the chat's.
 	Agent string `yaml:"agent"`
@@ -587,9 +595,12 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		if m.Restart && m.At != nil {
 			return nil, fmt.Errorf("messages[%d]: a restart waits until the chat is idle, so it has no at", i)
 		}
+		if m.NewChat && m.At != nil {
+			return nil, fmt.Errorf("messages[%d]: a new chat waits until the chat is idle, so it has no at", i)
+		}
 	}
-	if sc.Messages[0].At != nil || sc.Messages[0].Restart {
-		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at or restart")
+	if sc.Messages[0].At != nil || sc.Messages[0].Restart || sc.Messages[0].NewChat {
+		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at, restart or new_chat")
 	}
 	for name := range sc.Delays {
 		if s.tool(name) == nil {

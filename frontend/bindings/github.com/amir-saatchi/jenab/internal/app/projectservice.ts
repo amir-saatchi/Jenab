@@ -79,11 +79,25 @@ export function List(): $CancellablePromise<$models.ProjectItem[] | null> {
 }
 
 /**
+ * Memory is the project's memory, for its settings.
+ */
+export function Memory(p: id$0.Project): $CancellablePromise<$models.MemoryView> {
+    return $Call.ByID(3654807777, p);
+}
+
+/**
  * Open opens a project. Its notices, such as a recovery, come as
  * project:notice events.
  */
 export function Open(p: id$0.Project): $CancellablePromise<$models.OpenedProject> {
     return $Call.ByID(4141360838, p);
+}
+
+/**
+ * SaveMemory saves the user's edit of a project memory section.
+ */
+export function SaveMemory(p: id$0.Project, e: $models.MemoryEdit): $CancellablePromise<$models.MemorySaved> {
+    return $Call.ByID(143649660, p, e);
 }
 
 /**

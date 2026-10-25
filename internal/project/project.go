@@ -25,6 +25,9 @@ type Project struct {
 	Dir   string
 	DB    *store.ProjectDB
 	Chats *store.ChatsDB
+	// Registry is the app's registry.db, for user memory, which serves
+	// every project (SPEC 2.4, 3.3).
+	Registry *store.Registry
 	// Damage is set when a database failed its quick_check after a crash.
 	// The project is then open read-only (SPEC 2.7).
 	Damage *Damage

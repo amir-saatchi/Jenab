@@ -13,6 +13,18 @@ test("itemName", () => {
   expect(itemName({ table: "_jenab_objects", key: "object:reports/a.txt" })).toBe(`the file ${i("reports/a.txt")}`)
   expect(itemName({ table: "_jenab_chat_role", key: "01CHAT" })).toBe("the chat's role")
   expect(itemName({ table: "prices", key: "" })).toBe(`the table ${i("prices")}`)
+  expect(itemName({ table: "_jenab_memory", key: "memory:project/goals" })).toBe(`the project memory section ${i("goals")}`)
+  expect(itemName({ table: "_jenab_user_memory", key: "ترجیحات" })).toBe(`the user memory section ${i("ترجیحات")}`)
+})
+
+test("conflictText names who changed memory", () => {
+  const user = { table: "_jenab_user_memory", key: "preferences" }
+  expect(conflictText(conflict({ item: user, source: "message:01J" as never }))).toBe(
+    `the user memory section ${i("preferences")} changed since by a chat in another project`,
+  )
+  expect(conflictText(conflict({ item: user, source: "undo:user_memory:4" as never }))).toBe(
+    `the user memory section ${i("preferences")} changed since by an undo`,
+  )
 })
 
 // A Persian table name and key stay whole, each in its own isolate, so

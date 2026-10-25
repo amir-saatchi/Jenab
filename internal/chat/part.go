@@ -106,6 +106,10 @@ const (
 	// in the tool message, so the model doesn't read it; Details has its
 	// steps for *View steps* (8.2).
 	NoticeMigration NoticeKind = "migration"
+	// NoticeMemoryUpdated is the chip of a memory edit, in the tool
+	// message, so the model doesn't read it; Target and Change say what
+	// its undo reverts (3.3).
+	NoticeMemoryUpdated NoticeKind = "memory_updated"
 )
 
 // Notice is a short note from the app to the agent, shown in the chat.
@@ -115,6 +119,11 @@ type Notice struct {
 	Skill string     `json:"skill,omitempty"` // skill_loaded and skill_text: the skill's name
 	// Details are shown when the chip unfolds, such as a migration's steps.
 	Details string `json:"details,omitempty"`
+	// Target and Change are what a chip's undo reverts: a change-log
+	// target, such as memory:user/preferences, and the change, a project
+	// change ID or, for user memory, the entry in registry.db's log.
+	Target string `json:"target,omitempty"`
+	Change string `json:"change,omitempty"`
 }
 
 // Approval is an approval card (SPEC 8.8). Kind and Target name what is

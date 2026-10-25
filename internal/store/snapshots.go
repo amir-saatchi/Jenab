@@ -72,7 +72,8 @@ func snapshotNames(dir string) []string {
 type SnapshotInfo struct {
 	Name string
 	// WritesSince is how many changes the project logged after it: the
-	// writes a restore loses (SPEC 7.5).
+	// writes a restore loses (SPEC 7.5). User memory's pointers aren't
+	// counted: user memory is in registry.db, which a restore leaves alone.
 	WritesSince int
 	Size        int64
 }
@@ -92,7 +93,7 @@ func (p *ProjectDB) Snapshots(ctx context.Context) ([]SnapshotInfo, error) {
 		}
 		var n int
 		if _, err := readTx(ctx, p.DB, func(tx *sql.Tx) (struct{}, error) {
-			return struct{}{}, tx.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_changes WHERE id > ?`, last).Scan(&n)
+			return struct{}{}, tx.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_changes WHERE id > ? AND target NOT LIKE 'memory:user/%'`, last).Scan(&n)
 		}); err != nil {
 			return nil, err
 		}
@@ -142,7 +143,7 @@ func RestoreSnapshot(ctx context.Context, dir, name string) (int, error) {
 	defer db.Close()
 	db.SetMaxOpenConns(1)
 	var lost int
-	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_changes WHERE id > ?`, last).Scan(&lost); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_changes WHERE id > ? AND target NOT LIKE 'memory:user/%'`, last).Scan(&lost); err != nil {
 		return 0, fmt.Errorf("store: restore: %w", err)
 	}
 	// journal_mode can't leave WAL while another connection has the file

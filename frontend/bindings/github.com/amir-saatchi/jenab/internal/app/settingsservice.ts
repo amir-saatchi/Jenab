@@ -95,6 +95,13 @@ export function Save(next: config$0.Settings): $CancellablePromise<$models.Setti
 }
 
 /**
+ * SaveUserMemory saves the user's edit of a user memory section.
+ */
+export function SaveUserMemory(e: $models.MemoryEdit): $CancellablePromise<$models.MemorySaved> {
+    return $Call.ByID(569429371, e);
+}
+
+/**
  * Started returns what this start used.
  */
 export function Started(): $CancellablePromise<$models.Started> {
@@ -107,4 +114,11 @@ export function Started(): $CancellablePromise<$models.Started> {
  */
 export function Usage(days: number): $CancellablePromise<$models.UsageReport> {
     return $Call.ByID(1016345497, days);
+}
+
+/**
+ * UserMemory is user memory, for Settings.
+ */
+export function UserMemory(): $CancellablePromise<$models.MemoryView> {
+    return $Call.ByID(1120224202);
 }

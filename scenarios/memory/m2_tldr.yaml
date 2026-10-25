@@ -1,0 +1,18 @@
+id: M2_tldr
+title: 'A summary line first, asked to remember'
+tests: ["saved", "follows"]
+context: main
+why: 'The user asks the chat to remember a format for all chats. The chat saves it with update_memory; a new chat starts its answer with the TL;DR line.'
+messages:
+  - text: 'Please remember this for all my chats: start every answer with a one-line summary that begins with "TL;DR:".'
+  - text: 'How should I choose the next book to read?'
+    new_chat: true
+asserts:
+  - {type: tool_called, test: saved, tool: update_memory, turn: 1, args_match: 'TL;DR', result_match: '^Saved (user|project) memory'}
+  - {type: tool_called, test: info, tool: update_memory, turn: 1, args_match: '"scope":\s*"user"'}
+  - {type: answer_contains, test: follows, turn: 2, final: true, match: '\A\s*[*_#> ]*TL;DR'}
+  - {type: tool_not_called, test: follows, tool: read_messages, turn: 2}
+  - {type: tool_not_called, test: follows, tool: list_chats, turn: 2}
+  - {type: tool_not_called, test: follows, tool: search_history, turn: 2}
+  - {type: tool_not_called, test: info, tool: update_memory, turn: 2}
+  - {type: no_turn_failed, test: info}

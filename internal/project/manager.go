@@ -208,7 +208,7 @@ func (m *Manager) Open(ctx context.Context, pid id.Project) (*Project, error) {
 		}
 		p := m.open[pid]
 		if p == nil {
-			p = &Project{ID: pid, m: m, ready: make(chan struct{}), done: make(chan struct{}), leases: 1}
+			p = &Project{ID: pid, Registry: m.d.Registry, m: m, ready: make(chan struct{}), done: make(chan struct{}), leases: 1}
 			m.open[pid] = p
 			m.mu.Unlock()
 			p.err = m.load(ctx, p)
@@ -536,6 +536,15 @@ func (m *Manager) cleanChanges(p *Project) {
 				m.d.Log.Warn("project: the change-log cleanup failed", "project", p.ID, "err", err)
 			case rep.Rows > 0:
 				m.d.Log.Info("project: dropped old change-log rows", "project", p.ID, "changes", rep.Changes, "rows", rep.Rows)
+			}
+			// User memory's log keeps to the same window. Any open project
+			// may run it; a second run that day drops nothing.
+			if m.d.Registry != nil {
+				if n, err := m.d.Registry.CleanUserMemory(p.ctx, m.d.ChangeKeep); err != nil && p.ctx.Err() == nil {
+					m.d.Log.Warn("project: the user memory log cleanup failed", "err", err)
+				} else if n > 0 {
+					m.d.Log.Info("project: dropped old user memory log entries", "entries", n)
+				}
 			}
 		})
 		t.Reset(cleanCheck)

@@ -106,11 +106,13 @@ type UndoResult struct {
 	Conflicts  []UndoConflict `json:"conflicts,omitempty"`
 }
 
-// internalNouns name the internal targets in a summary. P2-09 adds memory
-// sections, Phase 3 and 4 views and pipelines.
+// internalNouns name the internal targets in a summary. Phase 3 and 4 add
+// views and pipelines.
 var internalNouns = map[string][2]string{
 	"_jenab_objects": {"file", "files"},
 	RoleItem:         {"chat role", "chat roles"},
+	memoryTable:      {"project memory section", "project memory sections"},
+	UserMemoryItem:   {"user memory section", "user memory sections"},
 }
 
 // Summary is the plan in a few words, e.g. "12 rows in btc_prices, 1 file".
@@ -208,16 +210,26 @@ func idsJSON(ids []id.Change) string {
 	return string(b)
 }
 
-// undoTips returns the tip of each chain from the sources, oldest first.
-func undoTips(tx *sql.Tx, srcs string) ([]undoChange, error) {
+// undoBase picks the changes an undo starts from: those whose source is
+// one of srcs, or whose ID is one of ids (JSON arrays).
+type undoBase struct{ srcs, ids string }
+
+func bySources(sources []id.Source) undoBase { return undoBase{srcs: sourcesJSON(sources), ids: "[]"} }
+
+// undoTips returns the tip of each chain from the base, oldest first. A
+// user memory edit's pointer (LogUserMemory) is left out: user memory is
+// undone in registry.db.
+func undoTips(tx *sql.Tx, b undoBase) ([]undoChange, error) {
 	return queryTx(tx, `WITH RECURSIVE chain(base, id, depth) AS (
-			SELECT id, id, 0 FROM _jenab_changes WHERE source IN (SELECT value FROM json_each(?1))
+			SELECT id, id, 0 FROM _jenab_changes
+				WHERE (source IN (SELECT value FROM json_each(?1)) OR id IN (SELECT value FROM json_each(?2)))
+					AND target NOT LIKE 'memory:user/%'
 			UNION ALL
 			SELECT chain.base, c.id, chain.depth + 1 FROM chain JOIN _jenab_changes c ON c.source = 'undo:' || chain.id)
 		SELECT t.id, c.target, c.op, c.before, c.after, t.depth, b.op, b.before, b.after
 		FROM (SELECT base, id, max(depth) AS depth FROM chain GROUP BY base) t
 		JOIN _jenab_changes c ON c.id = t.id JOIN _jenab_changes b ON b.id = t.base
-		ORDER BY t.id`, []any{srcs}, func(r *sql.Rows) (undoChange, error) {
+		ORDER BY t.id`, []any{b.srcs, b.ids}, func(r *sql.Rows) (undoChange, error) {
 		var c undoChange
 		return c, r.Scan(&c.id, &c.target, &c.op, &c.before, &c.after, &c.depth, &c.baseOp, &c.base[0], &c.base[1])
 	})
@@ -303,7 +315,7 @@ func (p *ProjectDB) UndoState(ctx context.Context, sources []id.Source) (UndoSta
 		if len(sources) == 0 {
 			return s, nil
 		}
-		tips, err := undoTips(tx, sourcesJSON(sources))
+		tips, err := undoTips(tx, bySources(sources))
 		if err != nil {
 			return s, err
 		}
@@ -361,7 +373,26 @@ func (p *ProjectDB) Undo(ctx context.Context, sources []id.Source, o UndoOptions
 	var res UndoResult // kept outside, so a rolled-back undo still reports
 	_, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
 		res = UndoResult{}
-		err := undoTx(tx, sourcesJSON(sources), o, &res)
+		err := undoTx(tx, bySources(sources), o, &res)
+		if err == nil && o.Check {
+			err = errChecked
+		}
+		return struct{}{}, err
+	})
+	if errors.Is(err, errChecked) {
+		err = nil
+	}
+	return res, err
+}
+
+// UndoChange is Undo for one change, by its ID, such as a memory edit from
+// its chip (SPEC 3.3).
+func (p *ProjectDB) UndoChange(ctx context.Context, c id.Change, o UndoOptions) (UndoResult, error) {
+	var res UndoResult
+	_, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
+		res = UndoResult{}
+		b, _ := json.Marshal([]id.Change{c})
+		err := undoTx(tx, undoBase{srcs: "[]", ids: string(b)}, o, &res)
 		if err == nil && o.Check {
 			err = errChecked
 		}
@@ -376,13 +407,13 @@ func (p *ProjectDB) Undo(ctx context.Context, sources []id.Source, o UndoOptions
 // errChecked rolls back an undo run with Check.
 var errChecked = errors.New("store: undo checked")
 
-func undoTx(tx *sql.Tx, srcs string, o UndoOptions, res *UndoResult) error {
+func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	if undoDeferFK {
 		if _, err := tx.Exec("PRAGMA defer_foreign_keys = ON"); err != nil { // ends with the transaction
 			return err
 		}
 	}
-	tips, err := undoTips(tx, srcs)
+	tips, err := undoTips(tx, b)
 	if err != nil {
 		return err
 	}
@@ -1117,6 +1148,7 @@ type reverter func(u *undoRun, c *undoChange) error
 
 var reverters = map[string]reverter{
 	"_jenab_objects": (*undoRun).revertObject,
+	memoryTable:      (*undoRun).revertMemory,
 }
 
 func (u *undoRun) revertInternal(e undoEntry, es []undoEntry) error {

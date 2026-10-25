@@ -47,6 +47,7 @@ var RegistryFormat = Format{Name: "registry", Steps: []func(*sql.Tx) error{
 			updated_at TEXT NOT NULL
 		)`,
 	),
+	userMemoryLog,
 }}
 
 // Registry is registry.db: written rarely, so one connection with

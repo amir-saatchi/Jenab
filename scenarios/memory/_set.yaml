@@ -1,0 +1,9 @@
+# P2-09: user and project memory. The user states a preference in one chat;
+# a new chat in the same project follows it without being told, from its
+# memory blocks (SPEC 3.1 blocks 2 and 3, 3.3). The second message has
+# new_chat: true, so it goes to a new chat; the record joins both, and the
+# second chat's turn is turn 2.
+#
+# No fake tools: the real update_memory, with its description the same for
+# every model. An empty project: no tables, no card.
+title: Reading list

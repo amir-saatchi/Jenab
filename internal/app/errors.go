@@ -70,6 +70,7 @@ var known = []struct {
 	{store.ErrUndoWindow, KindInvalid, "This turn is past the undo window. Its changes are kept as history only."},
 	{store.ErrNothingToUndo, KindBusy, "There is nothing to undo."},
 	{agent.ErrRolesNotUndone, KindInternal, "The turn was undone, but its chat roles weren't. Undo it again to finish."},
+	{agent.ErrUserMemoryNotUndone, KindInternal, "The turn was undone, but its edits of user memory weren't. Undo it again to finish."},
 	{store.ErrNewerFormat, KindInvalid, "The project was saved by a newer version of " + appinfo.Name + "."},
 	{bucket.ErrBadKey, KindInvalid, "That isn't a usable file name."},
 	{store.ErrNotFound, KindNotFound, "It no longer exists."},
@@ -92,6 +93,10 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 		return ue
 	}
 	details := redact(err.Error())
+	// Both parts outside project.db failed: say so, not only the first.
+	if errors.Is(err, agent.ErrRolesNotUndone) && errors.Is(err, agent.ErrUserMemoryNotUndone) {
+		return &UIError{Kind: KindInternal, Message: "The turn was undone, but its chat roles and its edits of user memory weren't. Undo it again to finish.", Details: details}
+	}
 	for _, k := range known {
 		if errors.Is(err, k.err) {
 			return &UIError{Kind: k.kind, Message: k.msg, Details: details}
@@ -104,6 +109,10 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	var big *store.UndoTooBigError
 	if errors.As(err, &big) {
 		return &UIError{Kind: KindInvalid, Message: fmt.Sprintf("This turn changed %d rows. Undo can revert at most %d at once.", big.Rows, big.Max), Details: details}
+	}
+	var mc *store.MemoryCapError
+	if errors.As(err, &mc) {
+		return &UIError{Kind: KindInvalid, Message: fmt.Sprintf("Not saved: %s memory would be about %d tokens, over its cap of %d. Make it shorter.", mc.Scope, mc.Tokens, mc.Cap), Details: details}
 	}
 	var le *levelError
 	if errors.As(err, &le) {

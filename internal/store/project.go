@@ -36,6 +36,7 @@ var ProjectFormat = Format{Name: "project", Steps: []func(*sql.Tx) error{
 	),
 	objectTables,
 	changeTables,
+	memoryTables,
 }}
 
 // projectPragmas are for the project.db writer: a 64 MB cache, and a WAL

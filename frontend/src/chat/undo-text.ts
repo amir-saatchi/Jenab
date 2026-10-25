@@ -3,6 +3,8 @@ import { ConflictReason, type TurnConflict, type UndoItem } from "@/lib/api"
 // The internal targets of an undo, as store names them.
 const objectItem = "_jenab_objects" // key object:<key>
 const roleItem = "_jenab_chat_role" // store.RoleItem; key the chat ID
+const projectMemoryItem = "_jenab_memory" // key memory:project/<section>
+const userMemoryItem = "_jenab_user_memory" // store.UserMemoryItem; key the section
 
 // isolate keeps a name's direction from reordering the sentence around it,
 // as a Persian table name in English text would (U+2068 FSI ... U+2069 PDI).
@@ -27,8 +29,21 @@ function keyText(key: string): string {
 export function itemName(it: UndoItem): string {
   if (it.table === objectItem) return `the file ${isolate(it.key.replace(/^object:/, ""))}`
   if (it.table === roleItem) return "the chat's role"
+  if (it.table === projectMemoryItem) return `the project memory section ${isolate(it.key.replace(/^memory:project\//, ""))}`
+  if (it.table === userMemoryItem) return `the user memory section ${isolate(it.key)}`
   if (it.key === "") return `the table ${isolate(it.table)}`
   return `row ${keyText(it.key)} of ${isolate(it.table)}`
+}
+
+// changedBy says who made a later change. A message whose chat isn't in
+// this project is, for user memory, a chat of another project.
+function changedBy(c: TurnConflict): string {
+  const src = c.conflict.source ?? ""
+  if (c.chat_title) return ` in the chat “${isolate(c.chat_title)}”`
+  if (src === "user") return " by you"
+  if (src.startsWith("message:")) return c.conflict.item.table === userMemoryItem ? " by a chat in another project" : " by another chat"
+  if (src.startsWith("undo:")) return " by an undo"
+  return src ? ` by ${src}` : ""
 }
 
 // conflictText says why an item stands in the undo's way.
@@ -36,8 +51,7 @@ export function conflictText(c: TurnConflict): string {
   const x = c.conflict
   switch (x.reason) {
     case ConflictReason.ConflictChanged: {
-      const by = c.chat_title ? ` in the chat “${isolate(c.chat_title)}”` : x.source === "user" ? " by you" : x.source ? ` by ${x.source}` : ""
-      return `${itemName(x.item)} changed since${by}`
+      return `${itemName(x.item)} changed since${changedBy(c)}`
     }
     case ConflictReason.ConflictCascade:
       return x.reached ? `undoing ${itemName(x.item)} would also change ${itemName(x.reached)}` : `undoing ${itemName(x.item)} would change other rows`

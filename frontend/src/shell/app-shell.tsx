@@ -43,7 +43,7 @@ export function AppShell() {
             {!place && <Welcome />}
             {chat && <ChatView key={chat.chat} project={chat.project} chat={chat.chat} />}
             {place?.view === "settings" && <SettingsView section={place.section} />}
-            {place?.view === "project-settings" && <ProjectSettings project={place.project} />}
+            {place?.view === "project-settings" && <ProjectSettings project={place.project} section={place.section} />}
             {place?.view === "inspector" && (
               <InspectorView key={`${place.project}/${place.chat}/${place.turn}`} project={place.project} chat={place.chat} turn={place.turn} />
             )}

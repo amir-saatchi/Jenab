@@ -403,3 +403,63 @@ func TestChangesNeedTheSameScenarios(t *testing.T) {
 		t.Errorf("changes:\n%s", got)
 	}
 }
+
+// A new_chat message goes to a new chat in the same project; the record
+// joins the chats and counts their turns on.
+func TestRunNewChat(t *testing.T) {
+	s, err := Load(writeSet(t, map[string]string{
+		"_set.yaml": "title: Notes\n",
+		"remember.yaml": `id: remember
+context: main
+tests: ["memory"]
+messages:
+  - text: Remember that I like short answers.
+  - text: Hello.
+    new_chat: true
+asserts:
+  - {type: tool_called, test: memory, tool: update_memory, turn: 1}
+  - {type: answer_contains, test: memory, match: Hi, turn: 2}
+  - {type: max_turns, test: info, n: 2}
+`,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp := fake.New(
+		reply("", &chat.ToolCall{ID: "c1", Name: "update_memory",
+			Args: []byte(`{"scope":"user","section":"preferences","content":"Short answers.","expected_revision":0}`)}),
+		reply("Noted.", nil),
+		reply("Hi.", nil),
+	)
+	models := Static([]ProviderSpec{{Name: "p", Kind: "openai_compatible", BaseURL: "https://example.test/v1/", Models: []config.ModelSettings{{ID: "m", Context: 32000}}}}, map[string]string{"p": "test-key-0123456789"}, "p/m")
+	rep, err := RunSet(context.Background(), s, Options{
+		Models: models, Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: fp.Factory()},
+		Scale: 0.01, Timeout: time.Minute, Temp: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := rep.Runs[0]
+	if r.Error != "" {
+		t.Fatalf("error: %s\n%s", r.Error, r.Transcript)
+	}
+	for _, a := range r.Asserts {
+		if a.Status != Pass {
+			t.Errorf("%s: %s (%s)\n%s", a.Type, a.Status, a.Why, r.Transcript)
+		}
+	}
+	if r.Turns != 2 || r.Requests != 3 {
+		t.Errorf("turns %d, requests %d\n%s", r.Turns, r.Requests, r.Transcript)
+	}
+	calls := fp.Calls()
+	if len(calls) != 3 || len(calls[2].Messages) != 1 {
+		t.Fatalf("the second chat's request isn't a new chat's: %+v", calls)
+	}
+	var sys strings.Builder
+	for _, b := range calls[2].System {
+		sys.WriteString(b.Text)
+	}
+	if !strings.Contains(sys.String(), "[preferences, revision 1]\nShort answers.") {
+		t.Errorf("the new chat's system prompt lacks the memory:\n%s", sys.String())
+	}
+}

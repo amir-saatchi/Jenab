@@ -7,13 +7,14 @@ import { showError } from "@/lib/errors"
 import { readTheme, type ThemeChoice } from "@/lib/theme"
 import { DeveloperSection } from "@/settings/developer"
 import { GeneralSection } from "@/settings/general"
+import { UserMemorySection } from "@/settings/memory"
 import { LimitsSection, ModelsSection } from "@/settings/models"
 import { UsageSection } from "@/settings/usage"
 import { useSettings } from "@/state/settings"
 import { backToChats } from "@/shell/open"
 import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
-export const settingsPages = ["General", "Appearance", "Models", "Usage", "Developer"]
+export const settingsPages = ["General", "Memory", "Appearance", "Models", "Usage", "Developer"]
 
 // SettingsView is *Settings* as a full view (SPEC 5.12). Search,
 // connections, MCP servers and updates come with their tickets.
@@ -37,6 +38,8 @@ export function SettingsView({ section }: { section?: string }) {
       <SettingsTitle title="Settings" />
       <Problems />
       <GeneralSection />
+      <SettingsDivider />
+      <UserMemorySection />
       <SettingsDivider />
       <SettingsSection title="Appearance" description="Applies at once.">
         <FactRow label="Theme">

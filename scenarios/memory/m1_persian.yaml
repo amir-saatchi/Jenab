@@ -1,0 +1,19 @@
+id: M1_persian
+title: 'Answers in Persian, stated once'
+tests: ["saved", "follows"]
+context: main
+why: 'The user states a lasting preference without asking to save it. The chat saves it with update_memory; a new chat answers in Persian though asked in English.'
+messages:
+  - text: 'Just so you know: I always want your answers in Persian, whatever language I write in, in every chat.'
+  - text: 'What are three good habits for keeping a reading list?'
+    new_chat: true
+asserts:
+  - {type: tool_called, test: saved, tool: update_memory, turn: 1, args_match: '(?i)persian|farsi|فارسی', result_match: '^Saved (user|project) memory'}
+  - {type: tool_called, test: info, tool: update_memory, turn: 1, args_match: '"scope":\s*"user"'}
+  - {type: answer_contains, test: follows, turn: 2, final: true, match: '\p{Arabic}{2,}(\s+\p{Arabic}{2,}){5,}'}
+  - {type: answer_lacks, test: follows, turn: 2, match: '[A-Za-z]{3,}([ ,]+[A-Za-z]{3,}){6,}'}
+  - {type: tool_not_called, test: follows, tool: read_messages, turn: 2}
+  - {type: tool_not_called, test: follows, tool: list_chats, turn: 2}
+  - {type: tool_not_called, test: follows, tool: search_history, turn: 2}
+  - {type: tool_not_called, test: info, tool: update_memory, turn: 2}
+  - {type: no_turn_failed, test: info}

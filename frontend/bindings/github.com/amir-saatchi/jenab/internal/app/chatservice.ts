@@ -70,6 +70,14 @@ export function List(p: id$0.Project): $CancellablePromise<$models.ChatItem[] | 
 }
 
 /**
+ * MemoryUndone reports whether a chip's edit is undone now, so the chip
+ * offers redo after a reload or an undo of its turn.
+ */
+export function MemoryUndone(p: id$0.Project, r: $models.MemoryUndoRequest): $CancellablePromise<boolean> {
+    return $Call.ByID(2102654037, p, r);
+}
+
+/**
  * Messages returns the chat's turns from through to, for scrolling up;
  * to 0 means up to the last turn.
  */
@@ -142,6 +150,15 @@ export function Snapshot(p: id$0.Project, c: id$0.Chat): $CancellablePromise<$mo
  */
 export function Stop(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
     return $Call.ByID(1081880097, p, c);
+}
+
+/**
+ * UndoMemory reverts one memory edit from its chip, or puts it back. The
+ * chats see the change as an edit by the user (SPEC 3.3). An edit already
+ * undone, or already back, is no error: Undone says where it is.
+ */
+export function UndoMemory(p: id$0.Project, r: $models.MemoryUndoRequest): $CancellablePromise<$models.MemoryUndo> {
+    return $Call.ByID(677511796, p, r);
 }
 
 /**

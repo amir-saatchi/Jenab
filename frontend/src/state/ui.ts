@@ -7,6 +7,10 @@ interface UIState {
   // right sidebar
   leftOverlay: boolean
   rightOverlay: boolean
+  // a memory section to open for editing in the settings, the [edit] of a
+  // chat's chip (SPEC 3.3): its project and target, memory:<scope>/<section>.
+  // The settings page that shows it clears it.
+  memoryFocus: { project: string; target: string } | null
   set(p: Partial<Omit<UIState, "set">>): void
 }
 
@@ -14,5 +18,6 @@ export const useUI = create<UIState>((set) => ({
   newProject: false,
   leftOverlay: false,
   rightOverlay: false,
+  memoryFocus: null,
   set: (p) => set(p),
 }))

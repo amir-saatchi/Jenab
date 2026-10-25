@@ -41,6 +41,15 @@ export async function newChat(project: string) {
   }
 }
 
+// openMemory opens the settings with a memory section to edit, target
+// memory:<scope>/<section>: user memory in Settings, project memory in the
+// project's settings (SPEC 3.3).
+export function openMemory(project: string, target: string) {
+  useUI.getState().set({ memoryFocus: { project, target } })
+  if (target.startsWith("memory:user/")) useNav.getState().go({ view: "settings", section: "Memory" })
+  else useNav.getState().go({ view: "project-settings", project, section: "Memory" })
+}
+
 // backToChats leaves Settings for the chat used last, or the first-run
 // screen when there is none.
 export function backToChats() {

@@ -72,9 +72,20 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 		return nil, err
 	}
 	defer proj.Release()
-	ms, _, err := proj.Chats.Messages(ctx, r.cid, 1, 0)
-	if err != nil {
-		return nil, err
+	// The chats under test in order; a chat's turns count on from the last
+	// one's (new_chat).
+	var ms []chat.Message
+	base := map[id.Chat]int{}
+	for _, c := range r.chats {
+		cms, _, err := proj.Chats.Messages(ctx, c, 1, 0)
+		if err != nil {
+			return nil, err
+		}
+		base[c] = turnsIn(ms)
+		for _, m := range cms {
+			m.Turn += base[c]
+			ms = append(ms, m)
+		}
 	}
 	index := map[id.Message]int{}
 	for _, s := range sent {
@@ -123,17 +134,26 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	}
 	list := traces.List()
 	for _, t := range slices.Backward(list) {
-		if t.Chat == r.cid {
+		if b, ok := base[t.Chat]; ok {
 			for _, c := range t.Checks {
-				rec.checks = append(rec.checks, groundCheck{turn: t.Turn, request: len(rec.requests) + c.Request, GroundingCheck: c})
+				rec.checks = append(rec.checks, groundCheck{turn: b + t.Turn, request: len(rec.requests) + c.Request, GroundingCheck: c})
 			}
 			rec.requests = append(rec.requests, t.Requests...)
 			for range t.Requests {
-				rec.reqTurn = append(rec.reqTurn, t.Turn)
+				rec.reqTurn = append(rec.reqTurn, b+t.Turn)
 			}
 		}
 	}
 	return rec, nil
+}
+
+// turnsIn is the last turn of ms.
+func turnsIn(ms []chat.Message) int {
+	n := 0
+	for _, m := range ms {
+		n = max(n, m.Turn)
+	}
+	return n
 }
 
 func (rec *record) callTool(callID string) string {

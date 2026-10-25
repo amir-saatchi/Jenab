@@ -583,6 +583,11 @@ func TestUIError(t *testing.T) {
 	if ue := (*UIError)(nil); errors.As(big, &ue) && ue.Message != "This turn changed 30000 rows. Undo can revert at most 20000 at once." {
 		t.Errorf("too big: %q", ue.Message)
 	}
+	var both error = errors.Join(fmt.Errorf("%w: disk full", agent.ErrRolesNotUndone), fmt.Errorf("%w: disk full", agent.ErrUserMemoryNotUndone))
+	b.guard("test", &both)
+	if ue := (*UIError)(nil); !errors.As(both, &ue) || !strings.Contains(ue.Message, "chat roles and its edits of user memory") {
+		t.Errorf("both sides failed: %#v", both)
+	}
 	var ui error = &UIError{Kind: KindBusy, Message: "Wait."}
 	b.guard("test", &ui)
 	uiErr(t, ui, KindBusy)

@@ -681,6 +681,11 @@ func TestMigrateEthereum(t *testing.T) {
 	if got := one[string](t, p.DB, `SELECT query FROM _jenab_test_views WHERE id = 'news'`); got != "SELECT coin, title, reason FROM news" {
 		t.Error(got)
 	}
+	// A user memory edit's pointer isn't a write a restore loses: user
+	// memory is in registry.db.
+	if err := p.LogUserMemory(ctx, MemoryWrite{Section: MemorySection{Scope: ScopeUser, Section: "goals", Revision: 1, Source: msg("2")}, Op: "save", Change: "1"}); err != nil {
+		t.Fatal(err)
+	}
 	// The snapshot has the old schema, and a restore would lose two changes.
 	snaps, err := p.Snapshots(ctx)
 	if err != nil || len(snaps) != 1 || snaps[0].Name != r.Snapshot || snaps[0].WritesSince != 2 {

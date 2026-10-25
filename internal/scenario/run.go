@@ -164,8 +164,9 @@ type run struct {
 	o      *agent.Orchestrator
 	stop   context.CancelFunc
 
-	pid id.Project
-	cid id.Chat
+	pid   id.Project
+	cid   id.Chat   // the chat under test now
+	chats []id.Chat // the chats under test, in order: more with a new_chat message
 }
 
 func (r *run) do(ctx context.Context, rep int) Run {
@@ -366,6 +367,7 @@ func (r *run) setup(ctx context.Context) error {
 			return errors.New("the project has no " + appinfo.Mother + " chat")
 		}
 		r.cid = cs[i].ID
+		r.chats = []id.Chat{r.cid}
 		if len(r.sc.Skills) > 0 {
 			_, err = p.Chats.SetSkills(ctx, r.cid, r.sc.Skills)
 		}
@@ -378,11 +380,18 @@ func (r *run) setup(ctx context.Context) error {
 	if len([]rune(title)) > 60 {
 		title = string([]rune(title)[:60])
 	}
+	return r.newChat(ctx, p, title)
+}
+
+// newChat makes a chat under test with the scenario's role and skills, and
+// sends the next messages there.
+func (r *run) newChat(ctx context.Context, p *project.Project, title string) error {
 	ch, err := p.Chats.CreateChat(ctx, id.SourceUser, chat.Chat{Title: title, Role: r.sc.Role, Skills: r.sc.Skills})
 	if err != nil {
 		return err
 	}
 	r.cid = ch.ID
+	r.chats = append(r.chats, ch.ID)
 	return nil
 }
 
@@ -425,6 +434,11 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 				return out, err
 			}
 		}
+		if m.NewChat {
+			if err := r.nextChat(ctx); err != nil {
+				return out, fmt.Errorf("message %d: %w", i+1, err)
+			}
+		}
 		mid, err := r.o.Send(ctx, r.pid, r.cid, agent.UserMessage{Text: m.Text})
 		if err != nil {
 			return out, fmt.Errorf("message %d: %w", i+1, err)
@@ -432,6 +446,20 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 		out = append(out, sent{index: i, id: mid, at: time.Since(start)})
 	}
 	return out, r.idle(ctx)
+}
+
+// nextChat makes the next chat under test, for a new_chat message.
+func (r *run) nextChat(ctx context.Context) error {
+	p, err := r.pm.Open(ctx, r.pid)
+	if err != nil {
+		return err
+	}
+	defer p.Release()
+	title := r.sc.Title
+	if title == "" {
+		title = r.sc.ID
+	}
+	return r.newChat(ctx, p, fmt.Sprintf("%.50s (%d)", title, len(r.chats)+1))
 }
 
 // pollEvery is how often the runner looks at the chat.

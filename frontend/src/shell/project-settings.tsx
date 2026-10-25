@@ -6,7 +6,8 @@ import { showError } from "@/lib/errors"
 import { useProjects } from "@/state/projects"
 import { FolderWarning } from "@/shell/folder-warning"
 import { backToChats } from "@/shell/open"
-import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle } from "@/shell/settings-layout"
+import { ProjectMemorySection } from "@/settings/memory"
+import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
 export const levels = [
   { value: "strict", label: "Strict" },
@@ -17,10 +18,14 @@ export const levels = [
 // ProjectSettings is one scrolling page, opened from the project's menu
 // (SPEC 5.12). The workspace, storage, hosts and Export come with their
 // tickets.
-export function ProjectSettings({ project }: { project: string }) {
+export function ProjectSettings({ project, section }: { project: string; section?: string }) {
   const item = useProjects((s) => s.list.find((p) => p.id === project))
   const opened = useProjects((s) => s.opened[project])
   const created = item ? new Date(item.created_at).toLocaleDateString(undefined, { dateStyle: "medium" }) : ""
+  // Opened at a section, from a chat's memory chip.
+  React.useEffect(() => {
+    if (section) document.getElementById(sectionId(section))?.scrollIntoView({ block: "start" })
+  }, [section])
 
   // One change at a time, so the calls can't finish out of order.
   const [busy, setBusy] = React.useState(false)
@@ -41,7 +46,13 @@ export function ProjectSettings({ project }: { project: string }) {
   }
 
   return (
-    <SettingsLayout label={item ? `Project: ${item.name}` : "Project"} items={["General", "Approvals"]} onBack={backToChats}>
+    <SettingsLayout
+      key={section}
+      label={item ? `Project: ${item.name}` : "Project"}
+      items={["General", "Memory", "Approvals"]}
+      active={section}
+      onBack={backToChats}
+    >
       <SettingsTitle title="Project settings" description={item ? `${item.name} · created ${created}` : ""} />
       <SettingsSection title="General">
         <FactRow label="Name">
@@ -54,6 +65,8 @@ export function ProjectSettings({ project }: { project: string }) {
         </FactRow>
         <FolderWarning />
       </SettingsSection>
+      <SettingsDivider />
+      <ProjectMemorySection project={project} />
       <SettingsDivider />
       <SettingsSection
         title="Approvals"

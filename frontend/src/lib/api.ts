@@ -14,6 +14,11 @@ export type {
   ConnectRequest,
   ConnectResult,
   ExportRequest,
+  MemoryEdit,
+  MemorySaved,
+  MemoryUndo,
+  MemoryUndoRequest,
+  MemoryView,
   ModelGroup,
   ModelItem,
   ModelOption,
@@ -81,6 +86,6 @@ export type {
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ExportFormat, ExportStep } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ConflictReason } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
-export type { UndoConflict, UndoItem } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
+export type { MemorySection, UndoConflict, UndoItem } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Reading as MemoryReading } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"

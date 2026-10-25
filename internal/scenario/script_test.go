@@ -265,6 +265,23 @@ func TestFalseRunningFromSet(t *testing.T) {
 	}
 }
 
+// With final, answer_contains reads only the answer, not text before a
+// tool call.
+func TestAnswerContainsFinal(t *testing.T) {
+	sc := &Scenario{set: &Set{}}
+	rec := &record{sc: sc, events: []event{
+		{kind: evText, turn: 1, text: "TL;DR: let me look."},
+		{kind: evCall, turn: 1, tool: "run_sql"},
+		{kind: evText, turn: 1, text: "Here is the answer.", final: true},
+	}}
+	for final, want := range map[bool]string{false: Pass, true: Fail} {
+		a := Assert{Type: "answer_contains", Test: "x", Match: `\A\s*TL;DR`, Final: final}
+		if st, why, _ := rec.check(a); st != want {
+			t.Errorf("final %v: %s (%s), want %s", final, st, why, want)
+		}
+	}
+}
+
 func TestNoTurnFailed(t *testing.T) {
 	sc := &Scenario{set: &Set{}}
 	a := Assert{Type: "no_turn_failed", Test: "x"}

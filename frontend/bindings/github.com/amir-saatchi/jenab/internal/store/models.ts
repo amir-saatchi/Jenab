@@ -64,6 +64,43 @@ export interface Hit {
 }
 
 /**
+ * MemoryScope is user memory or project memory (SPEC 3.3).
+ */
+export enum MemoryScope {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = "",
+
+    /**
+     * all projects, in registry.db
+     */
+    ScopeUser = "user",
+
+    /**
+     * all chats of one project, in project.db
+     */
+    ScopeProject = "project",
+};
+
+/**
+ * MemorySection is one section of a memory. A deleted section keeps its
+ * row with Content "", so its revision goes on counting (a tombstone).
+ */
+export interface MemorySection {
+    "scope": MemoryScope;
+    "section": string;
+    "content": string;
+    "revision": number;
+
+    /**
+     * who wrote it last
+     */
+    "source": id$0.Source;
+    "updated_at": string;
+}
+
+/**
  * SearchResult is the hits, best first for a word search and newest first
  * for a substring scan.
  */

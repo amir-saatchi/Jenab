@@ -40,17 +40,18 @@ const cacheIdle = 5 * time.Minute
 // window is a chat's history window (3.6). Between cuts it only grows at
 // the end, so provider caches keep working (3.1).
 type window struct {
-	start     int              // the first turn in the window; 0 before the first cut
-	stubBelow int              // tool results of turns before this are stubs
-	stubbed   map[string]bool  // tool calls whose results in-turn trimming made stubs
-	chatList  string           // Mother's chat list, refreshed at cuts (8.6)
-	system    []provider.Block // blocks 1–5, built at cuts
-	schema    int              // the schema version the project card was built at
-	cardFail  int              // the turn whose card failed: it is tried again in the next turn
-	skills    map[string]bool  // the skills in block 1, from the last cut
-	last      time.Time        // the last request
-	fired     map[int]bool     // turns whose number check fired (SPIKE-032)
-	tainted   []taint          // numbers the chat's write calls saved without a source, and where (SPIKE-032)
+	start     int                // the first turn in the window; 0 before the first cut
+	stubBelow int                // tool results of turns before this are stubs
+	stubbed   map[string]bool    // tool calls whose results in-turn trimming made stubs
+	chatList  string             // Mother's chat list, refreshed at cuts (8.6)
+	system    []provider.Block   // blocks 1–5, built at cuts
+	mem       map[string]memSeen // memory sections as the chat has seen them, by target; set at cuts (3.3)
+	schema    int                // the schema version the project card was built at
+	cardFail  int                // the turn whose card failed: it is tried again in the next turn
+	skills    map[string]bool    // the skills in block 1, from the last cut
+	last      time.Time          // the last request
+	fired     map[int]bool       // turns whose number check fired (SPIKE-032)
+	tainted   []taint            // numbers the chat's write calls saved without a source, and where (SPIKE-032)
 }
 
 // cutIfDue cuts the window at the start of a turn when it has passed
@@ -102,6 +103,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Request, error) {
 	w := &r.cs.win
 	r.refreshCard(ctx, t)
+	r.memoryNotices(ctx, t)
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
 		return provider.Request{}, err
@@ -248,7 +250,7 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 
 // system is blocks 1–5 of the context (3.1) for the window, and the
 // schema version its project card was built at. It has the system
-// prompt, the date, the role, the skills, the project card and Mother's
+// prompt, the date, the role, the skills, memory, the project card and Mother's
 // chat list. The cache point is after the last block.
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
 	tools := r.o.d.Tools.For(t.ch.Kind)
@@ -276,6 +278,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 		b.WriteString("\n\n" + s)
 	}
 	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
+	mem, seen := r.memoryBlocks(ctx)
+	blocks = append(blocks, mem...)
+	r.cs.win.mem = seen
 	card, schema, _ := r.card(ctx, t)
 	if card != "" {
 		blocks = append(blocks, provider.Block{Text: card, Name: cardBlock})
@@ -372,7 +377,7 @@ func (r *runner) refreshCard(ctx context.Context, t *turn) {
 	case i >= 0:
 		sys[i].Text = card
 	case card != "":
-		sys = slices.Insert(sys, 1, provider.Block{Text: card, Name: cardBlock})
+		sys = slices.Insert(sys, afterMemory(sys), provider.Block{Text: card, Name: cardBlock})
 	}
 	for j := range sys {
 		sys[j].Cache = j == len(sys)-1

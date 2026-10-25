@@ -219,6 +219,14 @@ export interface Notice {
      * Details are shown when the chip unfolds, such as a migration's steps.
      */
     "details"?: string;
+
+    /**
+     * Target and Change are what a chip's undo reverts: a change-log
+     * target, such as memory:user/preferences, and the change, a project
+     * change ID or, for user memory, the entry in registry.db's log.
+     */
+    "target"?: string;
+    "change"?: string;
 }
 
 /**
@@ -294,6 +302,13 @@ export enum NoticeKind {
      * steps for *View steps* (8.2).
      */
     NoticeMigration = "migration",
+
+    /**
+     * NoticeMemoryUpdated is the chip of a memory edit, in the tool
+     * message, so the model doesn't read it; Target and Change say what
+     * its undo reverts (3.3).
+     */
+    NoticeMemoryUpdated = "memory_updated",
 };
 
 /**

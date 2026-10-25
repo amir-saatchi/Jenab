@@ -6,7 +6,7 @@ import { create } from "zustand"
 export type Place =
   | { view: "chat"; project: string; chat: string }
   | { view: "settings"; section?: string }
-  | { view: "project-settings"; project: string }
+  | { view: "project-settings"; project: string; section?: string }
   | { view: "inspector"; project?: string; chat?: string; turn?: number }
   | { view: "runtime" }
 
@@ -18,7 +18,7 @@ export interface ChatRef {
 export function samePlace(a: Place | undefined, b: Place | undefined) {
   if (!a || !b || a.view !== b.view) return false
   if (a.view === "chat" && b.view === "chat") return a.project === b.project && a.chat === b.chat
-  if (a.view === "project-settings" && b.view === "project-settings") return a.project === b.project
+  if (a.view === "project-settings" && b.view === "project-settings") return a.project === b.project && a.section === b.section
   if (a.view === "settings" && b.view === "settings") return a.section === b.section
   if (a.view === "inspector" && b.view === "inspector") return a.project === b.project && a.chat === b.chat && a.turn === b.turn
   return true
