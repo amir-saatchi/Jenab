@@ -370,6 +370,7 @@ Both are organized in named sections. Default sections: `goals`, `preferences`, 
 - If the section's revision has changed since the agent read it, the edit is rejected and the current content is returned, so the agent can merge.
 - Empty content deletes the section. Edits that exceed the size cap are rejected.
 - Each edit shows a chip in the chat: `Memory updated: preferences [undo] [edit]`.
+- **Undo:** user memory lives in `registry.db`, so its before-content is kept there (`user_memory_changes`), and the project's change log entry points to it. Undo is refused if the section changed since (P2-09).
 
 **Who writes:** main agents in chats, the user, and *Refresh memory* (3.5). Subagents, pipelines and the schema agent do not.
 
