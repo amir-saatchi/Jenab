@@ -40,6 +40,7 @@
 | [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | Done | 3 |
 | [SPIKE-033](SPIKE-033-semantic-recall.md) | Semantic recall: find earlier messages and file passages by meaning | Spike | Done | 3 |
 | [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Open (may supersede SPIKE-029) | 3 |
+| [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Open | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
