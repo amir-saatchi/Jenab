@@ -132,6 +132,7 @@ func (th *threads) createSession() tool.Tool {
 		}
 		x := th.add(ch.ID, title, label, i)
 		th.started[x.Chat] = i
+		th.cur[x.Chat] = i // its first turn plays the same message
 		c.Session = x.ID
 		th.creations = append(th.creations, c)
 		th.mu.Unlock()

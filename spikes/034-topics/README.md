@@ -8,7 +8,7 @@ ticket). Round 2: visible sub-sessions, which the agent starts with
 `create_session` when asked; does the parent stay current through a notice
 from each sub-session turn (5) or a summary in its list line (6)? See
 [the ticket](../../Docs/Tickets/SPIKE-034-topics.md), the findings in
-[`results.md`](results.md), and the full design of the harness, chats and
+[`results.md`](results.md) (round 1) and [`results-round2.md`](results-round2.md), and the full design of the harness, chats and
 scoring in [`PLAN.md`](PLAN.md).
 
 The harness plays two scripted chats on the app's real orchestrator

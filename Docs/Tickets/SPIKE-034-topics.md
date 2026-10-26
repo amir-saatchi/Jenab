@@ -1,6 +1,6 @@
 # SPIKE-034 — Topics: threads inside a chat, with their own notes and history
 **Type:** Spike
-**Status:** In progress (round 1 done on gemma and ministral: topics are out; round 2, sub-sessions, planned)
+**Status:** In progress (round 1: topics are out; round 2 done on gemma and ministral: sub-sessions with a notice up work; Gemini to run)
 **Gate:** 3
 
 ## Question
@@ -183,3 +183,23 @@ Measures:
 - the way up: the notice, the summary line, both, or neither; and the notice's size
 - what a sub-session's line in the parent's list holds
 - what changes in SPEC 8.6: `create_chat` beyond Mother, or a separate `create_session`
+
+**Round 2 result** (2026-10-27, gemma4:31b and ministral-14b-latest; Gemini to run): 2 chats × conditions 5 and 6 × 3 reps per model, 24 runs, none lost. The findings and tables, next to round 1's baselines, are in [`results-round2.md`](../../spikes/034-topics/results-round2.md). The second spike-only hook, `agent.Deps.Notices`, writes the notices; the app leaves it nil.
+
+| gemma / ministral | 1 one chat | 2 user opens topics | 5 sub-sessions, notice | 6 sub-sessions, summary line |
+|---|---|---|---|---|
+| Asked: one `create_session` with the task, no work in the parent | – | – | 6/6 / 6/6 | 6/6 / 6/6 |
+| Cross-topic questions in the parent | 15/18 / 15/18 | 9/18 / 6/18 | 15/18 / 17/18 | 11/18 / 12/18 |
+| Decisions made in a sub-session, asked in the parent | 6/6 / 6/6 | 3/6 / 3/6 | 6/6 / 6/6 | 6/6 / 5/6 |
+| Follow-ups after cuts | 8/9 / 8/9 | 9/9 / 6/9 | 9/9 / 6/9 | 9/9 / 6/9 |
+| Finish notice passed on in the parent's next answer | – | – | 0/6 / 2/6 | 2/6 / 3/6 |
+| Prompt tokens per run (k), the parent's own | 135, 135 / 122, 122 | 148, 64 / 118, 37 | 149, 62 / 146, 52 | 157, 69 / 163, 70 |
+
+- **Asked, both models start a sub-session; unasked, almost never.** 12 of 12 asked turns made one `create_session` call with the whole task and did no work in the parent. One call in 24 runs was unasked: ministral on the merge message, instead of joining two sub-sessions.
+- **A notice after every sub-session turn keeps the parent current.** With it, the parent answered cross-topic questions as well as one chat or better, and every decision made in a sub-session, without reading history. "Is anything automated yet?", which round 1's topics failed, passed 3/3 on both models.
+- **The summary line doesn't.** It is as old as the parent's last cut, and a parent with few turns has few cuts: gemma wrote the pipeline into the follow_up sub-session's notes at message 5 and the parent still said "nothing is automated" at message 10, in 3 of 3 runs.
+- **Work in a sub-session holds up** as in round 1's topics: follow-ups 9/9 (gemma) and 6/9 (ministral), calls that changed earlier work 18/18 on both in condition 5. ministral still writes few notes, so its waiting work rarely shows as an open item.
+- **The parent rarely passes the finish notice on** when its next message is about something else. The user sees the sub-session; a finish turn, as Mother has (8.6), is the way to pass a reply on.
+- **Cost:** with notices, +11% (gemma) and +20% (ministral) prompt tokens per run against one chat; the notices themselves are about 440 and 1,060 tokens a run, and none reached the 1,000-character cut.
+
+**Proposed after round 2,** for the user to decide once Gemini has run: sub-sessions yes, started when the user asks or for lasting work, one level; the way up is a notice after every sub-session turn, cut to 1,000 characters, without a turn; the list line stays round 1's, without the summary. Whether SPEC 8.6 gets a separate `create_session` or `create_chat` beyond Mother is the user's call.
