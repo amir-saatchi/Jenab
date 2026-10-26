@@ -42,6 +42,7 @@
 | [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Open (may supersede SPIKE-029) | 3 |
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
+| [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Open | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
