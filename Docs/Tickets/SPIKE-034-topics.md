@@ -1,6 +1,6 @@
 # SPIKE-034 — Topics: threads inside a chat, with their own notes and history
 **Type:** Spike
-**Status:** Open
+**Status:** In progress (round 1 done on gemma and ministral: topics are out; round 2, sub-sessions, planned)
 **Gate:** 3
 
 ## Question
@@ -115,3 +115,71 @@ Each condition has results per model, with 3 reps per cell: 2 chats × 4 conditi
 - whether report-up gets its own round
 
 ## Result
+Ran on 2026-10-27 on gemma4:31b (Ollama Cloud) and ministral-14b-latest (Mistral, standing in while Gemini's free quota was used up): 2 chats of 19 messages × 4 conditions × 3 reps per model, 48 runs, none lost. Gemini `gemini-3.5-flash-lite`, the second reference model, is still to run; it runs with round 2. The harness is in [`spikes/034-topics/`](../../spikes/034-topics/README.md), the findings and tables in its [`results.md`](../../spikes/034-topics/results.md). It adds one spike-only app hook, `agent.Deps.Notes`: a block 5 chosen per chat, which the app leaves out.
+
+| | 1 one chat | 2 user opens topics | 3 agent proposes | 4 subjects |
+|---|---|---|---|---|
+| Follow-ups after cuts, gemma / ministral | 8/9 / 8/9 | 9/9 / 6/9 | 9/9 / 4/9 | 9/9 / 5/9 |
+| Cross-topic questions in main | 15/18 / 15/18 | 9/18 / 6/18 | 15/18 / 10/18 | 15/18 / 12/18 |
+| Decisions made in a topic, asked in main | 6/6 / 6/6 | 3/6 / 3/6 | 6/6 / 5/6 | 6/6 / 6/6 |
+| Prompt tokens per run (k) | 135 / 122 | 148 / 118 | 153 / 143 | 153 / 161 |
+
+- **The agent doesn't propose topics.** gemma proposed a new topic at 1 of 70 chances and a return once; ministral proposed none in 72. Condition 3 ends up as one chat. gemma did propose a topic on the merge message in all 6 runs, where the user asks for two pieces of work to be kept together.
+- **A perfect split doesn't beat one chat.** With the scripted user opening every topic (condition 2), follow-ups after cuts went from 8/9 to 9/9 on gemma and from 8/9 to 6/9 on ministral.
+- **Topics cost the main thread its reach.** Cross-topic questions asked in main fell from 15/18 to 9/18 (gemma) and 6/18 (ministral); decisions made in a topic were answered in main 3 of 6 times against 6 of 6. Two causes:
+  - An index line names a topic but doesn't say what was done there. Asked "is anything automated yet?", gemma read the applications topic and answered "no" in 3 of 3 runs; the follow_up topic had made the pipeline.
+  - Blocks 2–5 are rebuilt at a thread's own cuts, and the main thread has few turns, so its project card is old. ministral answered "Monday, 14 days" from main's card after a topic had changed the pipeline to Friday and 10 days. In one chat the change is in the history window.
+- **Subjects (condition 4, SPIKE-029's combined design, its round 4) hold up on gemma, not on ministral.** gemma: every follow-up right, waiting work as an open item 6/6, merge 3/6, 0.5 duplicates a run, +14% prompt tokens. ministral: follow-ups 5/9, waiting 3/6, merge 3/6, and 34 of 37 subject writes sent alone, +32% prompt tokens.
+- **Merging works better on subjects than on topics:** one subject after the merge message in 3 of 6 runs per model, one topic in 1 of 6.
+- **Parallel turns are safe.** Two topics saving project memory at once gave 3 and 6 revision conflicts; each was merged and saved again, and memory had both facts in every run. The app tells a running turn with a notice when memory changes under it.
+- **Cost:** requests per run were about the same in every condition. A topic's first request shares about 2,370 of 2,720 estimated tokens of tools and system text with the main thread's. Mistral reports cache reads (15–20% of prompt tokens); Ollama Cloud reports none.
+- **Storage:** the store keeps chat titles unique per project, and proposed topic titles often matched another chat's. Topics as `chats` rows would need a title rule.
+
+**Decisions after round 1** (2026-10-27):
+- **Topics are out** (decided with the user). The agent doesn't propose them, and even opened by the user they cost the main thread more than they gain in follow-ups. The design above stays as the record of what was tested.
+- **Instead: visible sub-sessions,** tested in round 2. A chat starts one when the user asks, or when the work needs it, like a subagent the user can see, open and continue. It builds on Mother's `create_chat` (8.6), for any chat and one level deep.
+- **Topics don't replace subjects.** P2-10 keeps depending on SPIKE-029, not on this spike. Condition 4 is SPIKE-029's round 4: its combined design works on gemma, and SPIKE-029 can take that result. ministral's numbers say a weaker model keeps subjects poorly, so the rule must stay short and the notes optional.
+- **The index:** `t2 · Users table · 1 open · chat <id>` in block 5 isn't enough on its own: it doesn't say what was done, and it is as old as the parent's last cut. Round 2 tests a line with the summary.
+- **The parent's notes:** a child that only reads them, with the index as the way up, doesn't keep the parent current (3 of 6 decisions). Round 2 tests the two ways up.
+- **Report-up:** round 2 tests its smallest form, a notice in the parent without a turn. Telling Mother, `tell_mother` and hop limits stay with Phase 5.
+- **Gemini** runs round 1's conditions 1, 2 and 4 with round 2. Condition 3 is dropped for it, since proposing is out.
+
+**Round 2** (planned on 2026-10-27): **visible sub-sessions.** A chat starts a sub-session, which the user sees under it and can open and continue. Creating one is a tool call the agent makes when the user asks, or when the work needs it. The question is the one topics failed: **does the parent stay current when the user works inside a sub-session?** Two ways up are compared.
+
+The design under test:
+- **`create_session(title, message)`**, in any chat that isn't a sub-session itself (one level, like subagents). It opens a sub-session under the chat with `message` as its first user message, and the turn starts at once. The tool returns the session's ID.
+- **A sub-session** has the parent's role, the parent's session notes (read-only), its own notes and its own history. Like round 1's topics, it has `update_notes` and the project tools.
+- **The parent's list of sub-sessions** is in block 5, built at the parent's cuts like Mother's chat list (8.6).
+- **Finish notice:** when a turn the parent started ends (the first turn from `create_session`), the parent gets the sub-session's last reply as a notice, as Mother does for `create_chat`. In both conditions. Here the notice waits for the parent's next turn instead of starting a finish turn; SPIKE-023 tested finish turns.
+- **The rule** in the parent: use `create_session` when the user asks for a separate session, or for lasting work the user will come back to; answer plain questions yourself. It follows delegation guidance v1 (8.6).
+
+Conditions (both chats, the same messages as round 1):
+5. **Notice:** every turn that ends in a sub-session, the user's own included, sends its last reply to the parent as a notice, cut to 1,000 characters. It is written into the parent's history when the parent's next turn starts, like a memory-changed notice (3.6), and starts no turn. The list line is round 1's: `s2 · Orders table · 1 open · chat <id>`.
+6. **Summary line:** no notices beyond the finish notice. The list line adds the sub-session's summary from its notes: `s2 · Orders table · 1 open · chat <id> · Orders has an INTEGER key and a user_id reference; …`. The line is as old as the parent's last cut.
+
+Round 1's conditions 1 (one chat) and 2 (topics the user opens, the index only) are the baselines.
+
+The scripted user:
+- They open a sub-session themselves at a subject's first message, as in round 1's condition 2, and write each later message on that subject in it. The `main` messages go to the parent.
+- In each chat, one subject is asked for instead: *"Do this in its own session: …"*. That is the inventory message in `sqlite` (8) and the Zalando message in `jobs` (6), both with waiting work and later returns. Later messages on that subject go to the sub-session the agent made. If it made none, the user opens one at the next message on that subject.
+
+Measures:
+- **Asked creation:** one `create_session` call at the asked message, with the task in its message and no work tool called in the parent's turn; and whether the finish notice was passed on in the parent's answer.
+- **Creations nobody asked for:** `create_session` calls at other messages, for a `main` message or a subject that has a sub-session. Every subject gets its sub-session from the user or the ask, so this measures false creations only; SPIKE-023 measured choosing to delegate.
+- **Payoff in the parent**, as round 1: cross-topic questions, decisions made in a sub-session and asked in the parent, and whether that turn read history.
+- **Payoff in the sub-sessions:** follow-ups after cuts, calls that changed earlier work, waiting work as an open item.
+- **Cost:** requests and prompt tokens per run, the parent's prompt tokens on their own, and the tokens the notices add.
+
+**Setup:** the round 1 harness, with two new conditions.
+- `create_session` and the sub-session list are spike code; a sub-session is a chat in the same project, titled `sN · Title` for the store's unique titles.
+- The notices need a second spike-only app hook, agreed with the user before it is written: `agent.Deps.Notices`, which gives the notices for a chat when its turn starts. The app writes them like its memory-changed notices; the app leaves it nil.
+
+**Runs:** 2 chats × 2 conditions × 3 reps on gemma4:31b, ministral-14b-latest and gemini-3.5-flash-lite: 36 runs, about 40 requests each.
+- Gemini also runs round 1's conditions 1, 2 and 4: 18 runs. With a smoke run, that is about 1,300 requests on its free tier of about 1,500 a day, so a run that stops on the quota finishes the next day with `-resume`.
+- gemma and ministral take about 500 requests each.
+
+**Done when:** round 2 has results for the three models, and there is a decision on:
+- sub-sessions: yes or no, and the rule for when the agent starts one
+- the way up: the notice, the summary line, both, or neither; and the notice's size
+- what a sub-session's line in the parent's list holds
+- what changes in SPEC 8.6: `create_chat` beyond Mother, or a separate `create_session`

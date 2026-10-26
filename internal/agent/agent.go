@@ -76,6 +76,12 @@ type Deps struct {
 	// EarlierTurns is SPIKE-037's Part B: what a request keeps of earlier
 	// turns. Spike-only: the app's zero value is today's window.
 	EarlierTurns EarlierTurns
+	// Notes is SPIKE-034's block 5 (3.1): text chosen per chat, such as
+	// its session notes, a topic's notes and its parent's, or the topic
+	// index. It is built at a cut, like blocks 2–4. An error is logged and
+	// leaves the block out. Spike-only: the app leaves it nil, and the
+	// block out.
+	Notes func(ctx context.Context, p *project.Project, ch chat.Chat) (string, error)
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

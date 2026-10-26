@@ -1,0 +1,6 @@
+2026/10/27 00:57:49 4 runs to go, results in results\2026-10-27_005749
+2026/10/27 00:59:38 [1/4] ollama-cloud-gemma4-31b_sqlite_c2_r1 108s req 34 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 00:59:56 [2/4] ollama-cloud-gemma4-31b_sqlite_c1_r1 126s req 40 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:01:23 [3/4] ollama-cloud-gemma4-31b_sqlite_c3_r1 105s req 36 follow 2/2 cross 2/3 new 1/12 ret 0/0 noise 1 dup 0 · ok
+2026/10/27 01:01:34 [4/4] ollama-cloud-gemma4-31b_sqlite_c4_r1 99s req 38 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:01:34 wrote results\2026-10-27_005749\results.md

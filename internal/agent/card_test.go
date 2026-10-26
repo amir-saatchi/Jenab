@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -219,4 +220,51 @@ func (l *lockedBuffer) String() string {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return l.b.String()
+}
+
+// Deps.Notes (SPIKE-034) is block 5: chosen per chat, after the card,
+// built at a cut and kept until the next one. Nil leaves it out.
+func TestNotesBlock(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	h.o.d.Card = realCard
+	var builds atomic.Int32
+	h.o.d.Notes = func(_ context.Context, _ *project.Project, ch chat.Chat) (string, error) {
+		return fmt.Sprintf("notes of %s, build %d", ch.Title, builds.Add(1)), nil
+	}
+	a := h.newChat(chat.Chat{Title: "A"})
+	b := h.newChat(chat.Chat{Title: "B"})
+	h.fp.Push(fake.Text("1"), fake.Text("2"), fake.Text("3"))
+	h.turn(a.ID, "hello")
+	h.turn(b.ID, "hello")
+	h.turn(a.ID, "hello again")
+	notes := func(req provider.Request) string {
+		i := slices.IndexFunc(req.System, func(b provider.Block) bool { return b.Name == notesBlock })
+		if i < 0 {
+			return ""
+		}
+		if j := slices.IndexFunc(req.System, func(b provider.Block) bool { return b.Name == cardBlock }); j < 0 || j > i {
+			t.Errorf("the notes block at %d, the card at %d", i, j)
+		}
+		cardOf(t, req) // checks the cache point
+		return req.System[i].Text
+	}
+	calls := h.fp.Calls()
+	if len(calls) != 3 {
+		t.Fatalf("%d requests, want 3", len(calls))
+	}
+	want := []string{"notes of A, build 1", "notes of B, build 2", "notes of A, build 1"}
+	for i, req := range calls {
+		if got := notes(req); got != want[i] {
+			t.Errorf("request %d: notes %q, want %q", i+1, got, want[i])
+		}
+	}
+
+	h.o.d.Notes = nil
+	c := h.newChat(chat.Chat{Title: "C"})
+	h.fp.Push(fake.Text("4"))
+	h.turn(c.ID, "hello")
+	if got := notes(h.fp.Calls()[3]); got != "" {
+		t.Errorf("without Deps.Notes: %q", got)
+	}
 }

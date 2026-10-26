@@ -290,6 +290,14 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 	if t.ch.Kind == chat.KindMother {
 		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})
 	}
+	if f := r.o.d.Notes; f != nil { // SPIKE-034, spike-only
+		s, err := f(ctx, r.p, t.ch)
+		if err != nil {
+			r.o.d.Log.Error("agent: building the notes block", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+		} else if s = strings.TrimSpace(s); s != "" {
+			blocks = append(blocks, provider.Block{Text: s, Name: notesBlock})
+		}
+	}
 	if n := w.start - 1; n > 0 {
 		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
 	}
@@ -300,6 +308,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 // cardBlock is the project card's block name, as the turn inspector shows
 // it.
 const cardBlock = "Project card"
+
+// notesBlock is block 5's name, from Deps.Notes (SPIKE-034).
+const notesBlock = "Session notes"
 
 // noCard is the schema version of a card that failed, so the next turn
 // tries again.
