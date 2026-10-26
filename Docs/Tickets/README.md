@@ -41,6 +41,7 @@
 | [SPIKE-033](SPIKE-033-semantic-recall.md) | Semantic recall: find earlier messages and file passages by meaning | Spike | Done | 3 |
 | [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Open (may supersede SPIKE-029) | 3 |
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
+| [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -60,6 +61,7 @@
 | [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Open | 3 |
 | [TASK-020](TASK-020-tool-call-errors.md) | Tool-call errors: measure them, then check more | Task | Open (later) | 3 |
 | [TASK-021](TASK-021-word-files.md) | Read Word files: text from .docx | Task | Open | 3 |
+| [TASK-022](TASK-022-retry-skipped-undo.md) | Undo the skipped items later | Task | Open | 3 |
 
 ## Phase 1
 
