@@ -369,6 +369,7 @@ Both are organized in named sections. Default sections: `goals`, `preferences`, 
 - Writes go through the writer queue as interactive requests and are recorded in the change log.
 - If the section's revision has changed since the agent read it, the edit is rejected and the current content is returned, so the agent can merge.
 - Empty content deletes the section. Edits that exceed the size cap are rejected.
+- **After untrusted content:** if the turn has read untrusted content (web pages, files, MCP results) since the user's message, an agent's edit asks first, with an approval card showing the section before and after (8.8). A planted line saved to memory would reach every later chat.
 - Each edit shows a chip in the chat: `Memory updated: preferences [undo] [edit]`.
 - **Undo:** user memory lives in `registry.db`, so its before-content is kept there (`user_memory_changes`), and the project's change log entry points to it. Undo is refused if the section changed since (P2-09).
 
@@ -1818,6 +1819,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A connection (6.9) | Save, Cancel | Title, host, where the key goes, and the key field |
 | An MCP tool (8.7) | Once, Always in this project, Deny | Server, tool and arguments |
 | A command (Phase 6, 8.5) | Once, Always for this pattern, Deny | The command and the folder |
+| A memory edit after untrusted content (3.3) | Save, Deny | The section, before and after |
 
 - **Content:** what is asked, why (one line from the agent) and the risk. Details expand.
 - **Options:** each one grants *Once*, *Always* or *Deny*. *Always* appears only where the rules allow it, and the project isn't asked again. *Deny* can carry a short note, which goes back to the agent with the result.
@@ -1841,6 +1843,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A destructive migration | Ask | Ask | Ask |
 | Saving a pipeline with a schedule | Ask | No ask | No ask |
 | A *Refresh memory* edit (3.5) | Ask | No ask; asks if it changes a section the user wrote | Same as Standard |
+| An agent's memory edit (3.3) | Ask | No ask; asks after untrusted content | Same as Standard |
 | Starlark code | Ask | Ask | Auto |
 | An MCP tool that only reads | Ask on first use | Ask on first use; *Always* allowed | Auto |
 | An MCP tool that changes something | Ask every time; no *Always* | Ask; *Always* allowed, except a tool that deletes or reaches outside after untrusted content (8.7) | Auto* |
