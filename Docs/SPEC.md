@@ -2214,4 +2214,5 @@ All errors are returned together, each with its path, so the LLM can fix everyth
 - `script.starlark` and the GDELT news source (later, 6.5)
 - Automatic *Refresh memory*, e.g. when a chat goes idle or at a cut once enough unread turns build up
 - Semantic recall: embeddings, `index.db` and `bucket_search` (later, Gate 1 R-124 to R-127; 2.9, 4.9)
+- Plan first as an approval check (SPIKE-035). Later, a plan feature: the agent decides when a task needs a written plan and keeps it with a `plan` tool; to be investigated in its own spike
 - A built-in embedder (SPIKE-033). Later perhaps a separate helper program on ONNX Runtime, so only the helper needs cgo and the app keeps none (N-51)
