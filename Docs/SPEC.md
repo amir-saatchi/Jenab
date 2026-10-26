@@ -1764,7 +1764,7 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 
 ### 8.7 MCP servers
 
-Draft, for Phase 5. SPIKE-024 tests it first.
+For Phase 5, on the official `modelcontextprotocol/go-sdk` (SPIKE-024).
 
 The user can add MCP servers, e.g. for Blender, Unity or GitHub. Their tools become tools of the agent, so a project can keep structured data about work done in those apps: items and stats, levels, scenes, assets, bugs.
 
@@ -1786,17 +1786,18 @@ env: { }                      # values may come from the keychain
   - Servers are stored with the connections in `registry.db` and enabled per project. Keys go to the keychain as `jenab:mcp:<id>`, and the process gets only the `env` listed.
 - **Tools in the context:**
   - The project card lists each enabled server with its tool names and one-line descriptions.
-  - `mcp_describe(server, tool)` returns a tool's input schema, and `mcp_call(server, tool, arguments)` calls it. Jenab checks the arguments against the schema first, with errors as in 10.
-  - This keeps the tool list and the prompt cache stable, however many servers are enabled. SPIKE-024 compares it with giving each MCP tool as a native tool.
+  - `mcp_describe(server, tool)` returns a tool's input schema, and `mcp_call(server, tool, arguments)` calls it. Jenab checks the arguments against the schema first, with errors as in 10. It refuses argument names the schema doesn't list, even if the server's schema allows them, and its errors name the arguments the tool takes, since models often call without describing first.
+  - This keeps the tool list and the prompt cache stable, however many servers are enabled. In SPIKE-024 it cost about a third of the prompt tokens of giving each MCP tool as a native tool.
 - **Approval** (approval card, 8.8):
   - Each tool needs approval on first use: *once*, *always in this project*, or *deny*. This is the Standard level; Strict and Auto change it (8.8).
-  - A tool that doesn't declare `readOnlyHint: true` asks every time, unless the user allows it always in the settings. The hint is only trusted this far because the user chose the server.
-  - After a turn has read web content, every tool that isn't read-only asks again, as for commands (8.5).
+  - Only a tool that declares `readOnlyHint: true` counts as read-only. The hints are only trusted this far because the user chose the server.
+  - **After untrusted content:** once a turn has read untrusted content (web pages, files, MCP results), a tool that deletes or reaches outside (`destructiveHint` or `openWorldHint` true, MCP's default when the hint is missing) asks again, with no *Always*. Other writes keep their *Always*. This stops a planted line in a result from deleting or sending something (SPIKE-024).
 - **Results:** untrusted data, like web pages. Text over `tool_preview_tokens` becomes a preview and ref (3.7); images go to vision-capable models; results over 5 MB are cut.
 - **No undo:** changes made in Blender or Unity are outside Jenab. The tool chip says "can't be undone", and *Undo turn* skips them.
 - **Processes:**
   - A stdio server starts on first use, one process per project. It stops when the project closes, or after 10 minutes without calls.
   - It is stopped with its whole process tree (a Job Object on Windows), since launchers such as `uvx` and `npx` start child processes.
+  - An app the server opens (a process with a window, as Viso's server opens Viso) is never closed: not on the idle stop, Jenab's exit or a crash. Jenab watches the job's new processes, keeps kill-on-close off until each one is checked, and stops only background helpers (SPIKE-024). The job code is shared with the SQL workers (2.2).
   - Its stderr goes to a log in *Settings → Developer*. After a crash, the next call restarts it once.
 - **Time limit:** 60 s per call by default, configurable per server. Progress messages are shown on the tool chip.
 - **Not in pipelines yet:** a later `mcp.call` step (v1.1) may use only the tools the user marks as safe for pipelines.
@@ -1842,7 +1843,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A *Refresh memory* edit (3.5) | Ask | No ask; asks if it changes a section the user wrote | Same as Standard |
 | Starlark code | Ask | Ask | Auto |
 | An MCP tool that only reads | Ask on first use | Ask on first use; *Always* allowed | Auto |
-| An MCP tool that changes something | Ask every time; no *Always* | Ask; *Always* allowed | Auto* |
+| An MCP tool that changes something | Ask every time; no *Always* | Ask; *Always* allowed, except a tool that deletes or reaches outside after untrusted content (8.7) | Auto* |
 | A command (Phase 6) | Ask | Ask for each new pattern | Ask for each new pattern |
 
 \* Only if the turn hasn't read untrusted content (web pages, files, MCP results) since the user's message that started the turn; otherwise it asks. A message that joins a running turn doesn't clear it, since the page is still in the context. This keeps a web page from steering the agent into sending data somewhere.
