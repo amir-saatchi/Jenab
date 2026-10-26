@@ -9,7 +9,7 @@ When *Undo turn* meets a conflict, the user can skip the conflicting items (SPEC
 
 ## Today
 - A skipped item flips its undo chain with a no-op entry (P2-03 Result), so the chain reads as undone although nothing was put back. A later *Undo turn* finds the turn already undone, and redo flips the item back with another no-op.
-- This holds for rows, files, objects and memory sections alike; P2-09 confirmed it for user and project memory.
+- This holds for rows, files, objects and project memory sections. User memory already differs: P2-09 made a skip leave the edit in effect, so a later undo tries again. The new model should make both work the same way.
 - P2-03 also left open: redoing two turns oldest first gives a false conflict (undo B, undo A, redo A, redo B).
 
 ## Scope
