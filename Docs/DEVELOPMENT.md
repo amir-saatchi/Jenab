@@ -6,10 +6,10 @@ How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.m
 
 | Tool | Version | Notes |
 |---|---|---|
-| Go | 1.26 or newer | the version in `go.mod` |
+| Go | 1.26 or newer | `go.mod` pins the go1.26.10 toolchain; with `GOTOOLCHAIN=auto` (the default) Go downloads it on the first build |
 | Bun | 1.3 or newer | for the frontend; not npm (the lock file is `bun.lock`) |
 | Git | any recent | |
-| Wails CLI (`wails3`) | `v3.0.0-beta.26` | the same version as the library in `go.mod` |
+| Wails CLI (`wails3`) | `v3.0.0` | the same version as the library in `go.mod` |
 
 **Per platform:**
 
@@ -24,7 +24,7 @@ How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.m
 Install the Wails CLI with Go:
 
 ```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
 ```
 
 It has [Task](https://taskfile.dev) built in, so `wails3 task <name>` runs the tasks in [`Taskfile.yml`](../Taskfile.yml). No separate Task install is needed.
@@ -109,4 +109,4 @@ A failure on any other model is recorded, not worked around. Fixes are made the 
 
 - Sign off every commit with `git commit -s` ([CONTRIBUTING](../CONTRIBUTING.md)).
 - `.gitattributes` normalizes line endings, so Windows and macOS checkouts give the same diffs.
-- Wails is pinned to `v3.0.0-beta.26`. An upgrade touches only `internal/app` and `internal/update` (CODE-OUTLINE 1); test it on all three platforms.
+- Wails is pinned to `v3.0.0`. Since v3.0.0 Wails releases weekly (v3.1.0, v3.2.0, ...). An upgrade touches only `internal/app` and `internal/update` (CODE-OUTLINE 1); test it on all three platforms.

@@ -63,6 +63,7 @@
 | [TASK-020](TASK-020-tool-call-errors.md) | Tool-call errors: measure them, then check more | Task | Open (later) | 3 |
 | [TASK-021](TASK-021-word-files.md) | Read Word files: text from .docx | Task | Open | 3 |
 | [TASK-022](TASK-022-retry-skipped-undo.md) | Undo the skipped items later | Task | Done | 3 |
+| [TASK-023](TASK-023-wails-3-stable.md) | Move to Wails v3.0.0 and Go 1.26.10 | Task | Done | 3 |
 
 ## Phase 1
 
