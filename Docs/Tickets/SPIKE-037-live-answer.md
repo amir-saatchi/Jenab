@@ -1,6 +1,6 @@
 # SPIKE-037 — A live answer, and earlier turns as answers only
 **Type:** Spike
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** SPIKE-023
 
@@ -117,7 +117,47 @@ Each condition has results per model, with 3 reps per cell: Part A 2 conditions 
 - whether 3.6's window sizes change
 
 ## Result
-_Pending._
+Run on 2026-10-26 (commit 68e3dfc) on the app's real orchestrator: 144 Part A runs (8 tests × 2 conditions × 3 models × 3 reps) and 54 Part B runs, on `gemma4:31b`, `gpt-oss:120b` (both Ollama Cloud) and `ministral-14b-latest`. There were no errors and no quota stops. Details are in `spikes/037-live-answer/results.md`.
+
+**How the spike differs from the design:**
+- Finish turns aren't built yet (8.3), so the harness sent the finish notices as user messages once the chat was idle.
+- Part A's hook changes only the prompt rule. The scorer works out where each answer lands under the design's rules.
+- The fake pages were 30–200 tokens, against previews of up to 1,500 in real use. This understates what Part B saves.
+- Ollama reports no cache reads, so cache figures are Mistral's only.
+
+**Part A, the live answer:**
+- **The whole answer:** 86–91% of finish turns rewrote it, keeping 94–99% of the earlier facts. Under today's rule, 67–79% of finish turns were whole anyway, so the stacked view repeated the growing answer: 4.1 answers to read, against 1.4. In one table test that was five near-identical tables. Where models did give only the rest, the last stacked answer lacked earlier facts (ministral: 83% right, against 97% live).
+- **Cost:** output tokens per update +9% (gemma), +12% (gpt-oss), +27% (ministral). Requests per update stayed the same. Mistral's cache reads went from 35% to 31%.
+- **Edge cases:**
+  - A failed task was reported in 17 of 17 runs.
+  - An empty result was folded into a whole answer; no finish turn was empty.
+  - Two tasks in one notice: both results were in one answer, 9 of 9 runs.
+  - A late user message was taken into account in 8 of 9 runs.
+  - Persian held in every revision.
+- **Risk:** a whole rewrite can add detail no result gave. Ministral added a morning temperature and a train time once.
+- **"In place only while latest":** after a user message, every later arrival went below. One test was left with three copies of one table.
+
+**Part B, earlier turns:**
+- **Answers only** shrank the history part of a request by 50–85%. But gemma and gpt-oss read it back, with 11–24 `read_messages` and `search_history` calls a run against 3–4, and redid work. Their prompt tokens per run went up 35–120%. Ministral saved 17–22% per run, but guessed URLs, refs and task IDs, and fell to 33% of follow-ups right on the trip chat (67% with the window).
+- **Answers and trace** brought reads and repeated work back to about window levels, and removed most of ministral's guessed names. But the models copied the trace: gemma wrote `[read_ref …]` as text instead of calling the tool, and ministral wrote `[subagent …]` instead of starting a task. That was 20 fake calls in 8 of 18 runs, on 2 of 3 models, the reference model included. Follow-ups right fell below the window's for ministral (48% against 59–67%) and for gemma on the jobs chat (70% against 78%).
+- **Tool use** didn't drop in any condition.
+- **Cache (Mistral):** reshaping the just-finished turn didn't hurt the cached prefix (29–30% read with the window, 33–36% otherwise).
+- **A shared failure, in every condition:** after a cut, models forgot their background tasks. Asked for the full list of sources, they left out LinkedIn, StepStone and the flight search.
 
 ## Decision
-_Pending._
+**Decided (2026-10-26):**
+- **A live answer: yes.** A finish turn's answer becomes the next revision of the answer of the turn that started the task. The model's request stays append-only.
+- **8.3's prompt rule, item 4, is reversed:** in the finish turn, write the whole answer again with what arrived. It replaces the earlier answer. The wording is `liveRule` in the spike's `internal/agent/live.go`.
+- **In place only while latest, refined:** after a user message, the first arrival answers below. Later arrivals for the same request update *that* answer while it is the chat's latest.
+- **Revisions are kept**, and the user can see earlier ones. A whole rewrite sometimes drops a fact or adds an unsupported detail, and an earlier revision is how the user checks.
+- **A finish turn with no text** leaves the answer as it is.
+- **Earlier turns: today's window stays,** and 3.6's sizes don't change. Neither answers only nor answers and trace is adopted. If it is tried again:
+  - apply it only to turns behind a cut, in place of today's stubs
+  - put the trace in its own system block, worded as a record, not in tool-call syntax
+  - test with real page sizes
+- **Not decided here:** a rule for a very short finish answer, which would replace a full one (proposed: it goes below as a note). It never happened in the runs.
+
+**Still to do:**
+- **SPEC 8.3:** finish turns, the reversed rule item, the live answer and its revisions.
+- **Building it** needs real finish turns in the orchestrator and a mockup of the chat (the folded chain, revisions, "updating").
+- **Forgotten background tasks:** models forgetting their background tasks after a cut is a separate problem, for the background-task work.
