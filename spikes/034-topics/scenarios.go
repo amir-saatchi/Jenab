@@ -42,7 +42,16 @@ type message struct {
 	// Memory: after the message (and its parallel partner), project
 	// memory matches every pattern.
 	Memory []string
+	// Ask: in conditions 5–6 the message starts with askPrefix and goes to
+	// the parent, which should start a sub-session whose first message
+	// matches every pattern. Passed: the parent's answer in the turn that
+	// gets the finish notice matches every pattern.
+	Ask    []string
+	Passed []string
 }
+
+// askPrefix asks for a sub-session (conditions 5–6).
+const askPrefix = "Do this in its own session: "
 
 type scenarioDef struct {
 	ID    string
@@ -74,7 +83,7 @@ var scenarios = []scenarioDef{
 			{Label: "orders", Kind: kindWork, Text: "In orders, user_id must point to users.id.",
 				Call: []string{`orders`, `users`}, Done: []string{`"orders"`, `user_id`, `references"\s*:\s*"users\.id`}},
 			{Label: mainLabel, Kind: kindQuestion, Text: "Is SQLite fine for about 10,000 orders a year?"},
-			{Label: "inventory", Kind: kindWork, Waiting: true, Text: "I need stock counts too: a table inventory with sku and quantity. I also want a pipeline restock_check every morning at 07:00 that lists the skus with fewer than 5 in stock, but wait with the pipeline: I haven't decided whether it should email me or post to Slack."},
+			{Label: "inventory", Kind: kindWork, Waiting: true, Ask: []string{`inventory`, `restock`, `email|slack|decid|wait`}, Passed: []string{`inventory|restock`}, Text: "I need stock counts too: a table inventory with sku and quantity. I also want a pipeline restock_check every morning at 07:00 that lists the skus with fewer than 5 in stock, but wait with the pipeline: I haven't decided whether it should email me or post to Slack."},
 			{Label: mainLabel, Kind: kindCross, Text: "How do users and orders relate?",
 				Answer: []string{`user_id`, `users?\.id|id of (the )?users?|users? table'?s? id`}},
 			{Label: "products", Kind: kindChange, Text: "Add a column discount to products, 0 by default.",
@@ -111,7 +120,7 @@ var scenarios = []scenarioDef{
 				Memory: []string{`closed`}},
 			{Label: mainLabel, Kind: kindQuestion, Text: "How long should I wait before following up on an application?"},
 			{Label: "follow_up", Kind: kindWork, Text: "Add a pipeline follow_up that runs every Monday at 09:00 and lists the applications that have been waiting for more than 14 days."},
-			{Label: "zalando", Kind: kindWork, Waiting: true, Text: "I also want a pipeline that checks Zalando's careers page every day for new data jobs. I'll send you the page link later, so wait with it until then."},
+			{Label: "zalando", Kind: kindWork, Waiting: true, Ask: []string{`zalando`, `link|url|later|wait`}, Passed: []string{`zalando`}, Text: "I also want a pipeline that checks Zalando's careers page every day for new data jobs. I'll send you the page link later, so wait with it until then."},
 			{Label: mainLabel, Kind: kindQuestion, Text: "Any tips for a thank-you email after an interview?"},
 			{Label: "board", Kind: kindWork, Text: "Make a view board that groups the applications by status."},
 			{Label: "apps", Kind: kindChange, Text: "N26 rejected me.",

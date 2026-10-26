@@ -24,6 +24,13 @@ type score struct {
 	// Subjects (condition 4).
 	SubjNoise, SubjDups, Subjects int
 
+	// Sub-sessions (conditions 5–6).
+	AskN, AskOK   int // messages that ask for a session, and those whose parent turn made one create_session with the task and did no work
+	PassN, PassOK int // finish notices, and those the parent's answer passed on
+	Unasked       int // create_session calls at messages that didn't ask
+	Ups, UpTokens int // notices given to the parent, and their estimated tokens
+	ParentPrompt  int // prompt tokens of the main thread or parent
+
 	// Payoff.
 	FollowN, FollowOK int // follow-ups after cuts
 	CrossN, CrossOK   int // cross-topic questions in the main thread
@@ -106,6 +113,9 @@ func scoreRun(r runResult, sc scenarioDef) score {
 			s.Prompt += sd.Prompt
 			s.Output += sd.Output
 			s.CacheRead += sd.CacheRead
+			if sd.Thread == mainThread {
+				s.ParentPrompt += sd.Prompt
+			}
 			if sd.Moved != "" {
 				s.PropSends++
 				s.PropReq += sd.Requests
@@ -128,7 +138,7 @@ func scoreRun(r runResult, sc scenarioDef) score {
 			case "search_history", "read_messages":
 				s.History++
 				read = true
-				if c.Cross && topics(r.Cond) { // conditions 1 and 4 have one chat
+				if c.Cross && threaded(r.Cond) { // conditions 1 and 4 have one chat
 					s.HistoryCross++
 				}
 			case "update_memory":
@@ -148,6 +158,27 @@ func scoreRun(r runResult, sc scenarioDef) score {
 			}
 		}
 
+		if sessions(r.Cond) {
+			var creates, work int
+			okCall := false
+			for _, c := range mr.Calls {
+				if c.Thread != mainThread {
+					continue
+				}
+				switch {
+				case c.Tool == "create_session":
+					creates++
+					okCall = okCall || !c.Error && matchAll(c.Args, m.Ask)
+				case slices.Contains(writeTools, c.Tool):
+					work++
+				}
+			}
+			if len(m.Ask) > 0 {
+				add(mr.Index, "asked session", creates == 1 && okCall && work == 0, &s.AskN, &s.AskOK)
+			} else {
+				s.Unasked += creates
+			}
+		}
 		if r.Cond == condPropose && m.Label != mainLabel && len(mr.Sends) > 0 {
 			first := mr.Sends[0]
 			switch {
@@ -201,6 +232,25 @@ func scoreRun(r runResult, sc scenarioDef) score {
 			add(mr.Index, "memory", matchAll(mr.Memory, m.Memory), &s.MemN, &s.MemOK)
 		}
 	}
+	for _, u := range r.Ups {
+		if u.Delivered < 0 {
+			continue
+		}
+		s.Ups++
+		s.UpTokens += len(u.Text) / 4
+	}
+	for _, u := range r.Ups {
+		if !u.Finish || u.Msg >= len(sc.Messages) || len(sc.Messages[u.Msg].Passed) == 0 {
+			continue
+		}
+		ok := false
+		for _, mr := range r.Messages {
+			if mr.Index == u.Delivered && mr.Thread == mainThread {
+				ok = matchAll(mr.Answer, sc.Messages[u.Msg].Passed)
+			}
+		}
+		add(u.Msg, "finish notice passed on", ok, &s.PassN, &s.PassOK)
+	}
 	// Messages the run never reached fail their checks.
 	for i, m := range sc.Messages {
 		if seen[i] {
@@ -231,6 +281,9 @@ func scoreRun(r runResult, sc scenarioDef) score {
 		}
 		if len(m.Memory) > 0 {
 			fail("memory", &s.MemN)
+		}
+		if len(m.Ask) > 0 && sessions(r.Cond) {
+			fail("asked session", &s.AskN)
 		}
 	}
 	return s

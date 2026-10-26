@@ -66,6 +66,17 @@ type threads struct {
 	propose bool     // condition 3: the agent has propose_topic
 	labels  []string // the scripted messages' labels, by index
 
+	// Round 2 (conditions 5–6, sessions.go): sub-sessions instead of topics.
+	sessions  bool
+	everyTurn bool                                                     // condition 5: every sub-session turn sends a notice up
+	withSum   bool                                                     // condition 6: the list line has the summary
+	asks      []bool                                                   // the messages that ask for a session, by index
+	start     func(ctx context.Context, ch id.Chat, text string) error // sends a sub-session's first message
+	started   map[id.Chat]int                                          // sub-sessions whose first turn, started at that message, isn't read yet
+	creations []creation
+	ups       []upNotice
+	pending   []int // ups not given to the parent yet
+
 	list      []*thread // the main thread first
 	cur       map[id.Chat]int
 	moves     map[id.Chat]*thread // accepted proposals the harness hasn't played yet
@@ -73,10 +84,13 @@ type threads struct {
 	seq       int
 }
 
-func newThreads(sc scenarioDef, model string, mainChat id.Chat, propose bool) *threads {
-	th := &threads{title: sc.Title, role: sc.Role, model: model, propose: propose, cur: map[id.Chat]int{}, moves: map[id.Chat]*thread{}}
+func newThreads(sc scenarioDef, model string, mainChat id.Chat, cond int) *threads {
+	th := &threads{title: sc.Title, role: sc.Role, model: model, propose: cond == condPropose,
+		sessions: sessions(cond), everyTurn: cond == condNotice, withSum: cond == condSummary,
+		cur: map[id.Chat]int{}, moves: map[id.Chat]*thread{}, started: map[id.Chat]int{}}
 	for _, m := range sc.Messages {
 		th.labels = append(th.labels, m.Label)
+		th.asks = append(th.asks, len(m.Ask) > 0)
 	}
 	th.list = []*thread{{ID: mainThread, Chat: mainChat, Title: sc.Title, OpenedAt: -1}}
 	return th
@@ -140,6 +154,22 @@ func (th *threads) Thread(ch id.Chat) *thread {
 	return th.byChat(ch)
 }
 
+// kind is what the threads below the main one are called.
+func (th *threads) kind() string {
+	if th.sessions {
+		return "sub-session"
+	}
+	return "topic"
+}
+
+// mainName is what the main thread is called.
+func (th *threads) mainName() string {
+	if th.sessions {
+		return "the parent chat"
+	}
+	return "the main thread"
+}
+
 func (th *threads) topicIDs() string {
 	var ids []string
 	for _, x := range th.list {
@@ -154,7 +184,12 @@ func (th *threads) topicIDs() string {
 }
 
 // nextID is the id the next topic gets. The caller holds th.mu.
-func (th *threads) nextID() string { return fmt.Sprintf("t%d", len(th.list)) }
+func (th *threads) nextID() string {
+	if th.sessions {
+		return fmt.Sprintf("s%d", len(th.list))
+	}
+	return fmt.Sprintf("t%d", len(th.list))
+}
 
 // NextID is nextID under the lock.
 func (th *threads) NextID() string {
@@ -163,7 +198,7 @@ func (th *threads) NextID() string {
 	return th.nextID()
 }
 
-// topicChatTitle is a topic's chat title. The store keeps chat titles
+// topicChatTitle is a topic's or sub-session's chat title. The store keeps chat titles
 // unique in a project, and a topic may share its title with another
 // chat, so the topic's id comes first.
 func topicChatTitle(tid, title string) string { return tid + " · " + title }
@@ -216,9 +251,12 @@ func (th *threads) index() string {
 			b.WriteString("\n")
 		}
 		fmt.Fprintf(&b, "%s · %s · %s · chat %s", x.ID, x.Title, state(x.Open), x.Chat)
+		if th.withSum && x.Summary != "" {
+			b.WriteString(" · " + x.Summary)
+		}
 	}
 	if b.Len() == 0 {
-		return "No topics yet."
+		return fmt.Sprintf("No %ss yet.", th.kind())
 	}
 	return b.String()
 }
@@ -277,6 +315,9 @@ func (th *threads) block(ch id.Chat) string {
 	if x == nil {
 		return ""
 	}
+	if th.sessions {
+		return th.sessionBlock(x)
+	}
 	main := th.list[0]
 	if x.main() {
 		return "Session notes and topics\n" + th.rule() +
@@ -296,6 +337,9 @@ func (th *threads) tools() []tool.Tool {
 	if th.propose {
 		ts = append(ts, th.proposeTopic())
 	}
+	if th.sessions {
+		ts = append(ts, th.createSession())
+	}
 	return ts
 }
 
@@ -308,15 +352,15 @@ func (th *threads) updateNotes() tool.Tool {
 	}
 	return tool.Func(tool.Spec{
 		Name: "update_notes",
-		Description: "Update this thread's notes: the state of its work, what changed and why, and what is still waiting. " +
+		Description: th.words("Update this thread's notes: the state of its work, what changed and why, and what is still waiting. " +
 			"Each thread (the main thread or a topic) has its own notes and writes only those. Fields you leave out stay as they are. " +
 			"summary is the current state and replaces the old one. note is added to the notes, which are never rewritten: say what changed and why. " +
 			"open lists what is still waiting, and on what; it replaces the old list, so send all of it, or [] when nothing is waiting. " +
-			"title renames a topic; the main thread keeps the chat's title.",
+			"title renames a topic; the main thread keeps the chat's title."),
 		Schema: json.RawMessage(`{
 			"type":"object","additionalProperties":false,
 			"properties":{
-				"title":{"type":"string","description":"a topic's new title, named after its subject"},
+				"title":{"type":"string","description":"a ` + th.kind() + `'s new title, named after its subject"},
 				"summary":{"type":"string","description":"the current state; replaces the old summary"},
 				"note":{"type":"string","description":"added to the notes: what changed and why"},
 				"open":{"type":"array","items":{"type":"string"},"description":"the full list of what is still waiting; replaces the old one"}}}`),
@@ -333,7 +377,7 @@ func (th *threads) updateNotes() tool.Tool {
 		}
 		if t := strings.TrimSpace(a.Title); t != "" {
 			if x.main() {
-				return tool.Result{}, tool.Errorf("the main thread keeps the chat's title; title is for topics")
+				return tool.Result{}, tool.Errorf("%s keeps the chat's title; title is for %ss", th.mainName(), th.kind())
 			}
 			x.Title = t
 		}
@@ -347,9 +391,9 @@ func (th *threads) updateNotes() tool.Tool {
 		if a.Open != nil {
 			x.Open = slices.Clone(*a.Open)
 		}
-		name := "the main thread's notes"
+		name := th.mainName() + "'s notes"
 		if !x.main() {
-			name = fmt.Sprintf("topic %s %q", x.ID, x.Title)
+			name = fmt.Sprintf("%s %s %q", th.kind(), x.ID, x.Title)
 		}
 		return tool.Result{Text: fmt.Sprintf("Updated %s: %s.", name, state(x.Open))}, nil
 	})
@@ -364,14 +408,18 @@ func (th *threads) merge() tool.Tool {
 		IDs   []string `json:"ids"`
 		Title string   `json:"title"`
 	}
+	name, example := "merge_topics", "t1"
+	if th.sessions {
+		name, example = "merge_sessions", "s1"
+	}
 	return tool.Func(tool.Spec{
-		Name: "merge_topics",
-		Description: "Join topics that the user says are one thing. The first id is kept; the others' notes and open items move into it in time order, and their ids lead to it from now on. " +
-			"Their messages stay where they are, readable with read_messages. title is the joined title, named after the subject.",
+		Name: name,
+		Description: th.words("Join topics that the user says are one thing. The first id is kept; the others' notes and open items move into it in time order, and their ids lead to it from now on. " +
+			"Their messages stay where they are, readable with read_messages. title is the joined title, named after the subject."),
 		Schema: json.RawMessage(`{
 			"type":"object","required":["ids","title"],"additionalProperties":false,
 			"properties":{
-				"ids":{"type":"array","items":{"type":"string"},"minItems":2,"description":"the topics to join, such as t1; the first is kept"},
+				"ids":{"type":"array","items":{"type":"string"},"minItems":2,"description":"the ` + th.kind() + `s to join, such as ` + example + `; the first is kept"},
 				"title":{"type":"string"}}}`),
 		Effects: tool.ReadsDB,
 	}, func(_ context.Context, _ *tool.Env, a args) (tool.Result, error) {
@@ -381,17 +429,17 @@ func (th *threads) merge() tool.Tool {
 		for _, tid := range a.IDs {
 			x := th.find(tid)
 			if x == nil {
-				return tool.Result{}, tool.Errorf("no topic %s (topics: %s)", tid, th.topicIDs())
+				return tool.Result{}, tool.Errorf("no %s %s (%ss: %s)", th.kind(), tid, th.kind(), th.topicIDs())
 			}
 			if !slices.Contains(xs, x) {
 				xs = append(xs, x)
 			}
 		}
 		if len(xs) < 2 {
-			return tool.Result{}, tool.Errorf("merge_topics needs two different topics")
+			return tool.Result{}, tool.Errorf("%s needs two different %ss", name, th.kind())
 		}
 		if strings.TrimSpace(a.Title) == "" {
-			return tool.Result{}, tool.Errorf("merge_topics needs title, the joined title")
+			return tool.Result{}, tool.Errorf("%s needs title, the joined title", name)
 		}
 		keep := xs[0]
 		var was []string

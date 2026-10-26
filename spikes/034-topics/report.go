@@ -155,9 +155,15 @@ func report(runs []runResult) string {
 		row("Messages answered outside their topic, per run", func(s *score, n int) string { return per(s.Misses, n) })
 		row("Proposing turns: requests each", func(s *score, _ int) string { return per(s.PropReq, s.PropSends) })
 		row("Proposing turns: prompt tokens each", func(s *score, _ int) string { return per(s.PropPrompt, s.PropSends) })
-		row("Topics / subjects at the end, per run", func(s *score, n int) string { return per(s.Topics+s.Subjects, n) })
+		row("Topics / subjects / sub-sessions at the end, per run", func(s *score, n int) string { return per(s.Topics+s.Subjects, n) })
 		row("Subjects for main messages, per run (4)", func(s *score, n int) string { return per(s.SubjNoise, n) })
 		row("Duplicate subjects, per run (4)", func(s *score, n int) string { return per(s.SubjDups, n) })
+		row("**Sub-sessions (5–6)**", func(*score, int) string { return "" })
+		row("Asked: one create_session with the task, no work in the parent", func(s *score, _ int) string { return pct(s.AskOK, s.AskN) })
+		row("Finish notice passed on in the parent's answer", func(s *score, _ int) string { return pct(s.PassOK, s.PassN) })
+		row("create_session calls nobody asked for, per run", func(s *score, n int) string { return per(s.Unasked, n) })
+		row("Notices to the parent, per run", func(s *score, n int) string { return per(s.Ups, n) })
+		row("...their tokens, per run (est.)", func(s *score, n int) string { return per(s.UpTokens, n) })
 		row("**Notes and memory**", func(*score, int) string { return "" })
 		row("Waiting work shows as an open item", func(s *score, _ int) string { return pct(s.WaitOK, s.WaitN) })
 		row("Merge message: one topic / subject", func(s *score, _ int) string { return pct(s.MergeOK, s.MergeN) })
@@ -171,6 +177,7 @@ func report(runs []runResult) string {
 		row("...that reach another thread", func(s *score, n int) string { return per(s.HistoryCross, n) })
 		row("Requests, per run", func(s *score, n int) string { return per(s.Requests, n) })
 		row("Prompt tokens, per run (k)", func(s *score, n int) string { return per(s.Prompt/1000, n) })
+		row("...of the main thread or parent (k)", func(s *score, n int) string { return per(s.ParentPrompt/1000, n) })
 		row("Output tokens, per run (k)", func(s *score, n int) string { return per(s.Output/1000, n) })
 		row("Cache reads, share of prompt tokens", func(s *score, _ int) string {
 			if s.Prompt == 0 {
@@ -269,6 +276,14 @@ func addScore(s *score, o score) {
 	s.SubjNoise += o.SubjNoise
 	s.SubjDups += o.SubjDups
 	s.Subjects += o.Subjects
+	s.AskN += o.AskN
+	s.AskOK += o.AskOK
+	s.PassN += o.PassN
+	s.PassOK += o.PassOK
+	s.Unasked += o.Unasked
+	s.Ups += o.Ups
+	s.UpTokens += o.UpTokens
+	s.ParentPrompt += o.ParentPrompt
 	s.FollowN += o.FollowN
 	s.FollowOK += o.FollowOK
 	s.CrossN += o.CrossN
@@ -314,6 +329,10 @@ func transcript(r runResult, sc scenarioDef) string {
 	for _, p := range r.Proposals {
 		props[p.Msg] = append(props[p.Msg], p)
 	}
+	ups := map[int][]upNotice{}
+	for _, u := range r.Ups {
+		ups[u.Delivered] = append(ups[u.Delivered], u)
+	}
 	for _, mr := range r.Messages {
 		m := sc.Messages[mr.Index]
 		fmt.Fprintf(&b, "## %d · %s · %s", mr.Index+1, m.Label, m.Kind)
@@ -321,10 +340,24 @@ func transcript(r runResult, sc scenarioDef) string {
 			b.WriteString(" · parallel")
 		}
 		fmt.Fprintf(&b, "\n\n**User** (in %s", mr.Sends[0].Thread)
-		if len(mr.Sends) > 1 {
+		switch {
+		case mr.Sub != "":
+			fmt.Fprintf(&b, ", which started %s", mr.Sends[len(mr.Sends)-1].Thread)
+		case len(mr.Sends) > 1:
 			fmt.Fprintf(&b, ", moved to %s", mr.Sends[len(mr.Sends)-1].Thread)
 		}
-		fmt.Fprintf(&b, "): %s\n\n", m.Text)
+		text := m.Text
+		if mr.Sends[0].Thread == mainThread && sessions(r.Cond) && len(m.Ask) > 0 {
+			text = askPrefix + text
+		}
+		fmt.Fprintf(&b, "): %s\n\n", text)
+		for _, u := range ups[mr.Index] {
+			kind := "notice"
+			if u.Finish {
+				kind = "finish notice"
+			}
+			fmt.Fprintf(&b, "- %s to the parent, from message %d: %s\n", kind, u.Msg+1, clip(strings.ReplaceAll(u.Text, "\n", " "), 300))
+		}
 		for _, p := range props[mr.Index] {
 			what := p.Title
 			if p.TopicID != "" {
@@ -350,7 +383,14 @@ func transcript(r runResult, sc scenarioDef) string {
 			}
 		}
 		req, prompt, output, _ := mr.cost()
-		fmt.Fprintf(&b, "\n**Answer** (%s; %d requests, %d prompt and %d output tokens):\n\n%s\n\n", mr.Thread, req, prompt, output, quote(mr.Answer))
+		answered := mr.Thread
+		if mr.Sub != "" {
+			answered = mainThread
+		}
+		fmt.Fprintf(&b, "\n**Answer** (%s; %d requests, %d prompt and %d output tokens):\n\n%s\n\n", answered, req, prompt, output, quote(mr.Answer))
+		if mr.Sub != "" {
+			fmt.Fprintf(&b, "**The sub-session's reply** (%s):\n\n%s\n\n", mr.Thread, quote(mr.Sub))
+		}
 		if mr.Memory != "" {
 			fmt.Fprintf(&b, "Project memory after it:\n\n%s\n\n", quote(mr.Memory))
 		}

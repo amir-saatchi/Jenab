@@ -25,7 +25,7 @@ func (dryModel) Stream(ctx context.Context, req provider.Request) iter.Seq2[prov
 }
 
 var reRevision = regexp.MustCompile(`expected_revision (\d+)`)
-var reTopic = regexp.MustCompile(`(?m)^(t\d+) · ([^·]+) · `)
+var reTopic = regexp.MustCompile(`(?m)^([ts]\d+) · ([^·]+) · `)
 var reSubject = regexp.MustCompile(`(?m)^(s\d+) · ([^·]+) · `)
 
 func dryReply(req provider.Request) fake.Reply {
@@ -94,15 +94,23 @@ func dryReply(req provider.Request) fake.Reply {
 	lower := strings.ToLower(user)
 	topicsIdx := reTopic.FindAllStringSubmatch(sys.String(), -1)
 	inMain := strings.Contains(sys.String(), "Topics of this chat")
+	inParent := strings.Contains(sys.String(), "Sub-sessions of this chat")
+	merge := "merge_topics"
+	if has["merge_sessions"] {
+		merge = "merge_sessions"
+	}
 	switch {
 	case strings.Contains(lower, "one thing"):
-		if has["merge_topics"] && len(topicsIdx) >= 2 {
-			return calls([2]any{"merge_topics", map[string]any{"ids": []string{topicsIdx[len(topicsIdx)-2][1], topicsIdx[len(topicsIdx)-1][1]}, "title": "Merged"}})
+		if has[merge] && len(topicsIdx) >= 2 {
+			return calls([2]any{merge, map[string]any{"ids": []string{topicsIdx[len(topicsIdx)-2][1], topicsIdx[len(topicsIdx)-1][1]}, "title": "Merged"}})
 		}
 		if subs := reSubject.FindAllStringSubmatch(sys.String(), -1); has["merge_subjects"] && len(subs) >= 2 {
 			return calls([2]any{"merge_subjects", map[string]any{"ids": []string{subs[0][1], subs[1][1]}, "subject": "Merged"}})
 		}
 		return text("Noted.")
+	case has["create_session"] && inParent && strings.HasPrefix(lower, strings.ToLower(askPrefix)):
+		task := strings.TrimSpace(user[len(askPrefix):])
+		return calls([2]any{"create_session", map[string]any{"title": strings.Title(firstWord(strings.ToLower(task))), "message": task}})
 	case strings.HasSuffix(strings.TrimSpace(lower), "?"):
 		return calls([2]any{"search_history", map[string]any{"query": firstWord(lower), "scope": "project"}})
 	}
@@ -126,7 +134,7 @@ func dryReply(req provider.Request) fake.Reply {
 	}
 	switch {
 	case has["update_notes"]:
-		cs = append(cs, [2]any{"update_notes", map[string]any{"note": clip(user, 60), "open": open}})
+		cs = append(cs, [2]any{"update_notes", map[string]any{"summary": clip(user, 40), "note": clip(user, 60), "open": open}})
 	case has["update_subject"]:
 		args := map[string]any{"subject": strings.Title(firstWord(lower)), "note": clip(user, 60), "open": open}
 		if subs := reSubject.FindAllStringSubmatch(sys.String(), -1); len(subs) > 0 && strings.Contains(lower, strings.ToLower(strings.TrimSpace(subs[0][2]))) {

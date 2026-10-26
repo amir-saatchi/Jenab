@@ -82,6 +82,11 @@ type Deps struct {
 	// leaves the block out. Spike-only: the app leaves it nil, and the
 	// block out.
 	Notes func(ctx context.Context, p *project.Project, ch chat.Chat) (string, error)
+	// Notices is SPIKE-034 round 2's way up from a sub-session: notices
+	// for a chat, written into its turn before each request, where the
+	// memory-changed notices are (3.6). Each is given once. An error is
+	// logged. Spike-only: the app leaves it nil.
+	Notices func(ctx context.Context, p *project.Project, ch chat.Chat) ([]chat.Notice, error)
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

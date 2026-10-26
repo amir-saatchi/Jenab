@@ -1,9 +1,12 @@
 // Command topics is SPIKE-034's harness. It plays two scripted chats on
-// the app's real orchestrator, with fake project tools, under four
+// the app's real orchestrator, with fake project tools, under six
 // conditions: one chat (1), topics the scripted user opens (2), topics
-// the agent proposes (3) and SPIKE-029's subjects (4).
+// the agent proposes (3) and SPIKE-029's subjects (4) in round 1, and
+// sub-sessions with notices to the parent (5) or a summary in its list
+// line (6) in round 2.
 //
 //	go run . -dry -reps 1                                                       # no model: checks the harness
+//	go run . -dry -reps 1 -conds 5,6                                            # round 2's conditions
 //	go run . -models gemini/gemini-3.5-flash-lite -scenarios sqlite -reps 1     # a smoke run
 //	go run . -models gemini/gemini-3.5-flash-lite,ollama-cloud/gemma4:31b -reps 3  # the main run
 //	go run . -resume results/<stamp>                                            # runs that are missing or failed
@@ -76,7 +79,7 @@ func main() {
 	var conds []int
 	for _, c := range split(*condList) {
 		n, err := strconv.Atoi(c)
-		if err != nil || n < condBaseline || n > condSubjects {
+		if err != nil || n < condBaseline || n > condSummary {
 			log.Fatalf("no condition %q", c)
 		}
 		conds = append(conds, n)

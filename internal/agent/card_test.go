@@ -268,3 +268,48 @@ func TestNotesBlock(t *testing.T) {
 		t.Errorf("without Deps.Notes: %q", got)
 	}
 }
+
+// TestSpikeNotices: Deps.Notices' notices reach the chat's next request
+// once, in its turn, and nil writes nothing (SPIKE-034 round 2).
+func TestSpikeNotices(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	a := h.newChat(chat.Chat{Title: "A"})
+	b := h.newChat(chat.Chat{Title: "B"})
+	var mu sync.Mutex
+	queue := map[id.Chat][]chat.Notice{a.ID: {{Kind: NoticeSessionUpdate, Text: "Session s1 · Orders: done"}}}
+	h.o.d.Notices = func(_ context.Context, _ *project.Project, ch chat.Chat) ([]chat.Notice, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		ns := queue[ch.ID]
+		delete(queue, ch.ID)
+		return ns, nil
+	}
+	h.fp.Push(fake.Text("1"), fake.Text("2"), fake.Text("3"))
+	h.turn(a.ID, "hello")
+	h.turn(b.ID, "hello")
+	h.turn(a.ID, "hello again")
+	calls := h.fp.Calls()
+	has := func(req provider.Request) bool { return slices.Contains(userTexts(req), "Session s1 · Orders: done") }
+	if !has(calls[0]) || has(calls[1]) {
+		t.Errorf("the notice: A's first request %v, B's %v; want A's only", has(calls[0]), has(calls[1]))
+	}
+	var turns []int
+	for _, m := range h.messages(a.ID) {
+		for _, p := range m.Parts {
+			if p.Notice != nil && p.Notice.Kind == NoticeSessionUpdate {
+				turns = append(turns, m.Turn)
+			}
+		}
+	}
+	if !slices.Equal(turns, []int{1}) {
+		t.Errorf("the notice is in turns %v of A, want [1]", turns)
+	}
+
+	h.o.d.Notices = nil
+	h.fp.Push(fake.Text("4"))
+	h.turn(b.ID, "hello again")
+	if n := len(h.messages(b.ID)); n != 4 {
+		t.Errorf("without Deps.Notices B has %d messages, want 4", n)
+	}
+}

@@ -104,6 +104,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 	w := &r.cs.win
 	r.refreshCard(ctx, t)
 	r.memoryNotices(ctx, t)
+	r.spikeNotices(ctx, t)
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
 		return provider.Request{}, err
@@ -311,6 +312,34 @@ const cardBlock = "Project card"
 
 // notesBlock is block 5's name, from Deps.Notes (SPIKE-034).
 const notesBlock = "Session notes"
+
+// NoticeSessionUpdate is a sub-session's reply sent up to its parent
+// through Deps.Notices (SPIKE-034 round 2, spike-only).
+const NoticeSessionUpdate chat.NoticeKind = "session_update"
+
+// spikeNotices writes Deps.Notices' notices into turn t, as one user
+// message like the memory-changed notices. It is best effort.
+func (r *runner) spikeNotices(ctx context.Context, t *turn) {
+	f := r.o.d.Notices
+	if f == nil {
+		return
+	}
+	ns, err := f(ctx, r.p, t.ch)
+	if err != nil {
+		r.o.d.Log.Error("agent: reading the spike's notices", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+		return
+	}
+	if len(ns) == 0 {
+		return
+	}
+	parts := make([]chat.Part, len(ns))
+	for i := range ns {
+		parts[i] = chat.Part{Kind: chat.PartNotice, Notice: &ns[i]}
+	}
+	if _, err := r.o.write(ctx, r.cs, r.p, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser, Parts: parts}); err != nil {
+		r.o.d.Log.Error("agent: writing the spike's notices", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+	}
+}
 
 // noCard is the schema version of a card that failed, so the next turn
 // tries again.

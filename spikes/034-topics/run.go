@@ -28,11 +28,17 @@ const (
 	condUser     = 2 // topics the scripted user opens
 	condPropose  = 3 // topics the agent proposes
 	condSubjects = 4 // one chat with SPIKE-029's proposed subjects
+	condNotice   = 5 // sub-sessions; every sub-session turn sends a notice up
+	condSummary  = 6 // sub-sessions; the finish notice, and the summary in the list line
 )
 
-var condNames = map[int]string{condBaseline: "1 baseline", condUser: "2 topics, user opens", condPropose: "3 topics, agent proposes", condSubjects: "4 subjects"}
+var condNames = map[int]string{condBaseline: "1 baseline", condUser: "2 topics, user opens", condPropose: "3 topics, agent proposes", condSubjects: "4 subjects",
+	condNotice: "5 sub-sessions, notices", condSummary: "6 sub-sessions, summary line"}
 
 func topics(cond int) bool { return cond == condUser || cond == condPropose }
+
+// threaded says the chat has threads below it: topics or sub-sessions.
+func threaded(cond int) bool { return topics(cond) || sessions(cond) }
 
 // job is one run: a scenario on a model under a condition.
 type job struct {
@@ -90,6 +96,7 @@ type msgResult struct {
 	Open     int      `json:"open"`               // open items of its thread, or of its label's subjects, after it
 	Joined   *bool    `json:"joined,omitempty"`   // after a merge message: one topic or subject holds the labels
 	Memory   string   `json:"memory,omitempty"`   // project memory after it, for a message that checks memory
+	Sub      string   `json:"sub,omitempty"`      // the reply of the sub-session the parent started at it
 	Errors   []string `json:"errors,omitempty"`
 	Seconds  float64  `json:"seconds"`
 }
@@ -115,6 +122,8 @@ type runResult struct {
 	Proposals []proposal     `json:"proposals,omitempty"`
 	Subjects  []subject      `json:"subjects,omitempty"`
 	Events    []subjectEvent `json:"events,omitempty"`
+	Creations []creation     `json:"creations,omitempty"`
+	Ups       []upNotice     `json:"ups,omitempty"`
 	Memory    string         `json:"memory"`
 	Card      string         `json:"card"`
 }
@@ -142,6 +151,7 @@ func (h *harness) run(ctx context.Context, j job, sc scenarioDef) (res runResult
 	}
 	if r.th != nil {
 		res.Threads, res.Proposals = r.th.snapshot()
+		res.Creations, res.Ups = r.th.sessionsSnapshot()
 	}
 	if r.sb != nil {
 		res.Subjects, res.Events = r.sb.snapshot()
@@ -155,7 +165,7 @@ type run struct {
 	j    job
 	sc   scenarioDef
 	w    *world
-	th   *threads  // conditions 2–3
+	th   *threads  // conditions 2–3 and 5–6
 	sb   *subjects // condition 4
 	pm   *project.Manager
 	o    *agent.Orchestrator
@@ -179,6 +189,15 @@ func (r *run) block5(_ context.Context, _ *project.Project, ch chat.Chat) (strin
 	return "", nil
 }
 
+// notices is the Notices hook: a sub-session's notices for the parent
+// (conditions 5–6).
+func (r *run) notices(_ context.Context, _ *project.Project, ch chat.Chat) ([]chat.Notice, error) {
+	if r.th == nil {
+		return nil, nil
+	}
+	return r.th.notices(ch.ID), nil
+}
+
 func (r *run) tools() *tool.Registry {
 	reg := tool.NewRegistry()
 	for _, t := range tool.Builtin(tool.Deps{}) {
@@ -188,7 +207,7 @@ func (r *run) tools() *tool.Registry {
 	}
 	reg.Add(r.w.tools()...)
 	switch {
-	case topics(r.j.Cond):
+	case r.th != nil:
 		reg.Add(r.th.tools()...)
 	case r.sb != nil:
 		reg.Add(r.sb.tools()...)
@@ -229,8 +248,12 @@ func (r *run) play(ctx context.Context, res *runResult) error {
 		return err
 	}
 	r.at = r.main
-	if topics(r.j.Cond) {
-		r.th = newThreads(r.sc, r.j.Model, r.main, r.j.Cond == condPropose)
+	if threaded(r.j.Cond) {
+		r.th = newThreads(r.sc, r.j.Model, r.main, r.j.Cond)
+		r.th.start = func(ctx context.Context, ch id.Chat, text string) error {
+			_, err := r.o.Send(ctx, r.pid, ch, agent.UserMessage{Text: text})
+			return err
+		}
 	}
 	set := r.settings()
 	r.tr = agent.NewTraces()
@@ -239,7 +262,7 @@ func (r *run) play(ctx context.Context, res *runResult) error {
 		Context: appCtx, Projects: r.pm, Models: r.h.models, Tools: r.tools(), Events: nopPublisher{},
 		Settings: func() config.Settings { return set }, Traces: r.tr, Log: r.h.log,
 		Card:  func(context.Context, *project.Project) (string, error) { return r.w.card(), nil },
-		Notes: r.block5,
+		Notes: r.block5, Notices: r.notices,
 	})
 	defer func() {
 		r.o.Refuse()
@@ -281,16 +304,22 @@ func (r *run) newChat(ctx context.Context, title string) (id.Chat, error) {
 	return ch.ID, err
 }
 
-// userChat is where the scripted user writes message i in condition 2:
-// the main thread for main messages, else the label's topic, which they
-// open at its first message.
+// userChat is where the scripted user writes message i in conditions 2
+// and 5–6: the main thread for main messages, else the label's topic or
+// sub-session, which they open at its first message. In conditions 5–6 a
+// message that asks for a session goes to the parent while its label has
+// none.
 func (r *run) userChat(ctx context.Context, i int) (id.Chat, error) {
 	m := r.sc.Messages[i]
 	if m.Label == mainLabel {
 		return r.main, nil
 	}
-	if t := r.th.TopicFor(m.Label); t != nil {
+	t := r.th.TopicFor(m.Label)
+	if t != nil {
 		return t.Chat, nil
+	}
+	if sessions(r.j.Cond) && len(m.Ask) > 0 {
+		return r.main, nil
 	}
 	title := r.sc.Titles[m.Label]
 	ch, err := r.newChat(ctx, topicChatTitle(r.th.NextID(), title))
@@ -309,7 +338,7 @@ func (r *run) message(ctx context.Context, i int) (msgResult, error) {
 	ch := r.main
 	var err error
 	switch r.j.Cond {
-	case condUser:
+	case condUser, condNotice, condSummary:
 		if ch, err = r.userChat(ctx, i); err != nil {
 			return mr, err
 		}
@@ -332,13 +361,47 @@ func (r *run) message(ctx context.Context, i int) (msgResult, error) {
 			mr.Sends[len(mr.Sends)-1].Resend = true
 		}
 	}
+	if sessions(r.j.Cond) && ch == r.main {
+		if err := r.subTurns(ctx, &mr, i); err != nil {
+			return mr, err
+		}
+		if t := r.th.TopicFor(m.Label); t != nil && m.Label != mainLabel {
+			ch = t.Chat // the asked work was done in the sub-session
+		}
+	}
 	return mr, r.after(ctx, &mr, ch)
+}
+
+// subTurns waits for the first turns of the sub-sessions the parent
+// started at message i and adds them to mr. mr.Answer stays the parent's.
+func (r *run) subTurns(ctx context.Context, mr *msgResult, i int) error {
+	answer := mr.Answer
+	defer func() { mr.Answer = answer }()
+	for _, ch := range r.th.Started(i) {
+		if err := r.idle(ctx, ch); err != nil {
+			return err
+		}
+		if err := r.read(ctx, ch, mr); err != nil {
+			return err
+		}
+		mr.Sub = mr.Answer
+	}
+	return nil
+}
+
+// text is message i as the scripted user writes it to ch.
+func (r *run) text(i int, ch id.Chat) string {
+	m := r.sc.Messages[i]
+	if sessions(r.j.Cond) && len(m.Ask) > 0 && ch == r.main {
+		return askPrefix + m.Text
+	}
+	return m.Text
 }
 
 // turns sends message i to one chat and reads what its turn did.
 func (r *run) turns(ctx context.Context, mr *msgResult, i int, ch id.Chat) error {
 	r.mark(ch, i)
-	if _, err := r.o.Send(ctx, r.pid, ch, agent.UserMessage{Text: r.sc.Messages[i].Text}); err != nil {
+	if _, err := r.o.Send(ctx, r.pid, ch, agent.UserMessage{Text: r.text(i, ch)}); err != nil {
 		return err
 	}
 	if err := r.idle(ctx, ch); err != nil {
@@ -374,7 +437,7 @@ func (r *run) parallel(ctx context.Context, i int) ([]msgResult, error) {
 	a, b := r.sc.Messages[i], r.sc.Messages[i+1]
 	var ca, cb id.Chat
 	switch r.j.Cond {
-	case condUser:
+	case condUser, condNotice, condSummary:
 		var err error
 		if ca, err = r.userChat(ctx, i); err != nil {
 			return nil, err
@@ -585,6 +648,9 @@ func (r *run) read(ctx context.Context, ch id.Chat, mr *msgResult) error {
 		final = anyText
 	}
 	mr.Answer = final
+	if r.th != nil {
+		r.th.up(ch, mr.Index, final)
+	}
 	firstReq := true
 	for _, t := range r.tr.List() {
 		if t.Chat != ch || t.Turn <= r.seen[ch] || t.Turn > last {

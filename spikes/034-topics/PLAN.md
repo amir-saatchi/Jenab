@@ -281,3 +281,27 @@ About 40 requests a run; the asked turn adds one sub-session turn.
 - Gemini: 12 runs plus round 1's conditions 1, 2 and 4 (18 runs), and a
   smoke run (conditions 5–6, `sqlite`, 1 rep): about 1,300 requests. If
   the quota stops it, `-resume` the next day.
+
+### What the round 2 build changed from this plan
+
+- **`sessions.go` is a mode of `threads`,** not a copy: sub-sessions are
+  `sN` threads with the same notes, `update_notes` and block 5, and their
+  own rules and wording. `create_session` puts the new sub-session under
+  the asked message's label, unless the label has one already.
+- **`merge_sessions`** joins sub-sessions, as `merge_topics` joined
+  topics, so the merge message and the checks after it work as in round 1.
+  The parent's rule names it.
+- **The finish notice's check** is a pattern on the parent's answer in the
+  turn that got the notice (`Passed`: `inventory|restock` in `sqlite`,
+  `zalando` in `jobs`). That turn answers the next `main` message, so this
+  measures whether the parent passes the news on unasked.
+- **The asked message's waiting check** reads the sub-session's open items
+  when the parent made one, and the parent's when it didn't.
+- **The parent's answer stays the message's answer;** the sub-session's
+  first reply is kept apart (`sub` in `runs.jsonl`) and shown in the
+  transcript.
+- **The notice kind** is the new `agent.NoticeSessionUpdate`
+  (`session_update`), next to the hook.
+- **Dry runs** (`-dry -conds 1,2,3,4,5,6`): 12 runs, 38–47 requests each,
+  none failed. `sessions_test.go` checks the list line, the notice cut and
+  that each notice is given once.
