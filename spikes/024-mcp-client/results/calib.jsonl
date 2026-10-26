@@ -1,0 +1,8 @@
+{"cached":0,"calls":0,"card_bytes":0,"cond":"none","err":"","errors":null,"first":255,"model":"ollama-cloud/gemma4:31b","prompt":255,"requests":1,"tools":0}
+{"cached":0,"calls":0,"card_bytes":141,"cond":"native-all","err":"","errors":null,"first":13598,"model":"ollama-cloud/gemma4:31b","prompt":13598,"requests":1,"tools":32}
+{"cached":0,"calls":0,"card_bytes":141,"cond":"native-offered","err":"","errors":null,"first":11563,"model":"ollama-cloud/gemma4:31b","prompt":11563,"requests":1,"tools":24}
+{"cached":0,"calls":0,"card_bytes":4276,"cond":"describe","err":"","errors":null,"first":1500,"model":"ollama-cloud/gemma4:31b","prompt":1500,"requests":1,"tools":24}
+{"cached":0,"calls":0,"card_bytes":0,"cond":"none","err":"","errors":null,"first":241,"model":"gemini/gemini-3.5-flash-lite","prompt":241,"requests":1,"tools":0}
+{"cached":0,"calls":0,"card_bytes":141,"cond":"native-all","err":"","errors":null,"first":14796,"model":"gemini/gemini-3.5-flash-lite","prompt":14796,"requests":1,"tools":32}
+{"cached":4057,"calls":0,"card_bytes":141,"cond":"native-offered","err":"","errors":null,"first":12681,"model":"gemini/gemini-3.5-flash-lite","prompt":12681,"requests":1,"tools":24}
+{"cached":0,"calls":0,"card_bytes":4276,"cond":"describe","err":"","errors":null,"first":1495,"model":"gemini/gemini-3.5-flash-lite","prompt":1495,"requests":1,"tools":24}
