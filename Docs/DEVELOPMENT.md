@@ -103,6 +103,8 @@ Spikes and tests run on two models (decided in SPIKE-030):
 
 A failure on any other model is recorded, not worked around. Fixes are made the same way for every model (SPEC 1).
 
+[MODELS](MODELS.md) lists every model the development keys can reach, with its limits and when it was last checked.
+
 ## Commits
 
 - Sign off every commit with `git commit -s` ([CONTRIBUTING](../CONTRIBUTING.md)).

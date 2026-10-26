@@ -87,9 +87,14 @@ Proposed on 2026-10-26.
   - The trace's size: tokens per turn.
 
 ## Models
-The reference models (DEVELOPMENT.md): Gemini `gemini-3.5-flash-lite` and Ollama Cloud `gemma4:31b`.
+Chosen by the user on 2026-10-26 ([MODELS](../MODELS.md)), since Gemini's free quota was used up that day:
+- Ollama Cloud `gemma4:31b` (reference model), `OLLAMA_API_KEY`
+- `gpt-oss-120b`: Ollama Cloud `gpt-oss:120b`, or Groq `openai/gpt-oss-120b` if Ollama's one-request-at-a-time plan is too slow
+- Mistral `ministral-14b-latest`, `MISTRAL_API_KEY` (30 requests a minute)
+
+Rules:
 - The prompts and tools are the same for every model (SPEC 1).
-- Which keys to use, including whether to use the reserve keys, is confirmed with the user before any run.
+- No reserve keys.
 - A free tier's failures (rate limits, quota) are recorded and that model stops; there are no workarounds for them.
 
 ## Setup
@@ -104,7 +109,7 @@ The reference models (DEVELOPMENT.md): Gemini `gemini-3.5-flash-lite` and Ollama
 - **3.6's window sizes** were set with today's turn sizes. If Part B wins, `history_max_turns` and `history_max_tokens` are tuned again.
 
 ## Done when
-Each condition has results per model, with 3 reps per cell: Part A 2 conditions × 2 models × 3 reps per test, Part B 2 chats × 3 conditions × 2 models × 3 reps = 36 runs. There is a decision on:
+Each condition has results per model, with 3 reps per cell: Part A 2 conditions × 3 models × 3 reps per test, Part B 2 chats × 3 conditions × 3 models × 3 reps = 54 runs. There is a decision on:
 - the live answer: yes or no, and the rules above (in place only while latest, revisions, an empty finish turn)
 - 8.3's prompt rule: the whole answer or the rest
 - earlier turns: today's window, answers only, or answers and trace, and from which turn on
