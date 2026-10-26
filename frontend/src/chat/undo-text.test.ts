@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 
-import { ConflictReason, type TurnConflict, type UndoConflict } from "@/lib/api"
-import { conflictText, isolate as i, itemName, skipAll } from "@/chat/undo-text"
+import { ConflictReason, type TurnConflict, type TurnPlan, type TurnUndoState, type UndoConflict } from "@/lib/api"
+import { conflictText, isolate as i, isRest, itemName, partly, skipAll } from "@/chat/undo-text"
 
 function conflict(over: Partial<UndoConflict>, chat_title = ""): TurnConflict {
   return { conflict: { item: { table: "prices", key: "[2]" }, reason: ConflictReason.ConflictChanged, ...over }, chat_title }
@@ -55,4 +55,36 @@ test("skipAll adds each item once", () => {
     { table: "prices", key: "[3]" },
     { table: "prices", key: "[2]" },
   ])
+})
+
+test("partly follows the side the last undo or redo left", () => {
+  const plan = (changes: number, rows: TurnPlan["rows"], left = 0): TurnPlan => ({
+    changes,
+    rows,
+    left,
+    summary: "",
+    display: "",
+    past: false,
+    entries: 0,
+    too_big: false,
+  })
+  const state = (undo: TurnPlan, redo: TurnPlan): TurnUndoState => ({ turn: 1, undo, redo, migrations: 0 })
+  const two = [{ table: "prices", rows: 2 }]
+  const one = [{ table: "prices", rows: 1 }]
+  const undone = partly(state(plan(1, two, 2), plan(2, one)))
+  expect(undone).toEqual({ text: "partly undone: 2 items not undone", rest: "undo" })
+  expect([isRest(undone, false), isRest(undone, true)]).toEqual([true, false])
+  const redone = partly(state(plan(2, two), plan(1, one, 1)))
+  expect(redone).toEqual({ text: "partly redone: 1 item not redone", rest: "redo" })
+  expect([isRest(redone, false), isRest(redone, true)]).toEqual([false, true])
+  // No side known: both ways are the rest.
+  const crash = partly(state(plan(1, one), plan(1, one)))
+  expect(crash).toEqual({ text: "partly undone", rest: "" })
+  expect([isRest(crash, false), isRest(crash, true)]).toEqual([true, true])
+  // Past the undo window the turn is history: no partly state.
+  expect(partly(state({ ...plan(1, one), past: true }, { ...plan(1, one, 1), past: true }))).toBeNull()
+  expect(partly(state(plan(1, two), plan(0, null)))).toBeNull()
+  expect(partly(state(plan(0, null), plan(1, two)))).toBeNull()
+  expect(partly(null)).toBeNull()
+  expect(isRest(null, false)).toBe(false)
 })

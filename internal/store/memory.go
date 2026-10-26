@@ -545,6 +545,7 @@ type userTip struct {
 	section       string
 	before, after sql.NullString // the base edit's
 	eff           int
+	at            string // when real was written
 }
 
 func (t userTip) undone() bool { return t.eff%2 == 1 }
@@ -558,11 +559,12 @@ func userTips(tx *sql.Tx, srcs string, ids string) ([]userTip, error) {
 			UNION ALL
 			SELECT chain.base, c.id, chain.depth + 1, chain.eff + (c.op <> 'skip'), CASE WHEN c.op = 'skip' THEN chain.real ELSE c.id END
 			FROM chain JOIN user_memory_changes c ON c.source = 'undo:user_memory:' || chain.id)
-		SELECT t.id, t.real, b.section, b.before, b.after, t.eff
+		SELECT t.id, t.real, b.section, b.before, b.after, t.eff, x.at
 		FROM (SELECT base, id, real, eff, max(depth) FROM chain GROUP BY base) t JOIN user_memory_changes b ON b.id = t.base
+			JOIN user_memory_changes x ON x.id = t.real
 		ORDER BY t.id`, []any{srcs, ids}, func(r *sql.Rows) (userTip, error) {
 		var x userTip
-		return x, r.Scan(&x.id, &x.real, &x.section, &x.before, &x.after, &x.eff)
+		return x, r.Scan(&x.id, &x.real, &x.section, &x.before, &x.after, &x.eff, &x.at)
 	})
 }
 
@@ -598,18 +600,31 @@ type UserMemoryUndo struct {
 	Conflicts []UndoConflict `json:"conflicts,omitempty"`
 }
 
+// userLast is the newest undo or redo among the tips: the newest entry
+// that is no skip and not the edit itself.
+func userLast(ts []userTip) *UndoAction {
+	var last *UndoAction
+	for _, t := range ts {
+		if t.eff > 0 {
+			last = last.newer(&UndoAction{At: t.at, Redo: !t.undone()})
+		}
+	}
+	return last
+}
+
 // UserMemoryUndoState is what UndoUserMemory and a redo would revert now
 // for the entries from sources, as ProjectDB.UndoState.
-func (r *Registry) UserMemoryUndoState(ctx context.Context, sources []id.Source) (undo, redo UndoPlan, err error) {
+func (r *Registry) UserMemoryUndoState(ctx context.Context, sources []id.Source) (UndoState, error) {
+	var s UndoState
 	if len(sources) == 0 {
-		return undo, redo, nil
+		return s, nil
 	}
-	err = r.tx(ctx, func(tx *sql.Tx) error {
+	err := r.tx(ctx, func(tx *sql.Tx) error {
 		tips, err := userTips(tx, sourcesJSON(sources), "[]")
-		undo, redo = userPlan(pickUser(tips, false), nil), userPlan(pickUser(tips, true), nil)
+		s = UndoState{Undo: userPlan(pickUser(tips, false), nil), Redo: userPlan(pickUser(tips, true), nil), Last: userLast(tips)}
 		return err
 	})
-	return undo, redo, err
+	return s, err
 }
 
 // UndoUserMemory reverts the user memory edits from sources, the
@@ -690,6 +705,7 @@ func (r *Registry) undoUser(ctx context.Context, srcs, ids string, from id.Proje
 			return err
 		}
 		now := time.Now().UTC().Truncate(time.Millisecond)
+		reverted := 0
 		for i := len(ts) - 1; i >= 0; i-- {
 			t := ts[i]
 			var cur *MemorySection
@@ -743,12 +759,16 @@ func (r *Registry) undoUser(ctx context.Context, srcs, ids string, from id.Proje
 			if _, err := logUserMemory(tx, now, src, from, t.section, "undo", memoryRev(cur), next); err != nil {
 				return err
 			}
+			reverted++
 			if cur != nil {
 				*cur = next
 			} else {
 				all = append(all, next)
 			}
 		}
+		// As Undo: the plan counts the edits reverted, none when all were
+		// skipped.
+		res.Plan.Changes = reverted
 		if len(res.Conflicts) > 0 {
 			return ErrUndoConflict
 		}
@@ -767,8 +787,9 @@ func (r *Registry) undoUser(ctx context.Context, srcs, ids string, from id.Proje
 }
 
 // laterUser lists, as conflicts, edits of a section after the undo's
-// first entry for it that aren't in the undo, unless their chain is
-// undone now and its last undo changed the section back.
+// first entry for it that aren't in the undo, as later does for
+// project.db: the later entries of one chain don't count when they are
+// even in number, or when the chain started before and is undone now.
 func (r *Registry) laterUser(tx *sql.Tx, first map[string]int64, set map[int64]bool, res *UserMemoryUndo) error {
 	type later struct {
 		id      int64
@@ -800,13 +821,23 @@ func (r *Registry) laterUser(tx *sql.Tx, first map[string]int64, set map[int64]b
 	for i, l := range ls {
 		ids[i] = l.id
 	}
-	undone, err := undoneUser(tx, ids)
+	chains, err := userChains(tx, ids)
 	if err != nil {
 		return err
 	}
+	count := map[int64]int{}
+	started := map[int64]bool{}
+	for _, l := range ls {
+		root := chains[l.id].root
+		count[root]++
+		if l.id == root {
+			started[root] = true
+		}
+	}
 	listed := map[string]bool{}
 	for _, l := range ls {
-		if undone[l.id] || listed[l.section] {
+		ch := chains[l.id]
+		if count[ch.root]%2 == 0 || (!started[ch.root] && ch.undone) || listed[l.section] {
 			continue
 		}
 		listed[l.section] = true
@@ -820,14 +851,21 @@ func (r *Registry) laterUser(tx *sql.Tx, first map[string]int64, set map[int64]b
 	return nil
 }
 
-// undoneUser returns which of the entries ids are in a chain that is
-// undone now: an odd number of undos that aren't skips (userTip), as
-// undoneRoles.
-func undoneUser(tx *sql.Tx, ids []int64) (map[int64]bool, error) {
-	out := map[int64]bool{}
+// userChains returns the chain of each of the entries ids: its base
+// entry, and whether it is undone now, an odd number of undos that aren't
+// skips (userTip), as roleChains.
+func userChains(tx *sql.Tx, ids []int64) (map[int64]numberedChain, error) {
+	out := map[int64]numberedChain{}
+	for _, n := range ids {
+		out[n] = numberedChain{root: n}
+	}
 	js, err := json.Marshal(ids)
 	if err != nil {
 		return nil, err
+	}
+	type row struct {
+		start int64
+		ch    numberedChain
 	}
 	got, err := queryTx(tx, `WITH RECURSIVE up(start, id, source) AS (
 			SELECT id, id, source FROM user_memory_changes WHERE id IN (SELECT value FROM json_each(?1))
@@ -841,13 +879,12 @@ func undoneUser(tx *sql.Tx, ids []int64) (map[int64]bool, error) {
 			SELECT down.root, c.id, down.depth + 1, down.eff + (c.op <> 'skip')
 			FROM down JOIN user_memory_changes c ON c.source = 'undo:user_memory:' || down.id),
 		tips(root, eff, depth) AS (SELECT root, eff, max(depth) FROM down GROUP BY root)
-		SELECT r.start FROM roots r JOIN tips t ON t.root = r.root
-		WHERE t.eff % 2 = 1`, []any{string(js)}, func(r *sql.Rows) (int64, error) {
-		var n int64
-		return n, r.Scan(&n)
+		SELECT r.start, r.root, t.eff % 2 = 1 FROM roots r JOIN tips t ON t.root = r.root`, []any{string(js)}, func(r *sql.Rows) (row, error) {
+		var x row
+		return x, r.Scan(&x.start, &x.ch.root, &x.ch.undone)
 	})
-	for _, n := range got {
-		out[n] = true
+	for _, x := range got {
+		out[x.start] = x.ch
 	}
 	return out, err
 }
@@ -868,22 +905,34 @@ func (r *Registry) UserMemoryChangeUndone(ctx context.Context, n int64) (bool, e
 	return undone, err
 }
 
-// ChangeUndone is UserMemoryChangeUndone for a change in project.db. Only
-// the undos that reverted one of the change's items count: an undo that
-// skipped them logs no rows for them, so a skipped edit reads as in
-// effect, as it is.
+// ChangeUndone is UserMemoryChangeUndone for a change in project.db: its
+// items are all undone (undoChain). An undo that skipped them left them
+// in effect, as they are. A change past the undo window reads as in
+// effect: it is history, and the cleanup may have dropped what its state
+// is read from.
 func (p *ProjectDB) ChangeUndone(ctx context.Context, c id.Change) (bool, error) {
 	return readTx(ctx, p.DB, func(tx *sql.Tx) (bool, error) {
-		var n int
-		err := tx.QueryRow(`WITH RECURSIVE chain(id) AS (
-				SELECT ?1
-				UNION ALL
-				SELECT c.id FROM chain JOIN _jenab_changes c ON c.source = 'undo:' || chain.id),
-			items AS (SELECT DISTINCT table_name, row_key FROM _jenab_change_rows WHERE change_id = ?1)
-			SELECT count(*) FROM chain WHERE id <> ?1 AND EXISTS (
-				SELECT 1 FROM items i JOIN _jenab_change_rows r ON r.table_name = i.table_name AND r.row_key = i.row_key
-				WHERE r.change_id = chain.id)`, string(c)).Scan(&n)
-		return n%2 == 1, err
+		chains, err := undoChains(tx, undoBase{srcs: "[]", ids: idsJSON([]id.Change{c})})
+		if err != nil || len(chains) == 0 {
+			return false, err
+		}
+		mark, err := cleanedTo(tx)
+		if err != nil {
+			return false, err
+		}
+		ch := chains[0]
+		if ch.past(mark) {
+			return false, nil // history only: as it is, in effect
+		}
+		if len(ch.items) == 0 {
+			return ch.tip().depth%2 == 1, nil
+		}
+		for _, it := range ch.items {
+			if !it.undone() {
+				return false, nil
+			}
+		}
+		return true, nil
 	})
 }
 

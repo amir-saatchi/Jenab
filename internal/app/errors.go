@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
@@ -69,8 +70,6 @@ var known = []struct {
 	{store.ErrReadOnly, KindReadOnly, "The project is open read-only after damage."},
 	{store.ErrUndoWindow, KindInvalid, "This turn is past the undo window. Its changes are kept as history only."},
 	{store.ErrNothingToUndo, KindBusy, "There is nothing to undo."},
-	{agent.ErrRolesNotUndone, KindInternal, "The turn was undone, but its chat roles weren't. Undo it again to finish."},
-	{agent.ErrUserMemoryNotUndone, KindInternal, "The turn was undone, but its edits of user memory weren't. Undo it again to finish."},
 	{store.ErrNewerFormat, KindInvalid, "The project was saved by a newer version of " + appinfo.Name + "."},
 	{bucket.ErrBadKey, KindInvalid, "That isn't a usable file name."},
 	{store.ErrNotFound, KindNotFound, "It no longer exists."},
@@ -93,9 +92,8 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 		return ue
 	}
 	details := redact(err.Error())
-	// Both parts outside project.db failed: say so, not only the first.
-	if errors.Is(err, agent.ErrRolesNotUndone) && errors.Is(err, agent.ErrUserMemoryNotUndone) {
-		return &UIError{Kind: KindInternal, Message: "The turn was undone, but its chat roles and its edits of user memory weren't. Undo it again to finish.", Details: details}
+	if m := partMessage(err); m != "" {
+		return &UIError{Kind: KindInternal, Message: m, Details: details}
 	}
 	for _, k := range known {
 		if errors.Is(err, k.err) {
@@ -145,4 +143,26 @@ func (b *base) guard(what string, err *error) {
 	if *err != nil {
 		*err = toUI(*err, b.log, b.redact, what)
 	}
+}
+
+// partMessage says which parts of a turn outside project.db failed after
+// the rest of its undo or redo was in (agent.PartError), both if both
+// did; "" if none.
+func partMessage(err error) string {
+	var pe *agent.PartError
+	if !errors.As(err, &pe) {
+		return ""
+	}
+	var parts []string
+	if errors.Is(err, agent.ErrRolesNotUndone) {
+		parts = append(parts, "its chat roles")
+	}
+	if errors.Is(err, agent.ErrUserMemoryNotUndone) {
+		parts = append(parts, "its edits of user memory")
+	}
+	verb, again := "undone", "Undo"
+	if pe.Redo {
+		verb, again = "redone", "Redo"
+	}
+	return fmt.Sprintf("The turn was %s, but %s weren't. %s it again to finish.", verb, strings.Join(parts, " and "), again)
 }

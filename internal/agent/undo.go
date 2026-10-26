@@ -22,6 +22,7 @@ type TurnPlan struct {
 	Past    bool              `json:"past"`    // past the undo window, so it is refused
 	Entries int               `json:"entries"` // row entries, as store.MaxUndoEntries counts them
 	TooBig  bool              `json:"too_big"` // over store.MaxUndoEntries, so it is refused
+	Left    int               `json:"left"`    // of Rows, those the turn's last undo or redo left: all, or none (turnState)
 }
 
 // TurnUndoState is what Undo turn and Redo turn would do now.
@@ -110,28 +111,63 @@ func (o *Orchestrator) UndoState(ctx context.Context, p id.Project, c id.Chat, t
 	if err != nil {
 		return s, err
 	}
+	return turnState(ctx, proj, turn, srcs)
+}
+
+// turnState is UndoState for the turn whose sources are srcs. A partly
+// undone turn's items in one state are those its last undo or redo left:
+// the newest of the three databases' says which way it went, and Left is
+// all the items of the other side. A turn past the undo window is
+// history, with no side.
+func turnState(ctx context.Context, proj *project.Project, turn int, srcs []id.Source) (TurnUndoState, error) {
+	s := TurnUndoState{Turn: turn}
 	st, err := proj.DB.UndoState(ctx, srcs)
 	if err != nil {
 		return s, err
 	}
-	ru, rr, err := proj.Chats.RoleUndoState(ctx, srcs)
+	rs, err := proj.Chats.RoleUndoState(ctx, srcs)
 	if err != nil {
 		return s, err
 	}
-	var mu, mr store.UndoPlan
+	var ms store.UndoState
 	if proj.Registry != nil {
-		if mu, mr, err = proj.Registry.UserMemoryUndoState(ctx, srcs); err != nil {
+		if ms, err = proj.Registry.UserMemoryUndoState(ctx, srcs); err != nil {
 			return s, err
 		}
 	}
-	s.Undo, s.Redo, s.Migrations = turnPlan(st.Undo, ru, mu), turnPlan(st.Redo, rr, mr), st.Migrations
+	s.Undo, s.Redo, s.Migrations = turnPlan(st.Undo, rs.Undo, ms.Undo), turnPlan(st.Redo, rs.Redo, ms.Redo), st.Migrations
+	var last *store.UndoAction
+	for _, a := range []*store.UndoAction{st.Last, rs.Last, ms.Last} {
+		if a != nil && (last == nil || a.At > last.At) {
+			last = a
+		}
+	}
+	if last == nil || s.Undo.Changes == 0 || s.Redo.Changes == 0 || s.Undo.Past || s.Redo.Past {
+		return s, nil
+	}
+	if last.Redo {
+		s.Redo.Left = items(s.Redo)
+	} else {
+		s.Undo.Left = items(s.Undo)
+	}
 	return s, nil
+}
+
+// items counts a plan's items.
+func items(p TurnPlan) int {
+	n := 0
+	for _, r := range p.Rows {
+		n += r.Rows
+	}
+	return n
 }
 
 // UndoTurn reverts everything the chat's turn changed, or with r.Redo puts
 // it back (SPEC 2.6): rows, objects, chat roles and user memory. Migrations stay. A
 // later change to what it would revert stops it; the result lists the
-// conflicts and nothing changed. When it is done, the chat gets a notice,
+// conflicts and nothing changed. Items r.Skip names stay in effect: the
+// turn is then partly undone, and Undo turn again tries them; with all
+// skipped nothing changes and Done is false. When it is done, the chat gets a notice,
 // so the model knows. It fails with ErrInTurn while the chat is in a turn.
 //
 // Roles live in chats.db, user memory in registry.db and the rest in
@@ -176,6 +212,15 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	if err != nil {
 		return res, nil, err
 	}
+	// An undo of a partly undone turn does the rest, and so does a redo
+	// after one that skipped items; the notice says so. With no side, as
+	// a crash between the databases leaves it, either way is the rest.
+	before, err := turnState(ctx, proj, r.Turn, srcs)
+	if err != nil {
+		return res, nil, err
+	}
+	partly := before.Undo.Changes > 0 && before.Redo.Changes > 0
+	rest := partly && (before.Undo.Left == before.Redo.Left || r.Redo == (before.Redo.Left > 0))
 	opts := store.UndoOptions{Redo: r.Redo, Skip: r.Skip}
 	check := opts
 	check.Check = true
@@ -206,7 +251,9 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	case err != nil && !nothing:
 		return res, nil, err
 	}
-	changed := !nothing
+	// Skipped items stay in effect, so an undo that skipped all changed
+	// nothing.
+	changed := len(pr.Reverted) > 0
 	plans := []store.UndoPlan{pr.Plan}
 	skipped := len(pr.Skipped)
 	var seqs map[id.Chat]uint64
@@ -219,8 +266,9 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 				res.Conflicts = o.label(ctx, proj, x.conflicts)
 				return res, nil, nil
 			}
-			// A part is in: skip the items changed since the check, so
-			// their chains flip with the rest, and report them as skipped.
+			// A part is in: skip the items changed since the check and
+			// report them as skipped. They stay in effect; Undo turn
+			// again tries them.
 			lost = len(x.conflicts)
 			again := opts
 			again.Skip = slices.Clone(opts.Skip)
@@ -239,9 +287,9 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 				return res, nil, err
 			}
 			// A part is in: say so in the chat, and that this one wasn't
-			// undone. Undo turn again finishes it.
-			o.d.Log.Error("agent: undo of a turn's "+s.name, "turn", r.Turn, "err", err)
-			sideErr = errors.Join(sideErr, fmt.Errorf("%w: %w", s.notDone, err))
+			// undone, or redone. The same again finishes it.
+			o.d.Log.Error("agent: undo of a turn's "+s.name, "turn", r.Turn, "redo", r.Redo, "err", err)
+			sideErr = errors.Join(sideErr, &PartError{Part: s.notDone, Name: s.name, Redo: r.Redo, Err: err})
 			x = sideUndo{}
 		}
 		plans = append(plans, x.plan)
@@ -252,6 +300,10 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 		}
 	}
 	if !changed {
+		if skipped > 0 { // all skipped: they stay, so not done, and no notice
+			res.Skipped = skipped
+			return res, nil, nil
+		}
 		return res, nil, fmt.Errorf("agent: turn %d: %w", r.Turn, store.ErrNothingToUndo)
 	}
 	if seq, ok := seqs[c]; ok {
@@ -261,7 +313,7 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	res.Summary = turnPlan(plans...).Summary
 	res.Migrations = len(pr.Migrations)
 	res.Skipped = skipped
-	n := chat.Notice{Kind: chat.NoticeTurnUndone, Text: undoNotice(res)}
+	n := chat.Notice{Kind: chat.NoticeTurnUndone, Text: undoNotice(res, rest)}
 	if _, err := o.write(ctx, cs, proj, chat.Message{Chat: c, Turn: max(cs.turn, 1), Role: chat.RoleUser,
 		Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &n}}}); err != nil {
 		// The undo is in; an error now would read as if it failed.
@@ -301,7 +353,7 @@ func sidesOf(proj *project.Project) []side {
 			return sideUndo{r.Plan, len(r.Skipped), r.Conflicts, r.Seq}, err
 		}}}
 	if proj.Registry != nil {
-		ss = append(ss, side{name: "user memory", notDone: ErrUserMemoryNotUndone,
+		ss = append(ss, side{name: "user memory edits", notDone: ErrUserMemoryNotUndone,
 			undo: func(ctx context.Context, srcs []id.Source, o store.UndoOptions) (sideUndo, error) {
 				var r store.UserMemoryUndo
 				var err error
@@ -328,17 +380,39 @@ var undoUserMemory = func(ctx context.Context, r *store.Registry, srcs []id.Sour
 }
 
 // ErrRolesNotUndone: UndoTurn reverted the turn's changes in project.db,
-// but its chat roles in chats.db failed. The result says what was done;
-// Undo turn again reverts the roles.
-var ErrRolesNotUndone = errors.New("agent: the turn was undone, but its chat roles weren't")
+// but its chat roles in chats.db failed, in a PartError. The result says
+// what was done; Undo turn again, or Redo turn after a redo, reverts the
+// roles.
+var ErrRolesNotUndone = errors.New("agent: the turn's chat roles weren't reverted with the rest")
 
 // ErrUserMemoryNotUndone: as ErrRolesNotUndone, for the turn's edits of
 // user memory in registry.db.
-var ErrUserMemoryNotUndone = errors.New("agent: the turn was undone, but its user memory edits weren't")
+var ErrUserMemoryNotUndone = errors.New("agent: the turn's user memory edits weren't reverted with the rest")
+
+// PartError is a part of a turn, Part (ErrRolesNotUndone or
+// ErrUserMemoryNotUndone), that failed with Err after the rest of an undo
+// or a redo was in.
+type PartError struct {
+	Part error
+	Name string // "chat roles"
+	Redo bool
+	Err  error
+}
+
+func (e *PartError) Error() string {
+	verb := "undone"
+	if e.Redo {
+		verb = "redone"
+	}
+	return fmt.Sprintf("agent: the turn was %s, but its %s weren't: %v", verb, e.Name, e.Err)
+}
+
+func (e *PartError) Unwrap() []error { return []error{e.Part, e.Err} }
 
 // undoNotice tells the model what Undo turn did, e.g. "[turn 3 was
-// undone: 12 rows in prices; its migration was kept]".
-func undoNotice(r TurnUndo) string {
+// undone: 12 rows in prices; its migration was kept]", or with rest, for a
+// turn that was partly undone, "[the rest of turn 3 was undone: ...]".
+func undoNotice(r TurnUndo, rest bool) string {
 	verb := "undone"
 	if r.Redo {
 		verb = "redone"
@@ -348,7 +422,12 @@ func undoNotice(r TurnUndo) string {
 		what = "its changes"
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "[turn %d was %s: %s", r.Turn, verb, what)
+	if rest {
+		b.WriteString("[the rest of ")
+	} else {
+		b.WriteString("[")
+	}
+	fmt.Fprintf(&b, "turn %d was %s: %s", r.Turn, verb, what)
 	switch {
 	case r.Migrations == 1:
 		b.WriteString("; its migration was kept")

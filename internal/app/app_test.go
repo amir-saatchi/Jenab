@@ -567,7 +567,7 @@ func TestUIError(t *testing.T) {
 		{errors.New("disk full near " + testKey), KindInternal},
 		{fmt.Errorf("agent: turn 3: %w", store.ErrNothingToUndo), KindBusy},
 		{store.ErrUndoWindow, KindInvalid},
-		{fmt.Errorf("%w: disk full", agent.ErrRolesNotUndone), KindInternal},
+		{&agent.PartError{Part: agent.ErrRolesNotUndone, Name: "chat roles", Err: errors.New("disk full")}, KindInternal},
 	}
 	for _, c := range cases {
 		err := c.err
@@ -583,10 +583,18 @@ func TestUIError(t *testing.T) {
 	if ue := (*UIError)(nil); errors.As(big, &ue) && ue.Message != "This turn changed 30000 rows. Undo can revert at most 20000 at once." {
 		t.Errorf("too big: %q", ue.Message)
 	}
-	var both error = errors.Join(fmt.Errorf("%w: disk full", agent.ErrRolesNotUndone), fmt.Errorf("%w: disk full", agent.ErrUserMemoryNotUndone))
+	disk := errors.New("disk full")
+	var both error = errors.Join(&agent.PartError{Part: agent.ErrRolesNotUndone, Name: "chat roles", Err: disk},
+		&agent.PartError{Part: agent.ErrUserMemoryNotUndone, Name: "user memory edits", Err: disk})
 	b.guard("test", &both)
-	if ue := (*UIError)(nil); !errors.As(both, &ue) || !strings.Contains(ue.Message, "chat roles and its edits of user memory") {
+	if ue := (*UIError)(nil); !errors.As(both, &ue) ||
+		ue.Message != "The turn was undone, but its chat roles and its edits of user memory weren't. Undo it again to finish." {
 		t.Errorf("both sides failed: %#v", both)
+	}
+	var redo error = &agent.PartError{Part: agent.ErrUserMemoryNotUndone, Name: "user memory edits", Redo: true, Err: disk}
+	b.guard("test", &redo)
+	if ue := (*UIError)(nil); !errors.As(redo, &ue) || ue.Message != "The turn was redone, but its edits of user memory weren't. Redo it again to finish." {
+		t.Errorf("a redo's part failed: %#v", redo)
 	}
 	var ui error = &UIError{Kind: KindBusy, Message: "Wait."}
 	b.guard("test", &ui)

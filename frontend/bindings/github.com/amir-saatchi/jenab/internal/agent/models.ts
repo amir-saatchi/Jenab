@@ -116,6 +116,11 @@ export interface TurnPlan {
      * over store.MaxUndoEntries, so it is refused
      */
     "too_big": boolean;
+
+    /**
+     * of Rows, those the turn's last undo or redo left: all, or none (turnState)
+     */
+    "left": number;
 }
 
 /**

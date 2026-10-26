@@ -304,7 +304,7 @@ func TestUserMemoryUndo(t *testing.T) {
 		t.Fatalf("project undo state %+v, %v", st, err)
 	}
 
-	undo, _, err := r.UserMemoryUndoState(ctx, []id.Source{msg("t2")})
+	undo, _, err := split(r.UserMemoryUndoState(ctx, []id.Source{msg("t2")}))
 	if err != nil || undo.Changes != 1 || undo.Summary() != "1 user memory section" {
 		t.Fatalf("undo state %+v, %v", undo, err)
 	}
@@ -314,7 +314,7 @@ func TestUserMemoryUndo(t *testing.T) {
 	if s := get(); s.Content != "Prices in EUR." || s.Revision != 3 {
 		t.Fatalf("after undo: %+v", s)
 	}
-	_, redo, _ := r.UserMemoryUndoState(ctx, []id.Source{msg("t2")})
+	_, redo, _ := split(r.UserMemoryUndoState(ctx, []id.Source{msg("t2")}))
 	if redo.Changes != 1 {
 		t.Fatalf("redo state %+v", redo)
 	}
@@ -363,7 +363,11 @@ func TestUserMemoryUndo(t *testing.T) {
 // run on both.
 type undoScope struct {
 	memoryEditor
-	undoTurn   func(src id.Source, o UndoOptions) error
+	// undoTurn returns how many edits it reverted. With none to revert,
+	// project memory gives ErrNothingToUndo and user memory no error
+	// (nothing).
+	undoTurn   func(src id.Source, o UndoOptions) (int, error)
+	nothing    error
 	undoChange func(change string, redo bool) error
 	undone     func(change string) bool
 	item       func(section string) UndoItem
@@ -389,10 +393,11 @@ func undoScopes(t *testing.T, pid id.Project) []undoScope {
 	return []undoScope{
 		{
 			memoryEditor: memoryEditor{ScopeProject, func(e MemoryEdit) (MemoryWrite, error) { return p.UpdateMemory(ctx, e) }, func() ([]MemorySection, error) { return p.Memory(ctx) }},
-			undoTurn: func(src id.Source, o UndoOptions) error {
-				_, err := p.Undo(ctx, []id.Source{src}, o)
-				return err
+			undoTurn: func(src id.Source, o UndoOptions) (int, error) {
+				r, err := p.Undo(ctx, []id.Source{src}, o)
+				return len(r.Reverted), err
 			},
+			nothing: ErrNothingToUndo,
 			undoChange: func(c string, redo bool) error {
 				_, err := p.UndoChange(ctx, id.Change(c), UndoOptions{Redo: redo})
 				return err
@@ -402,9 +407,9 @@ func undoScopes(t *testing.T, pid id.Project) []undoScope {
 		},
 		{
 			memoryEditor: memoryEditor{ScopeUser, func(e MemoryEdit) (MemoryWrite, error) { return r.UpdateUserMemory(ctx, e, pid) }, func() ([]MemorySection, error) { return r.UserMemory(ctx) }},
-			undoTurn: func(src id.Source, o UndoOptions) error {
-				_, err := r.UndoUserMemory(ctx, []id.Source{src}, pid, o)
-				return err
+			undoTurn: func(src id.Source, o UndoOptions) (int, error) {
+				res, err := r.UndoUserMemory(ctx, []id.Source{src}, pid, o)
+				return res.Plan.Changes, err
 			},
 			undoChange: func(c string, redo bool) error {
 				_, err := r.UndoUserMemoryChange(ctx, num(c), pid, UndoOptions{Redo: redo})
@@ -441,13 +446,13 @@ func TestMemoryUndoTwoEdits(t *testing.T) {
 			}
 			edit(msg("t1"), "A", 0)
 			edit(msg("t1"), "B", 1)
-			if err := m.undoTurn(msg("t1"), UndoOptions{}); err != nil {
+			if n, err := m.undoTurn(msg("t1"), UndoOptions{}); err != nil || n == 0 {
 				t.Fatalf("undo of two edits: %v", err)
 			}
 			if s := get(); s.Content != "" || s.Revision != 4 {
 				t.Fatalf("after undo: %+v", s)
 			}
-			if err := m.undoTurn(msg("t1"), UndoOptions{Redo: true}); err != nil {
+			if n, err := m.undoTurn(msg("t1"), UndoOptions{Redo: true}); err != nil || n == 0 {
 				t.Fatalf("redo of two edits: %v", err)
 			}
 			if s := get(); s.Content != "B" || s.Revision != 6 {
@@ -466,7 +471,7 @@ func TestMemoryUndoTwoEdits(t *testing.T) {
 			if !m.undone(wb.Change) {
 				t.Error("an undone edit reads as not undone")
 			}
-			if err := m.undoTurn(msg("a"), UndoOptions{}); err != nil {
+			if n, err := m.undoTurn(msg("a"), UndoOptions{}); err != nil || n == 0 {
 				t.Fatalf("undo past an undone edit: %v", err)
 			}
 			if s := get(); s.Content != "B" {
@@ -481,16 +486,12 @@ func TestMemoryUndoTwoEdits(t *testing.T) {
 	}
 }
 
-// A user memory edit whose undo skipped the section, because another
-// chat edited it since, stays in effect: a redo leaves the section, an
-// undo tries again, and once the other edit is undone the edit undoes and
-// redoes. (Project memory's skip is for good, as for every item of a
-// project's turn.)
-func TestUserMemoryUndoAfterSkip(t *testing.T) {
+// A memory edit whose undo skipped the section, because another chat
+// edited it since, stays in effect (TASK-022): a redo leaves the section,
+// an undo tries again, and once the other edit is undone the edit undoes
+// and redoes. The same for user and project memory.
+func TestMemoryUndoAfterSkip(t *testing.T) {
 	for _, m := range undoScopes(t, id.Project(id.New())) {
-		if m.scope != ScopeUser {
-			continue
-		}
 		t.Run(string(m.scope), func(t *testing.T) {
 			edit := func(src id.Source, content string, rev int) MemoryWrite {
 				t.Helper()
@@ -513,41 +514,46 @@ func TestUserMemoryUndoAfterSkip(t *testing.T) {
 			edit(id.SourceUser, "O", 0)
 			wt := edit(msg("t"), "A", 1)
 			wb := edit(msg("b"), "B", 2)
-			if err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
+			if _, err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
 				t.Fatalf("undo past another chat's edit: %v", err)
 			}
-			if err := m.undoTurn(msg("t"), UndoOptions{Skip: []UndoItem{m.item("goals")}}); err != nil {
-				t.Fatalf("undo with the section skipped: %v", err)
+			if n, err := m.undoTurn(msg("t"), UndoOptions{Skip: []UndoItem{m.item("goals")}}); err != nil || n != 0 {
+				t.Fatalf("undo with the section skipped: %d reverted, %v", n, err)
 			}
 			want("after the skip", "B")
 			if m.undone(wt.Change) {
 				t.Error("after the skip, the edit reads as undone")
 			}
-			if err := m.undoTurn(msg("t"), UndoOptions{Redo: true}); err != nil {
-				t.Fatalf("redo after the skip: %v", err)
+			// Nothing is undone, so a redo has nothing to put back.
+			if n, err := m.undoTurn(msg("t"), UndoOptions{Redo: true}); n != 0 || !errors.Is(err, m.nothing) {
+				t.Fatalf("redo after the skip: %d reverted, %v", n, err)
 			}
 			want("after the redo", "B")
 			if m.undone(wt.Change) {
 				t.Error("after the redo, the edit reads as undone")
 			}
-			if err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
+			if _, err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
 				t.Fatalf("undo while the other edit stands: %v", err)
 			}
 			if err := m.undoChange(wb.Change, false); err != nil {
 				t.Fatalf("undo of the other edit: %v", err)
 			}
 			want("after undoing the other edit", "A")
-			if err := m.undoTurn(msg("t"), UndoOptions{}); err != nil {
+			if n, err := m.undoTurn(msg("t"), UndoOptions{}); err != nil || n == 0 {
 				t.Fatalf("undo once the other edit is undone: %v", err)
 			}
 			want("after the undo", "O")
 			if !m.undone(wt.Change) {
 				t.Error("after the undo, the edit reads as not undone")
 			}
-			if err := m.undoTurn(msg("t"), UndoOptions{Redo: true}); err != nil {
+			if n, err := m.undoTurn(msg("t"), UndoOptions{Redo: true}); err != nil || n == 0 {
 				t.Fatalf("redo: %v", err)
 			}
 			want("after the redo", "A")
+			if n, err := m.undoTurn(msg("t"), UndoOptions{}); err != nil || n == 0 {
+				t.Fatalf("undo again: %v", err)
+			}
+			want("after undoing again", "O")
 		})
 	}
 }
@@ -569,10 +575,10 @@ func TestProjectMemoryUndoneAfterSkip(t *testing.T) {
 		}
 		wt := edit(msg("t"), "A", 0)
 		edit(msg("b"), "B", 1)
-		if err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
+		if _, err := m.undoTurn(msg("t"), UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
 			t.Fatalf("undo past another chat's edit: %v", err)
 		}
-		if err := m.undoTurn(msg("t"), UndoOptions{Skip: []UndoItem{m.item("goals")}}); err != nil {
+		if n, err := m.undoTurn(msg("t"), UndoOptions{Skip: []UndoItem{m.item("goals")}}); err != nil || n != 0 {
 			t.Fatalf("undo with the section skipped: %v", err)
 		}
 		if m.undone(wt.Change) {

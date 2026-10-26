@@ -62,7 +62,33 @@ const (
 	// leaves its rows as they were: added columns and indexes. An undo of
 	// an earlier change to it doesn't stop there (logMigration).
 	rowMigratedKept = "migrate_keep"
+	// rowSkipped is an item of a reverted change that the undo left as it
+	// is: skipped by the user, or already as the undo puts the rest. It
+	// has no before-image and doesn't flip the item (undoChain).
+	rowSkipped = "s"
 )
+
+// skipEntries is project.db format step 5 (TASK-022): before it, an undo
+// that skipped an item, or found it as it wanted it, wrote no entry for it
+// and flipped it with the rest of its chain. It adds a rowSkipped entry
+// for each item of a chain that an undo of the chain has no entry for, so
+// those items read as left as they were, as undos write them now. A flip
+// that found the item as it wanted it reads as left too; either way the
+// item is as the change before put it.
+var skipEntries = execAll(`WITH RECURSIVE chain(base, id, depth) AS (
+		SELECT b.id, b.id, 0 FROM _jenab_changes b
+			WHERE b.source NOT LIKE 'undo:%' AND b.target NOT LIKE 'memory:user/%'
+				AND EXISTS (SELECT 1 FROM _jenab_changes u WHERE u.source = 'undo:' || b.id)
+		UNION ALL
+		SELECT chain.base, c.id, chain.depth + 1 FROM chain JOIN _jenab_changes c ON c.source = 'undo:' || chain.id),
+	items(base, table_name, row_key, first) AS (
+		SELECT chain.base, r.table_name, r.row_key, min(r.rowid) FROM chain JOIN _jenab_change_rows r ON r.change_id = chain.id
+		WHERE r.kind NOT IN ('migrate', 'migrate_keep') GROUP BY chain.base, r.table_name, r.row_key)
+	INSERT INTO _jenab_change_rows (change_id, table_name, row_key, kind)
+	SELECT l.id, i.table_name, i.row_key, 's' FROM chain l JOIN items i ON i.base = l.base
+	WHERE l.depth > 0 AND NOT EXISTS (SELECT 1 FROM _jenab_change_rows r
+		WHERE r.table_name = i.table_name AND r.row_key = i.row_key AND r.change_id = l.id)
+	ORDER BY l.id, i.first`)
 
 // change is one entry of _jenab_changes.
 type change struct {

@@ -420,15 +420,17 @@ func TestUndoForeignKeyConflicts(t *testing.T) {
 	for i, c := range r.Conflicts {
 		skip[i] = c.Item
 	}
-	// Skipping every item reverts nothing, but the turn counts as undone,
-	// so the footer offers Redo, which reverts nothing either.
-	if _, err := p.Undo(ctx, turn, UndoOptions{Skip: skip}); err != nil {
-		t.Errorf("skipping all: %v", err)
+	// Skipping every item reverts and writes nothing: the turn is still in
+	// effect, and its undo can be tried again (TASK-022).
+	if r, err := p.Undo(ctx, turn, UndoOptions{Skip: skip}); err != nil || len(r.Written) != 0 || len(r.Skipped) == 0 {
+		t.Errorf("skipping all: %+v, %v", r, err)
 	}
-	if st, _ := p.UndoState(ctx, turn); st.Undo.Changes != 0 || st.Redo.Changes == 0 {
+	if st, _ := p.UndoState(ctx, turn); st.Undo.Changes == 0 || st.Redo.Changes != 0 {
 		t.Errorf("state after skipping all: %+v", st)
 	}
-	undoOK(t, p, turn, UndoOptions{Redo: true})
+	if _, err := p.Undo(ctx, turn, UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
+		t.Errorf("undo again: %v", err)
+	}
 }
 
 // Undo of each bucket operation, and its redo: a move takes its versions
@@ -526,7 +528,7 @@ func TestUndoRoles(t *testing.T) {
 		}
 		return got.Role
 	}
-	undo, redo, err := c.RoleUndoState(ctx, []id.Source{m})
+	undo, redo, err := split(c.RoleUndoState(ctx, []id.Source{m}))
 	if err != nil || undo.Changes != 1 || redo.Changes != 0 || undo.Summary() != "1 chat role" {
 		t.Errorf("state %+v %+v, %v", undo, redo, err)
 	}
@@ -551,20 +553,52 @@ func TestUndoRoles(t *testing.T) {
 	if r, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{Skip: []UndoItem{{RoleItem, string(ch.ID)}}}); err != nil || len(r.Seq) != 0 || role() != "third" {
 		t.Errorf("skip: %+v, %v", r, err)
 	}
-	// The skipped role's chain flipped to a record that keeps the role,
-	// so there is nothing left to undo or redo.
+	// The skipped role has no record and stays in effect (TASK-022): undo
+	// is offered again, redo has nothing to do.
 	rc, _ = c.RoleChanges(ctx, ch.ID)
-	if last := rc[len(rc)-1]; last.Source != "undo:role:4" || last.Before != "third" || last.After != "third" {
-		t.Errorf("the skip's record %+v", last)
+	if last := rc[len(rc)-1]; last.Source != id.SourceUser || len(rc) != 5 {
+		t.Errorf("after the skip: %+v", rc)
 	}
-	if undo, redo, err := c.RoleUndoState(ctx, []id.Source{m}); err != nil || undo.Changes != 0 || redo.Changes != 0 {
+	if undo, redo, err := split(c.RoleUndoState(ctx, []id.Source{m})); err != nil || undo.Changes != 1 || redo.Changes != 0 {
 		t.Errorf("state after the skip %+v %+v, %v", undo, redo, err)
 	}
-	if r, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{Redo: true}); err != nil || r.Plan.Changes != 0 || len(rc) != 6 {
+	if r, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{Redo: true}); err != nil || r.Plan.Changes != 0 {
 		t.Errorf("redo of the skip: %+v, %v", r, err)
 	}
-	if rc2, _ := c.RoleChanges(ctx, ch.ID); len(rc2) != len(rc) {
-		t.Errorf("the redo wrote another record: %+v", rc2)
+	if _, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{}); !errors.Is(err, ErrUndoConflict) {
+		t.Errorf("undo again: %v", err)
+	}
+}
+
+// A record that keeps the role, as undos before TASK-022 wrote for a
+// skipped role, flips nothing: the role reads as in effect.
+func TestUndoRolesOldSkipRecord(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	ch := newChat(t, c, chat.Chat{Title: "Prices", Role: "first"})
+	m := msg("01ROLE")
+	if _, err := c.SetRole(ctx, ch.ID, "second", m); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
+		return struct{}{}, recordRole(tx, ch.ID, "second", "second", roleUndoSource(2))
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if undo, redo, err := split(c.RoleUndoState(ctx, []id.Source{m})); err != nil || undo.Changes != 1 || redo.Changes != 0 {
+		t.Errorf("state %+v %+v, %v", undo, redo, err)
+	}
+	if _, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := c.Chat(ctx, ch.ID); got.Role != "first" {
+		t.Errorf("role %q", got.Role)
+	}
+	if _, err := c.UndoRoles(ctx, []id.Source{m}, UndoOptions{Redo: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := c.Chat(ctx, ch.ID); got.Role != "second" {
+		t.Errorf("role after redo %q", got.Role)
 	}
 }
 

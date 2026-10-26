@@ -1,6 +1,7 @@
 package store
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/hex"
@@ -88,11 +89,29 @@ type UndoPlan struct {
 	TooBig  bool        `json:"too_big"` // over MaxUndoEntries, so it is refused
 }
 
+// UndoAction is the newest undo or redo among a set's changes: when, and
+// which way. The items it left as they were, skipped, are those in the
+// other state. A turn's changes are in three databases, so the turn's
+// newest action is the newest of theirs (SPEC 2.6).
+type UndoAction struct {
+	At   string `json:"at"`   // as the change log has it, so it orders as text
+	Redo bool   `json:"redo"` // it put items back; else it undid them
+}
+
+// newer returns the newer of a and b; nil is older than any.
+func (a *UndoAction) newer(b *UndoAction) *UndoAction {
+	if a == nil || (b != nil && b.At > a.At) {
+		return b
+	}
+	return a
+}
+
 // UndoState is what Undo and Redo would do now for a set of sources.
 type UndoState struct {
-	Undo       UndoPlan `json:"undo"` // nothing when Changes is 0
-	Redo       UndoPlan `json:"redo"`
-	Migrations int      `json:"migrations"` // migrations among the changes; undo leaves them (SPEC 2.6)
+	Undo       UndoPlan    `json:"undo"` // nothing when Changes is 0
+	Redo       UndoPlan    `json:"redo"`
+	Migrations int         `json:"migrations"`     // migrations among the changes; undo leaves them (SPEC 2.6)
+	Last       *UndoAction `json:"last,omitempty"` // nil when none was undone
 }
 
 // UndoResult says what an undo did, or with ErrUndoConflict what stands in
@@ -150,25 +169,26 @@ func plural(n int, one, many string) string {
 // (P2-02). Tests turn it off to check that the order alone works.
 var undoDeferFK = true
 
-// undoChange is a change an undo may revert: the tip of a chain that
-// starts at a change from one of the sources. Each undo of a change is a
-// change with the source undo:<change_id>, so the chain's length says
-// whether the base change is in effect (even) or undone (odd).
+// undoChange is a change of a chain (undoChain): its base, a change from
+// one of the sources, or an undo of the change before it, with the source
+// undo:<change_id>.
 type undoChange struct {
 	id            id.Change
 	target, op    string
+	at            string
 	before, after sql.NullString
-	depth         int
-	baseOp        string
-	base          [2]sql.NullString // the base change's before and after
+	depth         int // its place in the chain, the base 0
+	// flipped is, for a change an undo reverts, how many of the undos up
+	// to it, itself included, flipped the item (versionEffect).
+	flipped int
+	baseOp  string
+	base    [2]sql.NullString // the base change's before and after
 }
-
-func (c undoChange) migration() bool { return c.baseOp == "migrate" }
 
 // versionEffect says what reverting c does to the object's versions: -1
 // drops the version the change added, +1 brings back one an undo dropped,
-// 0 leaves them. Only a save adds a version; each undo in the chain flips
-// the effect of the change it reverts.
+// 0 leaves them. Only a save adds a version; each undo in the chain that
+// flipped the object flips the effect of the change it reverts.
 func (c undoChange) versionEffect() (int, error) {
 	if c.baseOp != "save" {
 		return 0, nil
@@ -184,7 +204,7 @@ func (c undoChange) versionEffect() (int, error) {
 	if after == nil || (before != nil && after.Version == before.Version) {
 		return 0, nil
 	}
-	if c.depth%2 == 1 {
+	if c.flipped%2 == 1 {
 		return 1, nil
 	}
 	return -1, nil
@@ -216,23 +236,176 @@ type undoBase struct{ srcs, ids string }
 
 func bySources(sources []id.Source) undoBase { return undoBase{srcs: sourcesJSON(sources), ids: "[]"} }
 
-// undoTips returns the tip of each chain from the base, oldest first. A
-// user memory edit's pointer (LogUserMemory) is left out: user memory is
-// undone in registry.db.
-func undoTips(tx *sql.Tx, b undoBase) ([]undoChange, error) {
-	return queryTx(tx, `WITH RECURSIVE chain(base, id, depth) AS (
+// undoChain is a base change and its undos, each an undo of the one
+// before. Each undo flips the base's items it reverts, and writes a
+// rowSkipped entry for each item it leaves as it is, so every item has
+// its own state: in effect after an even number of flips, undone after
+// an odd one. A turn whose items are in both states is partly undone; an
+// undo reverts the items in effect, a redo the undone ones (SPEC 2.6).
+type undoChain struct {
+	levels []*undoChange // by depth; the last is the tip
+	items  []*chainItem  // in the order of their first entry
+}
+
+func (c *undoChain) tip() *undoChange { return c.levels[len(c.levels)-1] }
+
+// past reports whether the cleanup reached the chain (watermark mark): its
+// base, the oldest of its changes, is at or below it. The cleanup drops
+// all of a change's row entries, rowSkipped ones too, so once it reaches a
+// level the items' states can't be told; the whole chain is history.
+func (c *undoChain) past(mark string) bool { return mark != "" && string(c.levels[0].id) <= mark }
+
+// chainItem is an item of a chain and its entries in the chain's changes.
+type chainItem struct {
+	item    UndoItem
+	entries []itemEntry
+	flips   int // the chain's undos that flipped it
+	last    int // the depth of the newest change that flipped it, the base included
+}
+
+type itemEntry struct {
+	rowid int64
+	depth int
+	skip  bool // a rowSkipped entry
+}
+
+// undone reports whether the item is undone now.
+func (it *chainItem) undone() bool { return it.flips%2 == 1 }
+
+// revert lists the item's entries an undo or a redo reverts: those of the
+// newest change that flipped it. None means that change found the item
+// as it wanted it and wrote nothing, so there is nothing to put back.
+func (it *chainItem) revert() []int64 {
+	var out []int64
+	for _, e := range it.entries {
+		if e.depth == it.last && !e.skip {
+			out = append(out, e.rowid)
+		}
+	}
+	return out
+}
+
+// undoChains returns the chains from the base, oldest base first. A user
+// memory edit's pointer (LogUserMemory) is left out: user memory is
+// undone in registry.db. Migrations' markers are no items.
+func undoChains(tx *sql.Tx, b undoBase) ([]*undoChain, error) {
+	type level struct {
+		base id.Change
+		c    undoChange
+	}
+	ls, err := queryTx(tx, `WITH RECURSIVE chain(base, id, depth) AS (
 			SELECT id, id, 0 FROM _jenab_changes
 				WHERE (source IN (SELECT value FROM json_each(?1)) OR id IN (SELECT value FROM json_each(?2)))
 					AND target NOT LIKE 'memory:user/%'
 			UNION ALL
 			SELECT chain.base, c.id, chain.depth + 1 FROM chain JOIN _jenab_changes c ON c.source = 'undo:' || chain.id)
-		SELECT t.id, c.target, c.op, c.before, c.after, t.depth, b.op, b.before, b.after
-		FROM (SELECT base, id, max(depth) AS depth FROM chain GROUP BY base) t
-		JOIN _jenab_changes c ON c.id = t.id JOIN _jenab_changes b ON b.id = t.base
-		ORDER BY t.id`, []any{b.srcs, b.ids}, func(r *sql.Rows) (undoChange, error) {
-		var c undoChange
-		return c, r.Scan(&c.id, &c.target, &c.op, &c.before, &c.after, &c.depth, &c.baseOp, &c.base[0], &c.base[1])
+		SELECT chain.base, c.id, c.target, c.op, c.at, c.before, c.after, chain.depth, b.op, b.before, b.after
+		FROM chain JOIN _jenab_changes c ON c.id = chain.id JOIN _jenab_changes b ON b.id = chain.base
+		ORDER BY chain.base, chain.depth`, []any{b.srcs, b.ids}, func(r *sql.Rows) (level, error) {
+		var l level
+		c := &l.c
+		return l, r.Scan(&l.base, &c.id, &c.target, &c.op, &c.at, &c.before, &c.after, &c.depth, &c.baseOp, &c.base[0], &c.base[1])
 	})
+	if err != nil || len(ls) == 0 {
+		return nil, err
+	}
+	var chains []*undoChain
+	of := map[id.Change]*undoChain{}
+	depth := map[id.Change]int{}
+	ids := make([]id.Change, len(ls))
+	for i, l := range ls {
+		ch := of[l.base]
+		if ch == nil {
+			ch = &undoChain{}
+			of[l.base] = ch
+			chains = append(chains, ch)
+		}
+		c := l.c
+		ch.levels = append(ch.levels, &c)
+		of[c.id], depth[c.id], ids[i] = ch, c.depth, c.id
+	}
+	type row struct {
+		rowid      int64
+		change     id.Change
+		table, key string
+		kind       string
+	}
+	rows, err := queryTx(tx, `SELECT rowid, change_id, table_name, row_key, kind FROM _jenab_change_rows
+		WHERE change_id IN (SELECT value FROM json_each(?)) ORDER BY rowid`, []any{idsJSON(ids)}, func(r *sql.Rows) (row, error) {
+		var x row
+		return x, r.Scan(&x.rowid, &x.change, &x.table, &x.key, &x.kind)
+	})
+	if err != nil {
+		return nil, err
+	}
+	at := map[*undoChain]map[UndoItem]*chainItem{}
+	for _, x := range rows {
+		if x.kind == rowMigrated || x.kind == rowMigratedKept {
+			continue
+		}
+		ch := of[x.change]
+		m := at[ch]
+		if m == nil {
+			m = map[UndoItem]*chainItem{}
+			at[ch] = m
+		}
+		u := UndoItem{x.table, x.key}
+		it := m[u]
+		if it == nil {
+			it = &chainItem{item: u}
+			m[u] = it
+			ch.items = append(ch.items, it)
+		}
+		it.entries = append(it.entries, itemEntry{x.rowid, depth[x.change], x.kind == rowSkipped})
+	}
+	for _, ch := range chains {
+		tip := ch.tip().depth
+		for _, it := range ch.items {
+			left := map[int]bool{}
+			for _, e := range it.entries {
+				if e.skip {
+					left[e.depth] = true
+				}
+			}
+			it.flips = tip - len(left)
+			for it.last = tip; it.last > 0 && left[it.last]; it.last-- {
+			}
+		}
+	}
+	return chains, nil
+}
+
+// lastAction is the newest undo or redo among the chains: the newest
+// level that flipped an item, or, in a chain with no items, any level. A
+// level that flipped none, as an undo before TASK-022 that skipped all
+// (skipEntries), is passed over. A chain past the watermark mark is
+// history, so it has none.
+func lastAction(chains []*undoChain, mark string) *UndoAction {
+	var newest *undoChange
+	var undone bool
+	for _, ch := range chains {
+		if ch.past(mark) {
+			continue
+		}
+		for d := len(ch.levels) - 1; d > 0; d-- {
+			l := ch.levels[d]
+			if newest != nil && l.id <= newest.id {
+				break
+			}
+			if len(ch.items) == 0 {
+				newest, undone = l, d%2 == 1
+				break
+			}
+			if i := slices.IndexFunc(ch.items, func(it *chainItem) bool { return it.last == d }); i >= 0 {
+				newest, undone = l, ch.items[i].undone()
+				break
+			}
+		}
+	}
+	if newest == nil {
+		return nil
+	}
+	return &UndoAction{At: newest.at, Redo: !undone}
 }
 
 // cleanedTo is the cleanup's watermark: changes at or below it are past
@@ -246,76 +419,86 @@ func cleanedTo(tx *sql.Tx) (string, error) {
 	return mark, err
 }
 
-// pick returns the tips an undo (redo false) or a redo reverts, and the
-// migrations among them, which are never reverted.
-func pick(tips []undoChange, redo bool) (out []undoChange, migrations []id.Change) {
-	for _, c := range tips {
-		if c.migration() {
-			migrations = append(migrations, c.id)
+// pickedChain is a chain an undo or a redo reverts, with the items it
+// reverts.
+type pickedChain struct {
+	*undoChain
+	items []*chainItem
+}
+
+// pick returns the chains an undo (redo false) or a redo reverts: those
+// with items in effect, or undone, and those with no items whose last
+// undo, if any, left them in effect, or undone. Migrations are never
+// reverted; it lists them apart.
+func pick(chains []*undoChain, redo bool) (out []pickedChain, migrations []id.Change) {
+	for _, ch := range chains {
+		if ch.levels[0].baseOp == "migrate" {
+			migrations = append(migrations, ch.levels[0].id)
 			continue
 		}
-		if (c.depth%2 == 1) == redo {
-			out = append(out, c)
+		p := pickedChain{undoChain: ch}
+		for _, it := range ch.items {
+			if it.undone() == redo {
+				p.items = append(p.items, it)
+			}
+		}
+		if len(p.items) > 0 || (len(ch.items) == 0 && (ch.tip().depth%2 == 1) == redo) {
+			out = append(out, p)
 		}
 	}
 	return out, migrations
 }
 
-// planOf counts the rows of cs by table. Every change counts, even one
-// with no row entries, such as an update that left its rows as they were
-// or an undo whose items were all skipped: reverting it still flips its
-// chain, so the turn's state is the same for all its changes.
-func planOf(tx *sql.Tx, cs []undoChange, mark string, skip map[UndoItem]bool) (UndoPlan, []undoChange, error) {
+// planOf counts the items of cs by table, less skip. Every chain counts,
+// even one with no items, such as an update that left its rows as they
+// were: reverting it still flips it, so the turn's state is the same for
+// all its changes.
+func planOf(cs []pickedChain, mark string, skip map[UndoItem]bool) UndoPlan {
 	var p UndoPlan
-	if len(cs) == 0 {
-		return p, nil, nil
+	type item struct {
+		it    UndoItem
+		first int64
 	}
-	ids := make([]id.Change, len(cs))
-	for i, c := range cs {
-		ids[i] = c.id
-		if mark != "" && string(c.id) <= mark {
+	var all []item
+	seen := map[UndoItem]bool{}
+	for _, c := range cs {
+		if c.past(mark) {
 			p.Past = true
 		}
-	}
-	type row struct{ table, key string }
-	rows, err := queryTx(tx, `SELECT table_name, row_key FROM _jenab_change_rows
-		WHERE change_id IN (SELECT value FROM json_each(?)) ORDER BY rowid`, []any{idsJSON(ids)}, func(r *sql.Rows) (row, error) {
-		var x row
-		return x, r.Scan(&x.table, &x.key)
-	})
-	if err != nil {
-		return p, nil, err
-	}
-	p.Entries, p.TooBig = len(rows), len(rows) > maxUndoEntries
-	seen := map[UndoItem]bool{}
-	at := map[string]int{}
-	for _, x := range rows {
-		it := UndoItem{x.table, x.key}
-		if seen[it] || skip[it] {
-			continue
+		for _, it := range c.items {
+			p.Entries += len(it.revert())
+			if !seen[it.item] && !skip[it.item] {
+				seen[it.item] = true
+				all = append(all, item{it.item, it.entries[0].rowid})
+			}
 		}
-		seen[it] = true
-		i, ok := at[x.table]
+	}
+	p.TooBig = p.Entries > maxUndoEntries
+	slices.SortStableFunc(all, func(a, b item) int { return cmp.Compare(a.first, b.first) })
+	at := map[string]int{}
+	for _, x := range all {
+		i, ok := at[x.it.Table]
 		if !ok {
 			i = len(p.Rows)
-			at[x.table] = i
-			p.Rows = append(p.Rows, TableRows{Table: x.table})
+			at[x.it.Table] = i
+			p.Rows = append(p.Rows, TableRows{Table: x.it.Table})
 		}
 		p.Rows[i].Rows++
 	}
 	p.Changes = len(cs)
-	return p, cs, nil
+	return p
 }
 
 // UndoState says what Undo and Redo would revert now for the changes from
-// sources: the message:<id> of a turn's messages, or a run:<id>.
+// sources: the message:<id> of a turn's messages, or a run:<id>. A partly
+// undone turn has both.
 func (p *ProjectDB) UndoState(ctx context.Context, sources []id.Source) (UndoState, error) {
 	return readTx(ctx, p.DB, func(tx *sql.Tx) (UndoState, error) {
 		var s UndoState
 		if len(sources) == 0 {
 			return s, nil
 		}
-		tips, err := undoTips(tx, bySources(sources))
+		chains, err := undoChains(tx, bySources(sources))
 		if err != nil {
 			return s, err
 		}
@@ -323,14 +506,12 @@ func (p *ProjectDB) UndoState(ctx context.Context, sources []id.Source) (UndoSta
 		if err != nil {
 			return s, err
 		}
-		undo, migrations := pick(tips, false)
-		redo, _ := pick(tips, true)
+		undo, migrations := pick(chains, false)
+		redo, _ := pick(chains, true)
 		s.Migrations = len(migrations)
-		if s.Undo, _, err = planOf(tx, undo, mark, nil); err != nil {
-			return s, err
-		}
-		s.Redo, _, err = planOf(tx, redo, mark, nil)
-		return s, err
+		s.Undo, s.Redo = planOf(undo, mark, nil), planOf(redo, mark, nil)
+		s.Last = lastAction(chains, mark)
+		return s, nil
 	})
 }
 
@@ -413,7 +594,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 			return err
 		}
 	}
-	tips, err := undoTips(tx, b)
+	chains, err := undoChains(tx, b)
 	if err != nil {
 		return err
 	}
@@ -421,7 +602,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	if err != nil {
 		return err
 	}
-	cs, migrations := pick(tips, o.Redo)
+	cs, migrations := pick(chains, o.Redo)
 	if !o.Redo {
 		res.Migrations = migrations
 	}
@@ -429,10 +610,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	for _, it := range o.Skip {
 		skip[it] = true
 	}
-	res.Plan, cs, err = planOf(tx, cs, mark, skip)
-	if err != nil {
-		return err
-	}
+	res.Plan = planOf(cs, mark, skip)
 	if res.Plan.Past {
 		return fault("%w", ErrUndoWindow)
 	}
@@ -442,15 +620,41 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	if len(cs) == 0 {
 		return fault("%w", ErrNothingToUndo)
 	}
-	u := &undoRun{tx: tx, skip: skip, set: map[UndoItem]bool{}, changes: map[id.Change]*undoChange{},
+	u := &undoRun{tx: tx, skip: skip, set: map[UndoItem]bool{}, changes: map[id.Change]*undoChange{}, tips: map[id.Change]id.Change{},
 		written: map[id.Change]*change{}, done: map[id.Change]bool{}, first: map[id.Change]int64{}}
-	ids := make([]id.Change, len(cs))
-	for i := range cs {
-		ids[i] = cs[i].id
-		u.changes[cs[i].id] = &cs[i]
+	var rowids []int64
+	var own []id.Change
+	for _, c := range cs {
+		for _, l := range c.levels {
+			u.changes[l.id], u.tips[l.id] = l, c.tip().id
+			own = append(own, l.id)
+		}
+		set := map[*undoChange]bool{}
+		for _, it := range c.items {
+			rowids = append(rowids, it.revert()...)
+			// The change reverted for the item: how many flipped it, up to
+			// it, says what reverting it does to an object's versions. An
+			// object's items are skipped together (widen), so they agree;
+			// other items don't use it.
+			l := c.levels[it.last]
+			f := it.last
+			for _, e := range it.entries {
+				if e.depth > 0 && e.depth <= it.last && e.skip {
+					f--
+				}
+			}
+			if set[l] && l.flipped != f && strings.HasPrefix(c.levels[0].target, "object:") {
+				return fault("store: the items of object change %s disagree on its undos", c.levels[0].id)
+			}
+			set[l], l.flipped = true, f
+		}
+	}
+	rj, err := json.Marshal(rowids)
+	if err != nil {
+		return err
 	}
 	es, err := queryTx(tx, `SELECT rowid, change_id, table_name, row_key, kind, before FROM _jenab_change_rows
-		WHERE change_id IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC`, []any{idsJSON(ids)}, func(r *sql.Rows) (undoEntry, error) {
+		WHERE rowid IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC`, []any{string(rj)}, func(r *sql.Rows) (undoEntry, error) {
 		var e undoEntry
 		return e, r.Scan(&e.rowid, &e.change, &e.table, &e.key, &e.kind, &e.before)
 	})
@@ -458,9 +662,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 		return err
 	}
 	if widen(skip, es, u.changes) {
-		if res.Plan, cs, err = planOf(tx, cs, mark, skip); err != nil {
-			return err
-		}
+		res.Plan = planOf(cs, mark, skip)
 	}
 	for _, e := range es {
 		if f, ok := u.first[e.change]; !ok || e.rowid < f {
@@ -474,7 +676,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 			u.set[it] = true
 		}
 	}
-	if err := u.later(ids); err != nil {
+	if err := u.later(es, own); err != nil {
 		return err
 	}
 	if err := u.revert(es); err != nil {
@@ -487,16 +689,45 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 		res.Conflicts = u.conflicts
 		return ErrUndoConflict
 	}
-	// Every change gets its entry, even one that had nothing left to
-	// revert, so its chain flips with the others.
+	// Each chain with an item to flip gets its entry, even one that had
+	// nothing left to revert, so it flips with the others. The entry
+	// leaves the chain's other items as they are: those skipped, and those
+	// already as the undo puts the rest. A chain with no items, such as an
+	// update that matched no row, flips with the others, but not alone when
+	// all the items were skipped: then the undo changes nothing.
+	flips, items := false, false
 	for _, c := range cs {
-		w := u.entry(c.id)
-		if err := writeChange(tx, *w, nil); err != nil {
+		for _, it := range c.items {
+			items = true
+			flips = flips || !skip[it.item]
+		}
+	}
+	for _, c := range cs {
+		flip := map[UndoItem]bool{}
+		for _, it := range c.items {
+			if !skip[it.item] {
+				flip[it.item] = true
+			}
+		}
+		if len(flip) == 0 && (len(c.items) > 0 || (items && !flips)) {
+			continue
+		}
+		var left []rowEntry
+		for _, it := range c.undoChain.items {
+			if !flip[it.item] {
+				left = append(left, rowEntry{table: it.item.Table, key: it.item.Key, kind: rowSkipped})
+			}
+		}
+		w := u.entry(c.tip().id)
+		if err := writeChange(tx, *w, left); err != nil {
 			return err
 		}
-		res.Reverted = append(res.Reverted, c.id)
+		res.Reverted = append(res.Reverted, c.tip().id)
 		res.Written = append(res.Written, w.id)
 	}
+	// Every item skipped reverts nothing and writes nothing: the turn
+	// stays as it was, and its undo can be tried again.
+	res.Plan.Changes = len(res.Reverted)
 	return nil
 }
 
@@ -565,11 +796,12 @@ type undoRun struct {
 	tx        *sql.Tx
 	set       map[UndoItem]bool // the items of the reverted changes, less the skipped ones
 	skip      map[UndoItem]bool
-	changes   map[id.Change]*undoChange
-	written   map[id.Change]*change // the undo's entry for each reverted change
-	done      map[id.Change]bool    // internal targets reverted once per change
-	first     map[id.Change]int64   // the rowid of each reverted change's first row entry
-	logged    []rowEntry            // the undo's own row entries, for checkKeys
+	changes   map[id.Change]*undoChange // the changes of the reverted chains
+	tips      map[id.Change]id.Change   // the tip of each one's chain
+	written   map[id.Change]*change     // the undo's entry for each chain, by its tip
+	done      map[id.Change]bool        // internal targets reverted once per change
+	first     map[id.Change]int64       // the rowid of each reverted change's first row entry
+	logged    []rowEntry                // the undo's own row entries, for checkKeys
 	conflicts []UndoConflict
 }
 
@@ -594,127 +826,198 @@ func (u *undoRun) has(it UndoItem) bool {
 }
 
 // later finds the changes outside the undo that touched one of its items
-// after the undo's first entry for it: one index search per item (SPEC
-// 2.5). A change whose chain is undone now (an odd number of undos), and
-// whose last undo put the item back, is in effect for it no more, so
-// neither it nor its undos count: turns undone newest first don't stand
-// in each other's way. A chain undone with the item skipped still counts,
-// and so does a redone chain. A later migration of a table, which logs no
-// rows, stands in the way of every row of the table (migrations).
-func (u *undoRun) later(ids []id.Change) error {
+// after the first entry the undo reverts for it: one index search per
+// item (SPEC 2.5). The changes of the undo's own chains (own) and the
+// entries that left an item as it was (rowSkipped) don't count. Nor do
+// the later changes of one chain that cancel out, an even number of them
+// (a change and its undo, an undo and its redo), nor those of a chain
+// that started before and in which the item is undone now: turns undone
+// newest first, or redone oldest first, don't stand in each other's way.
+// A chain undone with the item skipped still counts, as does a redone
+// one. A later migration of a table, which logs no rows, stands in the
+// way of every row of the table (migrations).
+func (u *undoRun) later(es []undoEntry, own []id.Change) error {
+	first := map[UndoItem]int64{}
+	tables := map[string]int64{}
+	for _, e := range es {
+		it := itemOf(e)
+		if !u.set[it] {
+			continue
+		}
+		if f, ok := first[it]; !ok || e.rowid < f {
+			first[it] = e.rowid
+		}
+		if f, ok := tables[e.table]; !ok || e.rowid < f {
+			tables[e.table] = e.rowid
+		}
+	}
+	if len(first) == 0 {
+		return nil
+	}
+	mine := make([][3]any, 0, len(first))
+	for it, f := range first {
+		mine = append(mine, [3]any{it.Table, it.Key, f})
+	}
+	mj, err := json.Marshal(mine)
+	if err != nil {
+		return err
+	}
 	type hit struct {
 		item   UndoItem
 		change id.Change
 		source id.Source
 		at     string
 	}
-	hits, err := queryTx(u.tx, `WITH mine AS (SELECT table_name, row_key, min(rowid) AS first FROM _jenab_change_rows
-			WHERE change_id IN (SELECT value FROM json_each(?1)) GROUP BY table_name, row_key)
-		SELECT DISTINCT m.table_name, m.row_key, c.id, c.source, c.at FROM mine m
-		JOIN _jenab_change_rows r ON r.table_name = m.table_name AND r.row_key = m.row_key AND r.rowid > m.first
+	hits, err := queryTx(u.tx, `SELECT DISTINCT m.value ->> 0, m.value ->> 1, c.id, c.source, c.at FROM json_each(?1) m
+		JOIN _jenab_change_rows r ON r.table_name = m.value ->> 0 AND r.row_key = m.value ->> 1 AND r.rowid > m.value ->> 2
 		JOIN _jenab_changes c ON c.id = r.change_id
-		WHERE r.change_id NOT IN (SELECT value FROM json_each(?1))
-		ORDER BY c.id`, []any{idsJSON(ids)}, func(r *sql.Rows) (hit, error) {
+		WHERE r.kind <> '`+rowSkipped+`' AND r.change_id NOT IN (SELECT value FROM json_each(?2))
+		ORDER BY c.id`, []any{string(mj), idsJSON(own)}, func(r *sql.Rows) (hit, error) {
 		var h hit
 		return h, r.Scan(&h.item.Table, &h.item.Key, &h.change, &h.source, &h.at)
 	})
 	if err != nil {
 		return err
 	}
-	var found []id.Change
-	for _, h := range hits {
-		if u.set[h.item] && !slices.Contains(found, h.change) {
-			found = append(found, h.change)
+	if len(hits) > 0 {
+		var cs []id.Change
+		for _, h := range hits {
+			if !slices.Contains(cs, h.change) {
+				cs = append(cs, h.change)
+			}
+		}
+		roots, err := chainRoots(u.tx, cs)
+		if err != nil {
+			return err
+		}
+		count := map[chainKey]int{}
+		started := map[chainKey]bool{} // the chain's base is one of the later changes
+		for _, h := range hits {
+			k := chainKey{roots[h.change], h.item}
+			count[k]++
+			if h.change == k.root {
+				started[k] = true
+			}
+		}
+		var ask []chainKey
+		for k, n := range count {
+			if n%2 == 1 && !started[k] {
+				ask = append(ask, k)
+			}
+		}
+		undone, err := undoneItems(u.tx, ask)
+		if err != nil {
+			return err
+		}
+		for _, h := range hits {
+			if k := (chainKey{roots[h.change], h.item}); count[k]%2 == 0 || undone[k] {
+				continue
+			}
+			c := UndoConflict{Item: h.item, Reason: ConflictChanged, Change: h.change, Source: h.source}
+			if t, err := parseTime(h.at); err == nil {
+				c.At = &t
+			}
+			u.conflict(c)
 		}
 	}
-	tips, err := undoneChains(u.tx, found)
+	return u.migrations(tables)
+}
+
+// chainKey is an item in the chain that starts at root.
+type chainKey struct {
+	root id.Change
+	item UndoItem
+}
+
+// chainRoots returns the base change of the chain each of cs is in: the
+// change itself, or the change its undo, or the undo's undo, reverts.
+func chainRoots(tx *sql.Tx, cs []id.Change) (map[id.Change]id.Change, error) {
+	out := map[id.Change]id.Change{}
+	for _, c := range cs {
+		out[c] = c
+	}
+	ps, err := queryTx(tx, `WITH RECURSIVE up(start, id, source) AS (
+			SELECT id, id, source FROM _jenab_changes WHERE id IN (SELECT value FROM json_each(?1))
+			UNION ALL
+			SELECT up.start, p.id, p.source FROM up JOIN _jenab_changes p
+				ON up.source LIKE 'undo:%' AND p.id = substr(up.source, 6))
+		SELECT start, id FROM up WHERE source NOT LIKE 'undo:%'`, []any{idsJSON(cs)}, func(r *sql.Rows) ([2]id.Change, error) {
+		var p [2]id.Change
+		return p, r.Scan(&p[0], &p[1])
+	})
+	for _, p := range ps {
+		out[p[0]] = p[1]
+	}
+	return out, err
+}
+
+// undoneItems returns which of ks are undone now: the chain's undos less
+// those that left the item as it was (rowSkipped) are odd in number.
+func undoneItems(tx *sql.Tx, ks []chainKey) (map[chainKey]bool, error) {
+	out := map[chainKey]bool{}
+	if len(ks) == 0 {
+		return out, nil
+	}
+	js := make([][3]string, len(ks))
+	for i, k := range ks {
+		js[i] = [3]string{string(k.root), k.item.Table, k.item.Key}
+	}
+	arg, err := json.Marshal(js)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	type put struct {
-		tip  id.Change
-		item UndoItem
+	got, err := queryTx(tx, `WITH RECURSIVE down(root, id, depth) AS (
+			SELECT DISTINCT value ->> 0, value ->> 0, 0 FROM json_each(?1)
+			UNION ALL
+			SELECT down.root, c.id, down.depth + 1 FROM down JOIN _jenab_changes c ON c.source = 'undo:' || down.id)
+		SELECT j.value ->> 0, j.value ->> 1, j.value ->> 2 FROM json_each(?1) j
+		WHERE ((SELECT max(depth) FROM down WHERE down.root = j.value ->> 0)
+			- (SELECT count(DISTINCT down.id) FROM down JOIN _jenab_change_rows r ON r.change_id = down.id
+				WHERE down.root = j.value ->> 0 AND r.table_name = j.value ->> 1 AND r.row_key = j.value ->> 2
+					AND r.kind = '`+rowSkipped+`')) % 2 = 1`, []any{string(arg)}, func(r *sql.Rows) (chainKey, error) {
+		var k chainKey
+		return k, r.Scan(&k.root, &k.item.Table, &k.item.Key)
+	})
+	for _, k := range got {
+		out[k] = true
 	}
-	var ask []put
-	for _, h := range hits {
-		if tip, ok := tips[h.change]; ok && u.set[h.item] {
-			ask = append(ask, put{tip, h.item})
-		}
-	}
-	back := map[put]bool{}
-	if len(ask) > 0 {
-		js := make([][3]string, len(ask))
-		for i, a := range ask {
-			js[i] = [3]string{string(a.tip), a.item.Table, a.item.Key}
-		}
-		arg, err := json.Marshal(js)
-		if err != nil {
-			return err
-		}
-		got, err := queryTx(u.tx, `SELECT j.value ->> 0, j.value ->> 1, j.value ->> 2 FROM json_each(?) j
-			WHERE EXISTS (SELECT 1 FROM _jenab_change_rows r WHERE r.table_name = j.value ->> 1
-				AND r.row_key = j.value ->> 2 AND r.change_id = j.value ->> 0)`, []any{string(arg)}, func(r *sql.Rows) (put, error) {
-			var p put
-			return p, r.Scan(&p.tip, &p.item.Table, &p.item.Key)
-		})
-		if err != nil {
-			return err
-		}
-		for _, p := range got {
-			back[p] = true
-		}
-	}
-	for _, h := range hits {
-		if !u.set[h.item] {
-			continue
-		}
-		if tip, ok := tips[h.change]; ok && back[put{tip, h.item}] {
-			continue
-		}
-		c := UndoConflict{Item: h.item, Reason: ConflictChanged, Change: h.change, Source: h.source}
-		if t, err := parseTime(h.at); err == nil {
-			c.At = &t
-		}
-		u.conflict(c)
-	}
-	return u.migrations(ids)
+	return out, err
 }
 
 // migrations lists a migration after a reverted change of a table as a
 // schema conflict of the whole table ({table, ""}): it logs no rows, so
 // the row entries can't tell what it changed, and an undo would write
 // over it. Each migration leaves a marker entry per table it changes
-// (rowMigrated), so "after" is the commit order, as in later. Skipping
-// the item skips the table's rows (widen). Migrations are never undone,
-// so all of them count.
-func (u *undoRun) migrations(ids []id.Change) error {
+// (rowMigrated), so "after" is the commit order, as in later: after the
+// first entry the undo reverts in the table. Skipping the item skips the
+// table's rows (widen). Migrations are never undone, so all of them count.
+func (u *undoRun) migrations(tables map[string]int64) error {
 	type hit struct {
 		table  string
 		change id.Change
 		source id.Source
 		at     string
 	}
-	hits, err := queryTx(u.tx, `WITH mine AS (SELECT table_name, min(rowid) AS first FROM _jenab_change_rows
-			WHERE change_id IN (SELECT value FROM json_each(?1)) GROUP BY table_name)
-		SELECT DISTINCT m.table_name, c.id, c.source, c.at FROM mine m
-		JOIN _jenab_change_rows r ON r.table_name = m.table_name AND r.row_key = '' AND r.rowid > m.first
+	mine := make([][2]any, 0, len(tables))
+	for t, f := range tables {
+		mine = append(mine, [2]any{t, f})
+	}
+	mj, err := json.Marshal(mine)
+	if err != nil {
+		return err
+	}
+	hits, err := queryTx(u.tx, `SELECT DISTINCT m.value ->> 0, c.id, c.source, c.at FROM json_each(?) m
+		JOIN _jenab_change_rows r ON r.table_name = m.value ->> 0 AND r.row_key = '' AND r.rowid > m.value ->> 1
 		JOIN _jenab_changes c ON c.id = r.change_id
-		WHERE r.kind = '`+rowMigrated+`' AND r.change_id NOT IN (SELECT value FROM json_each(?1))
-		ORDER BY c.id`, []any{idsJSON(ids)}, func(r *sql.Rows) (hit, error) {
+		WHERE r.kind = '`+rowMigrated+`'
+		ORDER BY c.id`, []any{string(mj)}, func(r *sql.Rows) (hit, error) {
 		var h hit
 		return h, r.Scan(&h.table, &h.change, &h.source, &h.at)
 	})
 	if err != nil {
 		return err
 	}
-	live := map[string]bool{}
-	for it := range u.set {
-		live[it.Table] = true
-	}
 	for _, h := range hits {
-		if !live[h.table] {
-			continue
-		}
 		c := UndoConflict{Item: UndoItem{Table: h.table}, Reason: ConflictSchema, Change: h.change, Source: h.source,
 			Detail: "a later migration changed the table"}
 		if t, err := parseTime(h.at); err == nil {
@@ -723,38 +1026,6 @@ func (u *undoRun) migrations(ids []id.Change) error {
 		u.conflict(c)
 	}
 	return nil
-}
-
-// undoneChains returns which of cs are in a chain that is undone now,
-// with the chain's tip, its last undo: the chain's base change and each
-// undo in it (source undo:<id>), when the chain has an odd number of
-// undos.
-func undoneChains(tx *sql.Tx, cs []id.Change) (map[id.Change]id.Change, error) {
-	out := map[id.Change]id.Change{}
-	if len(cs) == 0 {
-		return out, nil
-	}
-	type pair struct{ start, tip id.Change }
-	ps, err := queryTx(tx, `WITH RECURSIVE up(start, id, source) AS (
-			SELECT id, id, source FROM _jenab_changes WHERE id IN (SELECT value FROM json_each(?1))
-			UNION ALL
-			SELECT up.start, p.id, p.source FROM up JOIN _jenab_changes p
-				ON up.source LIKE 'undo:%' AND p.id = substr(up.source, 6)),
-		roots(start, root) AS (SELECT start, id FROM up WHERE source NOT LIKE 'undo:%'),
-		down(root, id, depth) AS (
-			SELECT DISTINCT root, root, 0 FROM roots
-			UNION ALL
-			SELECT down.root, c.id, down.depth + 1 FROM down JOIN _jenab_changes c ON c.source = 'undo:' || down.id),
-		tips(root, id, depth) AS (SELECT root, id, max(depth) FROM down GROUP BY root)
-		SELECT r.start, t.id FROM roots r JOIN tips t ON t.root = r.root
-		WHERE t.depth % 2 = 1`, []any{idsJSON(cs)}, func(r *sql.Rows) (pair, error) {
-		var p pair
-		return p, r.Scan(&p.start, &p.tip)
-	})
-	for _, p := range ps {
-		out[p.start] = p.tip
-	}
-	return out, err
 }
 
 // log writes row entries of the undo of change c, in the order the undo
@@ -771,13 +1042,15 @@ func (u *undoRun) log(c id.Change, rows []rowEntry) error {
 	return nil
 }
 
-// entry is the undo's change entry for the reverted change c.
+// entry is the undo's change entry for the chain of the reverted change
+// c: an undo of the chain's tip.
 func (u *undoRun) entry(c id.Change) *change {
-	w := u.written[c]
+	tip := u.tips[c]
+	w := u.written[tip]
 	if w == nil {
-		nc := newChange(id.SourceOf("undo", string(c)), u.changes[c].target, "undo")
+		nc := newChange(id.SourceOf("undo", string(tip)), u.changes[tip].target, "undo")
 		w = &nc
-		u.written[c] = w
+		u.written[tip] = w
 	}
 	return w
 }
@@ -1257,7 +1530,7 @@ func (u *undoRun) revertObject(c *undoChange) error {
 				continue
 			}
 			var last sql.NullInt64
-			if err := u.tx.QueryRow(`SELECT max(rowid) FROM _jenab_change_rows WHERE table_name = ? AND row_key = ?`, r.Table, r.Key).Scan(&last); err != nil {
+			if err := u.tx.QueryRow(`SELECT max(rowid) FROM _jenab_change_rows WHERE table_name = ? AND row_key = ? AND kind <> 's'`, r.Table, r.Key).Scan(&last); err != nil {
 				return err
 			}
 			if last.Valid && last.Int64 > u.first[c.id] {
@@ -1326,7 +1599,7 @@ func (u *undoRun) revertObject(c *undoChange) error {
 	if err := u.log(c.id, rows); err != nil {
 		return err
 	}
-	w := u.written[c.id]
+	w := u.entry(c.id)
 	w.before, w.after = c.after, c.before
 	return nil
 }

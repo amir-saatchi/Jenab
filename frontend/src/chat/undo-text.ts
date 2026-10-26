@@ -1,4 +1,4 @@
-import { ConflictReason, type TurnConflict, type UndoItem } from "@/lib/api"
+import { ConflictReason, type TurnConflict, type TurnUndoState, type UndoItem } from "@/lib/api"
 
 // The internal targets of an undo, as store names them.
 const objectItem = "_jenab_objects" // key object:<key>
@@ -82,4 +82,30 @@ export function skipAll(skip: UndoItem[], cs: TurnConflict[]): UndoItem[] {
     }
   }
   return out
+}
+
+// Partly is a turn partly undone, for the footer: its chip text, and
+// which way the rest is still to go. That is the way of the turn's last
+// undo or redo, whose items left are the other side's (TurnPlan.left):
+// "undo" after an undo, "redo" after a redo. It is "" when that can't be
+// told; then both ways are the rest.
+export type Partly = { text: string; rest: "undo" | "redo" | "" }
+
+// partly reads the turn's state: "partly undone: 2 items not undone"
+// after an undo that skipped two, or that undid one of the turn's changes
+// alone; "partly redone: 1 item not redone" after such a redo. It is null
+// when the turn is all in effect or all undone, or past the undo window,
+// where it is history.
+export function partly(st: TurnUndoState | null): Partly | null {
+  if (!st || st.undo.changes === 0 || st.redo.changes === 0 || st.undo.past || st.redo.past) return null
+  const items = (n: number) => `${n} ${n === 1 ? "item" : "items"}`
+  if (st.undo.left > 0) return { text: `partly undone: ${items(st.undo.left)} not undone`, rest: "undo" }
+  if (st.redo.left > 0) return { text: `partly redone: ${items(st.redo.left)} not redone`, rest: "redo" }
+  return { text: "partly undone", rest: "" }
+}
+
+// isRest says whether an undo (redo false) or a redo of a partly undone
+// turn is its rest: the way it still has to go.
+export function isRest(p: Partly | null, redo: boolean): boolean {
+  return p !== null && (p.rest === "" || p.rest === (redo ? "redo" : "undo"))
 }
