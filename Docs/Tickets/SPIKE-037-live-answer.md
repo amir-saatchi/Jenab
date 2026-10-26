@@ -16,13 +16,14 @@ A turn is two things mixed in one list of parts (SPEC 2.3): the **chain** of wha
 
 3. How much smaller, per request and per run?
 4. What does the model lose? Follow-ups that need a tool result's detail, a source, or a name the turn created, and work it repeats because it doesn't see that it was done.
-5. Does a short trace line built in Go (tools used, with names, refs and IDs, no results) win back what was lost, at little cost?
+5. Does a short trace built in Go, one line per tool call with names, refs and IDs but no results, win back what was lost, at little cost?
 
 ## The design to test
 Proposed on 2026-10-26.
 
 - **The chain** is stored as it happens and never edited, as today.
-- **The answer** is the turn's last text part. Text between tool calls belongs to the chain. In the chat, the chain folds into the step list, and the answer is shown in full.
+- **The answer** is the turn's last text part. Text between tool calls belongs to the chain.
+- **In the chat,** the answer is shown in full. The chain stays visible above it, folded and greyed, and the user can unfold it to check any step: tool calls with their arguments, results, thinking and text between calls.
 - **One answer per turn can change, and nothing else.** No sections, no names, no tool: the model just answers, and Go decides where the text goes. This keeps the model from naming the wrong section and keeps the user from seeing several places change.
 - **Finish turns (Part A):**
   - A finish turn's answer becomes the next revision of the answer of the turn that started the task. It isn't added below.
@@ -34,8 +35,20 @@ Proposed on 2026-10-26.
 - **Earlier turns (Part B):**
   - When a turn ends, its chain leaves the request: from the next turn on, it enters as the user's message and the latest revision of its answer. Thinking, tool calls, results and text between calls are dropped, always together, so every provider accepts the history.
   - The cached prefix still holds up to the turn before: only the just-finished turn changes shape, and it gets smaller (3.1).
-  - `search_history` and `read_messages` still reach the full chain.
-  - **Trace variant:** one line per turn, written by Go, e.g. `[turn 12 used: fetch_page ×3 (refs: cache/pages/…), create_table orders, subagent t_4]`.
+  - **Nothing is deleted.** The full chain stays in `chats.db`. `read_messages` already returns tool calls and results, and `search_history` finds them, so the model can get any detail it needs.
+  - **Trace variant:** one line per tool call, written by Go, never by the model: the tool, its main argument, and what the call made (a ref, a table, a task ID), without the result. A turn's trace ends with where the full steps are. For example:
+    ```
+    [fetch_page jobs.example.com/123 → ref cache/pages/jobs.example.com/ab12.txt]
+    [create_table applications]
+    [subagent "search LinkedIn" → task t_4]
+    [full steps: read_messages(from: 12, to: 12)]
+    ```
+    Each tool gives its own line, as tools now give their stubs (3.7). Many calls of one tool in a turn merge into one line, e.g. `fetch_page ×12` with their refs.
+- **What the model made, after its turn leaves the request:**
+  - **Project objects** (tables, pipelines, views) are already in the project card (3.2), so their names don't depend on history.
+  - **Refs and task IDs** are in the trace line.
+  - **A wrong name** gets an error that lists what exists, e.g. "no table `job`; tables: `jobs`, `applications`", so the model can correct it on its next request (8.3).
+  - Asking the model to list what it made in its answer is not tested: it depends on the model following the prompt, which differed between the reference models in SPIKE-035, and it puts bookkeeping into the user's answer.
 
 ## Conditions
 **Part A:**
@@ -45,7 +58,7 @@ Proposed on 2026-10-26.
 **Part B:**
 1. **Today's window:** full text and previews, stubs after a cut.
 2. **Answers only.**
-3. **Answers and trace.**
+3. **Answers and trace:** answers only, plus the trace line per call.
 
 ## Tests
 - **Part A:** requests that start 3 to 5 background subagents whose results arrive at different times, using the `multi-part` set's fake tools.
@@ -65,9 +78,13 @@ Proposed on 2026-10-26.
 - **Part B:**
   - Prompt tokens per request and per run, cache reads, and cuts per run.
   - Follow-ups answered right, per kind.
-  - Extra reads: `search_history`, `read_messages` and `read_ref` calls per run.
+  - Extra reads: `search_history`, `read_messages` and `read_ref` calls per run, and whether the model reads when a follow-up needs a detail that isn't in the answer, or answers without reading.
   - Repeated work: tool calls that redo an earlier turn's call.
+  - Wrong names: calls that use a ref, table or task ID that doesn't exist.
+  - Tool use: tool calls per turn in later turns, against today's window, to catch a model that stops using tools once it doesn't see its earlier calls.
+  - Fake calls: trace-like lines written in an answer instead of a real tool call.
   - Wrong claims about earlier work, e.g. a source that wasn't used.
+  - The trace's size: tokens per turn.
 
 ## Models
 The reference models (DEVELOPMENT.md): Gemini `gemini-3.5-flash-lite` and Ollama Cloud `gemma4:31b`.
@@ -91,6 +108,7 @@ Each condition has results per model, with 3 reps per cell: Part A 2 conditions 
 - the live answer: yes or no, and the rules above (in place only while latest, revisions, an empty finish turn)
 - 8.3's prompt rule: the whole answer or the rest
 - earlier turns: today's window, answers only, or answers and trace, and from which turn on
+- the trace line's format, if it is kept
 - whether 3.6's window sizes change
 
 ## Result
