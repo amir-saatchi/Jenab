@@ -223,7 +223,7 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 - The rows each entry touched are listed in `_jenab_change_rows(change_id, table_name, row_key, kind, before)`:
   - It is a rowid table with indexes on `(table_name, row_key, change_id)` and `(change_id)`.
   - `row_key` is the primary-key value as a JSON array, e.g. `["BTC","2026-09-27"]`. Configs, memory sections and objects use their target as the key.
-  - `kind` is `i` for an inserted row, `u` for an updated one and `d` for a deleted one.
+  - `kind` is `i` for an inserted row, `u` for an updated one and `d` for a deleted one. An undo also writes `s` for an item of the reverted change that it left as it is (skipped by the user, or already as the undo puts it). An `s` entry has no `before` and doesn't flip the item; the conflict check ignores it, and it doesn't count toward the undo cap (`MaxUndoEntries`).
   - `before` is the row as a JSON object before the change; it is empty for inserted rows.
   - The index keeps the undo conflict check an index lookup instead of a scan of the log (8–10 ms at 1 million entries in SPIKE-009).
 - **Cleanup after 90 days (configurable):** a daily job, working forward from a stored watermark, deletes the change's row entries and keeps only the change entry, with row counts per kind in `after`. In SPIKE-009 this kept the log at about 30% of a one-year project; keeping row entries without before-images left it at 55%.
@@ -233,10 +233,21 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 - **Undo turn** reverts all changes whose source is a message of that turn, in reverse order. Inserted rows are deleted, updated and deleted rows are restored, and configs, memory and objects return to their previous revision. Changes from other chats, forms and pipelines are not touched.
 - **Revert run** does the same for one pipeline run.
 - **Conflicts:** if a later change touched the same row, config, memory section or object (found through `_jenab_change_rows`), undo stops and lists the conflicts. The user chooses to skip those items or cancel.
+  - **Undo state is per item.** An undo flips each item it reverts and writes an `s` entry for each item it leaves. A skipped item stays as it is, and a later undo of the turn tries it again, for example once the later change is undone. A redo works the same way. If every item is skipped, nothing is written and the turn stays as it was.
+  - A later change is no conflict when its undo chain cancels out after the item's reverted entry (an even number of entries), or when that chain started before and is undone now. So undo B, undo A, redo A, redo B works.
+  - **Partly undone:** a turn with items in both states. Its last action is the newest undo or redo across `project.db`, `chats.db` and `registry.db`, by time; the items in the other state are the ones it left. The footer follows that:
+    - After an undo: "partly undone: N items not undone", with *Undo the rest* and *Redo turn* (which puts back only what was undone).
+    - After a redo: "partly redone: N items not redone", with *Redo the rest* and *Undo turn*.
+    - A crash between the turn's databases leaves it partly done the way the newest database went, so *the rest* finishes the job. If no side can be told, both buttons say *the rest*.
+    - Undoing one of the turn's changes alone (its chip) leaves the turn partly undone too.
+    - A wrong side, e.g. after the clock moved back, changes only the labels: each button runs its own side's full plan.
+  - The notice after the rest says so: `[the rest of turn 3 was undone: 1 row in prices]`.
+  - Chat roles (8.6) and user memory (3.3) follow the same rules: a skipped role writes no record, and a skipped user memory section writes a `skip` entry that doesn't count.
 - **A later migration of the table is a conflict,** unless it only added columns or created or dropped indexes there. Then undo restores the rows as before and keeps the added columns (P2-04).
 - **Migrations are not reverted by undo.** They are reversed by a new migration from the schema agent, or by restoring the snapshot taken before a destructive migration. Restoring a snapshot shows how many writes happened since and will be lost.
-- An undo is itself recorded as a change, so it can be redone.
+- An undo is itself recorded as a change, so it can be redone. It is chained to the change (`undo:<id>` of the chain's last undo). An item's state is the number of undos in its chain that flipped it: odd is undone, even is in effect. An undo or redo reverts each item from the newest undo that flipped it.
 - **Undo window:** changes older than the cleanup limit (90 days) are history only and cannot be undone. File bytes are kept for the same window, and their size is shown to the user (4.4).
+  - A chain whose first change is past the cleanup's watermark is history as a whole, even if its later undos are newer, since the cleanup dropped its `s` entries. It reads as in effect, is never partly undone, and can't be redone. User memory needs no such rule: its cleanup drops entries by age, so a chain loses its first entry first.
 - Cost (SPIKE-009): undoing a 5,000-row run takes about 0.3 s, and a chat turn about 1 ms. A 5,000-row upsert with change log must stay under 1 s.
 
 ### 2.7 Connections and lifecycle
@@ -276,6 +287,7 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 - **Storage format version:**
   - Each `.db` stores it in `PRAGMA user_version`.
   - A newer app backs the file up with `VACUUM INTO` into `snapshots/`, then migrates in one transaction.
+  - `project.db` step 5 (TASK-022) adds the `s` entries that older undos left out: for each undo in a chain, one for each of the chain's items it has no entry for. Where an old undo really changed nothing for an item, the item reads as skipped too, so that turn reads partly undone until one more undo or redo.
   - An older app refuses a newer file without touching it and asks the user to update.
 
 ### 2.9 index.db
