@@ -69,7 +69,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		if err != nil {
 			return err
 		}
-		prev := shape(ms, w)
+		prev := shape(r.o.earlier(ms, t.n), w)
 		due = t.n-w.start > c.HistoryMaxTurns || provider.EstimateTokens(provider.Request{Messages: prev}) > c.HistoryMaxTokens
 	}
 	if !due {
@@ -113,6 +113,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 			t.seen = m.ID
 		}
 	}
+	ms = r.o.earlier(ms, t.n) // SPIKE-037, spike-only
 	msgs := shape(ms, w)
 	if r.trim(t, msgs) {
 		msgs = shape(ms, w)
@@ -257,7 +258,7 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 	var b strings.Builder
 	b.WriteString(base(tools))
 	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
-		b.WriteString("\n\n" + strings.TrimSpace(rulePrompt))
+		b.WriteString("\n\n" + r.o.rule())
 	}
 	if r.o.d.Grounding.Compute && slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "query" }) {
 		b.WriteString("\n\n" + computeLine) // SPIKE-032 round 2, spike-only
