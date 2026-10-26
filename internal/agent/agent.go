@@ -68,6 +68,14 @@ type Deps struct {
 	// runner sets it to compare the check's conditions; the app leaves it
 	// off.
 	Grounding Grounding
+	// LiveAnswer is SPIKE-037's Part A: the prompt rule asks a finish turn
+	// for the whole updated answer, which replaces the earlier one in the
+	// user's view. The request stays append-only. Spike-only: the app
+	// leaves it off.
+	LiveAnswer bool
+	// EarlierTurns is SPIKE-037's Part B: what a request keeps of earlier
+	// turns. Spike-only: the app's zero value is today's window.
+	EarlierTurns EarlierTurns
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

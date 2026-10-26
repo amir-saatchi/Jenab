@@ -1,0 +1,16 @@
+# SPIKE-037's models, chosen by the user on 2026-10-26. Keys come from
+# ../../.env; no reserve keys.
+providers:
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY
+    models:
+      - {id: gemma4:31b, context: 262144}
+      - {id: gpt-oss:120b, context: 131072}
+  - name: mistral
+    kind: openai_compatible
+    base_url: https://api.mistral.ai/v1/
+    key_env: MISTRAL_API_KEY
+    models:
+      - {id: ministral-14b-latest, context: 131072}
