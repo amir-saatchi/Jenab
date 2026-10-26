@@ -12,16 +12,32 @@ Two questions:
 1. **Does the agent propose a topic at the right moments?** That is, for a new subject the user will come back to. Not for a plain question, and not a second time for a subject that already has a topic.
 2. **Do topics beat one long chat** that has cuts and `search_history`? Measured on follow-ups after many turns, on questions that span topics, asked in the main thread, and on cost.
 
-The design to test (proposed on 2026-10-20):
+The design to test (proposed on 2026-10-20, changed on 2026-10-27):
 - **A topic is one level below a chat.** Any chat can have topics, Mother included. A chat's **main thread** stays a normal chat: small questions, overview, and questions that span topics. A topic can't have topics of its own.
 - **A chat is who, a topic is what.** A chat has a role (8.6). Its topics share that role and differ only in their subject.
-- **A topic's context:** block 1 with the parent's role, user memory, project memory, the project card, the parent's session notes, the topic's own notes, and the topic's own history window. The main thread and the other topics aren't in its context. It reaches them through `search_history` and `read_messages`.
+- **A topic's context:** block 1 with the parent's role, user memory, project memory, the project card, the parent's session notes (read-only), the topic's own notes, and the topic's own history window. The main thread and the other topics aren't in its context. It reaches them through `search_history` and `read_messages`.
 - **The topic index** sits in the main thread's context, one line per topic, e.g. `t2 · Users table · 1 open`. Like the chat list in Mother (8.6), it is built at cuts. A topic's context doesn't have the index.
 - **Topic notes** follow SPIKE-029 round 3's proposed decisions: a short summary, notes that are only added to, and open items instead of a status. `merge_topics` joins two topics when the user says they are one thing.
 - **Who opens a topic:** the user can always open one. The agent only **proposes** one, a new topic or an existing one, with `propose_topic(title | topic_id)`. When the user accepts, their message moves into that topic, and the turn runs there. The agent never opens a topic on its own.
-- **Writing upward:** a topic may write its parent's session notes directly, under the revision rule of memory (3.3).
-- **Parallel turns:** topics of the same chat can run turns at the same time. Revision checks catch conflicts on the parent's notes.
+- **Facts go to memory, the state of the work goes to notes:**
+  - A topic writes user memory and project memory like any chat (3.3). A fact learned in a topic, such as "email is unique in Users", is true for the whole project, so it goes straight to memory.
+  - A topic reads its parent's session notes but never writes them. Only the main thread writes them. Each thread writes only its own notes, so the parent's notes don't become a mix of several threads.
+  - The main thread learns what a topic did from the topic index, which is built from each topic's own notes. When the user wants more than the index line, *Send back to parent* puts the topic's last reply into the main thread as a notice. Nothing goes up without it.
+- **Parallel turns:** topics of the same chat can run turns at the same time. They share no notes, so only memory and the project's objects can conflict, and the revision checks catch that (3.3).
 - **Storage, if adopted:** a row in `chats` with a `parent_chat_id`, so history, notes, *Refresh memory*, *Clear*, undo and search are reused. A topic isn't in the sidebar's chat list; it shows inside its chat.
+  - **Undo** stays per thread: a topic's changes belong to the topic's own turns.
+  - **Archive:** archiving a chat archives its topics too, and unarchiving it brings them back. Mother can't be archived (8.6), so her topics are archived one by one.
+
+**Also in the design, not measured here** (2026-10-27). These are UI and lifecycle notes for the SPEC change, if topics are adopted:
+- **Tree view in the sidebar:** at most three levels.
+  - Mother is pinned at the top, and the chats she created (`created_by`) sit under her.
+  - Chats the user created sit at the top level.
+  - Each chat's topics sit under it, folded by default.
+  - Subagent runs stay inside the parent turn, as today (8.6).
+- ***Continue as topic*** on a subagent row: it opens a topic under the chat that ran the subagent, so the user can follow up on delegated work.
+  - The topic starts with the subagent's task as its first user message and the subagent's result as its first reply.
+  - The full transcript stays in the bucket, linked from that reply with `ref` (3.7).
+  - The subagent itself stays one-off and one level deep. Only the topic continues.
 
 **Relation to SPIKE-029:** if topics win, they replace subjects, and P2-10 (session notes) depends on this spike instead of SPIKE-029. SPIKE-029's status stays as it is until this spike decides. Condition 4 below runs SPIKE-029's proposed combined design, the round 4 it never ran, so the two can be compared on the same chats.
 
@@ -58,7 +74,8 @@ It is a separate question, about cost and loops rather than about context. It de
   - They go back to the main thread themselves for `main` messages.
   - They never open or switch to a topic on their own, so every move into a topic, new or existing, comes from a proposal.
   - A message whose label differs from the current thread and gets no proposal is answered where it is. That counts as a miss.
-- **One parallel step:** two messages to two topics of the same chat, sent at once. Both turns write the parent's notes.
+- **One parallel step:** two messages to two topics of the same chat, sent at once. Both turns read the parent's notes and write project memory.
+- **A decision made in a topic, then asked about in the main thread**, e.g. "did we settle the Orders key?". The main thread has only the index and search, since topics don't write its notes.
 
 ## Measures
 - **Proposals (condition 3):**
@@ -69,7 +86,8 @@ It is a separate question, about cost and loops rather than about context. It de
   - the cost of a proposal: requests and tokens in the turn that only proposes
 - **Payoff:** follow-ups after cuts answered right, and cross-topic questions answered right, per condition.
 - **History reads:** `search_history` and `read_messages` calls per run, and how many of them reach another thread.
-- **Notes:** whether waiting work shows as an open item, and whether the parent's notes stay right after the parallel step: revision conflicts and what the agent did with them.
+- **Notes:** whether waiting work shows as an open item, and whether the parent's notes stay unchanged by topics. After the parallel step: memory revision conflicts and what the agent did with them.
+- **Reach of the main thread:** decisions made in topics that the main thread answered right, and whether it used the index alone or needed `search_history`.
 - **Cost:** requests and prompt tokens per run. Cache reads, where the provider reports them. The length of the beginning that a topic's requests share with the main thread's, as an upper bound on cache reuse where the provider reports nothing (SPIKE-029: Ollama Cloud reports no cache reads).
 
 ## Models
@@ -93,7 +111,7 @@ Each condition has results per model, with 3 reps per cell: 2 chats × 4 conditi
 - topics: yes or no, and whether the agent proposes them or only the user opens them
 - whether topics replace subjects (SPIKE-029), and P2-10's dependency
 - the topic index: its line format and where it sits in the context
-- the parent's notes: whether topics write them directly or only report up
+- the parent's notes: whether the index and *Send back to parent* keep the main thread up to date while topics only read its notes, or topics need to write them
 - whether report-up gets its own round
 
 ## Result
