@@ -27,6 +27,7 @@ import { showError } from "@/lib/errors"
 import { textDir } from "@/lib/dir"
 import { cn } from "@/lib/utils"
 import { noticeText } from "@/chat/parts"
+import { changes, lineDiff, type LineOp } from "@/chat/line-diff"
 
 // Cards waiting for the user, by "message:index", so the waiting bar can
 // tell whether one is on screen and scroll to it.
@@ -60,6 +61,7 @@ const kinds: Record<string, string> = {
   connection: "Connection",
   mcp: "MCP server",
   command: "Command",
+  memory: "Memory edit",
 }
 
 function time(at?: string | null) {
@@ -105,6 +107,7 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
           {a.risk && <span dir="auto">{a.risk}</span>}
         </CardDescription>
       </CardHeader>
+      {a.kind === "memory" && <MemoryEdit before={a.before} after={a.after} />}
       {a.details && (
         <CardContent>
           <Collapsible className="flex flex-col gap-2">
@@ -146,6 +149,70 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
         )}
       </CardFooter>
     </Card>
+  )
+}
+
+// MemoryEdit is a memory edit's section, before and after (SPEC 3.3): the
+// added and removed lines first, in full, so a planted line can't hide in
+// a long section or below blank lines; then the whole section with them
+// marked. Each line takes its own direction, as a section can mix Persian
+// and English lines.
+function MemoryEdit({ before, after }: { before?: string; after?: string }) {
+  const ops = React.useMemo(() => lineDiff(before, after), [before, after])
+  const changed = React.useMemo(() => changes(ops), [ops])
+  return (
+    <CardContent className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <Kicker>Changes</Kicker>
+        <div className="overflow-hidden rounded-lg border text-sm">
+          {changed.map((c, i) => (
+            <DiffLine key={i} kind={c.kind} text={c.text} blanks={c.blanks} />
+          ))}
+        </div>
+      </div>
+      {ops.some((o) => o.kind === "same") && (
+        <Collapsible className="flex flex-col gap-2">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="xs" className="w-fit text-muted-foreground">
+              <ChevronRightIcon data-icon="inline-start" className="transition-transform group-data-[state=open]/button:rotate-90" />
+              Whole section
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="overflow-hidden rounded-lg border text-sm">
+              {ops.map((o, i) => (
+                <DiffLine key={i} kind={o.kind} text={o.text} />
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </CardContent>
+  )
+}
+
+const diffMarks = {
+  add: { sign: "+", label: "Added", row: "bg-tone-green-soft", text: "" },
+  del: { sign: "−", label: "Removed", row: "bg-tone-red-soft", text: "line-through decoration-tone-red/60" },
+  same: { sign: "", label: "", row: "", text: "text-muted-foreground" },
+}
+
+function DiffLine({ kind, text, blanks = 0 }: { kind: LineOp["kind"]; text: string; blanks?: number }) {
+  const m = diffMarks[kind]
+  return (
+    <div className={cn("flex gap-2 px-3 py-0.5", m.row)}>
+      <span aria-hidden className="w-3 shrink-0 font-mono text-muted-foreground select-none">
+        {m.sign}
+      </span>
+      {m.label && <span className="sr-only">{m.label}: </span>}
+      {blanks > 0 ? (
+        <span className="min-w-0 flex-1 text-muted-foreground italic">{blanks === 1 ? "a blank line" : `${blanks} blank lines`}</span>
+      ) : (
+        <p dir="auto" className={cn("min-w-0 flex-1 text-start break-words whitespace-pre-wrap", m.text)}>
+          {text || " "}
+        </p>
+      )}
+    </div>
   )
 }
 

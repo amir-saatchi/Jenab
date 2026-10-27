@@ -130,13 +130,17 @@ type Notice struct {
 // approved, as _jenab_approvals stores it: a host, a script's hash.
 type Approval struct {
 	ID      id.Approval      `json:"id"`
-	Kind    string           `json:"kind"` // host, migration, starlark, connection, mcp, command
+	Kind    string           `json:"kind"` // host, migration, starlark, connection, mcp, command, memory
 	Target  string           `json:"target"`
 	Ask     string           `json:"ask"`           // what is asked
 	Why     string           `json:"why,omitempty"` // one line from the agent
 	Risk    string           `json:"risk"`
 	Details string           `json:"details,omitempty"`
 	Options []ApprovalOption `json:"options"` // e.g. "Allow for this project", "Deny"
+	// Before and After are a memory edit's section (3.3); "" where it
+	// isn't there.
+	Before string `json:"before,omitempty"`
+	After  string `json:"after,omitempty"`
 	// The answer, once given.
 	Answer     Grant      `json:"answer,omitempty"`
 	Note       string     `json:"note,omitempty"` // a Deny note, or the message written instead

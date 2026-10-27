@@ -16,7 +16,7 @@ export interface Approval {
     "id": id$0.Approval;
 
     /**
-     * host, migration, starlark, connection, mcp, command
+     * host, migration, starlark, connection, mcp, command, memory
      */
     "kind": string;
     "target": string;
@@ -37,6 +37,13 @@ export interface Approval {
      * e.g. "Allow for this project", "Deny"
      */
     "options": ApprovalOption[] | null;
+
+    /**
+     * Before and After are a memory edit's section (3.3); "" where it
+     * isn't there.
+     */
+    "before"?: string;
+    "after"?: string;
 
     /**
      * The answer, once given.

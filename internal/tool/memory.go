@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
@@ -31,9 +32,14 @@ type memoryArgs struct {
 	ExpectedRevision int    `json:"expected_revision"`
 }
 
+type updateMemory struct {
+	*funcTool[memoryArgs]
+}
+
 // UpdateMemory is the update_memory tool.
 func UpdateMemory() Tool {
-	return Func(Spec{
+	t := &updateMemory{}
+	t.funcTool = Func(Spec{
 		Name:        "update_memory",
 		Description: memoryDescription,
 		Schema: json.RawMessage(`{
@@ -48,7 +54,82 @@ func UpdateMemory() Tool {
 			"additionalProperties": false
 		}`),
 		Effects: Memory,
-	}, runUpdateMemory)
+	}, runUpdateMemory).(*funcTool[memoryArgs])
+	return t
+}
+
+// Preflight has the edit's approval card, with the section before and
+// after (3.3, 8.8). The level and the turn's untrusted mark decide whether
+// it is shown. An edit that would be refused fails here, before the card
+// is decided, so a write landing in between can't make it valid unseen.
+// A valid plan has the revision it read (or, with expected_revision 0, a
+// section that isn't there), and every write raises the revision, so the
+// write saves what the card showed or is refused. An edit
+// that changes nothing has no card: the write can then change nothing
+// either, as any change in between raises the revision.
+func (t *updateMemory) Preflight(ctx context.Context, call Call) (Needs, error) {
+	a, err := decodeArgs[memoryArgs](t.schema, call.Args)
+	if err != nil {
+		return Needs{}, err
+	}
+	needs := Needs{Effects: t.Spec().Effects}
+	env := call.Env
+	scope := store.MemoryScope(a.Scope)
+	var all []store.MemorySection
+	switch {
+	case env == nil:
+		return needs, nil
+	case scope == store.ScopeUser:
+		if env.Project.Registry == nil {
+			return needs, nil
+		}
+		all, err = env.Project.Registry.UserMemory(ctx)
+	default:
+		all, err = env.Project.DB.Memory(ctx)
+	}
+	if err != nil {
+		return Needs{}, err
+	}
+	e := store.MemoryEdit{Section: a.Section, Content: store.UnquoteMemory(a.Content), Expected: a.ExpectedRevision, Source: env.Source}
+	cur, next, op, err := store.PlanMemoryEdit(scope, all, e)
+	if err != nil {
+		return Needs{}, memoryError(err, scope)
+	}
+	if op == "" {
+		return needs, nil
+	}
+	needs.Approvals = []chat.Approval{MemoryApproval(cur, next, op)}
+	return needs, nil
+}
+
+// MemoryApproval is the approval card for an agent's memory edit: Save or
+// Deny, with no Always, as each edit is its own (8.8).
+func MemoryApproval(cur *store.MemorySection, next store.MemorySection, op string) chat.Approval {
+	name := fmt.Sprintf("%s memory, section %s", next.Scope, next.Section)
+	ask := "Save this edit to " + name + "?"
+	switch {
+	case op == "delete":
+		ask = "Delete " + name + "?"
+	case cur == nil || cur.Content == "":
+		ask = "Add " + name + "?"
+	}
+	risk := "Project memory is in the context of every chat in this project."
+	if next.Scope == store.ScopeUser {
+		risk = "User memory is in the context of every chat, in all your projects."
+	}
+	a := chat.Approval{
+		ID:      id.Approval(id.New()),
+		Kind:    "memory",
+		Target:  next.Target(),
+		Ask:     ask,
+		Risk:    risk + " Check that the edit is what you want kept, not a line from a page or file the agent read.",
+		After:   next.Content,
+		Options: []chat.ApprovalOption{{Label: "Save", Grant: chat.GrantOnce}, {Label: "Deny", Grant: chat.GrantDeny}},
+	}
+	if cur != nil {
+		a.Before = cur.Content
+	}
+	return a
 }
 
 func runUpdateMemory(ctx context.Context, env *Env, a memoryArgs) (Result, error) {

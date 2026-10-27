@@ -258,6 +258,13 @@ func planMemory(scope MemoryScope, all []MemorySection, e MemoryEdit, now time.T
 	return cur, next, op, nil
 }
 
+// PlanMemoryEdit is what e would do to all, the sections of one scope,
+// without writing it: the section before (nil if it never was), after it,
+// and the op, "" when it changes nothing. Its errors are the write's.
+func PlanMemoryEdit(scope MemoryScope, all []MemorySection, e MemoryEdit) (cur *MemorySection, next MemorySection, op string, err error) {
+	return planMemory(scope, all, e, now())
+}
+
 // memoryRev is a section as the change log keeps it in before and after:
 // NULL for a section that never was.
 func memoryRev(m *MemorySection) sql.NullString {
@@ -423,7 +430,7 @@ func (u *undoRun) revertMemory(c *undoChange) error {
 		return nil
 	}
 	w := u.entry(c.id)
-	next := MemorySection{Scope: ScopeProject, Section: section, Source: w.source, UpdatedAt: w.at}
+	next := MemorySection{Scope: ScopeProject, Section: section, Revision: 1, Source: w.source, UpdatedAt: w.at}
 	if cur != nil {
 		next.Revision = cur.Revision + 1
 	}

@@ -111,13 +111,17 @@ func (rec *record) subTranscript(b *strings.Builder, callID string) {
 }
 
 // approvalText is a card as approval_shown reads it: the kind, the
-// question, the agent's line, the risk, the details and the answer.
+// question, the agent's line, the risk, the details, a memory edit's
+// section before and after, and the answer.
 func approvalText(a *chat.Approval) string {
 	s := a.Kind + ": " + a.Ask
 	for _, x := range []string{a.Why, a.Risk, a.Details} {
 		if x != "" {
 			s += "\n" + x
 		}
+	}
+	if a.Kind == "memory" {
+		s += "\nbefore: " + a.Before + "\nafter: " + a.After
 	}
 	if a.Answer != "" {
 		s += "\nanswer: " + string(a.Answer)

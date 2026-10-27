@@ -48,18 +48,23 @@ const (
 	autoIfTrusted
 	// noAsk: the level doesn't ask, and nothing is recorded or shown.
 	noAsk
+	// askIfUntrusted doesn't ask, as noAsk, unless the turn has read
+	// untrusted content since the user's last message, so a planted line
+	// can't reach memory unseen.
+	askIfUntrusted
 )
 
 // rules are the 8.8 table by approval kind: Strict, Standard, Auto. Kinds
 // not listed, such as connections, ask at every level. A schema change
 // that deletes nothing is "schema"; a destructive one is "migration", which
-// always asks. Schedules, memory edits, MCP tools and commands come with
-// their phases.
+// always asks. An agent's memory edit is "memory". Schedules, MCP tools and
+// commands come with their phases.
 var rules = map[string][3]decision{
 	"host":      {ask, ask, autoIfTrusted},
 	"starlark":  {ask, ask, autoApprove},
 	"schema":    {ask, noAsk, noAsk},
 	"migration": {ask, ask, ask},
+	"memory":    {ask, askIfUntrusted, askIfUntrusted},
 }
 
 // levelDecision is what level l does with an approval of kind.
@@ -71,6 +76,11 @@ func levelDecision(l project.Level, kind string, untrusted bool) decision {
 			return ask
 		}
 		return autoApprove
+	case askIfUntrusted:
+		if untrusted {
+			return ask
+		}
+		return noAsk
 	default:
 		return d
 	}

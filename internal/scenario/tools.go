@@ -59,6 +59,11 @@ func (r *run) fake(t *ToolSpec) tool.Tool {
 	if t.Kind != KindRules {
 		spec.Effects = tool.ReadsDB
 	}
+	if real, ok := realSpec(t.Name); ok {
+		// A fake of a real tool whose result is outside data, such as
+		// fetch_page, is outside data too: the turn is marked (8.8).
+		spec.Effects |= real.Effects & tool.Untrusted
+	}
 	return tool.Func(spec, func(ctx context.Context, env *tool.Env, args json.RawMessage) (tool.Result, error) {
 		raw := string(args)
 		var res tool.Result
