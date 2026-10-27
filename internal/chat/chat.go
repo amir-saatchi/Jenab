@@ -80,10 +80,13 @@ func (m Message) Validate() error {
 	return nil
 }
 
-// SessionNote is a chat's session notes (SPEC 3.4).
+// SessionNote is a chat's session notes (SPEC 3.4): what the agent writes,
+// and the summary section, which only Refresh memory writes (3.5). One
+// revision counts the edits of both.
 type SessionNote struct {
 	Chat      id.Chat   `json:"chat"`
 	Content   string    `json:"content"`
+	Summary   string    `json:"summary"`
 	Revision  int       `json:"revision"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

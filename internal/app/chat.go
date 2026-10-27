@@ -147,6 +147,17 @@ func (s *ChatService) Messages(ctx context.Context, p id.Project, c id.Chat, fro
 	return ms, err
 }
 
+// Notes returns the chat's session notes, for the chat header (SPEC 3.4).
+// They are read-only here: the agent and Refresh memory write them.
+func (s *ChatService) Notes(ctx context.Context, p id.Project, c id.Chat) (n chat.SessionNote, err error) {
+	defer s.guard("chat.notes", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		n, err = proj.Chats.Notes(ctx, c)
+		return err
+	})
+	return n, err
+}
+
 // Send adds the user's message; the turn's progress comes as events.
 // Pictures come with the composer's attachments (P1-15).
 func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string) (m id.Message, err error) {

@@ -390,14 +390,14 @@ func TestChatsSeqOnEveryWrite(t *testing.T) {
 		"Archive":  func() (uint64, error) { return c.Archive(ctx, a.ID, true) },
 		"Restore":  func() (uint64, error) { return c.Archive(ctx, a.ID, false) },
 		"SetUsage": func() (uint64, error) { return c.SetUsage(ctx, m.ID, chat.Usage{Output: 1}) },
-		"Notes": func() (uint64, error) {
-			_, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "n"})
+		"Summary": func() (uint64, error) {
+			_, err := c.SaveSummary(ctx, a.ID, "s", 0)
 			s, _ := c.Seq(ctx, a.ID)
 			return s, err
 		},
 		"Clear": func() (uint64, error) { return c.Clear(ctx, a.ID) },
 	}
-	for _, name := range []string{"SetTitle", "SetRole", "SetModel", "Archive", "Restore", "SetUsage", "Notes", "Clear"} {
+	for _, name := range []string{"SetTitle", "SetRole", "SetModel", "Archive", "Restore", "SetUsage", "Summary", "Clear"} {
 		s, err := writes[name]()
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -406,6 +406,14 @@ func TestChatsSeqOnEveryWrite(t *testing.T) {
 			t.Errorf("%s: seq %d, want %d", name, s, last+1)
 		}
 		last = s
+	}
+	// The agent's notes leave the seq to the tool result written after
+	// them, so the thread sees no gap.
+	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "n"}); err != nil {
+		t.Fatal(err)
+	}
+	if s, _ := c.Seq(ctx, a.ID); s != last {
+		t.Errorf("SaveNotes: seq %d, want %d", s, last)
 	}
 	got, _ := c.Chat(ctx, a.ID)
 	if got.Model != "smart" || got.Archived || got.Role != "r" || got.Title != "T" {
@@ -603,29 +611,80 @@ func TestSessionNotes(t *testing.T) {
 	if n, err := c.Notes(ctx, a.ID); err != nil || n.Revision != 0 || n.Chat != a.ID {
 		t.Fatalf("no notes yet: %+v, %v", n, err)
 	}
-	r, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "plan: one"})
-	if err != nil || r != 1 {
-		t.Fatalf("first save = %d, %v", r, err)
+	n, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "plan: one"})
+	if err != nil || n.Revision != 1 || n.Content != "plan: one" {
+		t.Fatalf("first save = %+v, %v", n, err)
 	}
-	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "stale", Revision: 0}); !errors.Is(err, ErrConflict) {
-		t.Fatalf("a save from revision 0 = %v, want ErrConflict", err)
-	}
-	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "ahead", Revision: 2}); !errors.Is(err, ErrConflict) {
-		t.Fatalf("a save from revision 2 = %v, want ErrConflict", err)
+	// A stale revision is refused with the notes as they are.
+	for _, rev := range []int{0, 2} {
+		_, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: "stale", Revision: rev})
+		var ce *NotesConflictError
+		if !errors.Is(err, ErrConflict) || !errors.As(err, &ce) || ce.Current.Content != "plan: one" || ce.Current.Revision != 1 {
+			t.Fatalf("a save from revision %d = %v, want a conflict with the current notes", rev, err)
+		}
 	}
 	full := strings.Repeat("abcd", MaxNotesTokens)
-	if r, err = c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: full, Revision: 1}); err != nil || r != 2 {
-		t.Fatalf("second save = %d, %v", r, err)
+	if n, err = c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: full, Revision: 1}); err != nil || n.Revision != 2 {
+		t.Fatalf("second save = %d, %v", n.Revision, err)
 	}
-	n, err := c.Notes(ctx, a.ID)
+	n, err = c.Notes(ctx, a.ID)
 	if err != nil || n.Content != full || n.Revision != 2 || n.UpdatedAt.IsZero() {
 		t.Fatalf("Notes = rev %d, %d bytes, %v, %v", n.Revision, len(n.Content), n.UpdatedAt, err)
 	}
 	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: full + "abcd", Revision: 2}); !errors.Is(err, ErrTooLong) {
-		t.Errorf("notes over the limit: %v", err)
+		t.Errorf("notes over the cap: %v", err)
 	}
 	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: id.Chat(id.New()), Content: "x"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("notes of a missing chat: %v", err)
+	}
+}
+
+func TestSessionNotesSummary(t *testing.T) {
+	c := openTestChats(t)
+	ctx := context.Background()
+	a := newChat(t, c, chat.Chat{})
+	// The summary has its own cap.
+	_, err := c.SaveSummary(ctx, a.ID, strings.Repeat("abcd", MaxSummaryTokens+1), 0)
+	var ce *NotesCapError
+	if !errors.As(err, &ce) || !ce.Summary || !errors.Is(err, ErrTooLong) {
+		t.Fatalf("a summary over its cap = %v", err)
+	}
+	sum := strings.Repeat("s", 4*MaxSummaryTokens)
+	n, err := c.SaveSummary(ctx, a.ID, sum, 0)
+	if err != nil || n.Revision != 1 || n.Summary != sum || n.Content != "" {
+		t.Fatalf("SaveSummary = %+v, %v", n.Revision, err)
+	}
+	// The agent's notes keep the summary, and share the cap with it.
+	rest := strings.Repeat("abcd", MaxNotesTokens-MaxSummaryTokens)
+	if n, err = c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: rest, Revision: 1}); err != nil || n.Summary != sum || n.Revision != 2 {
+		t.Fatalf("notes up to the cap with the summary = %d, %v", n.Revision, err)
+	}
+	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: rest + "abcd", Revision: 2}); !errors.Is(err, ErrTooLong) {
+		t.Errorf("notes over the cap with the summary: %v", err)
+	}
+	// A summary under its own cap that would take the notes over theirs
+	// is refused too, as the notes' cap.
+	b := newChat(t, c, chat.Chat{})
+	if _, err := c.SaveNotes(ctx, chat.SessionNote{Chat: b.ID, Content: strings.Repeat("abcd", 2000)}); err != nil {
+		t.Fatal(err)
+	}
+	_, err = c.SaveSummary(ctx, b.ID, strings.Repeat("abcd", 600), 1)
+	if !errors.As(err, &ce) || ce.Summary || ce.Tokens != 2600 || ce.Cap != MaxNotesTokens || !errors.Is(err, ErrTooLong) {
+		t.Errorf("a summary over the notes' cap: %v", err)
+	}
+	if n, err := c.Notes(ctx, b.ID); err != nil || n.Summary != "" || n.Revision != 1 {
+		t.Errorf("after the refused summary: %d bytes, revision %d, %v", len(n.Summary), n.Revision, err)
+	}
+	if _, err := c.SaveSummary(ctx, a.ID, "short", 1); !errors.Is(err, ErrConflict) {
+		t.Errorf("a summary from a stale revision: %v", err)
+	}
+	// Over the cap, but shorter than before: let through, as for memory.
+	mustExec(t, c.DB, "UPDATE session_notes SET content = content || 'abcdabcd' WHERE chat_id = ?", a.ID)
+	if n, err = c.SaveNotes(ctx, chat.SessionNote{Chat: a.ID, Content: rest + "abcd", Revision: 2}); err != nil || n.Revision != 3 {
+		t.Errorf("a shorter save over the cap = %v", err)
+	}
+	if n, err = c.Notes(ctx, a.ID); err != nil || n.Summary != sum || n.Content != rest+"abcd" {
+		t.Errorf("Notes = %d+%d bytes, %v", len(n.Content), len(n.Summary), err)
 	}
 }
 
@@ -725,5 +784,39 @@ func TestChatsUsage(t *testing.T) {
 	}
 	if !reflect.DeepEqual(rows, want) {
 		t.Fatalf("Usage = %+v\nwant %+v", rows, want)
+	}
+}
+
+// TestSessionNotesFormatStep opens a chats.db made before P2-10: its notes
+// stay, with an empty summary, and take a summary after the step.
+func TestSessionNotesFormatStep(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	old := Format{Name: ChatsFormat.Name, Steps: ChatsFormat.Steps[:len(ChatsFormat.Steps)-1]}
+	db, err := Open(ctx, dir+"/chats.db", Options{Format: old, Snapshots: dir + "/snapshots"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := &ChatsDB{DB: db}
+	ch, err := c.EnsureMother(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mustExec(t, c.DB, `INSERT INTO session_notes (chat_id, content, revision, updated_at) VALUES (?, 'Plan: chart.', 3, '2026-10-01T00:00:00.000Z')`, ch.ID)
+	if err := c.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	c, err = OpenChats(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close(ctx)
+	n, err := c.Notes(ctx, ch.ID)
+	if err != nil || n.Content != "Plan: chart." || n.Summary != "" || n.Revision != 3 {
+		t.Fatalf("after the format step: %+v, %v", n, err)
+	}
+	if n, err = c.SaveSummary(ctx, ch.ID, "Imported prices.", 3); err != nil || n.Content != "Plan: chart." || n.Summary != "Imported prices." || n.Revision != 4 {
+		t.Errorf("SaveSummary after the step = %+v, %v", n, err)
 	}
 }

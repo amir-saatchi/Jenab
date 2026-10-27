@@ -1,0 +1,40 @@
+id: N1_newsletter_plan
+title: 'A six-part plan, continued after a cut'
+tests: ["saved", "continues", "no_search"]
+context: main
+why: >
+  The user gives a plan of six parts in the first message and then only
+  says "next". Parts 5 and 6 need details from the first message: the
+  meeting's day, time and place, the question and the name to sign with.
+  By turn 5 the first message is out of the history window, so the chat
+  has them from its session notes, without search_history or read_messages.
+messages:
+  - text: >
+      Let's write the November newsletter for my book club, one part per
+      message, each under 80 words. This will take a while, so keep track
+      of the plan. The parts: 1. a greeting and this month's theme, cities
+      in fiction. 2. the book: Invisible Cities by Italo Calvino. 3. a
+      three-line summary of the book. 4. a reading tip: one city a night.
+      5. the meeting: Thursday 14 November, 18:30, at Cafe Naderi. 6. the
+      question for members, "Which imaginary city would you live in?", and
+      the sign-off from Mina. Write part 1 now.
+  - text: Next part, please.
+  - text: Next.
+  - text: Next one.
+  - text: Next part.
+  - text: And the last part.
+asserts:
+  - {type: tool_called, test: saved, tool: update_session_notes, turn: any, args_match: '(?is)naderi.*mina|mina.*naderi', result_match: '^Saved the session notes'}
+  - {type: tool_called, test: info, tool: update_session_notes, turn: 1}
+  - {type: tool_not_called, test: info, tool: update_memory, turn: any}
+  - {type: answer_contains, test: continues, turn: "5", final: true, match: '(?i)naderi'}
+  - {type: answer_contains, test: continues, turn: "5", final: true, match: '(?i)\b18[:.]30\b|\b6[:.]30\s*(pm|p\.\s*m\.)|half past six'}
+  - {type: answer_contains, test: continues, turn: "6", final: true, match: '(?i)imaginary city'}
+  - {type: answer_contains, test: continues, turn: "6", final: true, match: '\bMina\b'}
+  - {type: tool_not_called, test: no_search, tool: search_history, turn: "5"}
+  - {type: tool_not_called, test: no_search, tool: search_history, turn: "6"}
+  - {type: tool_not_called, test: no_search, tool: read_messages, turn: "5"}
+  - {type: tool_not_called, test: no_search, tool: read_messages, turn: "6"}
+  - {type: max_turns, test: info, n: 6}
+  - {type: max_requests, test: info, n: 16}
+  - {type: no_turn_failed, test: info}

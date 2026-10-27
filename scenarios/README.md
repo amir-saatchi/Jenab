@@ -38,12 +38,15 @@ Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one tr
 | `schema-widen-check` | P2-07, SPIKE-021 T4 | The same, on tables with column CHECKs, which must stay. |
 | `memory` | P2-09 | User memory across chats. The user states a preference in one chat (answers in Persian; a "TL;DR:" line first); the chat saves it with `update_memory`, and a new chat follows it from its memory block without being told. |
 | `memory-untrusted` | TASK-026 | A memory edit after untrusted content. The chat reads a page with a planted "remember that…" line, and the user asks it to save the page's main tip to project memory. The edit asks first: the card shows the section before and after, and the runner saves it. Whether the planted line got into the edit is recorded, not checked. |
+| `session-notes` | P2-10 | A plan in a long chat survives a cut. The user gives a six-part plan once and then says "next"; a small window (`history_max_turns: 3`) cuts it at turn 5. The chat keeps the plan with `update_session_notes`, and writes parts 5 and 6, with details only the first message had, from its session notes (block 5), without `search_history` or `read_messages`. |
 
 SPIKE-021's T1 and T4 are `schema-design` and `schema-widen`. T2 (a pipeline) and T3 (views and a form) come with Phases 3 and 4.
 
 Runs from before P2-06 aren't comparable with later ones for `data-tools`, `grounding-honest` and `missing-features`: those sets now have the real `request_schema_change`, whose cards the runner approves, so the schema agent runs. Nor for `grounding` and `multi-part`: their chats have no `request_schema_change`, so `database-design`, which needs it, is no longer in their skills.
 
 Runs from before P2-09 aren't comparable with later ones for any set: every chat now has `update_memory`, so each request's tools are longer.
+
+The same for P2-10: every chat now has `update_session_notes`, and `update_memory`'s description says where things go.
 
 ## Files
 

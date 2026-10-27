@@ -86,6 +86,14 @@ export function Messages(p: id$0.Project, c: id$0.Chat, $from: number, to: numbe
 }
 
 /**
+ * Notes returns the chat's session notes, for the chat header (SPEC 3.4).
+ * They are read-only here: the agent and Refresh memory write them.
+ */
+export function Notes(p: id$0.Project, c: id$0.Chat): $CancellablePromise<chat$0.SessionNote> {
+    return $Call.ByID(1541235454, p, c);
+}
+
+/**
  * Rename sets the chat's title; a title the user sets is never generated
  * again. It returns the title as stored.
  */

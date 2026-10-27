@@ -102,7 +102,7 @@ func TestBuiltinSpecs(t *testing.T) {
 	r := NewRegistry()
 	r.Add(Builtin(Deps{Web: web.NewClient(web.Options{})})...) // panics on a bad schema or name
 	want := []string{"bucket_delete", "bucket_list", "bucket_put", "bucket_read", "describe_table", "fetch_page", "insert",
-		"list_chats", "query", "read_messages", "read_ref", "search_history", "search_ref", "update_memory"}
+		"list_chats", "query", "read_messages", "read_ref", "search_history", "search_ref", "update_memory", "update_session_notes"}
 	var got []string
 	for _, tl := range r.For(chat.KindChat) {
 		s := tl.Spec()

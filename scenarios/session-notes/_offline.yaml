@@ -1,0 +1,12 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/session-notes/_offline.yaml scenarios/session-notes
+# It tests the runner and the orchestrator, not a model.
+scenarios:
+  N1_newsletter_plan:
+    - calls: [{name: update_session_notes, args: {content: "Newsletter plan, one part per message, under 80 words:\n1. greeting, theme cities in fiction\n2. Invisible Cities, Calvino\n3. three-line summary\n4. tip: one city a night\n5. meeting Thursday 14 November, 18:30, Cafe Naderi\n6. question \"Which imaginary city would you live in?\", sign-off Mina\nDone: none", expected_revision: 0}}]
+    - text: "Hello, readers! This month our theme is cities in fiction."
+    - text: "This month's book is Invisible Cities by Italo Calvino."
+    - text: "Marco Polo describes fifty-five cities to Kublai Khan."
+    - text: "A tip: read one city a night."
+    - text: "We meet on Thursday 14 November at 18:30, at Cafe Naderi."
+    - text: "Which imaginary city would you live in? See you soon, Mina."

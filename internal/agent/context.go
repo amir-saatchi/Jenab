@@ -251,8 +251,9 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 
 // system is blocks 1–5 of the context (3.1) for the window, and the
 // schema version its project card was built at. It has the system
-// prompt, the date, the role, the skills, memory, the project card and Mother's
-// chat list. The cache point is after the last block.
+// prompt, the date, the role, the skills, memory, the project card,
+// Mother's chat list and the session notes. The cache point is after the
+// last block.
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
 	tools := r.o.d.Tools.For(t.ch.Kind)
 	var b strings.Builder
@@ -295,6 +296,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 	if t.ch.Kind == chat.KindMother {
 		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})
 	}
+	if notes := r.notesBlock(ctx, t); notes != "" {
+		blocks = append(blocks, provider.Block{Text: notes, Name: notesBlockName})
+	}
 	if n := w.start - 1; n > 0 {
 		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
 	}
@@ -305,6 +309,23 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 // cardBlock is the project card's block name, as the turn inspector shows
 // it.
 const cardBlock = "Project card"
+
+// notesBlockName is block 5's name, as the turn inspector shows it.
+const notesBlockName = "Session notes"
+
+// notesBlock is block 5, the chat's session notes (3.4), as they are at
+// the cut. The chat's own edits until the next cut are in its turns as
+// tool calls, so they need no notice; Refresh memory ends with a cut
+// (3.5). Like memory, the notes are best effort: a failure is logged and
+// leaves the block out.
+func (r *runner) notesBlock(ctx context.Context, t *turn) string {
+	n, err := r.p.Chats.Notes(ctx, t.ch.ID)
+	if err != nil {
+		r.o.d.Log.Error("agent: reading the session notes", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+		return ""
+	}
+	return tool.NotesBlock(n)
+}
 
 // noCard is the schema version of a card that failed, so the next turn
 // tries again.
@@ -487,7 +508,11 @@ func (r *runner) chatList(ctx context.Context) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if s := firstLine(notes.Content); s != "" {
+		s := firstLine(notes.Content)
+		if s == "" {
+			s = firstLine(notes.Summary)
+		}
+		if s != "" {
 			fmt.Fprintf(&b, " Notes: %s.", s)
 		}
 	}

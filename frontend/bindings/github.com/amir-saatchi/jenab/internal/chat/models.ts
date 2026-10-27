@@ -447,6 +447,19 @@ export enum Role {
 };
 
 /**
+ * SessionNote is a chat's session notes (SPEC 3.4): what the agent writes,
+ * and the summary section, which only Refresh memory writes (3.5). One
+ * revision counts the edits of both.
+ */
+export interface SessionNote {
+    "chat": id$0.Chat;
+    "content": string;
+    "summary": string;
+    "revision": number;
+    "updated_at": string;
+}
+
+/**
  * State is what a chat is doing.
  */
 export enum State {

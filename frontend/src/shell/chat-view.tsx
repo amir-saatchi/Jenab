@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { ChatKind } from "@/lib/api"
 import { DoingBar, RetryBar, WaitingBar } from "@/chat/cards"
 import { Composer } from "@/chat/composer"
+import { NotesButton } from "@/chat/notes"
 import { ThreadView } from "@/chat/thread-view"
 import { useChats } from "@/state/chats"
 import { useNav } from "@/state/nav"
@@ -31,7 +32,12 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
   const mother = (item?.chat ?? thread?.chat)?.kind === ChatKind.KindMother
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ChatHeader title={item?.chat.title || thread?.chat.title || "New chat"} sub={item ? subline(item) : ""} mother={mother} />
+      <ChatHeader
+        title={item?.chat.title || thread?.chat.title || "New chat"}
+        sub={item ? subline(item) : ""}
+        mother={mother}
+        notes={<NotesButton project={project} chat={chat} />}
+      />
       {damage && (
         <Alert className="mx-4 mt-3 w-auto [&>svg]:text-tone-amber">
           <TriangleAlertIcon />
@@ -80,7 +86,9 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
   )
 }
 
-export function ChatHeader({ title, sub, mother }: { title: string; sub: string; mother?: boolean }) {
+// ChatHeader is the chat's title bar; notes is the session notes' button
+// (SPEC 3.4).
+export function ChatHeader({ title, sub, mother, notes }: { title: string; sub: string; mother?: boolean; notes?: React.ReactNode }) {
   const narrow = useIsMobile()
   const hidden = useNav((s) => s.sidebarHidden)
   const setHidden = useNav((s) => s.setSidebarHidden)
@@ -119,14 +127,15 @@ export function ChatHeader({ title, sub, mother }: { title: string; sub: string;
           )}
         </div>
       </div>
-      {narrow && (
-        <div className="ms-auto flex items-center gap-1">
+      <div className="ms-auto flex items-center gap-1">
+        {notes}
+        {narrow && (
           <Button variant="ghost" size="sm" onClick={() => ui({ rightOverlay: true })}>
             <PanelRightIcon data-icon="inline-start" />
             Pages
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </header>
   )
 }

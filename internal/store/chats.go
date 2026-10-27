@@ -99,16 +99,19 @@ var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 	ftsTables, // P1-07
 	// Each chat's newest message for Mother's chat list (P1-10).
 	execAll(`CREATE INDEX messages_activity ON messages (chat_id, created_at)`),
+	// The notes' summary section, written only by Refresh memory (P2-10).
+	execAll(`ALTER TABLE session_notes ADD COLUMN summary TEXT NOT NULL DEFAULT ''`),
 }}
 
 // Limits from SPEC 3.4 and 8.6. Tokens are estimated at 4 bytes each, as
 // for requests.
 const (
-	MaxRoleTokens  = 500
-	MaxNotesTokens = 2500
-	MaxTitle       = 100 // characters
-	MotherTitle    = appinfo.Mother
-	DefaultModel   = "default" // the alias new chats use (SPEC 3.9)
+	MaxRoleTokens    = 500
+	MaxNotesTokens   = 2500 // the whole notes, with the summary
+	MaxSummaryTokens = 1000
+	MaxTitle         = 100 // characters
+	MotherTitle      = appinfo.Mother
+	DefaultModel     = "default" // the alias new chats use (SPEC 3.9)
 )
 
 var (
@@ -263,7 +266,8 @@ func (c *ChatsDB) Seq(ctx context.Context, ch id.Chat) (uint64, error) {
 }
 
 // bump adds one to the chat's sequence number and returns it. Every write
-// to a chat calls it in its transaction.
+// to a chat calls it in its transaction, but SaveNotes: the tool result
+// written right after it bumps it instead.
 func bump(tx *sql.Tx, ch id.Chat) (uint64, error) {
 	var s uint64
 	err := tx.QueryRow(`UPDATE chats SET seq = seq + 1 WHERE id = ? RETURNING seq`, ch).Scan(&s)
@@ -845,11 +849,11 @@ func (c *ChatsDB) LastActivity(ctx context.Context) (map[id.Chat]time.Time, erro
 
 // Notes returns a chat's session notes; revision 0 when it has none yet.
 func (c *ChatsDB) Notes(ctx context.Context, ch id.Chat) (chat.SessionNote, error) {
-	rows, err := Query(ctx, c.DB, `SELECT content, revision, updated_at FROM session_notes WHERE chat_id = ?`, []any{ch},
+	rows, err := Query(ctx, c.DB, `SELECT content, summary, revision, updated_at FROM session_notes WHERE chat_id = ?`, []any{ch},
 		func(r *sql.Rows) (chat.SessionNote, error) {
 			n := chat.SessionNote{Chat: ch}
 			var at string
-			if err := r.Scan(&n.Content, &n.Revision, &at); err != nil {
+			if err := r.Scan(&n.Content, &n.Summary, &n.Revision, &at); err != nil {
 				return n, err
 			}
 			var err error
@@ -862,35 +866,108 @@ func (c *ChatsDB) Notes(ctx context.Context, ch id.Chat) (chat.SessionNote, erro
 	return rows[0], nil
 }
 
-// SaveNotes replaces a chat's session notes. n.Revision is the revision the
-// writer read (0 for none); if the notes changed since, nothing is written
-// and ErrConflict is returned, so the writer can read them again and merge
-// (SPEC 3.3, 3.4). It returns the new revision.
-func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (int, error) {
-	if estimateTokens(n.Content) > MaxNotesTokens {
-		return 0, fmt.Errorf("%w: session notes have at most %d tokens", ErrTooLong, MaxNotesTokens)
+// NotesConflictError is a save from a stale revision. Current is the notes
+// as they are now, so the writer can merge (SPEC 3.3, 3.4).
+type NotesConflictError struct{ Current chat.SessionNote }
+
+func (e *NotesConflictError) Error() string {
+	return fmt.Sprintf("store: session notes of chat %s are at revision %d", e.Current.Chat, e.Current.Revision)
+}
+
+func (e *NotesConflictError) Is(target error) bool { return target == ErrConflict }
+
+// NotesCapError is a save that would take the notes, or their summary,
+// over its cap.
+type NotesCapError struct {
+	Summary     bool // the summary's own cap
+	Tokens, Cap int
+}
+
+func (e *NotesCapError) Error() string {
+	what := "session notes"
+	if e.Summary {
+		what = "the notes' summary"
 	}
-	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (int, error) {
-		var cur int
-		err := tx.QueryRow(`SELECT revision FROM session_notes WHERE chat_id = ?`, n.Chat).Scan(&cur)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return 0, err
+	return fmt.Sprintf("store: %s would be %d tokens, over the cap of %d", what, e.Tokens, e.Cap)
+}
+
+func (e *NotesCapError) Is(target error) bool { return target == ErrTooLong }
+
+// SaveNotes replaces a chat's session notes, and keeps their summary,
+// which only Refresh memory writes (SaveSummary). n.Revision is the
+// revision the writer read (0 for none); if the notes changed since,
+// nothing is written and a *NotesConflictError is returned (SPEC 3.3,
+// 3.4). It doesn't bump the chat's seq: the tool's result, written right
+// after, does, so the thread sees no gap. The notes with the summary have
+// a cap; a save that is over it but shorter than before is let through,
+// as for memory. It returns the notes as saved.
+func (c *ChatsDB) SaveNotes(ctx context.Context, n chat.SessionNote) (chat.SessionNote, error) {
+	return c.saveNotes(ctx, n.Chat, n.Revision, false, func(cur *chat.SessionNote) error {
+		old := estimateTokens(cur.Content + cur.Summary)
+		if t := estimateTokens(n.Content + cur.Summary); t > MaxNotesTokens && t > old {
+			return &NotesCapError{Tokens: t, Cap: MaxNotesTokens}
 		}
-		if cur != n.Revision {
-			return 0, fmt.Errorf("store: session notes are at revision %d, not %d: %w", cur, n.Revision, ErrConflict)
+		cur.Content = n.Content
+		return nil
+	})
+}
+
+// SaveSummary replaces the summary section of a chat's notes, for Refresh
+// memory (SPEC 3.5), with the revision rule of SaveNotes. The summary has
+// a cap of its own, and counts towards the notes' cap. It bumps the
+// chat's seq, as nothing else is written with it.
+func (c *ChatsDB) SaveSummary(ctx context.Context, ch id.Chat, summary string, revision int) (chat.SessionNote, error) {
+	if t := estimateTokens(summary); t > MaxSummaryTokens {
+		return chat.SessionNote{}, &NotesCapError{Summary: true, Tokens: t, Cap: MaxSummaryTokens}
+	}
+	return c.saveNotes(ctx, ch, revision, true, func(cur *chat.SessionNote) error {
+		if t := estimateTokens(cur.Content + summary); t > MaxNotesTokens {
+			return &NotesCapError{Tokens: t, Cap: MaxNotesTokens}
 		}
-		if _, err := tx.Exec(`INSERT INTO session_notes (chat_id, content, revision, updated_at) VALUES (?, ?, ?, ?)
-			ON CONFLICT (chat_id) DO UPDATE SET content = excluded.content, revision = excluded.revision, updated_at = excluded.updated_at`,
-			n.Chat, n.Content, cur+1, formatTime(now())); err != nil {
-			if isForeignKey(err) {
-				err = fmt.Errorf("store: chat %s: %w", n.Chat, ErrNotFound)
+		cur.Summary = summary
+		return nil
+	})
+}
+
+// saveNotes reads a chat's notes, checks the revision, lets edit change
+// them and writes them with the next revision, bumping the chat's seq if
+// bumpSeq.
+func (c *ChatsDB) saveNotes(ctx context.Context, ch id.Chat, revision int, bumpSeq bool, edit func(*chat.SessionNote) error) (chat.SessionNote, error) {
+	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (chat.SessionNote, error) {
+		cur := chat.SessionNote{Chat: ch}
+		var at string
+		err := tx.QueryRow(`SELECT content, summary, revision, updated_at FROM session_notes WHERE chat_id = ?`, ch).Scan(&cur.Content, &cur.Summary, &cur.Revision, &at)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+		case err != nil:
+			return cur, err
+		default:
+			if cur.UpdatedAt, err = parseTime(at); err != nil {
+				return cur, err
 			}
-			return 0, err
 		}
-		if _, err := bump(tx, n.Chat); err != nil {
-			return 0, err
+		if cur.Revision != revision {
+			return cur, &NotesConflictError{Current: cur}
 		}
-		return cur + 1, nil
+		if err := edit(&cur); err != nil {
+			return cur, err
+		}
+		cur.Revision++
+		cur.UpdatedAt = now()
+		if _, err := tx.Exec(`INSERT INTO session_notes (chat_id, content, summary, revision, updated_at) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (chat_id) DO UPDATE SET content = excluded.content, summary = excluded.summary, revision = excluded.revision, updated_at = excluded.updated_at`,
+			ch, cur.Content, cur.Summary, cur.Revision, formatTime(cur.UpdatedAt)); err != nil {
+			if isForeignKey(err) {
+				err = fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
+			}
+			return cur, err
+		}
+		if bumpSeq {
+			if _, err := bump(tx, ch); err != nil {
+				return cur, err
+			}
+		}
+		return cur, nil
 	})
 }
 

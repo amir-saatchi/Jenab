@@ -1,0 +1,15 @@
+# P2-10: session notes. A plan given once, in the first turn of a long
+# chat, survives a cut of the history window: the chat keeps it in its
+# session notes, and after the cut it goes on from them (block 5, SPEC 3.1,
+# 3.4) instead of searching the history.
+#
+# A small window makes the chat long enough without many requests: a cut
+# comes when the window passes 3 turns, and keeps 1. Turn 1 cuts too (the
+# first turn), so turn 5 is the next cut: turns 1 to 3 leave the window.
+#
+# No fake tools: the real update_session_notes and update_memory, with
+# their descriptions the same for every model. An empty project: no tables,
+# no card.
+title: Book club
+settings:
+  context: {history_max_turns: 3, history_min_turns: 1}

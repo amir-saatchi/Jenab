@@ -70,6 +70,7 @@ export type {
   PartDone,
   Question,
   Retry,
+  SessionNote,
   Status as ChatStatus,
   ToolCall,
   ToolResult,

@@ -18,6 +18,7 @@ import (
 
 const memoryDescription = `Edit user memory or project memory, one section at a time. Memory is part of every chat's context: user memory in all of the user's projects, project memory in every chat of this project.
 - scope "user" is for what applies to all of the user's work, such as how they like answers. scope "project" is for what every chat in this project needs.
+- Where things go: would a new chat in this project need it? Then project memory. Only this conversation? Then session notes (update_session_notes).
 - Memory holds intent: goals, preferences, decisions with their reasons, and conventions. Never write values that live in tables, such as prices, counts or lists of tracked items.
 - Save what the user asks you to remember, and lasting goals, preferences and decisions they state.
 - content replaces the whole section, so keep what should stay. Empty content deletes the section.

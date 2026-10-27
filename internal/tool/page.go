@@ -185,6 +185,6 @@ func Builtin(d Deps) []Tool {
 		searchHistory(), readMessages(), listChats(),
 		readRef(), searchRef(), newFetchPage(d.Web),
 		bucketList(), bucketRead(), bucketPut(), bucketDelete(),
-		UpdateMemory(),
+		UpdateMemory(), UpdateSessionNotes(),
 	}, DataTools()...)
 }

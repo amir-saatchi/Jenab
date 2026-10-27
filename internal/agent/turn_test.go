@@ -184,7 +184,8 @@ func TestMotherContext(t *testing.T) {
 	if slices.ContainsFunc(req.Tools, func(d provider.ToolDef) bool { return d.Name == "mother_only" }) {
 		t.Error("a chat sees Mother's tool")
 	}
-	if !strings.Contains(req.System[0].Text, "This chat's role:\nTrack the ETH price.\nKeep a weekly log.") || len(req.System) != 1 {
+	if !strings.Contains(req.System[0].Text, "This chat's role:\nTrack the ETH price.\nKeep a weekly log.") || len(req.System) != 2 ||
+		!strings.Contains(blockOf(req, notesBlockName), "Weekly log for weeks 36-39.") {
 		t.Errorf("role block %+v", req.System)
 	}
 	ms := h.messages(eth.ID)

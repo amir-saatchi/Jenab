@@ -24,6 +24,7 @@ export type {
     Question,
     QuestionItem,
     Retry,
+    SessionNote,
     Status,
     Text,
     Thinking,
