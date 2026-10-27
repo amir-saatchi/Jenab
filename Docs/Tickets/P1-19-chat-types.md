@@ -29,4 +29,4 @@
 - **`Validate`** checks exactly one field and that it matches `Kind`, then each kind's own rules: a tool call has an ID, a name and valid JSON arguments (a cut-off stream fails here), an approval has at least 2 options, and a question form has 1–4 questions with distinct headers and 2–4 options each. `Message.Validate` names the bad part. A mutation check (allowing two fields) made the tests fail, as it should.
 - `Text.Stopped` marks text kept after *Stop*, and `ToolResult.IsError` also covers "cancelled by user" (8.3). `Thinking.Redacted` holds a redacted block's data.
 - `NoticeKind` lists the notices SPEC names (finish, scheduled run, page opened, memory changed, approval level, early stop); readers accept unknown kinds.
-- A `Plan` part waits for SPIKE-028.
+- A `Plan` part waits for SPIKE-036 (moved from SPIKE-028).

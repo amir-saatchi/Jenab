@@ -431,6 +431,7 @@ context:
 - **Cut:** when the window passes `history_max_turns` or `history_max_tokens`, it is reduced to the last `history_min_turns` turns in one step. At the same cut, tool results of previous turns become stubs and blocks 2–5 are refreshed. *Refresh memory* also ends with a cut.
 - If the chat was idle long enough for the provider's cache to expire (5 minutes), a due cut happens on the next turn, since the cache is lost anyway. The first turn after the app starts also cuts, for the same reason.
 - After the first cut, the context includes a line such as: `This chat has 38 earlier turns. Use search_history or read_messages.`
+- **History cards:** after a cut, Go searches the turns before the window for the words of the user's message. It adds the best one or two as a card on that message: the turn's user text, its calls and its answer, as `read_messages` gives them. There is no card when nothing matches well enough, or when a turn in the window matches better. A card is made once per turn, so requests stay append-only. `search_history` and `read_messages` stay for what cards miss. In SPIKE-028 a card that hit the right turn got the follow-up done with about half the prompt tokens; the scoring is set in TASK-027.
 
 These sizes are starting values, to be tuned with the benchmark.
 
@@ -1469,6 +1470,8 @@ This design assumes one machine and one folder per project. Multi-machine or tea
 
 Large results follow the preview-and-ref rules in 3.7.
 
+Every tool here is a native tool with its full schema. SPIKE-028 tried a short index with the details on request for the rarer ones: tasks stayed level, tokens were mixed, and argument mistakes went up. Only MCP tools use an index (8.7).
+
 **Data**
 
 | Tool | Purpose |
@@ -1801,6 +1804,8 @@ env: { }                      # values may come from the keychain
   - The project card lists each enabled server with its tool names and one-line descriptions.
   - `mcp_describe(server, tool)` returns a tool's input schema, and `mcp_call(server, tool, arguments)` calls it. Jenab checks the arguments against the schema first, with errors as in 10. It refuses argument names the schema doesn't list, even if the server's schema allows them, and its errors name the arguments the tool takes, since models often call without describing first.
   - This keeps the tool list and the prompt cache stable, however many servers are enabled. In SPIKE-024 it cost about a third of the prompt tokens of giving each MCP tool as a native tool.
+  - A native call of an MCP tool's name gets a result pointing to `mcp_call`, so the model can recover.
+  - A skill whose `load_with` names an MCP tool stays in the skill list, and the first `mcp_call` of that tool loads it (8.9). Without this, a skill for tools behind the index vanishes (SPIKE-028).
 - **Approval** (approval card, 8.8):
   - Each tool needs approval on first use: *once*, *always in this project*, or *deny*. This is the Standard level; Strict and Auto change it (8.8).
   - Only a tool that declares `readOnlyHint: true` counts as read-only. The hints are only trusted this far because the user chose the server.

@@ -35,7 +35,7 @@ The tool layer and the Phase 1 tools (CODE-OUTLINE 6, SPEC 3.7, 8.1).
   - **`data:` URLs** are removed before the Markdown step: one inlined screenshot on the Cloudflare blog was 680 KB of base64 (686,000 characters of text became 7,600).
   - **Table bounds:** the Markdown converter pads every row to the widest and copies spanned cells, so one `rowspan=999999 colspan=999999` cell asked for 7 GB. A table over 250,000 cells, 1,000 columns, 50,000 spanned cells or 2 MB of copied text becomes plain paragraphs. The fuzz seeds found it.
   - **Redirects:** 10 are followed, the 11th fails; the first version stopped at the 10th.
-  - **`For(k)`** has no `loaded` list until SPIKE-028. `Env` has no `Workspace` until the `workspace` package exists.
+  - **`For(k)`** has no `loaded` list: SPIKE-028 kept every tool native. `Env` has no `Workspace` until the `workspace` package exists.
 - **SPIKE-015 check:** the 35 saved pages through `Fetch` from a local server: 95 of 109 main-text phrases (the spike's readeck run: 98; the other 3 are on the 15 MB WHATWG page, which is cut at 5 MB), 5 of 118 boilerplate leaks and 34 of 35 titles, the same as the spike. All six Persian pages, including the windows-1256 copies, keep every phrase. Excalidraw returns `needs_javascript`.
 - **Tests:**
   - Table tests for every tool; `fetch_page` against a local server through a fake resolver.

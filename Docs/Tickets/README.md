@@ -33,7 +33,7 @@
 | [SPIKE-025](SPIKE-025-skills.md) | Do models load the right skills? | Spike | Done | 2 |
 | [SPIKE-026](SPIKE-026-command-limits.md) | How many commands can run at once? | Spike | Done on Windows | 3 |
 | [SPIKE-027](SPIKE-027-decision-models.md) | Can a decision model make Jenab's small decisions? | Spike | Done | 3 |
-| [SPIKE-028](SPIKE-028-request-list.md) | A request list, and loading tools and history when needed | Spike | Open (before Phase 2) | 3 |
+| [SPIKE-028](SPIKE-028-request-list.md) | Loading tools and history when needed | Spike | Done (no index; history cards) | 3 |
 | [SPIKE-029](SPIKE-029-subjects.md) | Subjects: a chat's work, kept as objects | Spike | Deferred (rounds 1–3 done) | 3 |
 | [SPIKE-030](SPIKE-030-structured-output.md) | Structured output: JSON that matches a schema, from any model | Spike | Done | 3 |
 | [SPIKE-031](SPIKE-031-thoughts-graph.md) | Thoughts-Graph: a how-to task as a graph of model calls | Spike | Done | 3 |
@@ -67,6 +67,7 @@
 | [TASK-024](TASK-024-spike-037-part-b-out.md) | Move SPIKE-037's Part B out of the app | Task | Done | 3 |
 | [TASK-025](TASK-025-live-answer.md) | A live answer | Task | Open (needs finish turns) | 3 |
 | [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Open | 3 |
+| [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Open | 3 |
 
 ## Phase 1
 
@@ -96,7 +97,7 @@ Phase 1 tickets are named `P1-<nn>`. *Needs* lists the tickets that must be done
 
 ## Phase 2
 
-Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to P2-05). It doesn't depend on SPIKE-028, so that can be decided while it is built; its decision shapes P2-10. SPIKE-029 (subjects) and SPIKE-034 (topics) are deferred. P2-07 holds SPIKE-021's and SPIKE-025's table checks that were due before Phase 2; their pipeline, view and page tasks move to Phases 3 and 4.
+Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to P2-05). SPIKE-028 (loading tools and history when needed) can be decided while it is built. The request list moved to SPIKE-036 (later), and SPIKE-029 (subjects) and SPIKE-034 (topics) are deferred, so P2-10 waits for none of them. P2-07 holds SPIKE-021's and SPIKE-025's table checks that were due before Phase 2; their pipeline, view and page tasks move to Phases 3 and 4.
 
 | ID | Title | Needs | Status |
 |---|---|---|---|
@@ -109,7 +110,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-07](P2-07-schema-skills-and-checks.md) | Schema skills and model checks | P2-06, TASK-013 | Done |
 | [P2-08](P2-08-project-card.md) | Project card | P2-04 | Done |
 | [P2-09](P2-09-memory.md) | User and project memory | P2-02, P2-03 | Done |
-| [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09, SPIKE-028 | Open |
+| [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09 | Open |
 | [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Open |
 | [P2-12](P2-12-export.md) | Export a project | P1-04 | Done |
 | [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Open |
