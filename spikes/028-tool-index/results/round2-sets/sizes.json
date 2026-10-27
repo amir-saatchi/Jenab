@@ -1,0 +1,26 @@
+{
+  "multi-part": {
+    "core": 893,
+    "core_tools": 6,
+    "full": 1388,
+    "rare_tools": 16,
+    "index": 550,
+    "index_text": 379
+  },
+  "rare-tools": {
+    "core": 910,
+    "core_tools": 6,
+    "full": 1704,
+    "rare_tools": 16,
+    "index": 549,
+    "index_text": 378
+  },
+  "skill-loading": {
+    "core": 1114,
+    "core_tools": 7,
+    "full": 1227,
+    "rare_tools": 13,
+    "index": 498,
+    "index_text": 327
+  }
+}

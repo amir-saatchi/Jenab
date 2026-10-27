@@ -1,0 +1,16 @@
+# Scripted answers for condition 1, to test the harness with no keys. R1
+# first sends tags as a string, which the schema refuses.
+scenarios:
+  R1_save_link:
+    - calls: [{name: save_link, args: {url: "https://example.org/learn/halving", title: Halving explained, tags: "btc"}}]
+    - calls: [{name: save_link, args: {url: "https://example.org/learn/halving", title: Halving explained, note: good intro for new readers, tags: [btc, education]}}]
+    - text: Saved.
+  R2_connect_api:
+    - calls: [{name: connect_api, args: {id: coincap, title: CoinCap, base_url: "https://api.coincap.example/v2", auth: {type: none}, docs: "https://docs.coincap.example", rate_limit: {requests: 10, per: minute}}}]
+    - text: Proposed.
+  R3_read_feed:
+    - calls: [{name: read_feed, args: {url: "https://feeds.example/crypto.xml", match: ETF}}]
+    - text: Spot Bitcoin ETFs took in $1.2 billion in a week.
+  R4_bucket_put:
+    - calls: [{name: bucket_put, args: {key: notes/halving.md, content: "The block reward halves every 210,000 blocks, about every four years."}}]
+    - text: Stored.

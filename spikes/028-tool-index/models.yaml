@@ -1,0 +1,21 @@
+# SPIKE-028's models: gemma4:31b and ministral-14b, as Main-Session chose on
+# 2026-10-27 (Gemini left out to save its shared quota). Keys come
+# from ../../.env; no reserve keys. Gemini stays here, unused by default.
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY
+    models:
+      - {id: gemma4:31b, context: 262144}
+  - name: mistral
+    kind: openai_compatible
+    base_url: https://api.mistral.ai/v1/
+    key_env: MISTRAL_API_KEY
+    models:
+      - {id: ministral-14b-latest, context: 131072}

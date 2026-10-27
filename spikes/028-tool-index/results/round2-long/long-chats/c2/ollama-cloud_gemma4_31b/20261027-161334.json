@@ -1,0 +1,1102 @@
+{
+  "set": "Coin tracker",
+  "started": "2026-10-27T16:13:34.4004422Z",
+  "took_seconds": 283.3026663,
+  "scale": 1,
+  "reps": 5,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 25,
+      "passed": 18,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "tool_called": {
+          "pass": 54,
+          "fail": 21,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 24706,
+      "avg_output_tokens": 1652,
+      "avg_seconds": 11.331781655999999,
+      "cache_read_share": 0,
+      "spread": {
+        "runs": {
+          "min": 0.6,
+          "max": 1
+        },
+        "tool_called": {
+          "min": 0.6,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H1_avg_chart",
+      "rep": 1,
+      "seconds": 14.1514153,
+      "turns": 11,
+      "requests": 7,
+      "prompt_tokens": 45046,
+      "input_tokens": 45046,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 9055,
+      "output_tokens": 1780,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_avg14_chart\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H1_avg_chart",
+      "rep": 2,
+      "seconds": 11.2580696,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 24384,
+      "input_tokens": 24384,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8766,
+      "output_tokens": 1688,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_avg14_chart\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H1_avg_chart",
+      "rep": 3,
+      "seconds": 11.5183985,
+      "turns": 11,
+      "requests": 7,
+      "prompt_tokens": 38963,
+      "input_tokens": 38963,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8502,
+      "output_tokens": 1695,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_avg14_chart\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H1_avg_chart",
+      "rep": 4,
+      "seconds": 8.8865079,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 24572,
+      "input_tokens": 24572,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8693,
+      "output_tokens": 1336,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"from\":0,\"to\":7}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H1_avg_chart",
+      "rep": 5,
+      "seconds": 18.1757247,
+      "turns": 11,
+      "requests": 8,
+      "prompt_tokens": 45574,
+      "input_tokens": 45574,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7827,
+      "output_tokens": 3239,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"from\":0,\"to\":7}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H2_drop_alert",
+      "rep": 1,
+      "seconds": 8.4029172,
+      "turns": 11,
+      "requests": 4,
+      "prompt_tokens": 14609,
+      "input_tokens": 14609,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4974,
+      "output_tokens": 1226,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_drop_alert\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H2_drop_alert",
+      "rep": 2,
+      "seconds": 17.8783223,
+      "turns": 11,
+      "requests": 7,
+      "prompt_tokens": 39407,
+      "input_tokens": 39407,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8452,
+      "output_tokens": 3273,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_drop_alert\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H2_drop_alert",
+      "rep": 3,
+      "seconds": 15.4860376,
+      "turns": 11,
+      "requests": 6,
+      "prompt_tokens": 22565,
+      "input_tokens": 22565,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5398,
+      "output_tokens": 2112,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_drop_alert\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H2_drop_alert",
+      "rep": 4,
+      "seconds": 15.2438356,
+      "turns": 11,
+      "requests": 9,
+      "prompt_tokens": 39826,
+      "input_tokens": 39826,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7721,
+      "output_tokens": 1972,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_drop_alert\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H2_drop_alert",
+      "rep": 5,
+      "seconds": 8.3183697,
+      "turns": 11,
+      "requests": 6,
+      "prompt_tokens": 20717,
+      "input_tokens": 20717,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4358,
+      "output_tokens": 1090,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_drop_alert\\ndescription: A row in price_alerts when ETH fell more than …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"drop_alert\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H3_in_window",
+      "rep": 1,
+      "seconds": 3.1618182,
+      "turns": 11,
+      "requests": 2,
+      "prompt_tokens": 8168,
+      "input_tokens": 8168,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5554,
+      "output_tokens": 389,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H3_in_window",
+      "rep": 2,
+      "seconds": 5.2211874,
+      "turns": 11,
+      "requests": 2,
+      "prompt_tokens": 8177,
+      "input_tokens": 8177,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5563,
+      "output_tokens": 410,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H3_in_window",
+      "rep": 3,
+      "seconds": 3.4805721,
+      "turns": 11,
+      "requests": 2,
+      "prompt_tokens": 8185,
+      "input_tokens": 8185,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5571,
+      "output_tokens": 408,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news (ETH)\\ntype: chart\\nchart_type: scatte…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H3_in_window",
+      "rep": 4,
+      "seconds": 3.9617058,
+      "turns": 11,
+      "requests": 2,
+      "prompt_tokens": 8187,
+      "input_tokens": 8187,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5573,
+      "output_tokens": 460,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H3_in_window",
+      "rep": 5,
+      "seconds": 3.5185445,
+      "turns": 11,
+      "requests": 2,
+      "prompt_tokens": 8310,
+      "input_tokens": 8310,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5696,
+      "output_tokens": 529,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: ETH Price vs news\\ntype: chart\\nchart_type: scatter\\…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H4_week_range",
+      "rep": 1,
+      "seconds": 20.1969744,
+      "turns": 11,
+      "requests": 8,
+      "prompt_tokens": 42953,
+      "input_tokens": 42953,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8451,
+      "output_tokens": 2807,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: Ether weekly range\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: Ether weekly range\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: Ether weekly range\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_weekly_range\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H4_week_range",
+      "rep": 2,
+      "seconds": 20.888968,
+      "turns": 11,
+      "requests": 9,
+      "prompt_tokens": 63451,
+      "input_tokens": 63451,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 10315,
+      "output_tokens": 3433,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  WITH we…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  WITH we…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  WITH we…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_weekly_range\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H4_week_range",
+      "rep": 3,
+      "seconds": 9.0511299,
+      "turns": 11,
+      "requests": 4,
+      "prompt_tokens": 15968,
+      "input_tokens": 15968,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7390,
+      "output_tokens": 1789,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_weekly_range\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H4_week_range",
+      "rep": 4,
+      "seconds": 5.3295218,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 10953,
+      "input_tokens": 10953,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4326,
+      "output_tokens": 694,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H4_week_range",
+      "rep": 5,
+      "seconds": 9.7158431,
+      "turns": 11,
+      "requests": 4,
+      "prompt_tokens": 16565,
+      "input_tokens": 16565,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7623,
+      "output_tokens": 2056,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_weekly_range\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H5_etf_digest",
+      "rep": 1,
+      "seconds": 6.6010856,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2479,
+      "input_tokens": 2479,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2479,
+      "output_tokens": 1040,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H5_etf_digest",
+      "rep": 2,
+      "seconds": 13.3118365,
+      "turns": 11,
+      "requests": 6,
+      "prompt_tokens": 24909,
+      "input_tokens": 24909,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5954,
+      "output_tokens": 2208,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_digest\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H5_etf_digest",
+      "rep": 3,
+      "seconds": 9.5343148,
+      "turns": 11,
+      "requests": 6,
+      "prompt_tokens": 25417,
+      "input_tokens": 25417,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6818,
+      "output_tokens": 1473,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_digest\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H5_etf_digest",
+      "rep": 4,
+      "seconds": 12.2226431,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 9527,
+      "input_tokens": 9527,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3795,
+      "output_tokens": 1837,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_digest roundup\",\"scope\":\"project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "H5_etf_digest",
+      "rep": 5,
+      "seconds": 27.7787978,
+      "turns": 11,
+      "requests": 11,
+      "prompt_tokens": 48741,
+      "input_tokens": 48741,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7859,
+      "output_tokens": 2377,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eth_digest\\ndescription: The five newest Ethereum ETF stories of the past s…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_digest\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    }
+  ]
+}

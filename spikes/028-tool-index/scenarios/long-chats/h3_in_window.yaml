@@ -1,0 +1,15 @@
+id: H3_in_window
+title: The same chart for ETH, from a turn in the window (control)
+tests: ["history"]
+context: main
+why: >-
+  Turn 9, inside the window, built btc_price_news: a scatter chart of the
+  price against the number of news items a day. The follow-up needs no
+  older turn; cards should not get in the way.
+messages:
+  - text: "Now the same chart for ETH, from eth_prices and eth_news."
+asserts:
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: 'eth_prices'}
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: 'eth_news'}
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: 'chart_type:\s*\\?"?scatter'}
+  - {type: tool_called, test: info, turn: "11", tools: [search_history, read_messages]}

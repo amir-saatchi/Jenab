@@ -1,0 +1,34 @@
+{
+  "long-chats": {
+    "core": 612,
+    "core_tools": 4,
+    "full": 1560,
+    "rare_tools": 15,
+    "index": 553,
+    "index_text": 382
+  },
+  "multi-part": {
+    "core": 595,
+    "core_tools": 4,
+    "full": 1686,
+    "rare_tools": 18,
+    "index": 601,
+    "index_text": 430
+  },
+  "rare-tools": {
+    "core": 612,
+    "core_tools": 4,
+    "full": 2002,
+    "rare_tools": 18,
+    "index": 599,
+    "index_text": 428
+  },
+  "skill-loading": {
+    "core": 816,
+    "core_tools": 5,
+    "full": 1525,
+    "rare_tools": 15,
+    "index": 548,
+    "index_text": 377
+  }
+}

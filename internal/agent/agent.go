@@ -73,11 +73,17 @@ type Deps struct {
 	// user's view. The request stays append-only. Spike-only: the app
 	// leaves it off.
 	LiveAnswer bool
-	// Earlier is SPIKE-037's Part B: it gets a request's messages and the
-	// current turn, and returns what the request keeps of earlier turns.
+	// Earlier is SPIKE-037's Part B and SPIKE-028's history cards: it gets
+	// a request's messages and the current turn, and returns what the
+	// request keeps of earlier turns.
 	// Spike-only: the spike's harness sets it to compare its conditions;
 	// the app leaves it nil, today's window.
 	Earlier func(ms []chat.Message, cur int) []chat.Message
+	// ToolIndex is SPIKE-028's tool index: text added to block 1 after
+	// the prompt rule, for a chat of the kind. Spike-only: the spike's
+	// harness sets it with a registry of its own; the app leaves it nil,
+	// and block 1 stays as it is.
+	ToolIndex func(k chat.Kind) string
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

@@ -1,0 +1,134 @@
+# SPIKE-028: requests that need a rare tool, one each. Under condition 1
+# each tool is native with its full schema; under condition 2 it is in the
+# tool index and runs through call_tool. The schemas have arrays, nested
+# objects and enums, so wrong arguments can happen either way; the fakes
+# check the arguments against the schema as the real tools do.
+title: Bitcoin tracker
+card: ../../../../scenarios/fixtures/bitcoin/card.md
+today: 2026-10-06
+fixture: ../../../../scenarios/fixtures/bitcoin/fixture.sql
+configs: ../../../../scenarios/fixtures/bitcoin/configs
+
+tools:
+  - name: query
+    areas: [tables]
+    description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
+    schema: {type: object, properties: {sql: {type: string}}, required: [sql], additionalProperties: false}
+    kind: sql
+    arg: sql
+  - name: describe_table
+    areas: [tables]
+    description: Columns, types, keys, indexes and row count of a table.
+    schema: {type: object, properties: {name: {type: string}}, required: [name], additionalProperties: false}
+    kind: describe
+    arg: name
+  - name: save_view
+    areas: [views]
+    description: Validate and save a table or chart view config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string}}, required: [yaml], additionalProperties: false}
+  - name: save_pipeline
+    areas: [pipelines]
+    description: Validate and save a pipeline config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string}}, required: [yaml], additionalProperties: false}
+  - name: run_pipeline
+    areas: [pipelines]
+    description: Start a pipeline run; returns the run ID.
+    schema:
+      type: object
+      properties:
+        id: {type: string}
+        inputs: {type: object}
+      required: [id]
+      additionalProperties: false
+  - name: web_search
+    description: Search the web or the news; returns titles, URLs, dates and snippets.
+    schema:
+      type: object
+      properties:
+        query: {type: string}
+        limit: {type: integer, minimum: 1, maximum: 20}
+        freshness: {type: string, enum: [day, week, month, any]}
+        source: {type: string, enum: [web, news, wikipedia, hn]}
+      required: [query]
+      additionalProperties: false
+  - name: read_feed
+    description: Read an RSS or Atom feed. Returns its items with date, title, link and summary, newest first; match keeps only items whose title or summary has the words.
+    schema:
+      type: object
+      properties:
+        url: {type: string, pattern: '^https?://'}
+        match: {type: string, description: words an item must contain}
+        limit: {type: integer, minimum: 1, maximum: 50}
+      required: [url]
+      additionalProperties: false
+  - name: save_link
+    description: Save a link to the project's Resources panel, with a title, an optional note and tags.
+    schema:
+      type: object
+      properties:
+        url: {type: string, pattern: '^https?://'}
+        title: {type: string, minLength: 1}
+        note: {type: string}
+        tags: {type: array, items: {type: string, pattern: '^[a-z0-9-]+$'}, maxItems: 10}
+      required: [url, title]
+      additionalProperties: false
+  - name: connect_api
+    description: Propose a connection to a web API. The user adds the key, if one is needed, and confirms it in a chat form.
+    schema:
+      type: object
+      properties:
+        id: {type: string, pattern: '^[a-z][a-z0-9_]*$', description: a short name for the connection}
+        title: {type: string}
+        base_url: {type: string, pattern: '^https://'}
+        auth:
+          type: object
+          properties:
+            type: {type: string, enum: [none, header, query]}
+            name: {type: string, description: the header or query parameter that carries the key}
+            prefix: {type: string, description: 'text before the key, such as "Bearer "'}
+          required: [type]
+          additionalProperties: false
+        docs: {type: string, pattern: '^https?://'}
+        rate_limit:
+          type: object
+          properties:
+            requests: {type: integer, minimum: 1}
+            per: {type: string, enum: [second, minute, hour, day]}
+          required: [requests, per]
+          additionalProperties: false
+      required: [id, title, base_url, auth]
+      additionalProperties: false
+  - name: call_api
+    description: One GET through a saved connection; the response is stored as a ref with a preview.
+    schema:
+      type: object
+      properties:
+        connection: {type: string}
+        path: {type: string}
+        query: {type: object, additionalProperties: {type: string}}
+      required: [connection, path]
+      additionalProperties: false
+
+rules:
+  save_view:
+    - result: saved view (revision 1).
+  save_pipeline:
+    - result: saved pipeline (revision 1).
+  run_pipeline:
+    - result: started run r_101.
+  web_search:
+    - result: no results
+  read_feed:
+    - match: 'feeds\.example/crypto'
+      result: |
+        3 items match (of 25):
+        - 2026-10-05 "Spot Bitcoin ETFs take in $1.2 billion in a week" https://feeds.example/a/101 - Inflows were led by the largest fund; total assets passed $60 billion.
+        - 2026-10-04 "Regulator delays decision on two Solana ETFs" https://feeds.example/a/97 - A decision is now due on 2026-11-20.
+        - 2026-10-02 "ETF outflows hit Ether funds" https://feeds.example/a/90 - Ether ETFs lost $210 million over three days.
+    - result: 'error: the feed could not be read (404)'
+  save_link:
+    - result: saved link 7 to Resources.
+  connect_api:
+    - result: 'connection coincap proposed; the user confirms it in the form below.'
+  call_api:
+    - result: 'error: no connection with that name'

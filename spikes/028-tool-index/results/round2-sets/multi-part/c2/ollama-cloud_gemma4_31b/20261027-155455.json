@@ -1,0 +1,1541 @@
+{
+  "set": "Crypto watch",
+  "started": "2026-10-27T15:54:55.8641498Z",
+  "took_seconds": 411.5065897,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 27,
+      "passed": 27,
+      "errors": 0,
+      "skipped": 33,
+      "checks": {
+        "after_message": {
+          "pass": 9,
+          "fail": 0,
+          "skip": 0
+        },
+        "answer_contains": {
+          "pass": 24,
+          "fail": 0,
+          "skip": 0
+        },
+        "max_turns": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "no_background": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "no_false_running": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_not_called": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 6457,
+      "avg_output_tokens": 432,
+      "avg_seconds": 15.240452233333334,
+      "cache_read_share": 0,
+      "spread": {
+        "after_message": {
+          "min": 1,
+          "max": 1
+        },
+        "answer_contains": {
+          "min": 1,
+          "max": 1
+        },
+        "max_turns": {
+          "min": 1,
+          "max": 1
+        },
+        "no_background": {
+          "min": 1,
+          "max": 1
+        },
+        "no_false_running": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_not_called": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 1,
+      "seconds": 28.1492262,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10216,
+      "input_tokens": 10216,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2907,
+      "output_tokens": 702,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "**Bitcoin Top Stories:**\n1. **ETF Inflows:** Spot Bitcoin ETFs saw a significant increase, adding $410M in a single day (Sept 29), marking the fourth consecutiv…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 2,
+      "seconds": 26.9915131,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10559,
+      "input_tokens": 10559,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3020,
+      "output_tokens": 841,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "**Bitcoin**\n1. **ETF Inflows**: Spot Bitcoin ETFs saw a strong fourth consecutive day of inflows, adding $410M on September 29.\n2. **Hashrate Record**: Bitcoin'…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 3,
+      "seconds": 30.4716923,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10572,
+      "input_tokens": 10572,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3006,
+      "output_tokens": 1014,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "**Bitcoin**\n1. **ETF Inflows:** Spot Bitcoin ETFs saw $410M in inflows on Sept 29, marking the fourth consecutive day of gains.\n2. **Network Strength:** The Bit…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 1,
+      "seconds": 19.859807,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9803,
+      "input_tokens": 9803,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2611,
+      "output_tokens": 337,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 2,
+      "seconds": 20.2752962,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9782,
+      "input_tokens": 9782,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2581,
+      "output_tokens": 323,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 3,
+      "seconds": 20.9185296,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9789,
+      "input_tokens": 9789,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2581,
+      "output_tokens": 315,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_d_range_7_days",
+      "rep": 1,
+      "seconds": 87.6450466,
+      "turns": 1,
+      "requests": 8,
+      "prompt_tokens": 24031,
+      "input_tokens": 24031,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3808,
+      "output_tokens": 1839,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "fail",
+          "why": "started subagent"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_d_range_7_days",
+      "rep": 2,
+      "seconds": 18.0626268,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 14162,
+      "input_tokens": 14162,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3373,
+      "output_tokens": 1195,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t3_d_range_7_days",
+      "rep": 3,
+      "seconds": 82.675793,
+      "turns": 1,
+      "requests": 6,
+      "prompt_tokens": 18182,
+      "input_tokens": 18182,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3697,
+      "output_tokens": 1678,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "fail",
+          "why": "started subagent"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 1,
+      "seconds": 3.4252807,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2242,
+      "input_tokens": 2242,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2242,
+      "output_tokens": 252,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of the full data set. In finance and crypto,…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 2,
+      "seconds": 2.5453286,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2242,
+      "input_tokens": 2242,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2242,
+      "output_tokens": 214,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of the full data set. In finance and crypto,…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 3,
+      "seconds": 2.5278439,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2242,
+      "input_tokens": 2242,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2242,
+      "output_tokens": 231,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of the full data set. In finance and crypto,…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 1,
+      "seconds": 3.8476198,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4654,
+      "input_tokens": 4654,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2409,
+      "output_tokens": 200,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was 64,512.30 USD.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 2,
+      "seconds": 5.0238037,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4673,
+      "input_tokens": 4673,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2428,
+      "output_tokens": 205,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was 64,512.30 USD.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 3,
+      "seconds": 3.9216322999999997,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4642,
+      "input_tokens": 4642,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2397,
+      "output_tokens": 186,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was 64,512.30 USD.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 1,
+      "seconds": 14.5489654,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2251,
+      "input_tokens": 2251,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2251,
+      "output_tokens": 152,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline fetches today's price and the latest news for a specific coin (BTC or ETH) and writes them to the `prices` and `news` tables. It run…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 2,
+      "seconds": 4.5328610000000005,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2251,
+      "input_tokens": 2251,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2251,
+      "output_tokens": 201,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline fetches the current price and the latest news for a specific coin (BTC or ETH, defaulting to BTC) in a chosen currency (USD or EUR, …"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 3,
+      "seconds": 6.994654,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2251,
+      "input_tokens": 2251,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2251,
+      "output_tokens": 194,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline fetches today's price and the latest news for a specified coin (BTC or ETH, defaults to BTC) and currency (USD or EUR, defaults to U…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 1,
+      "seconds": 6.7734608,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4877,
+      "input_tokens": 4877,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2614,
+      "output_tokens": 364,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by giving equal weight to all data points. An EMA (Exponential Moving Average…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by giving equal weight to all data points. An EMA (Exponential Moving Average…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 2,
+      "seconds": 6.1206585,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4866,
+      "input_tokens": 4866,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2603,
+      "output_tokens": 354,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by giving equal weight to all data points. An EMA (Exponential Moving Average…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by giving equal weight to all data points. An EMA (Exponential Moving Average…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 3,
+      "seconds": 6.2329939,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4916,
+      "input_tokens": 4916,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2653,
+      "output_tokens": 410,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by summing the closing prices and dividing by the number of days. An EMA (Exp…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "An SMA (Simple Moving Average) calculates the average price over a specific period by summing the closing prices and dividing by the number of days. An EMA (Exp…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 1,
+      "seconds": 1.4480015,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2524,
+      "input_tokens": 2524,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2524,
+      "output_tokens": 36,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "4\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 2,
+      "seconds": 1.4303253,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2518,
+      "input_tokens": 2518,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2518,
+      "output_tokens": 43,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "2 + 2 = 4\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 3,
+      "seconds": 1.6749247999999999,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2526,
+      "input_tokens": 2526,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2526,
+      "output_tokens": 43,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "2 + 2 = 4\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_f_card_schedule",
+      "rep": 1,
+      "seconds": 2.0817832,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2525,
+      "input_tokens": 2525,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2525,
+      "output_tokens": 136,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs daily at 08:00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_f_card_schedule",
+      "rep": 2,
+      "seconds": 1.7925900000000001,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2527,
+      "input_tokens": 2527,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2527,
+      "output_tokens": 137,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs daily at 08:00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_f_card_schedule",
+      "rep": 3,
+      "seconds": 1.5199521,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2525,
+      "input_tokens": 2525,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2525,
+      "output_tokens": 83,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs daily at 08:00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_h_gold_once",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_h_gold_once",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "t6_h_gold_once",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    }
+  ]
+}

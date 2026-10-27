@@ -263,6 +263,11 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 	if r.o.d.Grounding.Compute && slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "query" }) {
 		b.WriteString("\n\n" + computeLine) // SPIKE-032 round 2, spike-only
 	}
+	if f := r.o.d.ToolIndex; f != nil {
+		if s := strings.TrimSpace(f(t.ch.Kind)); s != "" {
+			b.WriteString("\n\n" + s) // SPIKE-028, spike-only
+		}
+	}
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))
 		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {

@@ -1,0 +1,519 @@
+{
+  "set": "Bitcoin tracker",
+  "started": "2026-10-27T16:05:39.0647329Z",
+  "took_seconds": 43.8876168,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 12,
+      "passed": 12,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 33,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_not_called": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 6702,
+      "avg_output_tokens": 318,
+      "avg_seconds": 3.6569240499999993,
+      "cache_read_share": 0,
+      "spread": {
+        "answer_contains": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_called": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_not_called": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R1_save_link",
+      "rep": 1,
+      "seconds": 3.0046921,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 6948,
+      "input_tokens": 6948,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2499,
+      "output_tokens": 243,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R1_save_link",
+      "rep": 2,
+      "seconds": 3.4178204,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7109,
+      "input_tokens": 7109,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2578,
+      "output_tokens": 322,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R1_save_link",
+      "rep": 3,
+      "seconds": 3.0486189,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7023,
+      "input_tokens": 7023,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2536,
+      "output_tokens": 281,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"note\":\"good intro for new readers\",\"tags\":[\"btc\",\"education\"],\"title\":\"Halving explained\",\"url\":\"h…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R2_connect_api",
+      "rep": 1,
+      "seconds": 3.2182036,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7413,
+      "input_tokens": 7413,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2762,
+      "output_tokens": 342,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R2_connect_api",
+      "rep": 2,
+      "seconds": 3.6112536,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7400,
+      "input_tokens": 7400,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2750,
+      "output_tokens": 335,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R2_connect_api",
+      "rep": 3,
+      "seconds": 3.5996118,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7390,
+      "input_tokens": 7390,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2739,
+      "output_tokens": 319,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"auth\":{\"type\":\"none\"},\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://docs.coincap.exa…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R3_read_feed",
+      "rep": 1,
+      "seconds": 3.3049318,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4505,
+      "input_tokens": 4505,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2398,
+      "output_tokens": 473,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest items in the feed mention the following about ETFs:\n\n*   **Bitcoin ETFs (2026-10-05):** Spot Bitcoin ETFs saw $1.2 billion in inflows over a week, wi…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R3_read_feed",
+      "rep": 2,
+      "seconds": 3.7483292,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 6961,
+      "input_tokens": 6961,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2548,
+      "output_tokens": 323,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"match\":\"ETFs\",\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest items in the feed regarding ETFs are:\n\n*   **Oct 5:** Spot Bitcoin ETFs saw $1.2 billion in inflows over a week, with total assets exceeding $60 bill…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R3_read_feed",
+      "rep": 3,
+      "seconds": 7.5477826,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4522,
+      "input_tokens": 4522,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2415,
+      "output_tokens": 419,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest items in the feed regarding ETFs are:\n\n*   **Oct 5:** Spot Bitcoin ETFs saw $1.2 billion in weekly inflows, with total assets exceeding $60 billion.\n…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R4_bucket_put",
+      "rep": 1,
+      "seconds": 3.1031437,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7045,
+      "input_tokens": 7045,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2534,
+      "output_tokens": 243,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R4_bucket_put",
+      "rep": 2,
+      "seconds": 3.1541852,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7076,
+      "input_tokens": 7076,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2569,
+      "output_tokens": 276,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "R4_bucket_put",
+      "rep": 3,
+      "seconds": 3.1245157,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7042,
+      "input_tokens": 7042,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2547,
+      "output_tokens": 250,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"content\":\"The block reward halves every 210,000 blocks, about every four years.\",\"key\":\"notes/halv…"
+        }
+      ]
+    }
+  ]
+}

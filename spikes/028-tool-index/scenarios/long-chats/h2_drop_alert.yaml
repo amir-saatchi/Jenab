@@ -1,0 +1,17 @@
+id: H2_drop_alert
+title: The morning drop check, for ETH (weak cue)
+tests: ["history"]
+context: main
+why: >-
+  Turn 3, past the cut, built btc_drop_alert: at 06:30 UTC, a row in
+  price_alerts when the price fell more than 4% since the day before. The
+  follow-up shares few words with that turn; a good answer finds it and
+  saves the same pipeline on eth_prices with the 4% threshold.
+messages:
+  - text: "Could ETH get the early warning as well? Its prices are in eth_prices."
+asserts:
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: 'eth_prices'}
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: 'price_alerts'}
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: '0\.96|0\.04|\b4(\.0)?\b|4 ?%'}
+  - {type: tool_called, test: info, turn: "11", tool: save_pipeline, args_match: '30 6 \* \* \*'}
+  - {type: tool_called, test: info, turn: "11", tools: [search_history, read_messages]}

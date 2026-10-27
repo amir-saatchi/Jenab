@@ -1,0 +1,10 @@
+id: R4_bucket_put
+title: Store a note in the project files
+tests: ["tool"]
+context: main
+why: bucket_put with the key and the text as content.
+messages:
+  - text: "Store this note in the project files as notes/halving.md: The block reward halves every 210,000 blocks, about every four years."
+asserts:
+  - {type: tool_called, test: tool, tool: bucket_put, args_match: '"key":\s*"notes/halving\.md"'}
+  - {type: tool_called, test: tool, tool: bucket_put, args_match: '210,?000'}

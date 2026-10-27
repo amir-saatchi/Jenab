@@ -1,0 +1,1539 @@
+{
+  "set": "Crypto watch",
+  "started": "2026-10-27T15:54:55.8651572Z",
+  "took_seconds": 373.2919607,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "mistral/ministral-14b-latest"
+  ],
+  "summary": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "runs": 27,
+      "passed": 21,
+      "errors": 0,
+      "skipped": 33,
+      "checks": {
+        "after_message": {
+          "pass": 6,
+          "fail": 3,
+          "skip": 0
+        },
+        "answer_contains": {
+          "pass": 21,
+          "fail": 3,
+          "skip": 0
+        },
+        "max_turns": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "no_background": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "no_false_running": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_not_called": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 6969,
+      "avg_output_tokens": 220,
+      "avg_seconds": 13.825076359259256,
+      "cache_read_share": 0.5033612328949116,
+      "spread": {
+        "after_message": {
+          "min": 0.6666666666666666,
+          "max": 0.6666666666666666
+        },
+        "answer_contains": {
+          "min": 0.875,
+          "max": 0.875
+        },
+        "max_turns": {
+          "min": 1,
+          "max": 1
+        },
+        "no_background": {
+          "min": 1,
+          "max": 1
+        },
+        "no_false_running": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 0.7777777777777778,
+          "max": 0.7777777777777778
+        },
+        "tool_not_called": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_a_moving_average_btc",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_b_staking_pages_pow_pos",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_c_eth_run_and_columns",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t12_d_backfill_ohlc",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 1,
+      "seconds": 38.3607072,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 13396,
+      "input_tokens": 13396,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2994,
+      "output_tokens": 545,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "Here are the top 3 latest news summaries for **Bitcoin** and **Etheruem** as of today (2026-09-29):\n\n### **Bitcoin**\n1. **Spot Bitcoin ETFs add $410M in a day**…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 2,
+      "seconds": 29.3546735,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10507,
+      "input_tokens": 5643,
+      "cache_read_tokens": 4864,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2907,
+      "output_tokens": 334,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "### Summary of Top 3 Bitcoin and Ethereum News Stories:\n\n1. **Bitcoin ETF Inflows Surge**\n   - **Story**: Spot Bitcoin ETFs saw a significant inflow of **410 mi…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_a_news_add_eth",
+      "rep": 3,
+      "seconds": 32.2462037,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 13390,
+      "input_tokens": 13390,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2990,
+      "output_tokens": 455,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "answer_contains",
+          "test": "3",
+          "status": "pass",
+          "why": "### Summary of Top Bitcoin and Ethereum News:\n\n#### **Bitcoin (BTC) News:**\n1. **Spot Bitcoin ETFs Add $410M in a Day**\n   - Bitcoin spot ETFs saw a significant…"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 1,
+      "seconds": 25.7843382,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 12862,
+      "input_tokens": 8254,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2739,
+      "output_tokens": 173,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 2,
+      "seconds": 22.1304911,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7467,
+      "input_tokens": 2859,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2574,
+      "output_tokens": 135,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_b_price_use_eur",
+      "rep": 3,
+      "seconds": 24.0965638,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 12862,
+      "input_tokens": 3390,
+      "cache_read_tokens": 9472,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2739,
+      "output_tokens": 171,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "pass",
+          "why": "arrived during a turn"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_c_run_then_add_eth",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_d_range_7_days",
+      "rep": 1,
+      "seconds": 33.9312358,
+      "turns": 1,
+      "requests": 9,
+      "prompt_tokens": 25554,
+      "input_tokens": 11602,
+      "cache_read_tokens": 13952,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3362,
+      "output_tokens": 639,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "fail",
+          "why": "arrived during a turn; the later text doesn't match 65[,.]?230"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_d_range_7_days",
+      "rep": 2,
+      "seconds": 29.7948712,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 13372,
+      "input_tokens": 3900,
+      "cache_read_tokens": 9472,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2993,
+      "output_tokens": 541,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "fail",
+          "why": "arrived during a turn; the later text doesn't match 65[,.]?230"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t3_d_range_7_days",
+      "rep": 3,
+      "seconds": 31.5252297,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10324,
+      "input_tokens": 3284,
+      "cache_read_tokens": 7040,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2731,
+      "output_tokens": 290,
+      "asserts": [
+        {
+          "type": "after_message",
+          "test": "3",
+          "status": "fail",
+          "why": "arrived during a turn; the later text doesn't match 65[,.]?230"
+        },
+        {
+          "type": "no_background",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 1,
+      "seconds": 5.5872857,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2390,
+      "input_tokens": 2390,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2390,
+      "output_tokens": 310,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A **moving average (MA)** is a statistical tool used to analyze data points by creating a series of averages of different subsets of the full data set. It is co…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 2,
+      "seconds": 12.3527373,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2390,
+      "input_tokens": 2390,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2390,
+      "output_tokens": 382,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A **moving average (MA)** is a statistical tool used to analyze data points by creating a series of averages of different subsets of the full data set. It is co…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_a_what_is_ma",
+      "rep": 3,
+      "seconds": 6.0311515,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2390,
+      "input_tokens": 2390,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2390,
+      "output_tokens": 327,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "A **moving average (MA)** is a statistical tool used to analyze data points by creating a series of averages of different subsets of the full data set. It is co…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 1,
+      "seconds": 3.6651698,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4839,
+      "input_tokens": 2535,
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2446,
+      "output_tokens": 67,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was **$64,512.30**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 2,
+      "seconds": 3.8715101,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4839,
+      "input_tokens": 2535,
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2446,
+      "output_tokens": 67,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was **$64,512.30**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_b_yesterday_close",
+      "rep": 3,
+      "seconds": 3.497597,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4839,
+      "input_tokens": 231,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2446,
+      "output_tokens": 67,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "BTC's closing price yesterday (2026-09-28) was **$64,512.30**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 1,
+      "seconds": 2.9047358,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2399,
+      "input_tokens": 95,
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2399,
+      "output_tokens": 134,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The **daily_prices** pipeline:\n- Fetches today's **price** (OHLC: open, high, low, close) and the **latest news** for a specified coin (default: **BTC**).\n- Wri…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 2,
+      "seconds": 2.6136649,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2399,
+      "input_tokens": 95,
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2399,
+      "output_tokens": 125,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The **daily_prices** pipeline:\n- Fetches today's price data (OHLC: open, high, low, close) and the latest news for a specified coin (default: **BTC**).\n- Suppor…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_c_pipeline_schedule",
+      "rep": 3,
+      "seconds": 3.9063933,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2399,
+      "input_tokens": 95,
+      "cache_read_tokens": 2304,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2399,
+      "output_tokens": 149,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "The **daily_prices** pipeline:\n- Fetches today's **price** (OHLC: open, high, low, close) for a specified **coin** (default: BTC).\n- Fetches the **latest news**…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 1,
+      "seconds": 7.3309139,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4967,
+      "input_tokens": 359,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2556,
+      "output_tokens": 205,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "fail",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: Calculates the average price over a set number of days. It treats all prices equally, reg…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: Calculates the average price over a set number of days. It treats all prices equally, reg…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 2,
+      "seconds": 17.0753365,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 13606,
+      "input_tokens": 2086,
+      "cache_read_tokens": 11520,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2928,
+      "output_tokens": 511,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "fail",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: The average of a security's price over a specific number of periods. It is calculated by …"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: The average of a security's price over a specific number of periods. It is calculated by …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t4_d_sma_ema_7day_high",
+      "rep": 3,
+      "seconds": 5.9652783,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4986,
+      "input_tokens": 378,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2575,
+      "output_tokens": 212,
+      "asserts": [
+        {
+          "type": "no_background",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "max_turns",
+          "test": "4",
+          "status": "pass",
+          "why": "1 turns",
+          "value": 1
+        },
+        {
+          "type": "no_false_running",
+          "test": "4",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "fail",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: Calculates the average price over a set number of days. It treats all prices equally, reg…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "4",
+          "status": "pass",
+          "why": "### Difference between SMA and EMA:\n- **SMA (Simple Moving Average)**: Calculates the average price over a set number of days. It treats all prices equally, reg…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_a_review_new_pipeline",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_b_eth_this_week",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_c_summarise_20_pages",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_d_watch_gold_daily",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 1,
+      "seconds": 12.507374800000001,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 2667,
+      "input_tokens": 2283,
+      "cache_read_tokens": 384,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2667,
+      "output_tokens": 3,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "4.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 2,
+      "seconds": 1.3800953,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2659,
+      "input_tokens": 2275,
+      "cache_read_tokens": 384,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2659,
+      "output_tokens": 9,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "2 + 2 = **4**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_e_two_plus_two",
+      "rep": 3,
+      "seconds": 12.4201278,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 2665,
+      "input_tokens": 1513,
+      "cache_read_tokens": 1152,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2665,
+      "output_tokens": 3,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "4.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_f_card_schedule",
+      "rep": 1,
+      "seconds": 1.4025048,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2671,
+      "input_tokens": 2287,
+      "cache_read_tokens": 384,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2671,
+      "output_tokens": 26,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs daily at **08:00** (Europe/Berlin time).\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_f_card_schedule",
+      "rep": 2,
+      "seconds": 1.5933912000000001,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2668,
+      "input_tokens": 2284,
+      "cache_read_tokens": 384,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2668,
+      "output_tokens": 36,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs **daily at 08:00** (UTC+03:30, Europe/Berlin time).\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_f_card_schedule",
+      "rep": 3,
+      "seconds": 1.9474795,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2668,
+      "input_tokens": 1516,
+      "cache_read_tokens": 1152,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2668,
+      "output_tokens": 26,
+      "asserts": [
+        {
+          "type": "tool_not_called",
+          "test": "6",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "6",
+          "status": "pass",
+          "why": "The `daily_prices` pipeline runs daily at **08:00** (Europe/Berlin time).\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_g_schedule_and_review",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_h_gold_once",
+      "rep": 1,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_h_gold_once",
+      "rep": 2,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "t6_h_gold_once",
+      "rep": 3,
+      "skipped": "needs background",
+      "seconds": 0,
+      "turns": 0,
+      "requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    }
+  ]
+}

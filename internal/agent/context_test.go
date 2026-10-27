@@ -14,6 +14,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/provider/fake"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/web"
@@ -267,5 +268,32 @@ func TestEarlierTurnsAndFirstLine(t *testing.T) {
 		if got := firstLine(in); got != want {
 			t.Errorf("firstLine(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// TestToolIndexHook: Deps.ToolIndex's text joins block 1 after the prompt
+// rule; nil, or "", leaves block 1 as it is (SPIKE-028, spike-only).
+func TestToolIndexHook(t *testing.T) {
+	block1 := func(index func(chat.Kind) string) string {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		h.o.d.ToolIndex = index
+		c := h.newChat(chat.Chat{Title: "Index"})
+		h.fp.Push(fake.Text("ok"))
+		h.turn(c.ID, "hi")
+		return h.fp.Calls()[0].System[0].Text
+	}
+	plain := block1(nil)
+	if got := block1(func(chat.Kind) string { return " " }); got != plain {
+		t.Errorf("an empty index changed block 1:\n%s", got)
+	}
+	var kinds []chat.Kind
+	index := "Tool index:\n- x: does x"
+	got := block1(func(k chat.Kind) string { kinds = append(kinds, k); return index + "\n" })
+	if strings.Replace(got, "\n\n"+index, "", 1) != plain || !strings.Contains(got, index+"\n\nToday is") {
+		t.Errorf("block 1 with the index:\n%s\nwithout:\n%s", got, plain)
+	}
+	if !slices.Equal(kinds, []chat.Kind{chat.KindChat}) {
+		t.Errorf("kinds %v", kinds)
 	}
 }

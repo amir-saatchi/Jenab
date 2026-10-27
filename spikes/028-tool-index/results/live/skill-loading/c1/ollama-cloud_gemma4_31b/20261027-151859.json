@@ -1,0 +1,1205 @@
+{
+  "set": "Bitcoin tracker",
+  "started": "2026-10-27T15:18:59.3017631Z",
+  "took_seconds": 195.4937074,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 36,
+      "passed": 33,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "max_calls": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "skill_loaded": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "skill_loaded_before": {
+          "pass": 18,
+          "fail": 3,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 9249,
+      "avg_output_tokens": 488,
+      "avg_seconds": 5.430017108333334,
+      "cache_read_share": 0,
+      "spread": {
+        "max_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 0.8333333333333334,
+          "max": 1
+        },
+        "skill_loaded": {
+          "min": 1,
+          "max": 1
+        },
+        "skill_loaded_before": {
+          "min": 0.7142857142857143,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L01_news_view",
+      "rep": 1,
+      "seconds": 12.8401966,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 17303,
+      "input_tokens": 17303,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7954,
+      "output_tokens": 2186,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've added the `news_last_week` table view, showing news from the last 7 days (sorted newest first) with columns for dat…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L01_news_view",
+      "rep": 2,
+      "seconds": 14.25242,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15883,
+      "input_tokens": 15883,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6658,
+      "output_tokens": 876,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've added the `news_last_week` table view, showing news from the last 7 days, sorted newest first.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L01_news_view",
+      "rep": 3,
+      "seconds": 5.6947922,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15707,
+      "input_tokens": 15707,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6576,
+      "output_tokens": 894,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The table view `news_last_week` has been created. It shows the date, title, and link for news from the last 7 days, sort…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L02_schedule",
+      "rep": 1,
+      "seconds": 4.7041603,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 12477,
+      "input_tokens": 12477,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5723,
+      "output_tokens": 673,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "pipelines not loaded before the first save_pipeline call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `daily_btc` pipeline has been updated to run at 07:30 UTC.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L02_schedule",
+      "rep": 2,
+      "seconds": 4.9173899,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 12464,
+      "input_tokens": 12464,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5721,
+      "output_tokens": 649,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "pipelines not loaded before the first save_pipeline call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `daily_btc` pipeline has been updated to run at 07:30 UTC.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L02_schedule",
+      "rep": 3,
+      "seconds": 4.3398427,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 14016,
+      "input_tokens": 14016,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5709,
+      "output_tokens": 640,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_pipeline call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `daily_btc` pipeline has been updated to run at 07:30 UTC.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L03_add_column",
+      "rep": 1,
+      "seconds": 6.7317466,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 11678,
+      "input_tokens": 11678,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4473,
+      "output_tokens": 755,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Added the optional `volume` column (REAL) to the `btc_prices` table.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L03_add_column",
+      "rep": 2,
+      "seconds": 8.5665252,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 22319,
+      "input_tokens": 22319,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7691,
+      "output_tokens": 1168,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "fail",
+          "why": "loaded config-guide",
+          "value": 1
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Added the optional `volume` (REAL) column to `btc_prices` and updated the \"Bitcoin price\" table view to display it.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L03_add_column",
+      "rep": 3,
+      "seconds": 4.0232625,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 10899,
+      "input_tokens": 10899,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4078,
+      "output_tokens": 415,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Added the optional `volume` (REAL) column to the `btc_prices` table.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L04_sql_fails",
+      "rep": 1,
+      "seconds": 3.3632908,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6442,
+      "input_tokens": 6442,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3363,
+      "output_tokens": 342,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "sql-queries not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The query fails because the table `_jenab_runs` does not exist in your database. The available tables are `btc_news`, `b…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L04_sql_fails",
+      "rep": 2,
+      "seconds": 8.517447,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6476,
+      "input_tokens": 6476,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3397,
+      "output_tokens": 391,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The query fails because the SQL guard rejects access to any tables starting with `_jenab_` or `sqlite_`. The table `_jen…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L04_sql_fails",
+      "rep": 3,
+      "seconds": 3.8701202,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6480,
+      "input_tokens": 6480,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3401,
+      "output_tokens": 317,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The query fails because the SQL guard rejects any access to system tables starting with `_jenab_` or `sqlite_`.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L05_design_table",
+      "rep": 1,
+      "seconds": 4.3950835999999995,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6394,
+      "input_tokens": 6394,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3305,
+      "output_tokens": 603,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I propose the following design for the `crypto_exchanges` table:\n\n**Columns:**\n- `name` (TEXT): The name of the exchange…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L05_design_table",
+      "rep": 2,
+      "seconds": 4.5239939,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6403,
+      "input_tokens": 6403,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3314,
+      "output_tokens": 659,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I propose the following design for the `crypto_exchanges` table:\n\n**Table: `crypto_exchanges`**\n- `name` (TEXT): The nam…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L05_design_table",
+      "rep": 3,
+      "seconds": 5.8476977,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6371,
+      "input_tokens": 6371,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3282,
+      "output_tokens": 610,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I suggest the following design for the `crypto_exchanges` table:\n\n- **`name`** (TEXT): The name of the exchange. This wi…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L06_etf_news",
+      "rep": 1,
+      "seconds": 5.0565432,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6727,
+      "input_tokens": 6727,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3652,
+      "output_tokens": 460,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important news items regarding Bitcoin ETFs from this week:\n\n1. **Significant Inflows (Sept 29):…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L06_etf_news",
+      "rep": 2,
+      "seconds": 7.8652869,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 10835,
+      "input_tokens": 10835,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4142,
+      "output_tokens": 798,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important Bitcoin ETF news items from this week:\n\n1. **Strong Inflows** (2026-09-29): Spot Bitco…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L06_etf_news",
+      "rep": 3,
+      "seconds": 5.5151386,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6712,
+      "input_tokens": 6712,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3637,
+      "output_tokens": 524,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important items regarding Bitcoin ETFs from this week:\n\n1. **Strong Inflows**: Spot Bitcoin ETFs…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L07_chart",
+      "rep": 1,
+      "seconds": 5.2642983,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 14994,
+      "input_tokens": 14994,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6118,
+      "output_tokens": 450,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've created a bar chart view `btc_news_daily_count` that shows the number of news items saved per day.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L07_chart",
+      "rep": 2,
+      "seconds": 5.4777746,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15311,
+      "input_tokens": 15311,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6283,
+      "output_tokens": 517,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've created a bar chart view `btc_news_daily_count` that shows the number of news items per day.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L07_chart",
+      "rep": 3,
+      "seconds": 7.7773655,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15267,
+      "input_tokens": 15267,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6237,
+      "output_tokens": 486,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've created the bar chart `btc_news_daily_count` which shows the number of saved news items per day.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L08_form",
+      "rep": 1,
+      "seconds": 6.3339019,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15059,
+      "input_tokens": 15059,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6167,
+      "output_tokens": 488,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_form call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've added the form `add_btc_news` for manually adding news items with the URL, date, title, and reason.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L08_form",
+      "rep": 2,
+      "seconds": 5.6082558,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15136,
+      "input_tokens": 15136,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6229,
+      "output_tokens": 557,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_form call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "I've added the form `add_btc_news` for adding news items to the `btc_news` table with the fields: URL, Date, Title, and …"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L08_form",
+      "rep": 3,
+      "seconds": 7.5452346,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 15287,
+      "input_tokens": 15287,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6381,
+      "output_tokens": 701,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_form call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The form `add_btc_news` has been created for adding news items to the `btc_news` table.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L09_moving_average",
+      "rep": 1,
+      "seconds": 17.1056141,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 3065,
+      "input_tokens": 3065,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3065,
+      "output_tokens": 125,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of t…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L09_moving_average",
+      "rep": 2,
+      "seconds": 1.9875709000000001,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3065,
+      "input_tokens": 3065,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3065,
+      "output_tokens": 122,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of t…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L09_moving_average",
+      "rep": 3,
+      "seconds": 1.819828,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3065,
+      "input_tokens": 3065,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3065,
+      "output_tokens": 107,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A moving average is a calculation used to analyze data points by creating a series of averages of different subsets of t…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L10_price_yesterday",
+      "rep": 1,
+      "seconds": 3.6761242,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6263,
+      "input_tokens": 6263,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3202,
+      "output_tokens": 156,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The BTC price yesterday (2026-10-05) was 60,100.00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L10_price_yesterday",
+      "rep": 2,
+      "seconds": 2.9749049,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6260,
+      "input_tokens": 6260,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3199,
+      "output_tokens": 165,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The BTC price yesterday (2026-10-05) was 60,100.00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L10_price_yesterday",
+      "rep": 3,
+      "seconds": 3.0574022,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 6260,
+      "input_tokens": 6260,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3199,
+      "output_tokens": 166,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The BTC price yesterday (2026-10-05) was 60,100.00.\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L11_what_tracked",
+      "rep": 1,
+      "seconds": 2.7425255,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3066,
+      "input_tokens": 3066,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3066,
+      "output_tokens": 139,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks Bitcoin prices and related news. It uses a set of keywords to filter news articles and maintains a h…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L11_what_tracked",
+      "rep": 2,
+      "seconds": 2.051637,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3066,
+      "input_tokens": 3066,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3066,
+      "output_tokens": 156,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks Bitcoin's price history and related news. It uses a set of configurable keywords to filter and store…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L11_what_tracked",
+      "rep": 3,
+      "seconds": 1.9356101,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3066,
+      "input_tokens": 3066,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3066,
+      "output_tokens": 142,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks Bitcoin's price history and related news. It uses a list of watch keywords to filter and collect rel…"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L12_two_plus_two",
+      "rep": 1,
+      "seconds": 1.9088223,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3061,
+      "input_tokens": 3061,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3061,
+      "output_tokens": 52,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "2 + 2 = 4\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L12_two_plus_two",
+      "rep": 2,
+      "seconds": 1.5838523,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3061,
+      "input_tokens": 3061,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3061,
+      "output_tokens": 48,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "4\n"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L12_two_plus_two",
+      "rep": 3,
+      "seconds": 1.6049558,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 3061,
+      "input_tokens": 3061,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3061,
+      "output_tokens": 58,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "2 + 2 = 4\n"
+        }
+      ]
+    }
+  ]
+}

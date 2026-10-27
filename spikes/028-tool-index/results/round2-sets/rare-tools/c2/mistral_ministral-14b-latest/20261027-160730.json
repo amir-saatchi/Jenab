@@ -1,0 +1,519 @@
+{
+  "set": "Bitcoin tracker",
+  "started": "2026-10-27T16:07:30.1207887Z",
+  "took_seconds": 94.1412816,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "mistral/ministral-14b-latest"
+  ],
+  "summary": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "runs": 12,
+      "passed": 12,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 33,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_not_called": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 7893,
+      "avg_output_tokens": 144,
+      "avg_seconds": 7.844828691666666,
+      "cache_read_share": 0.5540599035040488,
+      "spread": {
+        "answer_contains": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_called": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_not_called": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R1_save_link",
+      "rep": 1,
+      "seconds": 1.9777783,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4617,
+      "input_tokens": 4105,
+      "cache_read_tokens": 512,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2343,
+      "output_tokens": 71,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R1_save_link",
+      "rep": 2,
+      "seconds": 2.0142522,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4617,
+      "input_tokens": 4105,
+      "cache_read_tokens": 512,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2343,
+      "output_tokens": 71,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R1_save_link",
+      "rep": 3,
+      "seconds": 3.4542232,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 4617,
+      "input_tokens": 4361,
+      "cache_read_tokens": 256,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2343,
+      "output_tokens": 71,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "save_link {\"url\":\"https://example.org/learn/halving\",\"title\":\"Halving explained\",\"note\":\"good intro for new re…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R2_connect_api",
+      "rep": 1,
+      "seconds": 39.1207837,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 7552,
+      "input_tokens": 6784,
+      "cache_read_tokens": 768,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2679,
+      "output_tokens": 132,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R2_connect_api",
+      "rep": 2,
+      "seconds": 3.2208604,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7552,
+      "input_tokens": 6784,
+      "cache_read_tokens": 768,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2679,
+      "output_tokens": 135,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R2_connect_api",
+      "rep": 3,
+      "seconds": 3.2809433,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7552,
+      "input_tokens": 1024,
+      "cache_read_tokens": 6528,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2679,
+      "output_tokens": 140,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "connect_api {\"id\":\"coincap\",\"title\":\"CoinCap API\",\"base_url\":\"https://api.coincap.example/v2\",\"docs\":\"https://do…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R3_read_feed",
+      "rep": 1,
+      "seconds": 6.1569002,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9695,
+      "input_tokens": 991,
+      "cache_read_tokens": 8704,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2659,
+      "output_tokens": 209,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest ETF-related items in the feed discuss:\n\n1. **Spot Bitcoin ETFs**: Recorded $1.2 billion in inflows within a week, pushing total assets past $60 billi…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R3_read_feed",
+      "rep": 2,
+      "seconds": 6.6130192,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9695,
+      "input_tokens": 6751,
+      "cache_read_tokens": 2944,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2659,
+      "output_tokens": 219,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest items about ETFs in the feed mention:\n\n1. **Spot Bitcoin ETFs** took in **$1.2 billion in a week** (2026-10-05), with total assets surpassing **$60 b…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R3_read_feed",
+      "rep": 3,
+      "seconds": 4.1323913,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9695,
+      "input_tokens": 735,
+      "cache_read_tokens": 8960,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2659,
+      "output_tokens": 209,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "read_feed {\"url\":\"https://feeds.example/crypto.xml\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "tool",
+          "status": "pass"
+        },
+        {
+          "type": "answer_contains",
+          "test": "tool",
+          "status": "pass",
+          "why": "The latest items about ETFs in the feed mention:\n\n1. **Spot Bitcoin ETFs**: Recorded $1.2 billion in inflows within a week, with total assets surpassing $60 bil…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R4_bucket_put",
+      "rep": 1,
+      "seconds": 3.7820565,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9709,
+      "input_tokens": 4845,
+      "cache_read_tokens": 4864,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2594,
+      "output_tokens": 174,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R4_bucket_put",
+      "rep": 2,
+      "seconds": 4.0537559,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9709,
+      "input_tokens": 1005,
+      "cache_read_tokens": 8704,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2594,
+      "output_tokens": 174,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "R4_bucket_put",
+      "rep": 3,
+      "seconds": 16.3309801,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 9709,
+      "input_tokens": 749,
+      "cache_read_tokens": 8960,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2594,
+      "output_tokens": 133,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        },
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "bucket_put {\"key\":\"notes/halving.md\",\"text\":\"The block reward halves every 210,000 blocks, about every four yea…"
+        }
+      ]
+    }
+  ]
+}

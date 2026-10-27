@@ -30,6 +30,7 @@ type event struct {
 	text   string
 	tool   string // calls and results
 	args   string // calls: the arguments as JSON
+	via    string // calls: the call as the model made it, when Options.Call mapped it (SPIKE-028)
 	callID string
 	err    bool // results: an error
 	final  bool // text of an assistant message without tool calls
@@ -107,6 +108,11 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 				e.kind, e.text, e.final = evText, p.Text.Text, !calls
 			case p.ToolCall != nil:
 				e.kind, e.tool, e.args, e.callID = evCall, p.ToolCall.Name, string(p.ToolCall.Args), p.ToolCall.ID
+				if f := r.opt.Call; f != nil {
+					if n, a := f(e.tool, e.args); n != e.tool {
+						e.via, e.tool, e.args = e.tool, n, a
+					}
+				}
 			case p.ToolResult != nil:
 				e.kind, e.text, e.callID, e.err = evResult, p.ToolResult.Text, p.ToolResult.CallID, p.ToolResult.IsError
 				e.tool = rec.callTool(e.callID)
@@ -241,7 +247,11 @@ func (rec *record) transcript() string {
 				fmt.Fprintf(&b, "\n**Agent:** %s\n", t)
 			}
 		case evCall:
-			fmt.Fprintf(&b, "\n> call %s %s\n", e.tool, clip(e.args, 600))
+			name := e.tool
+			if e.via != "" {
+				name = e.via + "→" + e.tool
+			}
+			fmt.Fprintf(&b, "\n> call %s %s\n", name, clip(e.args, 600))
 			rec.subTranscript(&b, e.callID)
 		case evApproval:
 			fmt.Fprintf(&b, "\n> card %s\n", strings.ReplaceAll(clip(e.text, 1200), "\n", "\n> "))

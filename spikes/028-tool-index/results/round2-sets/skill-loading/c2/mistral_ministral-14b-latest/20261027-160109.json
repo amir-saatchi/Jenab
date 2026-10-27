@@ -1,0 +1,1203 @@
+{
+  "set": "Bitcoin tracker",
+  "started": "2026-10-27T16:01:09.2161282Z",
+  "took_seconds": 380.8306503,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "mistral/ministral-14b-latest"
+  ],
+  "summary": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "runs": 36,
+      "passed": 28,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "max_calls": {
+          "pass": 12,
+          "fail": 0,
+          "skip": 0
+        },
+        "skill_loaded": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "skill_loaded_before": {
+          "pass": 13,
+          "fail": 8,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 12326,
+      "avg_output_tokens": 264,
+      "avg_seconds": 10.578448869444443,
+      "cache_read_share": 0.5916203937405351,
+      "spread": {
+        "max_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 0.75,
+          "max": 0.8333333333333334
+        },
+        "skill_loaded": {
+          "min": 1,
+          "max": 1
+        },
+        "skill_loaded_before": {
+          "min": 0.5714285714285714,
+          "max": 0.7142857142857143
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L01_news_view",
+      "rep": 1,
+      "seconds": 8.5837248,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 13011,
+      "input_tokens": 12627,
+      "cache_read_tokens": 384,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5271,
+      "output_tokens": 281,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `btc_news` table only has 4 rows, so showing the last 7 days of news isn't possible yet. However, I can create the `…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L01_news_view",
+      "rep": 2,
+      "seconds": 27.7192079,
+      "turns": 1,
+      "requests": 6,
+      "prompt_tokens": 30354,
+      "input_tokens": 27154,
+      "cache_read_tokens": 3200,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5922,
+      "output_tokens": 607,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The table view **news_last_week** has been successfully saved. It displays Bitcoin news from the last 7 days, sorted by …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L01_news_view",
+      "rep": 3,
+      "seconds": 12.277683,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 18325,
+      "input_tokens": 15509,
+      "cache_read_tokens": 2816,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5314,
+      "output_tokens": 451,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `btc_news` table only has 4 rows, all from October 2-5, 2026. To show the news of the **last 7 days**, we need to ad…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L02_schedule",
+      "rep": 1,
+      "seconds": 6.6691036,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 11128,
+      "input_tokens": 8184,
+      "cache_read_tokens": 2944,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3124,
+      "output_tokens": 175,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "pipelines not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "To change the `daily_btc` pipeline to run at **07:30 UTC** instead of **08:00 UTC**, update the `schedule` field in the …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L02_schedule",
+      "rep": 2,
+      "seconds": 36.6480304,
+      "turns": 1,
+      "requests": 7,
+      "prompt_tokens": 20165,
+      "input_tokens": 7237,
+      "cache_read_tokens": 12928,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5462,
+      "output_tokens": 986,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "pipelines not loaded before the first save_pipeline call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `daily_btc` pipeline has been updated to run at **07:30 UTC** instead of 08:00 UTC.\n\nThe pipeline is now scheduled w…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L02_schedule",
+      "rep": 3,
+      "seconds": 11.9733354,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 11128,
+      "input_tokens": 3320,
+      "cache_read_tokens": 7808,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3124,
+      "output_tokens": 163,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "pipelines not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "To change the `daily_btc` pipeline to run at **07:30 UTC** instead of **08:00 UTC**, update the `schedule` field in the …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L03_add_column",
+      "rep": 1,
+      "seconds": 16.9211703,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 9004,
+      "input_tokens": 3756,
+      "cache_read_tokens": 5248,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3228,
+      "output_tokens": 96,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `volume` column has been added to the `btc_prices` table as a `REAL` (floating-point number). You can now populate i…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L03_add_column",
+      "rep": 2,
+      "seconds": 5.4994156,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 9009,
+      "input_tokens": 1329,
+      "cache_read_tokens": 7680,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3233,
+      "output_tokens": 128,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `volume` column has been added to the `btc_prices` table as an optional (nullable) REAL number.\n\nWould you like to u…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L03_add_column",
+      "rep": 3,
+      "seconds": 5.6372009,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 9009,
+      "input_tokens": 689,
+      "cache_read_tokens": 8320,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3233,
+      "output_tokens": 127,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first apply_migration call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The `volume` column has been added to the `btc_prices` table as an optional (nullable) number.\n\nWould you like to update…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L04_sql_fails",
+      "rep": 1,
+      "seconds": 8.2695649,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 5262,
+      "input_tokens": 2702,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2652,
+      "output_tokens": 173,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "sql-queries not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The error is because there is no table named `_jenab_runs` in your project's database. The `_jenab_runs` table is an int…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L04_sql_fails",
+      "rep": 2,
+      "seconds": 8.374354,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 5262,
+      "input_tokens": 142,
+      "cache_read_tokens": 5120,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2652,
+      "output_tokens": 141,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "sql-queries not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The error is because there is no table named `_jenab_runs` in your project's database. The query tool only interacts wit…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L04_sql_fails",
+      "rep": 3,
+      "seconds": 6.8578995,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 5262,
+      "input_tokens": 2702,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2652,
+      "output_tokens": 211,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "sql-queries not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The error is because there is no table named `_jenab_runs` in your project's database. This table is typically used inte…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L05_design_table",
+      "rep": 1,
+      "seconds": 20.9991472,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2619,
+      "input_tokens": 2491,
+      "cache_read_tokens": 128,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2619,
+      "output_tokens": 345,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "database-design not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here’s the design for a table to track and compare crypto exchanges:\n\n### Table Name: `crypto_exchanges`\nThis table wi…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L05_design_table",
+      "rep": 2,
+      "seconds": 7.0967631,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2619,
+      "input_tokens": 2491,
+      "cache_read_tokens": 128,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2619,
+      "output_tokens": 371,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "fail",
+          "why": "database-design not loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here’s the design for a **crypto_exchanges** table to compare exchanges:\n\n### **Columns**\n1. **name** (`TEXT NOT NULL`…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L05_design_table",
+      "rep": 3,
+      "seconds": 6.5383,
+      "turns": 1,
+      "requests": 2,
+      "prompt_tokens": 5340,
+      "input_tokens": 220,
+      "cache_read_tokens": 5120,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2721,
+      "output_tokens": 245,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here’s the design for a **crypto_exchanges** table to compare exchanges:\n\n### Columns:\n1. **name** (`TEXT NOT NULL`): …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L06_etf_news",
+      "rep": 1,
+      "seconds": 19.0956012,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 15072,
+      "input_tokens": 4704,
+      "cache_read_tokens": 10368,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3566,
+      "output_tokens": 465,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important Bitcoin ETF-related news items from this week:\n\n1. **Spot Bitcoin ETFs Add $410M in a …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L06_etf_news",
+      "rep": 2,
+      "seconds": 22.8383668,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 15093,
+      "input_tokens": 4597,
+      "cache_read_tokens": 10496,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3576,
+      "output_tokens": 445,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important Bitcoin ETF-related news items from this week:\n\n1. **Spot Bitcoin ETFs Add $410M in a …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L06_etf_news",
+      "rep": 3,
+      "seconds": 26.937364,
+      "turns": 1,
+      "requests": 5,
+      "prompt_tokens": 11516,
+      "input_tokens": 1148,
+      "cache_read_tokens": 10368,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3362,
+      "output_tokens": 398,
+      "asserts": [
+        {
+          "type": "skill_loaded",
+          "test": "load",
+          "status": "pass"
+        },
+        {
+          "type": "skill_loaded_before",
+          "test": "info",
+          "status": "fail",
+          "why": "web-research not loaded before the first web_search call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here are the three most important Bitcoin ETF-related news items from this week (October 1–6, 2026):\n\n1. **Spot Bitcoi…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L07_chart",
+      "rep": 1,
+      "seconds": 14.9433929,
+      "turns": 1,
+      "requests": 6,
+      "prompt_tokens": 29649,
+      "input_tokens": 16849,
+      "cache_read_tokens": 12800,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5687,
+      "output_tokens": 432,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The bar chart view **\"News Items per Day\"** has been saved successfully.\n\nYou can now add it to a page or use it directl…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L07_chart",
+      "rep": 2,
+      "seconds": 6.8536178,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 12919,
+      "input_tokens": 2807,
+      "cache_read_tokens": 10112,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5207,
+      "output_tokens": 220,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the answer"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "Here’s a YAML config for a bar chart showing the number of saved Bitcoin news items per day:\n\n```yaml\nversion: 1\nid: b…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L07_chart",
+      "rep": 3,
+      "seconds": 14.4237983,
+      "turns": 1,
+      "requests": 6,
+      "prompt_tokens": 29622,
+      "input_tokens": 14134,
+      "cache_read_tokens": 15488,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5677,
+      "output_tokens": 431,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The bar chart **\"Bitcoin News Items per Day\"** has been saved successfully. You can now add it to a page or view it dire…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L08_form",
+      "rep": 1,
+      "seconds": 23.2757101,
+      "turns": 1,
+      "requests": 8,
+      "prompt_tokens": 40906,
+      "input_tokens": 17354,
+      "cache_read_tokens": 23552,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5965,
+      "output_tokens": 630,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The form **\"Add Bitcoin News Item\"** has been saved successfully. You can now use it to manually add news items to the `…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L08_form",
+      "rep": 2,
+      "seconds": 22.3228968,
+      "turns": 1,
+      "requests": 8,
+      "prompt_tokens": 40804,
+      "input_tokens": 15204,
+      "cache_read_tokens": 25600,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5923,
+      "output_tokens": 588,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The form **\"Add Bitcoin News Item\"** has been saved successfully. You can now use it to manually add news items to the `…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L08_form",
+      "rep": 3,
+      "seconds": 16.2757174,
+      "turns": 1,
+      "requests": 8,
+      "prompt_tokens": 40894,
+      "input_tokens": 12734,
+      "cache_read_tokens": 28160,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5953,
+      "output_tokens": 618,
+      "asserts": [
+        {
+          "type": "skill_loaded_before",
+          "test": "load",
+          "status": "pass",
+          "why": "loaded before the first save_view call"
+        },
+        {
+          "type": "only_skills",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The form **\"Add Bitcoin News Item\"** has been successfully saved. You can now use it to manually add news items to the `…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L09_moving_average",
+      "rep": 1,
+      "seconds": 1.7202903,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2596,
+      "input_tokens": 36,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2596,
+      "output_tokens": 58,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A **moving average** is a statistical tool that calculates the average of a set of values over a specific period, smooth…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L09_moving_average",
+      "rep": 2,
+      "seconds": 1.5713623,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2596,
+      "input_tokens": 36,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2596,
+      "output_tokens": 59,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A **moving average** is a statistical tool that calculates the average of a set of values over a specific time period, s…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L09_moving_average",
+      "rep": 3,
+      "seconds": 1.3208986,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2596,
+      "input_tokens": 36,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2596,
+      "output_tokens": 58,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "A **moving average** is a statistical tool that calculates the average of a set of values over a specific period, smooth…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L10_price_yesterday",
+      "rep": 1,
+      "seconds": 3.5811305,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7894,
+      "input_tokens": 214,
+      "cache_read_tokens": 7680,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2672,
+      "output_tokens": 122,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The latest BTC price in your database is from **2026-10-05** (today). There is no price recorded for yesterday (2026-10-…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L10_price_yesterday",
+      "rep": 2,
+      "seconds": 3.2708822,
+      "turns": 1,
+      "requests": 3,
+      "prompt_tokens": 7908,
+      "input_tokens": 228,
+      "cache_read_tokens": 7680,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2686,
+      "output_tokens": 122,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The most recent BTC price in your data is from **October 5, 2026**, at **60,100.00**.\n\nThere is no record for yesterday …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L10_price_yesterday",
+      "rep": 3,
+      "seconds": 4.9949067,
+      "turns": 1,
+      "requests": 4,
+      "prompt_tokens": 10615,
+      "input_tokens": 375,
+      "cache_read_tokens": 10240,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2721,
+      "output_tokens": 112,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "The Bitcoin (BTC) price yesterday (2026-10-05) was **60,100 USD**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L11_what_tracked",
+      "rep": 1,
+      "seconds": 1.4963313,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2597,
+      "input_tokens": 37,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2597,
+      "output_tokens": 71,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks **Bitcoin-related news and prices**:\n\n- The `btc_news` table stores news articles with URLs, dates, …"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L11_what_tracked",
+      "rep": 2,
+      "seconds": 1.8495781,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2597,
+      "input_tokens": 37,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2597,
+      "output_tokens": 86,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks **Bitcoin news** (stored in the `btc_news` table) and **Bitcoin prices** (stored in the `btc_prices`…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L11_what_tracked",
+      "rep": 3,
+      "seconds": 1.3698139999999999,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2597,
+      "input_tokens": 37,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2597,
+      "output_tokens": 64,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "This project tracks **Bitcoin (BTC) prices** and **related news**, storing daily price data and news articles with keywo…"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L12_two_plus_two",
+      "rep": 1,
+      "seconds": 0.8703538,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2592,
+      "input_tokens": 32,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2592,
+      "output_tokens": 9,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "2 + 2 = **4**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L12_two_plus_two",
+      "rep": 2,
+      "seconds": 0.8509921,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2592,
+      "input_tokens": 32,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2592,
+      "output_tokens": 9,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "2 + 2 = **4**.\n"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "L12_two_plus_two",
+      "rep": 3,
+      "seconds": 0.8962535,
+      "turns": 1,
+      "requests": 1,
+      "prompt_tokens": 2592,
+      "input_tokens": 32,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2592,
+      "output_tokens": 9,
+      "asserts": [
+        {
+          "type": "max_calls",
+          "test": "load",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "answer_delivered",
+          "test": "info",
+          "status": "pass",
+          "why": "2 + 2 = **4**.\n"
+        }
+      ]
+    }
+  ]
+}

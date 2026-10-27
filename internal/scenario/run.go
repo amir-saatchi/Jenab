@@ -48,6 +48,18 @@ type Options struct {
 	// Grounding sets SPIKE-032's number check over the sets' and the
 	// scenarios'.
 	Grounding *GroundingSpec
+	// Deps changes each run's orchestrator deps before it starts, such as
+	// SPIKE-028's tool registry and index. Spike-only: nil leaves them as
+	// the runner builds them.
+	Deps func(*agent.Deps)
+	// Call maps a tool call to the call the checks read, such as
+	// SPIKE-028's call_tool to the tool it runs; the transcript shows
+	// both. Spike-only: nil reads every call as it is.
+	Call func(name, args string) (string, string)
+	// Setup changes the chat under test before the first message, such as
+	// SPIKE-028's earlier turns in a long chat. Spike-only: nil leaves the
+	// chat as the runner makes it.
+	Setup func(ctx context.Context, sc *Scenario, p *project.Project, c id.Chat) error
 }
 
 // DefaultTimeout bounds one run.
@@ -240,6 +252,9 @@ func (r *run) play(ctx context.Context) (*record, error) {
 	if err := r.setup(ctx); err != nil {
 		return nil, late(err)
 	}
+	if err := r.spikeSetup(ctx); err != nil {
+		return nil, late(err)
+	}
 	sent, err := r.send(ctx)
 	if err = late(err); ctx.Err() != nil && r.o != nil {
 		r.o.Stop(r.pid, r.cid)
@@ -271,13 +286,17 @@ func (r *run) open(ctx context.Context) error {
 	if r.sc.set.ProjectCard {
 		card = func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, r.now()) }
 	}
-	r.o = agent.New(agent.Deps{
+	d := agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },
 		Skills: r.skills, Traces: r.traces, Log: r.opt.Log,
 		Card:      card,
 		Now:       r.now,
 		Grounding: r.grounding().agent(),
-	})
+	}
+	if r.opt.Deps != nil {
+		r.opt.Deps(&d)
+	}
+	r.o = agent.New(d)
 	return nil
 }
 
@@ -381,6 +400,20 @@ func (r *run) setup(ctx context.Context) error {
 		title = string([]rune(title)[:60])
 	}
 	return r.newChat(ctx, p, title)
+}
+
+// spikeSetup runs Options.Setup on the chat under test (SPIKE-028,
+// spike-only).
+func (r *run) spikeSetup(ctx context.Context) error {
+	if r.opt.Setup == nil {
+		return nil
+	}
+	p, err := r.pm.Open(ctx, r.pid)
+	if err != nil {
+		return err
+	}
+	defer p.Release()
+	return r.opt.Setup(ctx, r.sc, p, r.cid)
 }
 
 // newChat makes a chat under test with the scenario's role and skills, and

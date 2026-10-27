@@ -1,0 +1,16 @@
+id: H1_avg_chart
+title: The 14-day average chart again, for ETH (strong cue)
+tests: ["history"]
+context: main
+why: >-
+  Turn 2, past the cut, built btc_avg14_chart: a bar chart of the 14-day
+  average over the last 180 days. The follow-up names that chart; a good
+  answer finds turn 2 and saves the same chart on eth_prices, as bars, over
+  180 days.
+messages:
+  - text: "Make that 14-day average chart for ETH too. eth_prices has the same columns as btc_prices."
+asserts:
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: 'eth_prices'}
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: 'chart_type:\s*\\?"?bar'}
+  - {type: tool_called, test: history, turn: "11", tool: save_view, args_match: '180'}
+  - {type: tool_called, test: info, turn: "11", tools: [search_history, read_messages]}

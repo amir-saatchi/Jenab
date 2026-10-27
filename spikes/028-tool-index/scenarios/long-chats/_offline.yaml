@@ -1,0 +1,20 @@
+# Scripted answers for condition 1, to test the harness with no keys: the
+# history tools, then the save.
+scenarios:
+  H1_avg_chart:
+    - calls: [{name: search_history, args: {query: 14-day average}}]
+    - calls: [{name: read_messages, args: {from: 2, to: 2}}]
+    - calls: [{name: save_view, args: {yaml: "version: 1\nid: eth_avg14_chart\ntitle: ETH 14-day average\ntype: chart\nchart_type: bar\nquery: SELECT date, AVG(price) OVER (ORDER BY date ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) AS avg_price FROM eth_prices WHERE date >= date('now', '-180 day')\nx: {field: date}\ny: [{field: avg_price}]\n"}}]
+    - text: Saved eth_avg14_chart.
+  H2_drop_alert:
+    - calls: [{name: search_history, args: {query: warning}}]
+    - text: I could not find an earlier warning. What should it check?
+  H3_in_window:
+    - calls: [{name: save_view, args: {yaml: "version: 1\nid: eth_price_news\ntitle: ETH price vs news\ntype: chart\nchart_type: scatter\nquery: SELECT p.date, p.price, COUNT(n.url) AS news FROM eth_prices p LEFT JOIN eth_news n ON n.date = p.date GROUP BY p.date\nx: {field: news}\ny: [{field: price}]\n"}}]
+    - text: Saved eth_price_news.
+  H4_week_range:
+    - calls: [{name: search_history, args: {query: week}}]
+    - calls: [{name: save_view, args: {yaml: "version: 1\nid: eth_weekly_range\ntitle: ETH weekly range\ntype: table\nquery: SELECT strftime('%Y-%W', date) AS week, MIN(price) AS low, MAX(price) AS high, MAX(price) AS close FROM eth_prices WHERE date >= date('now', '-84 days') GROUP BY week\n"}}]
+    - text: Saved eth_weekly_range.
+  H5_etf_digest:
+    - text: Which roundup do you mean?

@@ -1,0 +1,13 @@
+id: R2_connect_api
+title: Propose an API connection with no key and a rate limit
+tests: ["tool"]
+context: main
+why: connect_api with auth type none and a rate limit of 10 a minute, as nested objects.
+messages:
+  - text: "Set up a connection to the CoinCap API for us. Call it coincap. The base URL is https://api.coincap.example/v2, the docs are at https://docs.coincap.example, it needs no key, and it allows at most 10 requests a minute."
+asserts:
+  - {type: tool_called, test: tool, tool: connect_api, args_match: '"base_url":\s*"https://api\.coincap\.example/v2'}
+  - {type: tool_called, test: tool, tool: connect_api, args_match: '"auth":\s*\{[^}]*"type":\s*"none"'}
+  - {type: tool_called, test: tool, tool: connect_api, args_match: '"rate_limit":\s*\{[^}]*"requests":\s*10'}
+  - {type: tool_called, test: tool, tool: connect_api, args_match: '"rate_limit":\s*\{[^}]*"per":\s*"minute"'}
+  - {type: tool_not_called, test: tool, tool: call_api}

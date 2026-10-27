@@ -1,0 +1,1102 @@
+{
+  "set": "Coin tracker",
+  "started": "2026-10-27T16:19:32.8285977Z",
+  "took_seconds": 201.777866,
+  "scale": 1,
+  "reps": 5,
+  "models": [
+    "mistral/ministral-14b-latest"
+  ],
+  "summary": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "runs": 25,
+      "passed": 15,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "tool_called": {
+          "pass": 45,
+          "fail": 30,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 18185,
+      "avg_output_tokens": 348,
+      "avg_seconds": 8.070867972,
+      "cache_read_share": 0.6714896256524522,
+      "spread": {
+        "runs": {
+          "min": 0.6,
+          "max": 0.6
+        },
+        "tool_called": {
+          "min": 0.6,
+          "max": 0.6
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H1_avg_chart",
+      "rep": 1,
+      "seconds": 7.4713729,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25157,
+      "input_tokens": 14917,
+      "cache_read_tokens": 10240,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5785,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H1_avg_chart",
+      "rep": 2,
+      "seconds": 7.6649108,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25157,
+      "input_tokens": 12101,
+      "cache_read_tokens": 13056,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5785,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H1_avg_chart",
+      "rep": 3,
+      "seconds": 11.6055103,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25157,
+      "input_tokens": 9157,
+      "cache_read_tokens": 16000,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5785,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H1_avg_chart",
+      "rep": 4,
+      "seconds": 10.6012814,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25157,
+      "input_tokens": 5957,
+      "cache_read_tokens": 19200,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5785,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H1_avg_chart",
+      "rep": 5,
+      "seconds": 9.30913,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25157,
+      "input_tokens": 837,
+      "cache_read_tokens": 24320,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5785,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_avg14_chart\\ntitle: ETH 14-day average\\ntype: chart\\nchart_type: bar\\nq…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H2_drop_alert",
+      "rep": 1,
+      "seconds": 2.4015302,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2587,
+      "input_tokens": 27,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2587,
+      "output_tokens": 67,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H2_drop_alert",
+      "rep": 2,
+      "seconds": 2.1664123,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2587,
+      "input_tokens": 27,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2587,
+      "output_tokens": 72,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H2_drop_alert",
+      "rep": 3,
+      "seconds": 1.702994,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2587,
+      "input_tokens": 27,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2587,
+      "output_tokens": 81,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H2_drop_alert",
+      "rep": 4,
+      "seconds": 1.5818119,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2587,
+      "input_tokens": 27,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2587,
+      "output_tokens": 79,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H2_drop_alert",
+      "rep": 5,
+      "seconds": 2.1888146,
+      "turns": 11,
+      "requests": 1,
+      "prompt_tokens": 2587,
+      "input_tokens": 27,
+      "cache_read_tokens": 2560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2587,
+      "output_tokens": 47,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H3_in_window",
+      "rep": 1,
+      "seconds": 5.442953,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 13534,
+      "input_tokens": 6622,
+      "cache_read_tokens": 6912,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5478,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H3_in_window",
+      "rep": 2,
+      "seconds": 5.2756055,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 13534,
+      "input_tokens": 6238,
+      "cache_read_tokens": 7296,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5478,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H3_in_window",
+      "rep": 3,
+      "seconds": 6.7361931,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 13534,
+      "input_tokens": 2782,
+      "cache_read_tokens": 10752,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5478,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H3_in_window",
+      "rep": 4,
+      "seconds": 5.0022533,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 13534,
+      "input_tokens": 350,
+      "cache_read_tokens": 13184,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5478,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H3_in_window",
+      "rep": 5,
+      "seconds": 5.9380315,
+      "turns": 11,
+      "requests": 3,
+      "prompt_tokens": 13534,
+      "input_tokens": 3678,
+      "cache_read_tokens": 9856,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5478,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_price_news\\ntitle: Price vs news\\nchart_type: scatter\\nquery: |\\n  SELE…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H4_week_range",
+      "rep": 1,
+      "seconds": 22.6508829,
+      "turns": 11,
+      "requests": 6,
+      "prompt_tokens": 25880,
+      "input_tokens": 12824,
+      "cache_read_tokens": 13056,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6040,
+      "output_tokens": 550,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H4_week_range",
+      "rep": 2,
+      "seconds": 12.0433487,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25880,
+      "input_tokens": 3480,
+      "cache_read_tokens": 22400,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6040,
+      "output_tokens": 553,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H4_week_range",
+      "rep": 3,
+      "seconds": 11.8966644,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25880,
+      "input_tokens": 9880,
+      "cache_read_tokens": 16000,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6040,
+      "output_tokens": 553,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H4_week_range",
+      "rep": 4,
+      "seconds": 10.5268576,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25880,
+      "input_tokens": 9624,
+      "cache_read_tokens": 16256,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6040,
+      "output_tokens": 553,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H4_week_range",
+      "rep": 5,
+      "seconds": 10.1068247,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25880,
+      "input_tokens": 3864,
+      "cache_read_tokens": 22016,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6040,
+      "output_tokens": 553,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_weekly_range\\ntitle: ETH weekly range\\ntype: table\\nquery: |\\n  SELECT …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H5_etf_digest",
+      "rep": 1,
+      "seconds": 6.9589832000000005,
+      "turns": 11,
+      "requests": 4,
+      "prompt_tokens": 14841,
+      "input_tokens": 4601,
+      "cache_read_tokens": 10240,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5723,
+      "output_tokens": 227,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H5_etf_digest",
+      "rep": 2,
+      "seconds": 8.9039769,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 26031,
+      "input_tokens": 12719,
+      "cache_read_tokens": 13312,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6087,
+      "output_tokens": 564,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H5_etf_digest",
+      "rep": 3,
+      "seconds": 11.0788067,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 26031,
+      "input_tokens": 12719,
+      "cache_read_tokens": 13312,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6087,
+      "output_tokens": 571,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H5_etf_digest",
+      "rep": 4,
+      "seconds": 10.5368367,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 26003,
+      "input_tokens": 9491,
+      "cache_read_tokens": 16512,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6073,
+      "output_tokens": 554,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "H5_etf_digest",
+      "rep": 5,
+      "seconds": 11.9797127,
+      "turns": 11,
+      "requests": 5,
+      "prompt_tokens": 25935,
+      "input_tokens": 7375,
+      "cache_read_tokens": 18560,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6031,
+      "output_tokens": 513,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    }
+  ]
+}

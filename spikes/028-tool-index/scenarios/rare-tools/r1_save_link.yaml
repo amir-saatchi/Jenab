@@ -1,0 +1,13 @@
+id: R1_save_link
+title: Save a link with a note and two tags
+tests: ["tool"]
+context: main
+why: save_link once, with the url, the title, the note and both tags as an array.
+messages:
+  - text: "Save https://example.org/learn/halving to our resources as 'Halving explained', with the note 'good intro for new readers', tagged btc and education."
+asserts:
+  - {type: tool_called, test: tool, tool: save_link, args_match: 'example\.org/learn/halving'}
+  - {type: tool_called, test: tool, tool: save_link, args_match: '"tags":\s*\[[^\]]*"btc"[^\]]*\]'}
+  - {type: tool_called, test: tool, tool: save_link, args_match: '"tags":\s*\[[^\]]*"education"[^\]]*\]'}
+  - {type: tool_called, test: tool, tool: save_link, args_match: '(?i)good intro for new readers'}
+  - {type: max_calls, test: info, tool: save_link, n: 1}

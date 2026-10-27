@@ -1,0 +1,30 @@
+# R3_read_feed
+
+Read a feed and answer from its items
+
+Good behaviour: read_feed on the feed, then an answer from its items (the $1.2 billion inflow).
+
+## Turn 1
+
+**User:** What do the latest items in the feed https://feeds.example/crypto.xml say about ETFs?
+
+> call call_tool→read_feed {"url":"https://feeds.example/crypto.xml"}
+
+> result read_feed:
+> 3 items match (of 25):
+> - 2026-10-05 "Spot Bitcoin ETFs take in $1.2 billion in a week" https://feeds.example/a/101 - Inflows were led by the largest fund; total assets passed $60 billion.
+> - 2026-10-04 "Regulator delays decision on two Solana ETFs" https://feeds.example/a/97 - A decision is now due on 2026-11-20.
+> - 2026-10-02 "ETF outflows hit Ether funds" https://feeds.example/a/90 - Ether ETFs lost $210 million over three days.
+
+**Agent:** The latest items in the feed mention the following about ETFs:
+
+*   **Bitcoin ETFs (2026-10-05):** Spot Bitcoin ETFs saw $1.2 billion in inflows over a week, with total assets exceeding $60 billion.
+*   **Solana ETFs (2026-10-04):** Regulators have delayed decisions on two Solana ETFs until November 20, 2026.
+*   **Ether ETFs (2026-10-02):** Ether ETFs experienced outflows of $210 million over a three-day period.
+
+## Requests
+
+| # | input | cache read | cache write | output | stop | took | error |
+|---|---|---|---|---|---|---|---|
+| 1 | 2107 | 0 | 0 | 114 | tool_use | 1.6 s |  |
+| 2 | 2398 | 0 | 0 | 359 | end | 1.6 s |  |

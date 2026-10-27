@@ -1,0 +1,35 @@
+# Turn 4, past the cut: the Monday digest the follow-up paraphrases as a
+# "weekly roundup". Its topic (ETF stories) and size (five) are only here.
+at: 4
+turn:
+  user: "Every Monday at 08:00 UTC, search the news for Bitcoin ETF stories from the past seven days and save the five newest into btc_news."
+  calls:
+    - name: save_pipeline
+      args:
+        yaml: |
+          version: 1
+          id: btc_digest
+          description: The five newest Bitcoin ETF stories of the past seven days, into btc_news
+          trigger:
+            schedule: "0 8 * * 1"
+            timezone: UTC
+          steps:
+            - id: find
+              use: web.search
+              with:
+                query: Bitcoin ETF
+                source: news
+                freshness: week
+                limit: 5
+            - id: save
+              use: db.insert
+              for_each: ${{ steps.find.results }}
+              with:
+                table: btc_news
+                on_conflict: skip
+                row:
+                  url: ${{ item.url }}
+                  date: ${{ item.date }}
+                  title: ${{ item.title }}
+      result: saved pipeline (revision 1).
+  answer: Saved btc_digest. On Mondays at 08:00 UTC it stores the five newest Bitcoin ETF stories of the past seven days in btc_news.

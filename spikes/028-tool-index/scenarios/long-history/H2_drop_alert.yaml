@@ -1,0 +1,30 @@
+# Turn 3, past the cut: the pipeline the follow-up means.
+at: 3
+turn:
+  user: "Every morning at 06:30 UTC, check whether BTC fell more than 4% since the day before; if it did, add a row to price_alerts with the date and the drop."
+  calls:
+    - name: save_pipeline
+      args:
+        yaml: |
+          version: 1
+          id: btc_drop_alert
+          description: A row in price_alerts when BTC fell more than 4% since the day before
+          trigger:
+            schedule: "30 6 * * *"
+            timezone: UTC
+          steps:
+            - id: last_two
+              use: db.query
+              with:
+                sql: SELECT date, price FROM btc_prices ORDER BY date DESC LIMIT 2
+            - id: save_alert
+              use: db.insert
+              if: ${{ steps.last_two.rows[0].price < steps.last_two.rows[1].price * 0.96 }}
+              with:
+                table: price_alerts
+                row:
+                  coin: BTC
+                  date: ${{ steps.last_two.rows[0].date }}
+                  drop_pct: ${{ (1 - steps.last_two.rows[0].price / steps.last_two.rows[1].price) * 100 }}
+      result: saved pipeline (revision 1).
+  answer: Saved btc_drop_alert. Every day at 06:30 UTC it compares the last two BTC prices and adds a row to price_alerts when the fall is more than 4%.

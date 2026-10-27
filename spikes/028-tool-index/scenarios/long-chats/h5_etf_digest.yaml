@@ -1,0 +1,18 @@
+id: H5_etf_digest
+title: The Monday news digest, for ETH (paraphrase, few shared words)
+tests: ["history"]
+context: main
+why: >-
+  Turn 4, past the cut, built btc_digest: on Mondays at 08:00 UTC, the five
+  newest Bitcoin ETF stories of the past seven days into btc_news. The
+  follow-up calls it a "weekly roundup"; a good answer finds turn 4 and
+  saves the same pipeline for Ether ETF stories into eth_news, five of
+  them.
+messages:
+  - text: "Could Ether get that weekly roundup too? Store it in eth_news."
+asserts:
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: 'eth_news'}
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: '(?i)etf'}
+  - {type: tool_called, test: history, turn: "11", tool: save_pipeline, args_match: '\b5\b|(?i)five'}
+  - {type: tool_called, test: info, turn: "11", tool: save_pipeline, args_match: '0 8 \* \* 1'}
+  - {type: tool_called, test: info, turn: "11", tools: [search_history, read_messages]}

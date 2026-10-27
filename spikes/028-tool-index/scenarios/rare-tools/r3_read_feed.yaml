@@ -1,0 +1,11 @@
+id: R3_read_feed
+title: Read a feed and answer from its items
+tests: ["tool"]
+context: main
+why: read_feed on the feed, then an answer from its items (the $1.2 billion inflow).
+messages:
+  - text: "What do the latest items in the feed https://feeds.example/crypto.xml say about ETFs?"
+asserts:
+  - {type: tool_called, test: tool, tool: read_feed, args_match: 'feeds\.example/crypto\.xml'}
+  - {type: tool_not_called, test: tool, tool: web_search}
+  - {type: answer_contains, test: tool, final: true, match: '1[.,]2 ?(billion|bn|B)'}

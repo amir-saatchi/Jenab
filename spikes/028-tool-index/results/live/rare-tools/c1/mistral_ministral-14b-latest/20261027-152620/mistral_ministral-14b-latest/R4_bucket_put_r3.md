@@ -1,0 +1,23 @@
+# R4_bucket_put
+
+Store a note in the project files
+
+Good behaviour: bucket_put with the key and the text as content.
+
+## Turn 1
+
+**User:** Store this note in the project files as notes/halving.md: The block reward halves every 210,000 blocks, about every four years.
+
+> call bucket_put {"key":"notes/halving.md","content":"The block reward halves every 210,000 blocks, about every four years."}
+
+> result bucket_put:
+> Stored notes/halving.md: version 1, text/markdown, 69 B. Link: jenab://01M5YZHZ4S9JD1XAPX75SNBVF2/notes/halving.md
+
+**Agent:** The note is stored at [notes/halving.md](jenab://01M5YZHZ4S9JD1XAPX75SNBVF2/notes/halving.md).
+
+## Requests
+
+| # | input | cache read | cache write | output | stop | took | error |
+|---|---|---|---|---|---|---|---|
+| 1 | 3854 | 0 | 0 | 40 | tool_use | 1.6 s |  |
+| 2 | 240 | 3712 | 0 | 46 | end | 1.4 s |  |

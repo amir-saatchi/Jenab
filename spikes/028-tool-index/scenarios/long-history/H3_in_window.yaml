@@ -1,0 +1,22 @@
+# Turn 9, in the window: the chart the follow-up means.
+at: 9
+turn:
+  user: "Make a scatter chart of the BTC price against the number of news items each day, titled 'Price vs news'."
+  calls:
+    - name: save_view
+      args:
+        yaml: |
+          version: 1
+          id: btc_price_news
+          title: Price vs news
+          type: chart
+          chart_type: scatter
+          query: |
+            SELECT p.date, p.price, COUNT(n.url) AS news
+            FROM btc_prices p LEFT JOIN btc_news n ON n.date = p.date
+            GROUP BY p.date
+          x: { field: news, label: "News items" }
+          y:
+            - { field: price, label: "Price (USD)" }
+      result: saved view (revision 1).
+  answer: Saved btc_price_news, "Price vs news", a scatter chart with one point per day.

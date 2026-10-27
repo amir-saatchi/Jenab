@@ -1,0 +1,33 @@
+# Turn 5, past the cut: the weekly view the follow-up paraphrases as a
+# "per-week spread". Its details (Low/High/Close, the last 12 weeks) are
+# only here.
+at: 5
+turn:
+  user: "Make a table view btc_weekly_range: one row per week of the last 12 weeks, with the lowest, the highest and the last BTC price of the week, as columns Low, High and Close."
+  calls:
+    - name: save_view
+      args:
+        yaml: |
+          version: 1
+          id: btc_weekly_range
+          title: BTC weekly range
+          type: table
+          query: |
+            SELECT strftime('%Y-%W', date) AS week,
+                   MIN(price) AS low,
+                   MAX(price) AS high,
+                   (SELECT p2.price FROM btc_prices p2
+                     WHERE strftime('%Y-%W', p2.date) = strftime('%Y-%W', p.date)
+                     ORDER BY p2.date DESC LIMIT 1) AS close
+            FROM btc_prices p
+            WHERE date >= date('now', '-84 days')
+            GROUP BY week
+            ORDER BY week DESC
+          default_sort: { field: week, direction: desc }
+          columns:
+            - { field: week, label: "Week" }
+            - { field: low, label: "Low", format: number }
+            - { field: high, label: "High", format: number }
+            - { field: close, label: "Close", format: number }
+      result: saved view (revision 1).
+  answer: Saved btc_weekly_range. It shows the last 12 weeks, newest first, with each week's Low, High and Close.

@@ -1,0 +1,22 @@
+# Turn 2, past the cut: the chart the follow-up names.
+at: 2
+turn:
+  user: "Build a bar chart of the 14-day average BTC price over the last 180 days, with the y axis labelled 'Avg price (USD, 14d)'."
+  calls:
+    - name: save_view
+      args:
+        yaml: |
+          version: 1
+          id: btc_avg14_chart
+          title: BTC 14-day average
+          type: chart
+          chart_type: bar
+          query: |
+            SELECT date, AVG(price) OVER (ORDER BY date ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) AS avg_price
+            FROM btc_prices
+            WHERE date >= date('now', '-180 day')
+          x: { field: date, label: "Date", format: date }
+          y:
+            - { field: avg_price, label: "Avg price (USD, 14d)" }
+      result: saved view (revision 1).
+  answer: Saved btc_avg14_chart, "BTC 14-day average". Each bar is the average of the 14 days up to that date, over the last 180 days.
