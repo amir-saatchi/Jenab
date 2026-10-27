@@ -66,8 +66,9 @@
 | [TASK-023](TASK-023-wails-3-stable.md) | Move to Wails v3.0.0 and Go 1.26.10 | Task | Done | 3 |
 | [TASK-024](TASK-024-spike-037-part-b-out.md) | Move SPIKE-037's Part B out of the app | Task | Done | 3 |
 | [TASK-025](TASK-025-live-answer.md) | A live answer | Task | Open (needs finish turns) | 3 |
-| [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Open | 3 |
+| [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Done | 3 |
 | [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Open | 3 |
+| [TASK-028](TASK-028-memory-mark-in-window.md) | Keep the untrusted mark for memory edits while the content is in the window | Task | Open | 3 |
 
 ## Phase 1
 
@@ -110,7 +111,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-07](P2-07-schema-skills-and-checks.md) | Schema skills and model checks | P2-06, TASK-013 | Done |
 | [P2-08](P2-08-project-card.md) | Project card | P2-04 | Done |
 | [P2-09](P2-09-memory.md) | User and project memory | P2-02, P2-03 | Done |
-| [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09 | Open |
+| [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09 | Done |
 | [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Open |
 | [P2-12](P2-12-export.md) | Export a project | P1-04 | Done |
 | [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Open |

@@ -19,6 +19,12 @@ A button per chat makes memory and the session notes hold everything important f
 - **Cost:** the estimated tokens are shown before a long chat's refresh starts.
 - **Stopping:** a refresh can be cancelled; nothing is applied until the merge finishes.
 
+- **From P2-10** (`SaveSummary` exists, but nothing calls it yet):
+  - When the notes are near the cap, a summary is refused with the notes' cap error, and nothing yet shortens the notes to make room.
+  - The "over the cap but shorter than before" rule applies to `SaveNotes` only.
+  - *Clear* deletes the row, so the revision goes back to 0. A refresh holding an older revision could match by chance.
+  - A summary save bumps the chat's `seq`, but no event tells the UI yet.
+
 ## Done when
 - Tests with `provider/fake`: the split boundaries, a second refresh reading only new turns, the approval at Strict and for a user's section, undo of the batch, cancel before apply.
 - A scenario on the reference models: a 30-turn chat refreshed, then a new chat answers questions about it from memory alone, with the answers checked.

@@ -151,10 +151,10 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 
 | Table | Holds |
 |---|---|
-| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence |
+| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
 | `messages` | ID, chat_id, turn number, role (`user`, `assistant`, `tool`), model, token counts, created_at |
 | `message_parts` | message_id, seq, type (`text`, `thinking`, `tool_call`, `tool_result`, `image`, `notice`, `approval`, `question` (8.8)), content, `ref` to a bucket object for large outputs, preview |
-| `session_notes` | chat_id, content, revision, updated_at (3.4) |
+| `session_notes` | chat_id, content (the agent's notes), summary (written by *Refresh memory*), revision, updated_at (3.4) |
 | `review_chunks` | Results of *Refresh memory* per message range (3.5) |
 | `role_changes` | Each role change: before, after, source and time (8.6) |
 | `messages_fts` | FTS5 index over text parts, used by `search_history`. See the full-text search rules below |
@@ -382,6 +382,9 @@ Both are organized in named sections. Default sections: `goals`, `preferences`, 
 - If the section's revision has changed since the agent read it, the edit is rejected and the current content is returned, so the agent can merge.
 - Empty content deletes the section. Edits that exceed the size cap are rejected.
 - **After untrusted content:** if the turn has read untrusted content (web pages, files, MCP results) since the user's message, an agent's edit asks first, with an approval card showing the section before and after (8.8). A planted line saved to memory would reach every later chat.
+  - The card opens with only the added and removed lines, in full, so a long section can't hide a planted line. The whole section folds open below.
+  - An edit that a write in between has made stale is refused before the card, so the card always shows what gets saved.
+  - Known gap: the mark clears at the user's next message, though the page may still be in the window. TASK-028 keeps it for memory edits.
 - Each edit shows a chip in the chat: `Memory updated: preferences [undo] [edit]`.
 - **Undo:** user memory lives in `registry.db`, so its before-content is kept there (`user_memory_changes`), and the project's change log entry points to it. Undo is refused if the section changed since (P2-09).
 
@@ -392,6 +395,13 @@ Both are organized in named sections. Default sections: `goals`, `preferences`, 
 One per chat, stored in `chats.db`, capped at 2,500 tokens. This includes a `summary` section of at most 1,000 tokens, written by *Refresh memory* (3.5). They hold the current task, the plan, open questions and decisions not yet confirmed. The agent maintains them with `update_session_notes` (same revision rule as memory), and *Refresh memory* updates them. They are deleted with the chat.
 
 Where information goes: *Would a new chat in this project need it?* Then project memory. *Only this conversation?* Then session notes.
+
+- **Context:** block 5, rebuilt at each cut: `Session notes of this chat, revision N:`, then the `[summary, written by Refresh memory]` and `[notes]` sections. Edits between cuts are already in the turn as the tool call, so there is no notice.
+- **The summary is separate:** only *Refresh memory* writes it. When the agent copies the block back, the first line, the section headers and an unchanged copy of the summary are dropped; a changed summary is refused. The agent's own lines and headings are kept.
+- **Caps:** both sections count towards 2,500 tokens. As with memory, a save over the cap but shorter than before goes through. The tool description gives no cap number; the refusal does.
+- **Who writes:** the main agent and *Refresh memory*. Subagents don't get the tool, and an agent's edit never asks, since the notes reach only this chat.
+- **UI:** a *Notes* button in the chat header opens them read-only.
+- *Clear* empties them.
 
 ### 3.5 Refresh memory
 
