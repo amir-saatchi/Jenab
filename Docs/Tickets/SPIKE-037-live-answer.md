@@ -98,7 +98,7 @@ Rules:
 - A free tier's failures (rate limits, quota) are recorded and that model stops; there are no workarounds for them.
 
 ## Setup
-- **Harness:** `spikes/037-live-answer/`, running the app's real orchestrator (`internal/agent`) with the `multi-part` fake tools and a fake world for the jobs chat. A transcript per run.
+- **Harness:** `spikes/037-live-answer/`, running the app's real orchestrator (`internal/agent`) with the `multi-part` fake tools and a fake world for the jobs chat. A transcript per run. Part B's code is in `spikes/037-live-answer/earlier.go`, behind `Deps.Earlier` (TASK-024).
 - **App code:** both parts change what the loop does: where a finish turn's answer goes, and what `shape` keeps of earlier turns. Like SPIKE-032's `Grounding`, they need spike-only hooks in `Deps`. They are agreed with the user before the harness is written.
 - **Part A's UI** (the folded chain, revisions, "updating") is not built here. The spike measures the model's side; a mockup can follow if the result is a yes.
 - **Safety:** keys come from `.env` and stay in memory. Only synthetic text is sent.

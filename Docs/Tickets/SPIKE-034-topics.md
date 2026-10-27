@@ -1,6 +1,6 @@
 # SPIKE-034 — Topics: threads inside a chat, with their own notes and history
 **Type:** Spike
-**Status:** Open
+**Status:** Deferred
 **Gate:** 3
 
 ## Question
@@ -115,3 +115,6 @@ Each condition has results per model, with 3 reps per cell: 2 chats × 4 conditi
 - whether report-up gets its own round
 
 ## Result
+
+## Decision
+**Deferred (2026-10-27):** topics stay out of the app for now, together with SPIKE-029's subjects. Round 2 ran on gemma and ministral; the Gemini runs were not done. Its harness, results and the `Deps.Notices` hook are on branch `claude/spike-034-topics-1fc440`, not merged.

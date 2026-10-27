@@ -1,6 +1,6 @@
 # SPIKE-029 — Subjects: a chat's work, kept as objects
 **Type:** Spike
-**Status:** In progress (rounds 1–3 done; decisions proposed)
+**Status:** Deferred (rounds 1–3 done)
 **Gate:** 3
 
 ## Question
@@ -122,3 +122,6 @@ The status check doesn't apply to C. A goal with several parts has no single sta
 - The other round 2 decisions stand.
 
 This combined design hasn't been run as a whole. A round 4 on condition 3 would be 12 runs.
+
+## Decision
+**Deferred (2026-10-27):** subjects stay out of the app for now, together with SPIKE-034's topics. P2-10 builds session notes as the SPEC has them. The results above stay for when this is taken up again.
