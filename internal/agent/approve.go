@@ -86,12 +86,6 @@ func levelDecision(l project.Level, kind string, untrusted bool) decision {
 	}
 }
 
-// auto reports whether level l approves an approval of kind without
-// asking.
-func auto(l project.Level, kind string, untrusted bool) bool {
-	return levelDecision(l, kind, untrusted) == autoApprove
-}
-
 // approve splits a call's approvals in one place: those already given
 // are dropped, and the level and the turn's untrusted mark decide which of
 // the rest are approved without asking (8.8).

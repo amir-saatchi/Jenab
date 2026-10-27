@@ -248,7 +248,7 @@ func TestRetryNowIsNotAFailure(t *testing.T) {
 		if len(rs) != 2 {
 			t.Fatalf("retries %+v, want two", rs)
 		}
-		if wait := rs[1].At.Sub(time.Now()); wait < 10*time.Second || wait > 12*time.Second {
+		if wait := time.Until(rs[1].At); wait < 10*time.Second || wait > 12*time.Second {
 			t.Errorf("second wait %s, want 10 to 12 s", wait)
 		}
 		h.wait()

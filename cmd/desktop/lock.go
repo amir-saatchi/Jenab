@@ -11,6 +11,8 @@ import (
 
 // errRunning is returned by lockRoot when another copy of the app holds
 // the lock.
+//
+//lint:ignore ST1005 the message starts with the app's name
 var errRunning = errors.New(appinfo.Name + " is already running")
 
 // lockRoot takes the app folder's lock, so only one copy of the app runs:
