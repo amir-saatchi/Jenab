@@ -134,7 +134,7 @@ type objects struct{ h http.Handler }
 func (o *objects) ServeHTTP(w http.ResponseWriter, r *http.Request) { o.h.ServeHTTP(w, r) }
 
 // OnShutdown runs fn when the app quits, after the window is hidden, so a
-// slow quit doesn't show a frozen window. fn should be a Shutdown's Run.
+// slow quit doesn't show a frozen window. fn should be cmd/desktop's Shutdown.Run.
 func (a *App) OnShutdown(fn func()) {
 	a.w.OnShutdown(func() {
 		if a.main != nil {

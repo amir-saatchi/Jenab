@@ -92,14 +92,14 @@ func run(args []string) error {
 
     wapp.Bind(app.Services{Orchestrator: orch, Runner: runner, Projects: projects, Registry: registry, Models: models, Secrets: secrets, Settings: live, Traces: traces, Logs: paths.Logs, Updates: upd, Log: log})
     wapp.OnStart(func(ctx context.Context) { go sched.Run(ctx); go upd.Run(ctx) }) // owned by the app root (Q15)
-    wapp.OnShutdown(app.Shutdown{Refuse: {sched.Stop, orch.Refuse}, Cancel: cancel, Wait: {orch.Wait, runner.Wait}, Close: projects.CloseAll, Log: log}.Run) // Q30
+    wapp.OnShutdown(Shutdown{Refuse: {sched.Stop, orch.Refuse}, Cancel: cancel, Wait: {orch.Wait, runner.Wait}, Close: projects.CloseAll, Log: log}.Run) // Q30
     return wapp.Run()
 }
 ```
 
 `wapp.OnShutdown` hides the window, then runs the function on Wails' `OnShutdown`. `wapp.OnStart` comes with the scheduler (Phase 3), over a Wails service startup hook.
 
-`app.Shutdown.Run` runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged.
+`Shutdown.Run` (cmd/desktop/shutdown.go) runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged. Past 10 s plus 2 s it calls `Exit` (nil: `os.Exit(1)`), for a step that ignores its deadline.
 
 ## 3. Bottom packages
 
@@ -883,9 +883,6 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 
 type Publisher struct { … }               // implements agent and project Publisher with Event.Emit
 func objectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener that leases the project per request
-
-type Shutdown struct { Refuse []func(); Cancel func(); Wait []func(context.Context) error; Close func(context.Context) error; Log *slog.Logger; Exit func() }
-func (s Shutdown) Run() error             // the Q30 order within 10 s; past it plus 2 s, Exit (nil: os.Exit(1))
 ```
 
 ```go

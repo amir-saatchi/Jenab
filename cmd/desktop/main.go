@@ -144,7 +144,7 @@ func run(_ []string) (err error) {
 	var once sync.Once
 	shutdown := func() {
 		once.Do(func() {
-			_ = app.Shutdown{ // logged inside
+			_ = Shutdown{ // logged inside
 				Refuse: []func(){orch.Refuse},
 				Cancel: cancel,
 				Wait:   []func(context.Context) error{orch.Wait},

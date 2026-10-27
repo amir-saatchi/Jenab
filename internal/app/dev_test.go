@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -180,5 +182,31 @@ func TestCacheHits(t *testing.T) {
 	}
 	if got := cacheHits(bs, chat.Usage{}); got[0] != "" {
 		t.Errorf("no usage: %v", got)
+	}
+}
+
+func TestDevLog(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	if err := os.MkdirAll(e.paths.Logs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	line := "time=x level=ERROR msg=failed key=" + testKey + "\n"
+	if err := os.WriteFile(filepath.Join(e.paths.Logs, "jenab.log"), []byte("first\n"+line), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The store redacts the keys it has read, as a provider call does.
+	if _, err := e.secrets.Get(provider.KeyName("p")); err != nil {
+		t.Fatal(err)
+	}
+	lines, err := e.svc.Dev.Log(ctx, "failed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 1 || strings.Contains(lines[0], testKey) {
+		t.Errorf("Log = %q", lines)
+	}
+	if ps, err := e.svc.Dev.Providers(ctx); err != nil || len(ps) != 1 {
+		t.Errorf("Providers = %+v, %v", ps, err)
 	}
 }
