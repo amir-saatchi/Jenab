@@ -73,9 +73,11 @@ type Deps struct {
 	// user's view. The request stays append-only. Spike-only: the app
 	// leaves it off.
 	LiveAnswer bool
-	// EarlierTurns is SPIKE-037's Part B: what a request keeps of earlier
-	// turns. Spike-only: the app's zero value is today's window.
-	EarlierTurns EarlierTurns
+	// Earlier is SPIKE-037's Part B: it gets a request's messages and the
+	// current turn, and returns what the request keeps of earlier turns.
+	// Spike-only: the spike's harness sets it to compare its conditions;
+	// the app leaves it nil, today's window.
+	Earlier func(ms []chat.Message, cur int) []chat.Message
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

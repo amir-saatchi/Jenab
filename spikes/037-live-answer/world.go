@@ -238,7 +238,7 @@ func thousands(n int) string {
 }
 
 // traceLine is each tool's trace entry (SPIKE-037's trace variant): its
-// main argument and what it made. Tools not listed take the agent's
+// main argument and what it made. Tools not listed take earlier.go's
 // default, the first string argument and the result's ref.
 func traceLine(name string, args json.RawMessage, result string) (main, made string) {
 	var m map[string]any

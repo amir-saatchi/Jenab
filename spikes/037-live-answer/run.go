@@ -225,15 +225,15 @@ func (r *run) play(ctx context.Context, res *runResult) error {
 	}
 	switch r.j.Cond {
 	case condAnswers:
-		d.EarlierTurns.Mode = agent.EarlierAnswers
+		d.Earlier = earlierTurns{}.earlier
 	case condTrace:
-		d.EarlierTurns = agent.EarlierTurns{Mode: agent.EarlierTrace, Line: func(c chat.ToolCall, res *chat.ToolResult) (string, string) {
+		d.Earlier = earlierTurns{trace: true, line: func(c chat.ToolCall, res *chat.ToolResult) (string, string) {
 			text := ""
 			if res != nil {
 				text = res.Text
 			}
 			return traceLine(c.Name, c.Args, text)
-		}}
+		}}.earlier
 	}
 	if r.td.Part == "B" {
 		d.Card = func(context.Context, *project.Project) (string, error) { return r.w.card(), nil }

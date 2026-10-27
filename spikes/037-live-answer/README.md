@@ -24,13 +24,17 @@ provider.
   computed by the scorer, as the design says Go would: a finish turn
   replaces its request's answer while no user message came since, else it
   goes below; a finish turn with no text leaves it.
-- `Deps.EarlierTurns` (Part B): what `shape` gets of turns before the
-  current one: today's window, answers only (the user's messages and the
-  turn's last text part), or answers with a trace line per tool, written
-  by Go (`internal/agent/live.go`). The harness gives each tool's main
-  argument and what it made (`traceLine` in `world.go`).
+- `Deps.Earlier` (Part B): a hook that gets a request's messages and the
+  current turn and returns what `shape` gets of the turns before it. Nil
+  is today's window. The harness sets it to answers only (the user's
+  messages and the turn's last text part) or answers with a trace line
+  per tool, written by Go (`earlier.go` here, tested in
+  `earlier_test.go`). It gives each tool's main argument and what it made
+  (`traceLine` in `world.go`).
 
 The app's zero values keep today's loop; `go test ./internal/...` passes.
+`spikes/` is outside `./...`, so build and test this one by its path:
+`go test ./spikes/037-live-answer/`.
 
 ## What is faked
 
@@ -51,6 +55,8 @@ The app's zero values keep today's loop; `go test ./internal/...` passes.
 ## Files
 
 - `parta.go`: Part A's 8 tests. `partb.go`: Part B's two chats and checks.
+- `earlier.go`: Part B's conditions, set on the orchestrator through
+  `Deps.Earlier`.
 - `run.go`: one run: project, chat, orchestrator, the scheduler, and the
   record of turns, calls and requests (from the traces).
 - `score.go`, `report.go`: the measures and `results.md` tables; a
