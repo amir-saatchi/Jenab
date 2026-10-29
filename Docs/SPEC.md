@@ -381,12 +381,12 @@ Both are organized in named sections. Default sections: `goals`, `preferences`, 
 - Writes go through the writer queue as interactive requests and are recorded in the change log.
 - If the section's revision has changed since the agent read it, the edit is rejected and the current content is returned, so the agent can merge.
 - Empty content deletes the section. Edits that exceed the size cap are rejected.
-- **After untrusted content:** while a turn whose tool results hold untrusted content (web pages, files, MCP results) is still in the history window (3.6), an agent's edit asks first, with an approval card showing the section before and after (8.8). The user's next message doesn't clear this; the cut that drops that turn does, and a cut that keeps the turn as stubs doesn't. A planted line saved to memory would reach every later chat.
-  - The card opens with only the added and removed lines, in full, so a long section can't hide a planted line. The whole section folds open below.
-  - An edit that a write in between has made stale is refused before the card, so the card always shows what gets saved.
+- **After untrusted content:** an agent's edit doesn't ask at Standard and Auto (8.8), as in other assistants: a card the user can't judge protects nothing. While a turn whose tool results hold untrusted content (web pages, files, MCP results) is still in the history window (3.6), the edit's chip has a line under it: "From a chat that read web pages, files or MCP results". The user's next message doesn't clear this; the cut that drops that turn does, and a cut that keeps the turn as stubs doesn't.
+  - The line is stored with the chip, so it shows the same after a restart. The model doesn't read it.
   - After a restart, the turn is found again among the turns the first cut keeps.
-  - Known limit: the agent can copy a planted line into its session notes (3.4), which survive a cut.
-- Each edit shows a chip in the chat: `Memory updated: preferences [undo] [edit]`.
+  - At Strict, the edit asks first with an approval card. It opens with only the added and removed lines, in full, so a long section can't hide a planted line; the whole section folds open below. An edit that a write in between has made stale is refused before the card, so the card always shows what gets saved.
+  - Known limit: a planted line can reach memory, where it reaches every later chat. The chip's line and *undo* are how the user catches it. The agent can also copy a planted line into its session notes (3.4), which survive a cut.
+- Each saved edit shows a chip in the chat: `Memory updated: preferences [undo] [edit]`, with the line under it when it applies.
 - **Undo:** user memory lives in `registry.db`, so its before-content is kept there (`user_memory_changes`), and the project's change log entry points to it. Undo is refused if the section changed since (P2-09).
 
 **Who writes:** main agents in chats, the user, and *Refresh memory* (3.5). Subagents, pipelines and the schema agent do not.
@@ -419,8 +419,9 @@ A button per chat, in the chat header. It makes sure memory and session notes ho
 3. **Merge and compare.** One LLM call merges the items in chat order (later items replace earlier items on the same subject, duplicates are removed, items that state data values are dropped) and compares them with the current user memory, project memory and session notes. Each item is labeled `present`, `missing`, `contradicts` or `outdated`. The same call rewrites the `summary` section of the session notes (3.4): what was done, what was decided, what is still open.
    Chat-scope items (progress, open questions) only go into the summary. Both calls answer JSON text with the schema in the prompt, the same for every model; a wrong answer gets one retry that lists what was wrong (SPIKE-030). The merge returns the full new content of each section it changes.
 4. **Apply.** Go reads memory again after the merge. It drops an edit whose section changed meanwhile or that would go over a cap, and names it on the chip. The rest are written as normal memory edits (3.3) with source `refresh:<chat_id>`. One chip shows them: `Memory refreshed: 3 added, 1 changed · view changes · undo`. *View changes* shows the diff per section. *Undo* reverts the whole batch, or nothing if a section changed since; then it names that section.
-   - **Asking first:** one approval card for the batch, *Save* or *Deny*, with the diff per section (8.8). It asks at Strict; when an edit changes, deletes or brings back a section whose last edit was made by the user; and, at every level, when the reviewed turns or the context turn hold results of tools that read untrusted content (web pages, files, MCP), with a line saying why. A refresh that writes only the summary doesn't ask.
-   - *Deny*, or a message sent while the card waits, writes no memory. The summary is still saved, the cut happens and progress moves on.
+   - **Asking first:** only at Strict, with one approval card for the batch, *Save* or *Deny*, and the diff per section (8.8). Standard and Auto save without asking.
+   - **The chip's line:** "From a chat that read web pages, files or MCP results" when the reviewed turns or the context turn hold results of tools that read untrusted content; "Changed a section you wrote" when a saved edit changes, deletes or brings back a section whose last edit was made by the user. When both apply, one line says both. A batch that saved no edit has no line.
+   - At Strict, *Deny*, or a message sent while the card waits, writes no memory. The summary is still saved, the cut happens and progress moves on.
    - When the session notes have no room left, no summary is written, and the chip says so.
 5. **Cut.** A cut of the history window follows (3.6): the chat keeps its last `history_min_turns` turns, and blocks 2–5 are rebuilt with the new memory, card and notes. Older turns stay reachable through `search_history`.
 6. **Save progress.** `memory_reviewed_up_to` moves forward, and chunk results are saved in `review_chunks` as each call ends, so the next refresh only reads new messages and a cancelled one doesn't pay for finished chunks again. *Full refresh* reviews the whole chat and drops the saved chunks when it finishes.
@@ -1852,8 +1853,8 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A connection (6.9) | Save, Cancel | Title, host, where the key goes, and the key field |
 | An MCP tool (8.7) | Once, Always in this project, Deny | Server, tool and arguments |
 | A command (Phase 6, 8.5) | Once, Always for this pattern, Deny | The command and the folder |
-| A memory edit after untrusted content (3.3) | Save, Deny | The section, before and after |
-| A *Refresh memory* batch (3.5) | Save, Deny | Each section, before and after, and why it asks |
+| A memory edit at Strict (3.3) | Save, Deny | The section, before and after |
+| A *Refresh memory* batch at Strict (3.5) | Save, Deny | Each section, before and after |
 
 - **Content:** what is asked, why (one line from the agent) and the risk. Details expand.
 - **Options:** each one grants *Once*, *Always* or *Deny*. *Always* appears only where the rules allow it, and the project isn't asked again. *Deny* can carry a short note, which goes back to the agent with the result.
@@ -1876,8 +1877,8 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A schema change that deletes nothing | Ask | No ask | No ask |
 | A destructive migration | Ask | Ask | Ask |
 | Saving a pipeline with a schedule | Ask | No ask | No ask |
-| A *Refresh memory* edit (3.5) | Ask | No ask; asks if it changes or brings back a section the user wrote, or after untrusted content | Same as Standard |
-| An agent's memory edit (3.3) | Ask | No ask; asks while untrusted content is in the window | Same as Standard |
+| A *Refresh memory* edit (3.5) | Ask | No ask; the chip says when the chat read untrusted content or an edit changed a section the user wrote | Same as Standard |
+| An agent's memory edit (3.3) | Ask | No ask; the chip says when untrusted content is in the window | Same as Standard |
 | Starlark code | Ask | Ask | Auto |
 | An MCP tool that only reads | Ask on first use | Ask on first use; *Always* allowed | Auto |
 | An MCP tool that changes something | Ask every time; no *Always* | Ask; *Always* allowed, except a tool that deletes or reaches outside after untrusted content (8.7) | Auto* |
