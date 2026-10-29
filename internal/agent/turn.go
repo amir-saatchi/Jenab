@@ -644,7 +644,8 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	res, err := r.safeRun(ctx, tl, call)
 	if needs.Effects&tool.Untrusted != 0 {
 		// Outside data entered the turn: Auto asks again until the user's
-		// next turn (8.8), and memory edits until the cut that drops it (3.3).
+		// next turn (8.8), and memory chips say so until the cut that drops
+		// it (3.3).
 		r.readOutside(t.n)
 	}
 	if err != nil && ctx.Err() != nil {
@@ -666,6 +667,11 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 			parts = append(parts, chat.Part{Kind: chat.PartImage, Image: &img})
 		}
 		for _, n := range res.Notices {
+			if n.Kind == chat.NoticeMemoryUpdated {
+				// The edit was saved: its chip says when outside data is in
+				// the window, as the edit didn't ask (3.3).
+				n.Note = memoryNote(r.memoryMark(), false)
+			}
 			parts = append(parts, chat.Part{Kind: chat.PartNotice, Notice: &n})
 		}
 	}

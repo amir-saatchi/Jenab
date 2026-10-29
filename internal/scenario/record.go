@@ -36,6 +36,8 @@ type event struct {
 	err    bool // results: an error
 	final  bool // text of an assistant message without tool calls
 	notice chat.NoticeKind
+	note   string // a notice's note, such as a memory chip's line
+	auto   bool   // an approval card the Auto level answered
 	skill  string
 	agent  string // a subagent's name; "" for the chat
 	parent string // a subagent's event: the chat's call that ran it
@@ -125,13 +127,13 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 					}
 				}
 			case p.Approval != nil:
-				e.kind, e.text = evApproval, approvalText(p.Approval)
+				e.kind, e.text, e.auto = evApproval, approvalText(p.Approval), p.Approval.By == id.SourceAuto
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillText:
 				continue // the skill's text, which the chip stands for
 			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillLoaded:
 				e.kind, e.text, e.skill = evSkill, p.Notice.Text, p.Notice.Skill
 			case p.Notice != nil:
-				e.kind, e.text, e.notice = evNotice, p.Notice.Text, p.Notice.Kind
+				e.kind, e.text, e.notice, e.note = evNotice, p.Notice.Text, p.Notice.Kind, p.Notice.Note
 			default:
 				continue
 			}
@@ -268,7 +270,11 @@ func (rec *record) transcript() string {
 			}
 			fmt.Fprintf(&b, "\n> result %s%s:\n> %s\n", e.tool, mark, strings.ReplaceAll(clip(e.text, 600), "\n", "\n> "))
 		case evSkill, evNotice:
-			fmt.Fprintf(&b, "\n*%s*\n", e.text)
+			if e.note != "" {
+				fmt.Fprintf(&b, "\n*%s* (%s)\n", e.text, e.note)
+			} else {
+				fmt.Fprintf(&b, "\n*%s*\n", e.text)
+			}
 		}
 	}
 	rec.groundTranscript(&b)

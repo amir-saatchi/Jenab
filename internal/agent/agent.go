@@ -169,9 +169,9 @@ type chatState struct {
 	// that started the turn, so Auto asks where the rules say so (8.8).
 	// A message that joins the turn leaves it set.
 	untrusted bool
-	// outside is the newest turn with outside data in its results. An
-	// agent's memory edit asks while that turn is in the window, until
-	// the cut that drops it (3.3).
+	// outside is the newest turn with outside data in its results. While
+	// that turn is in the window, until the cut that drops it, an agent's
+	// memory edit has a chip that notes it (3.3).
 	outside  int
 	failed   bool   // the last turn stopped on an error; Retry continues it
 	doing    string // what a tool call shows in the status, such as a long migration (7.5)

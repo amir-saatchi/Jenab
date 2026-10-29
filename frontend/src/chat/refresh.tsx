@@ -26,6 +26,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ChatService, ChatState, type ChatNotice, type RefreshEstimate } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { MemoryEdit, memoryTitle } from "@/chat/cards"
+import { MemoryNote } from "@/chat/parts"
 import { modelName } from "@/chat/composer"
 import { useSettings } from "@/state/settings"
 import { useThreads } from "@/state/thread"
@@ -120,10 +121,10 @@ export function undoChangedText(sections: string[]) {
 }
 
 // RefreshChip is a batch's chip: Memory refreshed: 3 added, 1 changed
-// [view changes] [undo]. Undo reverts the batch's edits together, and Redo
-// puts them back; the backend says whether they are undone, so the chip is
-// right after a reload. A chip without edits, such as a failed refresh's,
-// is a line.
+// [view changes] [undo], with its note under it. Undo reverts the batch's
+// edits together, and Redo puts them back; the backend says whether they
+// are undone, so the chip is right after a reload. A chip without edits,
+// such as a failed refresh's, is a line.
 export function RefreshChip({ project, notice }: { project: string; notice: ChatNotice }) {
   const edits = notice.edits ?? []
   const [undone, setUndone] = React.useState(false)
@@ -170,6 +171,7 @@ export function RefreshChip({ project, notice }: { project: string; notice: Chat
           {undone ? "Redo" : "Undo"}
         </Button>
       </div>
+      <MemoryNote note={notice.note} />
       <CollapsibleContent className="flex flex-col gap-4 rounded-lg border p-3">
         {edits.map((e) => (
           <MemoryEdit key={e.target} title={memoryTitle(e.target)} before={e.before} after={e.after} />

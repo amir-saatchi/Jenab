@@ -140,6 +140,10 @@ type Notice struct {
 	Change string `json:"change,omitempty"`
 	// Edits are a memory_refreshed chip's edits.
 	Edits []MemoryDiff `json:"edits,omitempty"`
+	// Note is a memory chip's line under its text, such as that the edit
+	// came from a chat that read web pages (3.3, 3.5). The model doesn't
+	// get it.
+	Note string `json:"note,omitempty"`
 }
 
 // Approval is an approval card (SPEC 8.8). Kind and Target name what is

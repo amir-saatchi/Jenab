@@ -341,18 +341,50 @@ func TestRefreshStrict(t *testing.T) {
 	})
 }
 
-// At Standard, an edit of a section the user wrote last asks; a message
-// sent while the card waits denies it: memory stays, the summary is
-// saved, the progress moves on, and the message's turn runs after.
+// At Standard, an edit of a section the user wrote last is saved without
+// a card, and the chip says it changed a section the user wrote; an edit
+// of a section the refresh wrote has no note (TASK-030).
 func TestRefreshUserSection(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
 		defer h.stop()
-		h.open(func(p *project.Project) {
-			if _, err := p.DB.UpdateMemory(context.Background(), store.MemoryEdit{Section: "goals", Content: "Mine.", Source: id.SourceUser}); err != nil {
-				t.Fatal(err)
-			}
-		})
+		h.edit("goals", "Mine.", 0)
+		c := h.newChat(chat.Chat{Title: "User's"})
+		h.addTurns(c.ID, 1, 2)
+		h.fp.Push(mapReply(mapItem("goal", "project", "Monthly")), mergeReply(edit("project", "goals", "Monthly.")+", "+edit("project", "plans", "Garden."), "Changed goals."))
+		h.refresh(c.ID, false)
+		h.wait()
+		if got, _ := h.section(store.ScopeProject, "goals"); got != "Monthly." {
+			t.Errorf("goals %q", got)
+		}
+		ms := h.messages(c.ID)
+		if cs := cards(ms); len(cs) != 0 {
+			t.Errorf("cards %+v", cs)
+		}
+		if chips := refreshChips(ms); len(chips) != 1 || chips[0].Text != "Memory refreshed: 1 added, 1 changed" || chips[0].Note != noteUserWrote {
+			t.Errorf("chips %+v", chips)
+		}
+
+		// goals is the refresh's now.
+		h.addTurns(c.ID, 3, 1)
+		h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", "goals", "Weekly."), ""))
+		h.refresh(c.ID, false)
+		h.wait()
+		if chips := refreshChips(h.messages(c.ID)); len(chips) != 2 || chips[1].Text != "Memory refreshed: 1 changed" || chips[1].Note != "" {
+			t.Errorf("chips %+v", chips)
+		}
+	})
+}
+
+// At Strict, a message sent while the card waits denies it: memory stays,
+// the summary is saved, the progress moves on, and the message's turn runs
+// after.
+func TestRefreshMessageDenies(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		h.edit("goals", "Mine.", 0)
+		h.setLevel(project.Strict)
 		c := h.newChat(chat.Chat{Title: "User's"})
 		h.addTurns(c.ID, 1, 2)
 		h.fp.Push(mapReply(mapItem("goal", "project", "Monthly")), mergeReply(edit("project", "goals", "Monthly."), "Changed goals."))
@@ -375,7 +407,7 @@ func TestRefreshUserSection(t *testing.T) {
 		}
 		ms := h.messages(c.ID)
 		chips := refreshChips(ms)
-		if len(chips) != 1 || chips[0].Text != "Memory refresh: the edits were not saved" || len(chips[0].Edits) != 0 {
+		if len(chips) != 1 || chips[0].Text != "Memory refresh: the edits were not saved" || len(chips[0].Edits) != 0 || chips[0].Note != "" {
 			t.Errorf("chips %+v", chips)
 		}
 		if card := cards(ms); len(card) != 1 || card[0].Answer != chat.GrantDeny || card[0].Note != "never mind" {

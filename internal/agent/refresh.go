@@ -27,9 +27,9 @@ import (
 // lists what a later chat should know (map); one call merges the items,
 // compares them with memory, writes the sections' new content and the
 // notes' summary (merge). The edits are applied as one batch with one
-// chip, after a card where the level or a section the user wrote asks for
-// one; then the progress moves on and the chat's next turn cuts its
-// window. Nothing is applied before the merge has finished, so a cancel
+// chip, after a card at Strict; the chip says when the batch came from
+// turns that read untrusted content or changed a section the user wrote.
+// Then the progress moves on and the chat's next turn cuts its window. Nothing is applied before the merge has finished, so a cancel
 // before it changes nothing but the saved chunks.
 //
 // While a refresh runs the chat is busy: a message queues its turn until
@@ -297,8 +297,8 @@ type refreshPlan struct {
 	turns  int
 	chunks []chunk
 	// untrusted: the reviewed turns, or the turn given as context, hold
-	// results of tools that read untrusted content (8.8), so the refresh
-	// asks before it saves edits.
+	// results of tools that read untrusted content (8.8), so the chip says
+	// so.
 	untrusted bool
 }
 
@@ -578,7 +578,7 @@ type mergeEdit struct {
 type plannedEdit struct {
 	scope     store.MemoryScope
 	before    string
-	userWrote bool // the user wrote the section last
+	userWrote bool // the user wrote the section last; the chip says so
 	next      store.MemorySection
 	expected  int
 }
@@ -650,7 +650,7 @@ func (rf *refresh) run(ctx context.Context, cancel context.CancelCauseFunc) {
 	}
 }
 
-// refresh maps, merges, asks if it must, applies and finishes. A Full
+// refresh maps, merges, asks at Strict, applies and finishes. A Full
 // refresh's progress is replaced only when it finishes, so a cancelled
 // one leaves the last.
 func (rf *refresh) refresh(ctx context.Context) error {
@@ -690,7 +690,7 @@ func (rf *refresh) refresh(ctx context.Context) error {
 		dropped = append(dropped, stale...)
 	}
 	if len(edits) > 0 {
-		ask, err := rf.mustAsk(ctx, edits)
+		ask, err := rf.mustAsk(ctx)
 		if err != nil {
 			return err
 		}
@@ -716,17 +716,32 @@ func (rf *refresh) refresh(ctx context.Context) error {
 		applied, skipped = rf.apply(wctx, edits)
 		dropped = append(dropped, skipped...)
 	}
-	if err := rf.finish(wctx, out.Summary, notes, applied, dropped, !approved); err != nil {
-		return &endError{applied: applied, err: err}
+	note := rf.note(edits, applied)
+	if err := rf.finish(wctx, out.Summary, notes, applied, dropped, !approved, note); err != nil {
+		return &endError{applied: applied, note: note, err: err}
 	}
 	return nil
 }
 
+// note is the chip's line for the edits applied: whether the reviewed
+// turns read untrusted content, and whether an edit changed a section the
+// user wrote. A batch that saved no edit has none.
+func (rf *refresh) note(edits []plannedEdit, applied []chat.MemoryDiff) string {
+	if len(applied) == 0 {
+		return ""
+	}
+	wrote := slices.ContainsFunc(edits, func(e plannedEdit) bool {
+		return e.userWrote && slices.ContainsFunc(applied, func(d chat.MemoryDiff) bool { return d.Target == e.next.Target() })
+	})
+	return memoryNote(rf.plan.untrusted, wrote)
+}
+
 // endError is a refresh that failed after the card was answered or the
 // batch was written. Its notice is written though Stop came, and says
-// what changed, with the batch for the undo.
+// what changed, with the batch for the undo and the chip's note.
 type endError struct {
 	applied []chat.MemoryDiff
+	note    string
 	err     error
 }
 
@@ -971,7 +986,8 @@ func (rf *refresh) planEdits(mem []store.MemorySection, edits []mergeEdit) ([]pl
 		all := work[k.scope]
 		rev, before, userWrote := 0, "", false
 		if i := slices.IndexFunc(all, func(m store.MemorySection) bool { return m.Section == k.section }); i >= 0 {
-			// A section the user deleted counts too: bringing it back asks.
+			// A section the user deleted counts too: bringing it back
+			// changes it.
 			rev, before, userWrote = all[i].Revision, all[i].Content, all[i].Source == id.SourceUser
 		}
 		_, next, op, err := store.PlanMemoryEdit(k.scope, all, store.MemoryEdit{Section: k.section, Content: store.UnquoteMemory(e.Content), Expected: rev, Source: rf.source()})
@@ -1133,18 +1149,15 @@ func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, ma
 	}
 }
 
-// mustAsk reports whether the batch needs the user's yes: at Strict,
-// when the reviewed turns read untrusted content (at every level), or
-// when an edit changes a section the user wrote last (SPEC 3.5).
-func (rf *refresh) mustAsk(ctx context.Context, edits []plannedEdit) (bool, error) {
+// mustAsk reports whether the batch needs the user's yes: only at Strict
+// (SPEC 3.5). Standard and Auto save it, and its chip says what the user
+// may want to check.
+func (rf *refresh) mustAsk(ctx context.Context) (bool, error) {
 	level, err := rf.p.Level(ctx)
 	if err != nil {
 		return false, err
 	}
-	if level == project.Strict || rf.plan.untrusted {
-		return true, nil
-	}
-	return slices.ContainsFunc(edits, func(e plannedEdit) bool { return e.userWrote }), nil
+	return level == project.Strict, nil
 }
 
 func diffs(edits []plannedEdit) []chat.MemoryDiff {
@@ -1168,16 +1181,12 @@ func (rf *refresh) confirm(ctx context.Context, edits []plannedEdit) (bool, erro
 	if slices.ContainsFunc(edits, func(e plannedEdit) bool { return e.scope == store.ScopeUser }) {
 		risk = "User memory is in the context of every chat, in all your projects; project memory in every chat of this project."
 	}
-	check := " Check that each edit is what you want kept."
-	if rf.plan.untrusted {
-		check = " This chat read web pages, files or MCP results, so check the changes before they're saved."
-	}
 	a := chat.Approval{
 		ID:      id.Approval(id.New()),
 		Kind:    "memory",
 		Target:  string(rf.source()),
 		Ask:     ask,
-		Risk:    risk + check,
+		Risk:    risk + " Check that each edit is what you want kept.",
 		Edits:   diffs(edits),
 		Options: []chat.ApprovalOption{{Label: "Save", Grant: chat.GrantOnce}, {Label: "Deny", Grant: chat.GrantDeny}},
 	}
@@ -1272,15 +1281,15 @@ func (rf *refresh) apply(ctx context.Context, edits []plannedEdit) ([]chat.Memor
 	return applied, skipped
 }
 
-// finish writes the summary, the progress and the chip, and makes the
-// next turn cut.
-func (rf *refresh) finish(ctx context.Context, newSummary string, notes chat.SessionNote, applied []chat.MemoryDiff, dropped []string, denied bool) error {
+// finish writes the summary, the progress and the chip, with its note,
+// and makes the next turn cut.
+func (rf *refresh) finish(ctx context.Context, newSummary string, notes chat.SessionNote, applied []chat.MemoryDiff, dropped []string, denied bool, note string) error {
 	var summary *string
 	if s := strings.TrimSpace(newSummary); s != "" && s != strings.TrimSpace(notes.Summary) {
 		summary = &s
 	}
 	chip := func(serr error) *chat.Message {
-		n := chat.Notice{Kind: chat.NoticeMemoryRefreshed, Text: chipText(applied, dropped, denied, rf.notesFull, serr), Edits: applied}
+		n := chat.Notice{Kind: chat.NoticeMemoryRefreshed, Text: chipText(applied, dropped, denied, rf.notesFull, serr), Edits: applied, Note: note}
 		return &chat.Message{Chat: rf.plan.ch.ID, Turn: rf.plan.turn, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &n}}}
 	}
 	cs := rf.cs
@@ -1379,7 +1388,7 @@ func (rf *refresh) failed(ctx context.Context, err error) {
 		}
 		n.Text = fmt.Sprintf("Memory refreshed: %s (%s), but the refresh couldn't finish, so the next one reviews these turns again: %v",
 			counts(ee.applied), strings.Join(names, "; "), ee.err)
-		n.Edits = ee.applied
+		n.Edits, n.Note = ee.applied, ee.note
 	}
 	rf.cs.mu.Lock()
 	defer rf.cs.mu.Unlock()

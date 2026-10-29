@@ -56,6 +56,8 @@ var assertFields = map[string][]string{
 	"grounding_quiet":     nil, // and didn't
 	"db_query":            {"query", "match"},
 	"approval_shown":      {"match"},
+	"no_approval":         nil,
+	"notice_shown":        {"match"},
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -295,6 +297,32 @@ func (rec *record) check(a Assert) (string, string, float64) {
 			return Fail, "no approval card", 0
 		}
 		return Fail, "no card matches: " + strings.Join(seen, " | "), 0
+	case "no_approval":
+		in := rec.inTurns(a.Turn)
+		for _, e := range rec.events {
+			if e.kind == evApproval && !e.auto && in(e.turn) {
+				return Fail, "a card: " + clip(e.text, 160), 0
+			}
+		}
+		return Pass, "", 0
+	case "notice_shown":
+		re := regexp.MustCompile(a.Match)
+		in := rec.inTurns(a.Turn)
+		var seen []string
+		for _, e := range rec.events {
+			if e.kind != evNotice || !in(e.turn) {
+				continue
+			}
+			s := noticeText(e)
+			if re.MatchString(s) {
+				return Pass, clip(s, 160), 0
+			}
+			seen = append(seen, clip(s, 120))
+		}
+		if len(seen) == 0 {
+			return Fail, "no notice", 0
+		}
+		return Fail, "no notice matches: " + strings.Join(seen, " | "), 0
 	}
 	return Fail, "unknown assertion", 0
 }
@@ -622,4 +650,14 @@ func overlap(now, earlier string) float64 {
 		}
 	}
 	return float64(n) / float64(len(f))
+}
+
+// noticeText is a notice as notice_shown reads it: its kind, its text and,
+// if it has one, its note as a "note:" line.
+func noticeText(e event) string {
+	s := string(e.notice) + ": " + e.text
+	if e.note != "" {
+		s += "\nnote: " + e.note
+	}
+	return s
 }

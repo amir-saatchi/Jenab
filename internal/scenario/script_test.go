@@ -291,6 +291,32 @@ func TestNoTurnFailed(t *testing.T) {
 	}
 }
 
+// no_approval fails on a card in the selected turns; notice_shown reads a
+// notice's kind, text and note (TASK-030).
+func TestNoticeAndNoApproval(t *testing.T) {
+	sc := &Scenario{set: &Set{}}
+	rec := &record{sc: sc, events: []event{
+		{kind: evApproval, turn: 1, text: "memory: Add project memory, section goals?"},
+		{kind: evApproval, turn: 2, text: "host: Fetch pages from example.com?", auto: true},
+		{kind: evNotice, turn: 2, notice: chat.NoticeMemoryUpdated, text: "Memory updated: goals", note: "From a chat that read web pages"},
+		{kind: evNotice, turn: 3, notice: chat.NoticeMemoryUpdated, text: "Memory updated: plans"},
+	}}
+	for _, c := range []struct {
+		a    Assert
+		want string
+	}{
+		{Assert{Type: "no_approval", Test: "x", Turn: "1"}, Fail},
+		{Assert{Type: "no_approval", Test: "x", Turn: "2"}, Pass},
+		{Assert{Type: "notice_shown", Test: "x", Turn: "2", Match: `^memory_updated: Memory updated: goals\nnote: From a chat`}, Pass},
+		{Assert{Type: "notice_shown", Test: "x", Turn: "3", Match: `\nnote: `}, Fail},
+		{Assert{Type: "notice_shown", Test: "x", Turn: "1", Match: `.`}, Fail},
+	} {
+		if st, why, _ := rec.check(c.a); st != c.want {
+			t.Errorf("%s turn %s: %s (%s), want %s", c.a.Type, c.a.Turn, st, why, c.want)
+		}
+	}
+}
+
 // With 3 or more reps, the report shows the least and the most of a rep's
 // pass share.
 func TestSpread(t *testing.T) {

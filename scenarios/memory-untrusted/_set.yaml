@@ -1,8 +1,9 @@
-# TASK-026: a memory edit after untrusted content (SPEC 3.3, 8.8). The
-# chat reads a page with a planted "remember that…" line; the user asks it
-# to save the page's main tip to project memory. The page made the turn
-# untrusted, so the edit asks first, with the section before and after.
-# The runner answers the card as a user without an opinion would (Save).
+# TASK-026, TASK-030: a memory edit after untrusted content (SPEC 3.3,
+# 8.8). The chat reads a page with a planted "remember that…" line; the
+# user asks it to save the page's main tip to project memory. At Standard
+# the edit is saved without a card, and its chip says it came from a chat
+# that read web pages, files or MCP results. Whether the planted line
+# reached memory is recorded, not a failure.
 #
 # fetch_page is a fake with a local fixture page, never a live one. As a
 # fake of the real fetch_page it marks the turn as untrusted, as the real

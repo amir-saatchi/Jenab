@@ -48,22 +48,20 @@ const (
 	autoIfTrusted
 	// noAsk: the level doesn't ask, and nothing is recorded or shown.
 	noAsk
-	// askIfUntrusted doesn't ask, as noAsk, unless untrusted content is
-	// still in the window, so a planted line can't reach memory unseen.
-	askIfUntrusted
 )
 
 // rules are the 8.8 table by approval kind: Strict, Standard, Auto. Kinds
 // not listed, such as connections, ask at every level. A schema change
 // that deletes nothing is "schema"; a destructive one is "migration", which
-// always asks. An agent's memory edit is "memory". Schedules, MCP tools and
-// commands come with their phases.
+// always asks. An agent's memory edit is "memory": it asks only at Strict;
+// its chip says when it came from a chat that read untrusted content
+// (3.3). Schedules, MCP tools and commands come with their phases.
 var rules = map[string][3]decision{
 	"host":      {ask, ask, autoIfTrusted},
 	"starlark":  {ask, ask, autoApprove},
 	"schema":    {ask, noAsk, noAsk},
 	"migration": {ask, ask, ask},
-	"memory":    {ask, askIfUntrusted, askIfUntrusted},
+	"memory":    {ask, noAsk, noAsk},
 }
 
 // levelDecision is what level l does with an approval of kind.
@@ -75,11 +73,6 @@ func levelDecision(l project.Level, kind string, untrusted bool) decision {
 			return ask
 		}
 		return autoApprove
-	case askIfUntrusted:
-		if untrusted {
-			return ask
-		}
-		return noAsk
 	default:
 		return d
 	}
@@ -87,9 +80,8 @@ func levelDecision(l project.Level, kind string, untrusted bool) decision {
 
 // approve splits a call's approvals in one place: those already given
 // are dropped, and the level and the untrusted mark decide which of the
-// rest are approved without asking (8.8). For a memory edit the mark holds
-// while a turn with outside data is in the window (3.3); for the rest it
-// holds from the read to the user's next turn.
+// rest are approved without asking (8.8). The mark holds from the read to
+// the user's next turn.
 func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.Approval, err error) {
 	if len(n.Approvals) == 0 {
 		return nil, nil, nil
@@ -100,18 +92,13 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 	}
 	r.cs.mu.Lock()
 	untrusted := r.cs.untrusted
-	inWindow := untrusted || r.cs.outside > 0 && r.cs.outside >= r.cs.win.start
 	r.cs.mu.Unlock()
 	for _, a := range n.Approvals {
 		ok, err := r.p.DB.Approved(ctx, a.Kind, a.Target)
 		if err != nil {
 			return nil, nil, err
 		}
-		mark := untrusted
-		if a.Kind == "memory" {
-			mark = inWindow
-		}
-		switch d := levelDecision(level, a.Kind, mark); {
+		switch d := levelDecision(level, a.Kind, untrusted); {
 		case ok, d == noAsk:
 		case d == autoApprove:
 			autos = append(autos, a)
@@ -120,6 +107,15 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 		}
 	}
 	return asks, autos, nil
+}
+
+// memoryMark reports whether a turn that read outside data is in the
+// window: from the read until the cut that drops the turn, past the
+// user's next message. A memory edit's chip then says so (3.3).
+func (r *runner) memoryMark() bool {
+	r.cs.mu.Lock()
+	defer r.cs.mu.Unlock()
+	return r.cs.untrusted || r.cs.outside > 0 && r.cs.outside >= r.cs.win.start
 }
 
 // readOutside marks outside data in the results of turn n (8.8, 3.3).

@@ -23,6 +23,30 @@ const (
 	projectMemoryBlock = "Project memory"
 )
 
+// The lines a memory chip shows under its text, kept in the notice's
+// Note (3.3, 3.5). Memory edits don't ask at Standard and Auto; the line
+// lets the user notice where an edit came from without deciding anything.
+const (
+	noteUntrusted = "From a chat that read web pages, files or MCP results"
+	noteUserWrote = "Changed a section you wrote"
+)
+
+// memoryNote is a memory chip's line: noteUntrusted, noteUserWrote, both
+// in one line, or "".
+func memoryNote(untrusted, userWrote bool) string {
+	var parts []string
+	if untrusted {
+		parts = append(parts, noteUntrusted)
+	}
+	if userWrote {
+		parts = append(parts, noteUserWrote)
+	}
+	for i := 1; i < len(parts); i++ {
+		parts[i] = strings.ToLower(parts[i][:1]) + parts[i][1:]
+	}
+	return strings.Join(parts, "; ")
+}
+
 // memSeen is a section as the chat has seen it: in its blocks, a notice
 // or its own edit.
 type memSeen struct {

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BookmarkIcon, BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { BookmarkIcon, BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, InfoIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -166,8 +166,22 @@ export function MigrationChip({ notice }: { notice: ChatNotice }) {
   )
 }
 
+// MemoryNote is a memory chip's line under it, such as that the edit came
+// from a chat that read web pages (SPEC 3.3, 3.5). It informs; there is
+// nothing to decide. A chip without a note, as those saved before it had
+// one, shows none.
+export function MemoryNote({ note }: { note?: string }) {
+  if (!note) return null
+  return (
+    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <InfoIcon className="size-3.5 shrink-0" />
+      <span dir="auto">{note}</span>
+    </p>
+  )
+}
+
 // MemoryChip marks a memory edit the agent made (SPEC 3.3): Memory
-// updated: preferences [undo] [edit]. Undo reverts that edit, and the
+// updated: preferences [undo] [edit], with its note under it. Undo reverts that edit, and the
 // chats see it as the user's; Redo puts it back. Edit opens the section in
 // the settings. The backend says whether the edit is undone, so the chip
 // is right after a reload or an undo of its turn.
@@ -200,22 +214,25 @@ export function MemoryChip({ project, notice }: { project: string; notice: ChatN
     }
   }
   return (
-    <div className="flex flex-wrap items-center gap-1.5 not-typeset">
-      <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground">
-        <BookmarkIcon data-icon="inline-start" />
-        <span dir="auto">{notice.text}</span>
-        {undone && <span>· undone</span>}
-      </Badge>
-      {target && notice.change && (
-        <Button variant="ghost" size="xs" className="text-muted-foreground" disabled={busy} onClick={() => void flip()}>
-          {undone ? "Redo" : "Undo"}
-        </Button>
-      )}
-      {target && (
-        <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openMemory(project, target)}>
-          Edit
-        </Button>
-      )}
+    <div className="flex flex-col gap-1 not-typeset">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground">
+          <BookmarkIcon data-icon="inline-start" />
+          <span dir="auto">{notice.text}</span>
+          {undone && <span>· undone</span>}
+        </Badge>
+        {target && notice.change && (
+          <Button variant="ghost" size="xs" className="text-muted-foreground" disabled={busy} onClick={() => void flip()}>
+            {undone ? "Redo" : "Undo"}
+          </Button>
+        )}
+        {target && (
+          <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openMemory(project, target)}>
+            Edit
+          </Button>
+        )}
+      </div>
+      <MemoryNote note={notice.note} />
     </div>
   )
 }

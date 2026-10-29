@@ -17,8 +17,9 @@ import (
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
-// A section the user deleted asks before a refresh brings it back, at
-// Standard too (SPEC 3.5: changes or deletes).
+// A refresh that brings back a section the user deleted saves it without
+// a card at Standard, and its chip says it changed a section the user
+// wrote (SPEC 3.5: changes or deletes; TASK-030).
 func TestRefreshDeletedSection(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
@@ -29,14 +30,15 @@ func TestRefreshDeletedSection(t *testing.T) {
 		h.addTurns(c.ID, 1, 1)
 		h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", "goals", "Weekly."), ""))
 		h.refresh(c.ID, false)
-		w := h.waiting(c.ID)
-		if w.Text != "Save Refresh memory's edit to project memory, section goals?" {
-			t.Fatalf("waiting %+v", w)
-		}
-		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
 		h.wait()
-		if got, _ := h.section(store.ScopeProject, "goals"); got != "" {
+		if got, _ := h.section(store.ScopeProject, "goals"); got != "Weekly." {
 			t.Errorf("goals %q", got)
+		}
+		if cs := cards(h.messages(c.ID)); len(cs) != 0 {
+			t.Errorf("cards %+v", cs)
+		}
+		if chips := refreshChips(h.messages(c.ID)); len(chips) != 1 || chips[0].Note != noteUserWrote {
+			t.Errorf("chips %+v", chips)
 		}
 	})
 }
@@ -79,9 +81,42 @@ func TestRefreshStaleCard(t *testing.T) {
 	})
 }
 
+// A section the user wrote that changes again while the card waits: its
+// edit isn't saved, so the chip has no "section you wrote" note.
+func TestRefreshStaleUserSection(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		h.edit("goals", "Mine.", 0)
+		h.setLevel(project.Strict)
+		c := h.newChat(chat.Chat{Title: "Stale mine"})
+		h.addTurns(c.ID, 1, 1)
+		h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")),
+			mergeReply(edit("project", "goals", "Weekly.")+", "+edit("project", "decisions", "Organic only."), ""))
+		h.refresh(c.ID, false)
+		w := h.waiting(c.ID)
+		if w.Text != "Save Refresh memory's edits to 2 sections?" {
+			t.Fatalf("waiting %+v", w)
+		}
+		h.edit("goals", "Mine 2.", 1)
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantOnce})
+		h.wait()
+		if got, _ := h.section(store.ScopeProject, "goals"); got != "Mine 2." {
+			t.Errorf("goals %q", got)
+		}
+		if got, _ := h.section(store.ScopeProject, "decisions"); got != "Organic only." {
+			t.Errorf("decisions %q", got)
+		}
+		chips := refreshChips(h.messages(c.ID))
+		if len(chips) != 1 || chips[0].Text != "Memory refreshed: 1 added; not saved: project memory, section goals (changed meanwhile)" || chips[0].Note != "" {
+			t.Errorf("chips %+v", chips)
+		}
+	})
+}
+
 // The end failing after the batch is written: the notice says what
-// changed and keeps the batch for the undo, the progress stays, and the
-// next turn cuts.
+// changed and keeps the batch for the undo and the note, the progress
+// stays, and the next turn cuts.
 func TestRefreshFinishFails(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
@@ -92,7 +127,7 @@ func TestRefreshFinishFails(t *testing.T) {
 		}
 		defer func() { finishReview = orig }()
 		c := h.newChat(chat.Chat{Title: "Finish"})
-		h.addTurns(c.ID, 1, 1)
+		h.addPage(c.ID, 1)
 		h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", "goals", "Weekly."), ""))
 		h.refresh(c.ID, false)
 		h.wait()
@@ -101,7 +136,8 @@ func TestRefreshFinishFails(t *testing.T) {
 		}
 		chips := refreshChips(h.messages(c.ID))
 		want := "Memory refreshed: 1 added (project memory, section goals), but the refresh couldn't finish, so the next one reviews these turns again: disk full"
-		if len(chips) != 1 || chips[0].Text != want || len(chips[0].Edits) != 1 || chips[0].Edits[0].Change == "" {
+		// The edits were saved, so the note is kept.
+		if len(chips) != 1 || chips[0].Text != want || len(chips[0].Edits) != 1 || chips[0].Edits[0].Change == "" || chips[0].Note != noteUntrusted {
 			t.Errorf("chips %+v", chips)
 		}
 		if r := h.review(c.ID); r.UpTo != "" {
@@ -614,14 +650,15 @@ func (h *harness) addPage(c id.Chat, n int) {
 	})
 }
 
-// A page in the reviewed turns asks before the edits are saved, at every
-// level, and the card says why; Deny keeps memory, saves the summary and
-// moves the progress on. Without a page, Standard and Auto don't ask.
-func TestRefreshUntrustedAsks(t *testing.T) {
+// A page in the reviewed turns doesn't ask at Standard and Auto: the
+// edits are saved, and the chip says the chat read untrusted content; a
+// clean chat's chip has no note, nor has a batch that saved no edit. With
+// a section the user wrote too, the note says both. Strict asks, with or
+// without a page, and its card doesn't name the page (TASK-030).
+func TestRefreshUntrustedSaves(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
 		defer h.stop()
-		const why = "This chat read web pages, files or MCP results, so check the changes before they're saved."
 		for _, level := range []project.Level{project.Standard, project.Auto} {
 			h.setLevel(level)
 			sec := "goals_" + string(level)
@@ -629,13 +666,11 @@ func TestRefreshUntrustedAsks(t *testing.T) {
 			h.addPage(c.ID, 1)
 			h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", sec, "Weekly."), "Read a page."))
 			h.refresh(c.ID, false)
-			w := h.waiting(c.ID)
-			if card := cards(h.messages(c.ID)); len(card) != 1 || !strings.HasSuffix(card[0].Risk, " "+why) {
-				t.Fatalf("%s: cards %+v", level, card)
-			}
-			h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
 			h.wait()
-			if got, _ := h.section(store.ScopeProject, sec); got != "" {
+			if cs := cards(h.messages(c.ID)); len(cs) != 0 {
+				t.Errorf("%s: cards %+v", level, cs)
+			}
+			if got, _ := h.section(store.ScopeProject, sec); got != "Weekly." {
 				t.Errorf("%s: %s %q", level, sec, got)
 			}
 			if n := h.notes(c.ID); n.Summary != "Read a page." {
@@ -644,28 +679,75 @@ func TestRefreshUntrustedAsks(t *testing.T) {
 			if r := h.review(c.ID); r.UpToTurn != 1 {
 				t.Errorf("%s: progress %+v", level, r)
 			}
-			if chips := refreshChips(h.messages(c.ID)); len(chips) != 1 || chips[0].Text != "Memory refresh: the edits were not saved" {
+			if chips := refreshChips(h.messages(c.ID)); len(chips) != 1 || chips[0].Text != "Memory refreshed: 1 added" || chips[0].Note != noteUntrusted {
 				t.Errorf("%s: chips %+v", level, chips)
+			}
+
+			// The same page, with an edit that changes nothing: no note.
+			same := h.newChat(chat.Chat{Title: "Same " + string(level)})
+			h.addPage(same.ID, 1)
+			h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", sec, "Weekly."), ""))
+			h.refresh(same.ID, false)
+			h.wait()
+			if chips := refreshChips(h.messages(same.ID)); len(chips) != 1 || chips[0].Text != "Memory refreshed: nothing new" || chips[0].Note != "" {
+				t.Errorf("%s: an empty batch's chips %+v", level, chips)
 			}
 
 			clean := h.newChat(chat.Chat{Title: "Clean " + string(level)})
 			h.addTurns(clean.ID, 1, 1)
-			h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", sec, "Weekly."), ""))
+			h.fp.Push(mapReply(mapItem("goal", "project", "Monthly")), mergeReply(edit("project", sec, "Monthly."), ""))
 			h.refresh(clean.ID, false)
 			h.wait()
-			if len(cards(h.messages(clean.ID))) != 0 {
-				t.Errorf("%s: a clean chat asked", level)
-			}
-			if got, _ := h.section(store.ScopeProject, sec); got != "Weekly." {
+			if got, _ := h.section(store.ScopeProject, sec); got != "Monthly." {
 				t.Errorf("%s: clean %s %q", level, sec, got)
 			}
+			if chips := refreshChips(h.messages(clean.ID)); len(chips) != 1 || chips[0].Note != "" || len(cards(h.messages(clean.ID))) != 0 {
+				t.Errorf("%s: a clean chat's chips %+v", level, chips)
+			}
+		}
+
+		// A page and a section the user wrote: one line says both.
+		h.setLevel(project.Standard)
+		h.edit("decisions", "Mine.", 0)
+		c := h.newChat(chat.Chat{Title: "Both"})
+		h.addPage(c.ID, 1)
+		h.fp.Push(mapReply(mapItem("decision", "project", "Weekly")), mergeReply(edit("project", "decisions", "Mine.\nWeekly."), ""))
+		h.refresh(c.ID, false)
+		h.wait()
+		const both = "From a chat that read web pages, files or MCP results; changed a section you wrote"
+		if chips := refreshChips(h.messages(c.ID)); len(chips) != 1 || chips[0].Note != both {
+			t.Errorf("chips %+v", chips)
+		}
+		if got, _ := h.section(store.ScopeProject, "decisions"); got != "Mine.\nWeekly." {
+			t.Errorf("decisions %q", got)
+		}
+
+		// Strict asks; the card checks the edits, not the page.
+		h.setLevel(project.Strict)
+		c = h.newChat(chat.Chat{Title: "Strict"})
+		h.addPage(c.ID, 1)
+		h.fp.Push(mapReply(mapItem("goal", "project", "Daily")), mergeReply(edit("project", "plans", "Daily."), ""))
+		h.refresh(c.ID, false)
+		w := h.waiting(c.ID)
+		if card := cards(h.messages(c.ID)); len(card) != 1 ||
+			card[0].Risk != "Project memory is in the context of every chat in this project. Check that each edit is what you want kept." {
+			t.Fatalf("cards %+v", card)
+		}
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+		h.wait()
+		if got, _ := h.section(store.ScopeProject, "plans"); got != "" {
+			t.Errorf("plans %q", got)
+		}
+		if chips := refreshChips(h.messages(c.ID)); len(chips) != 1 || chips[0].Text != "Memory refresh: the edits were not saved" || chips[0].Note != "" {
+			t.Errorf("chips %+v", chips)
 		}
 	})
 }
 
 // The map calls see the reviewed turns and the turn before them, given
-// as context: a page in either asks, one further back doesn't. A refresh
-// that only writes the summary doesn't ask.
+// as context: a page in either gives the chip its note, one further back
+// doesn't. A refresh that only writes the summary has no note. None asks
+// at Standard (TASK-030).
 func TestRefreshUntrustedContext(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
@@ -675,40 +757,46 @@ func TestRefreshUntrustedContext(t *testing.T) {
 		h.fp.Push(mapReply(mapItem("progress", "chat", "Read a page")), mergeReply("", "Read a page."))
 		h.refresh(c.ID, false)
 		h.wait()
-		if len(cards(h.messages(c.ID))) != 0 {
-			t.Error("a summary-only refresh asked")
-		}
 		if n := h.notes(c.ID); n.Summary != "Read a page." {
 			t.Errorf("notes %+v", n)
 		}
 		if r := h.review(c.ID); r.UpToTurn != 1 {
 			t.Fatalf("progress %+v", r)
 		}
+		// note is the last chip's note.
+		note := func() string {
+			chips := refreshChips(h.messages(c.ID))
+			return chips[len(chips)-1].Note
+		}
+		if n := note(); n != "" {
+			t.Errorf("a summary-only refresh's note %q", n)
+		}
 
 		// Turn 1, with the page, is now the context turn.
 		h.addTurns(c.ID, 2, 1)
 		h.fp.Push(mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", "goals", "Weekly."), ""))
 		h.refresh(c.ID, false)
-		w := h.waiting(c.ID)
-		if card := cards(h.messages(c.ID)); len(card) != 1 || !strings.Contains(card[0].Risk, "This chat read web pages") {
-			t.Fatalf("cards %+v", card)
-		}
-		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantOnce})
 		h.wait()
 		if got, _ := h.section(store.ScopeProject, "goals"); got != "Weekly." {
 			t.Errorf("goals %q", got)
 		}
+		if n := note(); n != noteUntrusted {
+			t.Errorf("the context turn's page: note %q", n)
+		}
 
-		// The page is two turns back: not shown, no card.
+		// The page is two turns back: not shown, no note.
 		h.addTurns(c.ID, 3, 1)
 		h.fp.Push(mapReply(mapItem("goal", "project", "Monthly")), mergeReply(edit("project", "plans", "Monthly."), ""))
 		h.refresh(c.ID, false)
 		h.wait()
-		if n := len(cards(h.messages(c.ID))); n != 1 {
-			t.Errorf("%d cards: a page before the context turn asked", n)
-		}
 		if got, _ := h.section(store.ScopeProject, "plans"); got != "Monthly." {
 			t.Errorf("plans %q", got)
+		}
+		if n := note(); n != "" {
+			t.Errorf("a page before the context turn: note %q", n)
+		}
+		if cs := cards(h.messages(c.ID)); len(cs) != 0 {
+			t.Errorf("cards %+v", cs)
 		}
 	})
 }

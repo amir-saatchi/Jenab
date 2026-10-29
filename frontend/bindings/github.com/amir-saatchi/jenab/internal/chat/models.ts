@@ -257,6 +257,13 @@ export interface Notice {
      * Edits are a memory_refreshed chip's edits.
      */
     "edits"?: MemoryDiff[] | null;
+
+    /**
+     * Note is a memory chip's line under its text, such as that the edit
+     * came from a chat that read web pages (3.3, 3.5). The model doesn't
+     * get it.
+     */
+    "note"?: string;
 }
 
 /**
