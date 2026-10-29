@@ -68,7 +68,8 @@
 | [TASK-025](TASK-025-live-answer.md) | A live answer | Task | Open (needs finish turns) | 3 |
 | [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Done | 3 |
 | [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Open | 3 |
-| [TASK-028](TASK-028-memory-mark-in-window.md) | Keep the untrusted mark for memory edits while the content is in the window | Task | Open | 3 |
+| [TASK-028](TASK-028-memory-mark-in-window.md) | Keep the untrusted mark for memory edits while the content is in the window | Task | Done | 3 |
+| [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Open | 3 |
 
 ## Phase 1
 
@@ -112,7 +113,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-08](P2-08-project-card.md) | Project card | P2-04 | Done |
 | [P2-09](P2-09-memory.md) | User and project memory | P2-02, P2-03 | Done |
 | [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09 | Done |
-| [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Open |
+| [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Done |
 | [P2-12](P2-12-export.md) | Export a project | P1-04 | Done |
 | [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Open |
 | [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | Open |

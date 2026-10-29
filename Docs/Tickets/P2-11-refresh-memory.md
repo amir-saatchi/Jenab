@@ -1,6 +1,6 @@
 # P2-11 — Refresh memory
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 2)
 **Needs:** P2-09, P2-10
 **Requirements:** R-26
@@ -30,3 +30,27 @@ A button per chat makes memory and the session notes hold everything important f
 - A scenario on the reference models: a 30-turn chat refreshed, then a new chat answers questions about it from memory alone, with the answers checked.
 
 ## Result
+Done on 2026-10-29 (commit 5500900).
+
+- **Built as SPEC 3.5 now says:** split, map with the turn before as context, merge, a re-read of memory before the card, apply, one chip with an all-or-nothing undo, the cut at the next turn, saved chunks, Full refresh, the estimate, and the busy chat.
+- **Decisions with the user:**
+  - JSON with the schema in the prompt for every model (SPIKE-030's text side). Each provider's JSON mode is TASK-029.
+  - The chat is busy during a refresh.
+  - One Save/Deny card. On *Deny* the summary still saves and progress moves on.
+  - The card also asks when the reviewed turns or the context turn read untrusted content, at every level.
+- **From P2-10:** the summary gets the "shorter than before" rule; with no room left, no summary is written. *Clear* is refused during a refresh. A summary save is counted by the chip written with it.
+- **Review:** two rounds. Fixed:
+  - a section the user deleted came back with no card;
+  - undo was half-done across the two memories;
+  - a failed finish said "nothing was changed";
+  - a strict items schema could fail a whole refresh;
+  - a stale card;
+  - a turn could start during a refresh;
+  - several Stop and cancel cases.
+- **Scenario `refresh-memory`** (a synthetic 30-turn chat, then a new chat answers from memory alone, without searching the old chat):
+  - gemma4:31b passed 3/3 in each of three batches.
+  - gemini-3.5-flash-lite passed 3/3 in the first batch. After the prompts changed: 1 pass, 1 run lost to the PC going to sleep, and 1 lost to Gemini 503 "overloaded" errors. Not counted as refresh failures.
+  - Without a refresh (the control, gemma), the chat searched the old chat and found two of three facts.
+  - Recorded, not tuned: some assistant advice and one user question were saved as decisions or preferences, and the same fact landed in different sections.
+- **Not checked in the running app** before the commit; the user is trying it.
+- **Known limits:** undo commits project and user memory apart, so a crash between them leaves one half. A crash between the edits and the progress leaves edits with no chip; the next refresh reviews those turns again.
