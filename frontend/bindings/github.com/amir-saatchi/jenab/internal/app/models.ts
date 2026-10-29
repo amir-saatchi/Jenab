@@ -469,6 +469,30 @@ export interface ProviderStatus {
 }
 
 /**
+ * RefreshUndo says what UndoRefresh did. With Changed it did nothing:
+ * Sections names the sections that changed since.
+ */
+export interface RefreshUndo {
+    "done": boolean;
+    "changed": boolean;
+
+    /**
+     * every edit of the batch is undone now
+     */
+    "undone": boolean;
+    "sections"?: string[] | null;
+}
+
+/**
+ * RefreshUndoRequest is the [undo] of a chip "Memory refreshed: …", or its
+ * redo: the chip's notice's Edits.
+ */
+export interface RefreshUndoRequest {
+    "edits": chat$0.MemoryDiff[] | null;
+    "redo": boolean;
+}
+
+/**
  * RequestView is one try of a request.
  */
 export interface RequestView {

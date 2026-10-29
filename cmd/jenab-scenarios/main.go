@@ -323,15 +323,23 @@ func line(r scenario.Run) string {
 	return fmt.Sprintf("%s  pass in %s%s", head, secs(r.Seconds), reqs(r))
 }
 
-// reqs is a run's requests, with the subagents' after a "+".
+// reqs is a run's requests, with the subagents' after a "+", and all
+// the providers got when that is more, such as with Refresh memory.
 func reqs(r scenario.Run) string {
+	all := ""
+	if r.ProviderRequests > r.Requests+r.SubRequests {
+		all = fmt.Sprintf(" (%d to the providers)", r.ProviderRequests)
+	}
 	switch {
 	case r.Requests == 0 && r.SubRequests == 0:
+		if all != "" {
+			return fmt.Sprintf(", %d requests to the providers", r.ProviderRequests)
+		}
 		return ""
 	case r.SubRequests > 0:
-		return fmt.Sprintf(", %d+%d requests", r.Requests, r.SubRequests)
+		return fmt.Sprintf(", %d+%d requests%s", r.Requests, r.SubRequests, all)
 	}
-	return fmt.Sprintf(", %d requests", r.Requests)
+	return fmt.Sprintf(", %d requests%s", r.Requests, all)
 }
 
 func secs(s float64) string { return (time.Duration(s*10) * time.Second / 10).String() }

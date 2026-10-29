@@ -10,6 +10,7 @@ import { ChatKind } from "@/lib/api"
 import { DoingBar, RetryBar, WaitingBar } from "@/chat/cards"
 import { Composer } from "@/chat/composer"
 import { NotesButton } from "@/chat/notes"
+import { RefreshButton } from "@/chat/refresh"
 import { ThreadView } from "@/chat/thread-view"
 import { useChats } from "@/state/chats"
 import { useNav } from "@/state/nav"
@@ -36,7 +37,12 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
         title={item?.chat.title || thread?.chat.title || "New chat"}
         sub={item ? subline(item) : ""}
         mother={mother}
-        notes={<NotesButton project={project} chat={chat} />}
+        actions={
+          <>
+            {thread && <RefreshButton project={project} chat={chat} />}
+            <NotesButton project={project} chat={chat} />
+          </>
+        }
       />
       {damage && (
         <Alert className="mx-4 mt-3 w-auto [&>svg]:text-tone-amber">
@@ -86,9 +92,9 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
   )
 }
 
-// ChatHeader is the chat's title bar; notes is the session notes' button
-// (SPEC 3.4).
-export function ChatHeader({ title, sub, mother, notes }: { title: string; sub: string; mother?: boolean; notes?: React.ReactNode }) {
+// ChatHeader is the chat's title bar; actions are Refresh memory and the
+// session notes' button (SPEC 3.5, 3.4).
+export function ChatHeader({ title, sub, mother, actions }: { title: string; sub: string; mother?: boolean; actions?: React.ReactNode }) {
   const narrow = useIsMobile()
   const hidden = useNav((s) => s.sidebarHidden)
   const setHidden = useNav((s) => s.setSidebarHidden)
@@ -128,7 +134,7 @@ export function ChatHeader({ title, sub, mother, notes }: { title: string; sub: 
         </div>
       </div>
       <div className="ms-auto flex items-center gap-1">
-        {notes}
+        {actions}
         {narrow && (
           <Button variant="ghost" size="sm" onClick={() => ui({ rightOverlay: true })}>
             <PanelRightIcon data-icon="inline-start" />

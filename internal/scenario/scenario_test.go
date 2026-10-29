@@ -70,6 +70,7 @@ func TestLoadErrors(t *testing.T) {
 		"no messages":              {"_set.yaml": tool, "a.yaml": "id: a\ncontext: main\n"},
 		"first message timed":      {"_set.yaml": tool, "a.yaml": "id: a\ncontext: main\nmessages: [{text: hi, at: 1s}]\n"},
 		"first message restarts":   {"_set.yaml": tool, "a.yaml": "id: a\ncontext: main\nmessages: [{text: hi, restart: true}]\n"},
+		"first message new chat":   {"_set.yaml": tool, "a.yaml": "id: a\ncontext: main\nmessages: [{text: hi, new_chat: true}]\n"},
 		"timed restart":            {"_set.yaml": tool, "a.yaml": "id: a\ncontext: main\nmessages: [{text: hi}, {text: ho, at: 1s, restart: true}]\n"},
 		"unknown assert":           {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: vibes, test: x}]\n"},
 		"assert missing field":     {"_set.yaml": tool, "a.yaml": sc + "asserts: [{type: tool_called, test: x}]\n"},

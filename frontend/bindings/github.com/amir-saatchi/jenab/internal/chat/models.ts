@@ -46,6 +46,11 @@ export interface Approval {
     "after"?: string;
 
     /**
+     * Edits are a Refresh memory batch's sections, for its card (3.5).
+     */
+    "edits"?: MemoryDiff[] | null;
+
+    /**
      * The answer, once given.
      */
     "answer"?: Grant;
@@ -192,6 +197,19 @@ export enum Kind {
 };
 
 /**
+ * MemoryDiff is one section a Refresh memory batch changes (3.5): its
+ * target, such as memory:project/decisions, the section before and after
+ * ("" where it isn't there), and, once written, the change its undo
+ * reverts, as Notice.Change.
+ */
+export interface MemoryDiff {
+    "target": string;
+    "before": string;
+    "after": string;
+    "change"?: string;
+}
+
+/**
  * Message is one message with its parts (SPEC 2.3). A turn is one user
  * message plus everything the agent does until it replies.
  */
@@ -234,6 +252,11 @@ export interface Notice {
      */
     "target"?: string;
     "change"?: string;
+
+    /**
+     * Edits are a memory_refreshed chip's edits.
+     */
+    "edits"?: MemoryDiff[] | null;
 }
 
 /**
@@ -316,6 +339,12 @@ export enum NoticeKind {
      * its undo reverts (3.3).
      */
     NoticeMemoryUpdated = "memory_updated",
+
+    /**
+     * NoticeMemoryRefreshed is the chip of a Refresh memory batch (3.5):
+     * Edits are its edits, which its undo reverts together.
+     */
+    NoticeMemoryRefreshed = "memory_refreshed",
 };
 
 /**

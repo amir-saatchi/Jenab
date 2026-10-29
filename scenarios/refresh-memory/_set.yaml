@@ -1,0 +1,20 @@
+# P2-11: Refresh memory. A long chat states goals, decisions, conventions
+# and preferences once each, among small talk, and changes one of them
+# later. Refresh memory reviews it (SPEC 3.5): map calls on chunks of 5
+# turns, one merge, edits of user and project memory. A new chat in the
+# same project then answers questions from its memory blocks alone (SPEC
+# 3.1 blocks 2 and 3).
+#
+# The chat's 30 turns are written to it as history, with no requests; the
+# refresh step makes 7 (6 chunks and the merge), plus a retry for an
+# answer that doesn't match the schema. Each map call also gets the turn
+# before its chunk, read-only. Each run's line shows them as
+# "requests to the providers".
+#
+# R2 is a control: the same chat and questions with no refresh, so memory
+# is empty; its answer checks are info. Run it with -scenario
+# R2_garden_no_refresh, once, to see the questions need memory.
+#
+# No fake tools: the new chat has the app's real tools. An empty project:
+# no tables, no card.
+title: School garden

@@ -16,6 +16,7 @@ export type {
     Chat,
     Delta,
     Image,
+    MemoryDiff,
     Message,
     Notice,
     Option,

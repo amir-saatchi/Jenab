@@ -56,6 +56,8 @@ var known = []struct {
 	{agent.ErrEmpty, KindInvalid, "The message is empty."},
 	{agent.ErrInTurn, KindBusy, "The chat is in a turn. Wait for it to end, or stop it."},
 	{agent.ErrNoRetry, KindBusy, "There is nothing to retry."},
+	{agent.ErrRefreshing, KindBusy, "Memory is being refreshed. Wait for it to end, or stop it."},
+	{agent.ErrNothingToRefresh, KindBusy, "There are no new turns to review."},
 	{agent.ErrNotWaiting, KindBusy, "The chat no longer waits for this answer."},
 	{agent.ErrBadAnswer, KindInvalid, "The answer doesn't fit the card."},
 	{project.ErrNoName, KindInvalid, "A project needs a name."},

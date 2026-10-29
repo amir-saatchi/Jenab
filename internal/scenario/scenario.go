@@ -215,9 +215,12 @@ type Scenario struct {
 	Why     string   `yaml:"why"`     // the good behaviour, in words
 	// Needs are app features the scenario needs and Phase 1 doesn't have,
 	// such as background work; the runner skips it until they come.
-	Needs    []string            `yaml:"needs"`
-	Role     string              `yaml:"role"`   // the chat's role
-	Skills   []string            `yaml:"skills"` // skills loaded in the chat at the start
+	Needs  []string `yaml:"needs"`
+	Role   string   `yaml:"role"`   // the chat's role
+	Skills []string `yaml:"skills"` // skills loaded in the chat at the start
+	// History are earlier turns the chat has at the start, written to it
+	// as they are, with no request; the first message's turn follows them.
+	History  []HistoryTurn       `yaml:"history"`
 	Messages []Message           `yaml:"messages"`
 	Delays   map[string]Duration `yaml:"delays"`
 	Rules    map[string][]*Rule  `yaml:"rules"`
@@ -232,20 +235,31 @@ type Scenario struct {
 	settings  config.Settings // the app settings of its runs, before the models
 }
 
+// HistoryTurn is an earlier turn of the chat: the user's message and the
+// answer.
+type HistoryTurn struct {
+	User      string `yaml:"user"`
+	Assistant string `yaml:"assistant"`
+}
+
 // Message is a scripted user message. Without At it is sent once the chat
 // is idle; with At, that long after the scenario's start, also during a
 // turn, where it joins the running turn (8.3). With Restart the app
 // restarts before it: the chat is idle, the app closes its projects and
 // opens them again from disk. With NewChat it goes to a new chat in the
 // same project, with the scenario's role and skills, once the chat is
-// idle; the messages after it go there too. The record joins the chats,
+// idle; the messages after it go there too. The first message may have it
+// only after history. The record joins the chats,
 // and their turns count on: a second chat's first turn follows the first
-// chat's last.
+// chat's last. With Refresh it is no message but Refresh memory on the
+// chat (3.5), once the chat is idle; the next message waits for its end,
+// and its card, if any, is saved.
 type Message struct {
 	Text    string    `yaml:"text"`
 	At      *Duration `yaml:"at"`
 	Restart bool      `yaml:"restart"`
 	NewChat bool      `yaml:"new_chat"`
+	Refresh bool      `yaml:"refresh"`
 }
 
 // Assert is one check on a finished run. Each type uses some fields.
@@ -588,7 +602,18 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 	if len(sc.Messages) == 0 {
 		return nil, errors.New("no messages")
 	}
+	for i, h := range sc.History {
+		if strings.TrimSpace(h.User) == "" || strings.TrimSpace(h.Assistant) == "" {
+			return nil, fmt.Errorf("history[%d]: a turn needs user and assistant", i)
+		}
+	}
 	for i, m := range sc.Messages {
+		if m.Refresh {
+			if m.Text != "" || m.At != nil || m.NewChat {
+				return nil, fmt.Errorf("messages[%d]: a refresh has no text, at or new_chat", i)
+			}
+			continue
+		}
 		if strings.TrimSpace(m.Text) == "" {
 			return nil, fmt.Errorf("messages[%d]: no text", i)
 		}
@@ -599,8 +624,16 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 			return nil, fmt.Errorf("messages[%d]: a new chat waits until the chat is idle, so it has no at", i)
 		}
 	}
-	if sc.Messages[0].At != nil || sc.Messages[0].Restart || sc.Messages[0].NewChat {
-		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at, restart or new_chat")
+	if sc.Messages[0].At != nil || sc.Messages[0].Restart {
+		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at or restart")
+	}
+	// With history the chat has turns already, so the first message may
+	// go to a new chat.
+	if sc.Messages[0].NewChat && len(sc.History) == 0 {
+		return nil, errors.New("messages[0]: a new chat first needs history in the chat before it")
+	}
+	if sc.Messages[0].Refresh && len(sc.History) == 0 {
+		return nil, errors.New("messages[0]: a refresh first needs history to review")
 	}
 	for name := range sc.Delays {
 		if s.tool(name) == nil {

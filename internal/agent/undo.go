@@ -202,7 +202,10 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	cs := o.state(proj.ID, c)
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	if cs.running || cs.queued {
+	switch {
+	case cs.refresh.on:
+		return res, nil, ErrRefreshing
+	case cs.running || cs.queued:
 		return res, nil, ErrInTurn
 	}
 	if err := o.load(ctx, cs, proj); err != nil {

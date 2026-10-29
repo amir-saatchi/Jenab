@@ -94,6 +94,28 @@ export function Notes(p: id$0.Project, c: id$0.Chat): $CancellablePromise<chat$0
 }
 
 /**
+ * RefreshEstimate is what a refresh of the chat would cost now.
+ */
+export function RefreshEstimate(p: id$0.Project, c: id$0.Chat, full: boolean): $CancellablePromise<agent$0.RefreshEstimate> {
+    return $Call.ByID(2203554086, p, c, full);
+}
+
+/**
+ * RefreshMemory starts a refresh in the background. The chat's status
+ * shows its progress; its chip, or a notice, shows its end.
+ */
+export function RefreshMemory(p: id$0.Project, c: id$0.Chat, full: boolean): $CancellablePromise<void> {
+    return $Call.ByID(159610867, p, c, full);
+}
+
+/**
+ * RefreshUndone reports whether a refresh chip's batch is undone now.
+ */
+export function RefreshUndone(p: id$0.Project, edits: chat$0.MemoryDiff[] | null): $CancellablePromise<boolean> {
+    return $Call.ByID(1380520207, p, edits);
+}
+
+/**
  * Rename sets the chat's title; a title the user sets is never generated
  * again. It returns the title as stored.
  */
@@ -167,6 +189,19 @@ export function Stop(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
  */
 export function UndoMemory(p: id$0.Project, r: $models.MemoryUndoRequest): $CancellablePromise<$models.MemoryUndo> {
     return $Call.ByID(677511796, p, r);
+}
+
+/**
+ * UndoRefresh reverts a refresh's batch from its chip, or puts it back,
+ * all or nothing: both memories are checked first, as Undo turn does, and
+ * when a section changed since, nothing changes and Sections names it.
+ * Project memory and user memory then commit apart, so a crash between
+ * them leaves one half; the same again does the other. A half that is
+ * already as asked is left out. The chats see the change as the user's
+ * (SPEC 3.3).
+ */
+export function UndoRefresh(p: id$0.Project, r: $models.RefreshUndoRequest): $CancellablePromise<$models.RefreshUndo> {
+    return $Call.ByID(3327439166, p, r);
 }
 
 /**

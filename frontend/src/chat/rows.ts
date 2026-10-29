@@ -9,11 +9,20 @@ export type Row =
 
 // aside are the notices added to a turn after it ended (agent.aside), so
 // they don't say how the turn ended.
-const aside: (NoticeKind | undefined)[] = [NoticeKind.NoticeApprovalLevel, NoticeKind.NoticeTurnUndone]
+const aside: (NoticeKind | undefined)[] = [NoticeKind.NoticeApprovalLevel, NoticeKind.NoticeTurnUndone, NoticeKind.NoticeMemoryRefreshed]
 
 // isNotice tells whether a user message is a note from the app.
 function isNotice(m: Message) {
   return m.role === Role.RoleUser && (m.parts ?? []).every((p) => p.kind === PartKind.PartNotice)
+}
+
+// refreshCard tells whether a message is Refresh memory's card (SPEC
+// 3.5). It is a user message, so the model never reads it, but it shows
+// with the agent's work, as cards do; and like an aside notice it doesn't
+// say how the turn ended (agent.refreshCard).
+export function refreshCard(m: Message) {
+  const ps = m.parts ?? []
+  return ps.length > 0 && ps.every((p) => p.approval?.target.startsWith("refresh:"))
 }
 
 // rows groups messages for the thread. Assistant and tool messages in a row
@@ -32,7 +41,7 @@ export function rows(messages: Message[]): Row[] {
   }
   for (; i < messages.length; i++) {
     const m = messages[i]
-    if (m.role !== Role.RoleUser) {
+    if (m.role !== Role.RoleUser || refreshCard(m)) {
       if (group) group.push(m)
       else group = [m]
       continue
@@ -73,9 +82,10 @@ export function results(messages: Message[]): Map<string, ToolResult> {
 
 // lastNotice is the newest notice of the chat, for the provider card: a
 // turn that failed because no model is set up. As on the Go side, messages
-// that only note a change of the approval level or an undo don't count.
+// that only note a change of the approval level, an undo or a refresh, and
+// a refresh's card, don't count.
 export function lastNotice(messages: Message[]): { message: Message; kind: NoticeKind; text: string } | null {
-  const m = messages.findLast((m) => (m.parts ?? []).some((p) => !aside.includes(p.notice?.kind)))
+  const m = messages.findLast((m) => !refreshCard(m) && (m.parts ?? []).some((p) => !aside.includes(p.notice?.kind)))
   const p = m?.parts?.[m.parts.length - 1]
   return m && p?.notice ? { message: m, kind: p.notice.kind, text: p.notice.text } : null
 }

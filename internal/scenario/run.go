@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"iter"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
@@ -179,6 +181,10 @@ type run struct {
 	pid   id.Project
 	cid   id.Chat   // the chat under test now
 	chats []id.Chat // the chats under test, in order: more with a new_chat message
+
+	// requests counts every request the providers got, traced or not,
+	// such as Refresh memory's and titles'.
+	requests atomic.Int64
 }
 
 func (r *run) do(ctx context.Context, rep int) Run {
@@ -206,6 +212,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 			out.GroundMode, out.GroundK, out.GroundVariant = g.Mode, g.agent().Threshold(), g.Variant()
 			out.Grounding, out.GroundExtra = rec.groundResults(), rec.groundExtra()
 		}
+		out.ProviderRequests = int(r.requests.Load())
 		out.Asserts = check(rec, r.sc)
 		out.Transcript = r.opt.Models.redact(rec.transcript())
 	}
@@ -255,6 +262,9 @@ func (r *run) play(ctx context.Context) (*record, error) {
 	if err := r.spikeSetup(ctx); err != nil {
 		return nil, late(err)
 	}
+	if err := r.history(ctx); err != nil {
+		return nil, late(err)
+	}
 	sent, err := r.send(ctx)
 	if err = late(err); ctx.Err() != nil && r.o != nil {
 		r.o.Stop(r.pid, r.cid)
@@ -276,6 +286,7 @@ func (r *run) open(ctx context.Context) error {
 	if r.fp != nil {
 		backends = map[provider.Kind]provider.Factory{scriptedKind: r.fp.Factory()}
 	}
+	backends = counted(backends, &r.requests)
 	models := provider.NewRegistry(provider.Deps{
 		Settings: set.LLM, Secrets: secret.New(r.opt.Models.keyring()), Gate: limit.NewGate(set.LLM.MaxParallelCalls),
 		Backends: backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,
@@ -416,6 +427,55 @@ func (r *run) spikeSetup(ctx context.Context) error {
 	return r.opt.Setup(ctx, r.sc, p, r.cid)
 }
 
+// history writes the scenario's earlier turns to the chat under test.
+func (r *run) history(ctx context.Context) error {
+	if len(r.sc.History) == 0 {
+		return nil
+	}
+	p, err := r.pm.Open(ctx, r.pid)
+	if err != nil {
+		return err
+	}
+	defer p.Release()
+	text := func(s string) []chat.Part { return []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: s}}} }
+	for i, h := range r.sc.History {
+		for _, m := range []chat.Message{
+			{Chat: r.cid, Turn: i + 1, Role: chat.RoleUser, Parts: text(h.User)},
+			{Chat: r.cid, Turn: i + 1, Role: chat.RoleAssistant, Parts: text(h.Assistant), Model: r.model},
+		} {
+			if _, _, err := p.Chats.AppendMessage(ctx, m); err != nil {
+				return fmt.Errorf("history[%d]: %w", i, err)
+			}
+		}
+	}
+	return nil
+}
+
+// counted wraps each backend so the run counts its requests.
+func counted(backends map[provider.Kind]provider.Factory, n *atomic.Int64) map[provider.Kind]provider.Factory {
+	out := make(map[provider.Kind]provider.Factory, len(backends))
+	for k, f := range backends {
+		out[k] = func(c provider.Connection) (provider.Provider, error) {
+			p, err := f(c)
+			if err != nil {
+				return nil, err
+			}
+			return counting{p, n}, nil
+		}
+	}
+	return out
+}
+
+type counting struct {
+	provider.Provider
+	n *atomic.Int64
+}
+
+func (c counting) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
+	c.n.Add(1)
+	return c.Provider.Stream(ctx, req)
+}
+
 // newChat makes a chat under test with the scenario's role and skills, and
 // sends the next messages there.
 func (r *run) newChat(ctx context.Context, p *project.Project, title string) error {
@@ -471,6 +531,12 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 			if err := r.nextChat(ctx); err != nil {
 				return out, fmt.Errorf("message %d: %w", i+1, err)
 			}
+		}
+		if m.Refresh {
+			if err := r.o.Refresh(ctx, r.pid, r.cid, agent.RefreshOptions{}); err != nil {
+				return out, fmt.Errorf("message %d: refresh: %w", i+1, err)
+			}
+			continue
 		}
 		mid, err := r.o.Send(ctx, r.pid, r.cid, agent.UserMessage{Text: m.Text})
 		if err != nil {

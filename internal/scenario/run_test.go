@@ -322,35 +322,49 @@ asserts:
 }
 
 // A run that doesn't end in time is stopped and reported as broken,
-// wherever the time ran out.
+// wherever the time ran out, a refresh too, and ends at once. The limit
+// leaves room for the setup on a busy machine, so each case gets as far
+// as its last reply.
 func TestRunTimeout(t *testing.T) {
+	const limit = 2 * time.Second
+	const history = "history: [{user: I like short answers., assistant: Noted.}]\n"
+	mapped := reply(`{"items": [{"kind": "preference", "text": "Likes short answers.", "scope": "user", "source": ["m1"]}]}`, nil)
 	for name, c := range map[string]struct {
 		messages string
-		reply    fake.Reply
+		replies  []fake.Reply
 	}{
-		"in a turn":             {"[{text: hi}]", fake.Reply{Hang: true}},
-		"waiting for a message": {"[{text: hi}, {text: ho, at: 10s}]", reply("Hello.", nil)},
+		"in a turn":             {"messages: [{text: hi}]", []fake.Reply{{Hang: true}}},
+		"waiting for a message": {"messages: [{text: hi}, {text: ho, at: 10s}]", []fake.Reply{reply("Hello.", nil)}},
+		"in a refresh's map":    {history + "messages: [{refresh: true}, {text: hi}]", []fake.Reply{{Hang: true}}},
+		"in a refresh's merge":  {history + "messages: [{refresh: true}, {text: hi}]", []fake.Reply{mapped, {Hang: true}}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			s, err := Load(writeSet(t, map[string]string{
 				"_set.yaml": "title: Prices\n",
-				"a.yaml":    "id: a\ncontext: main\nmessages: " + c.messages + "\nasserts: [{type: answer_delivered, test: x}]\n",
+				"a.yaml":    "id: a\ncontext: main\n" + c.messages + "\nasserts: [{type: answer_delivered, test: x}]\n",
 			}))
 			if err != nil {
 				t.Fatal(err)
 			}
-			fp := fake.New(c.reply)
+			fp := fake.New(c.replies...)
 			models := Static([]ProviderSpec{{Name: "p", Kind: "openai_compatible", BaseURL: "https://example.test/v1/", Models: []config.ModelSettings{{ID: "m", Context: 32000}}}}, map[string]string{"p": "test-key-0123456789"}, "p/m")
+			start := time.Now()
 			rep, err := RunSet(context.Background(), s, Options{
 				Models: models, Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: fp.Factory()},
-				Timeout: 300 * time.Millisecond, Temp: t.TempDir(),
+				Timeout: limit, Temp: t.TempDir(),
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
+			if took := time.Since(start); took > limit+10*time.Second {
+				t.Errorf("the run ended %s after its start", took)
+			}
 			r := rep.Runs[0]
-			if !strings.Contains(r.Error, "took longer than 300ms") || r.Passed() || rep.Summary[0].Errors != 1 {
+			if !strings.Contains(r.Error, "took longer than "+limit.String()) || r.Passed() || rep.Summary[0].Errors != 1 {
 				t.Errorf("run %+v", r)
+			}
+			if n := len(fp.Calls()); n != len(c.replies) {
+				t.Errorf("%d calls", n)
 			}
 		})
 	}
@@ -461,5 +475,84 @@ asserts:
 	}
 	if !strings.Contains(sys.String(), "[preferences, revision 1]\nShort answers.") {
 		t.Errorf("the new chat's system prompt lacks the memory:\n%s", sys.String())
+	}
+}
+
+// History turns are in the chat at the start; a refresh step runs Refresh
+// memory on them, and a new chat answers from the memory it wrote. Its
+// requests are not traced, but the providers' count has them.
+func TestRunRefresh(t *testing.T) {
+	s, err := Load(writeSet(t, map[string]string{
+		"_set.yaml": "title: Notes\n",
+		"refresh.yaml": `id: refresh
+context: main
+tests: ["memory"]
+history:
+  - {user: I like short answers., assistant: Noted.}
+  - {user: Thanks., assistant: You're welcome.}
+messages:
+  - refresh: true
+  - text: How do I like answers?
+    new_chat: true
+asserts:
+  - {type: answer_contains, test: memory, match: Short, turn: "3"}
+  - {type: max_turns, test: info, n: 3}
+`,
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp := fake.New(
+		reply(`{"items": [{"kind": "preference", "text": "Likes short answers.", "scope": "user", "source": ["m1"]}]}`, nil),
+		reply("```json\n"+`{"items": [{"kind": "preference", "text": "Likes short answers.", "scope": "user", "from": ["i1"], "label": "missing"}],`+
+			`"edits": [{"scope": "user", "section": "preferences", "content": "Short answers."}], "summary": "Small talk."}`+"\n```", nil),
+		reply("Short ones.", nil),
+	)
+	models := Static([]ProviderSpec{{Name: "p", Kind: "openai_compatible", BaseURL: "https://example.test/v1/", Models: []config.ModelSettings{{ID: "m", Context: 32000}}}}, map[string]string{"p": "test-key-0123456789"}, "p/m")
+	rep, err := RunSet(context.Background(), s, Options{
+		Models: models, Backends: map[provider.Kind]provider.Factory{provider.KindCompatible: fp.Factory()},
+		Scale: 0.01, Timeout: time.Minute, Temp: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := rep.Runs[0]
+	if r.Error != "" {
+		t.Fatalf("error: %s\n%s", r.Error, r.Transcript)
+	}
+	for _, a := range r.Asserts {
+		if a.Status != Pass {
+			t.Errorf("%s: %s (%s)\n%s", a.Type, a.Status, a.Why, r.Transcript)
+		}
+	}
+	if r.Turns != 3 || r.Requests != 1 || r.ProviderRequests != 3 {
+		t.Errorf("turns %d, requests %d, provider requests %d\n%s", r.Turns, r.Requests, r.ProviderRequests, r.Transcript)
+	}
+	if !strings.Contains(r.Transcript, "Memory refreshed: 1 added") || !strings.Contains(r.Transcript, "## User memory at the end\n\npreferences: Short answers.") {
+		t.Errorf("no chip or user memory in the transcript:\n%s", r.Transcript)
+	}
+	calls := fp.Calls()
+	if len(calls) != 3 || !strings.Contains(calls[0].Messages[0].Parts[0].Text.Text, "m1 user: I like short answers.") {
+		t.Fatalf("the map request doesn't hold the history: %+v", calls)
+	}
+	var sys strings.Builder
+	for _, b := range calls[2].System {
+		sys.WriteString(b.Text)
+	}
+	if !strings.Contains(sys.String(), "Short answers.") {
+		t.Errorf("the new chat's system prompt lacks the memory:\n%s", sys.String())
+	}
+}
+
+// A refresh step has no text; one before any turn needs history.
+func TestLoadRefresh(t *testing.T) {
+	for _, body := range []string{
+		"id: a\ncontext: main\nmessages:\n  - refresh: true\n",
+		"id: a\ncontext: main\nmessages:\n  - text: Hi.\n  - {refresh: true, text: Hi.}\n",
+		"id: a\ncontext: main\nhistory:\n  - {user: Hi.}\nmessages:\n  - text: Hi.\n",
+	} {
+		if _, err := Load(writeSet(t, map[string]string{"_set.yaml": "title: T\n", "a.yaml": body})); err == nil {
+			t.Errorf("loaded:\n%s", body)
+		}
 	}
 }

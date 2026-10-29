@@ -110,7 +110,21 @@ const (
 	// message, so the model doesn't read it; Target and Change say what
 	// its undo reverts (3.3).
 	NoticeMemoryUpdated NoticeKind = "memory_updated"
+	// NoticeMemoryRefreshed is the chip of a Refresh memory batch (3.5):
+	// Edits are its edits, which its undo reverts together.
+	NoticeMemoryRefreshed NoticeKind = "memory_refreshed"
 )
+
+// MemoryDiff is one section a Refresh memory batch changes (3.5): its
+// target, such as memory:project/decisions, the section before and after
+// ("" where it isn't there), and, once written, the change its undo
+// reverts, as Notice.Change.
+type MemoryDiff struct {
+	Target string `json:"target"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+	Change string `json:"change,omitempty"`
+}
 
 // Notice is a short note from the app to the agent, shown in the chat.
 type Notice struct {
@@ -124,6 +138,8 @@ type Notice struct {
 	// change ID or, for user memory, the entry in registry.db's log.
 	Target string `json:"target,omitempty"`
 	Change string `json:"change,omitempty"`
+	// Edits are a memory_refreshed chip's edits.
+	Edits []MemoryDiff `json:"edits,omitempty"`
 }
 
 // Approval is an approval card (SPEC 8.8). Kind and Target name what is
@@ -141,6 +157,8 @@ type Approval struct {
 	// isn't there.
 	Before string `json:"before,omitempty"`
 	After  string `json:"after,omitempty"`
+	// Edits are a Refresh memory batch's sections, for its card (3.5).
+	Edits []MemoryDiff `json:"edits,omitempty"`
 	// The answer, once given.
 	Answer     Grant      `json:"answer,omitempty"`
 	Note       string     `json:"note,omitempty"` // a Deny note, or the message written instead

@@ -73,6 +73,47 @@ export interface Live {
 }
 
 /**
+ * RefreshEstimate is what a refresh would cost, for the dialog before a
+ * long one.
+ */
+export interface RefreshEstimate {
+    /**
+     * turns to review
+     */
+    "turns": number;
+
+    /**
+     * the chunks they make
+     */
+    "chunks": number;
+
+    /**
+     * chunks a cancelled refresh already reviewed
+     */
+    "saved": number;
+
+    /**
+     * the calls to make: a map call per chunk not saved, and the merge
+     */
+    "calls": number;
+
+    /**
+     * the calls' input, estimated
+     */
+    "tokens": number;
+
+    /**
+     * the model they use
+     */
+    "model": string;
+
+    /**
+     * ask before starting
+     */
+    "long": boolean;
+}
+
+/**
  * TurnConflict is a conflict with the chat that made the later change,
  * when a message of a chat made it.
  */

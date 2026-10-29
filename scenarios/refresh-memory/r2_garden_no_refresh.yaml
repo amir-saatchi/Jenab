@@ -1,0 +1,120 @@
+id: R2_garden_no_refresh
+title: 'Control: the same chat and questions, with no refresh'
+tests: ["control"]
+context: main
+why: >
+  A control for R1: the same 30 turns and the same questions in a new
+  chat, with no refresh, so memory is empty. Its checks are info: they
+  show whether the questions can be answered without memory. A model may
+  still find the answers with search_history or read_messages, which the
+  tool checks show.
+history:
+  - user: Hi! I'm setting up this project for our school garden.
+    assistant: Great, happy to help with the school garden. What would you like to start with?
+  - user: >
+      The goal of this project: plan our school's vegetable garden, what
+      grows in each raised bed, who waters when, and what we harvest.
+    assistant: Got it. We can track the beds, the watering and the harvest here.
+  - user: What vegetables grow quickly enough for children to see results?
+    assistant: Radishes, lettuce, peas and bush beans grow fast and are easy for children.
+  - user: >
+      One thing about me, for all my chats, not just this project: keep
+      your answers short, a few bullet points at most.
+    assistant: Understood, short answers with a few bullet points.
+  - user: >
+      We decided as a team: no chemical pesticides in the garden at all.
+      Only organic methods, such as companion planting and picking pests
+      off by hand.
+    assistant: Noted, organic methods only, no chemical pesticides.
+  - user: Which plants are good companions for tomatoes?
+    assistant: Basil, marigolds and carrots grow well next to tomatoes.
+  - user: Thanks, that's useful.
+    assistant: You're welcome.
+  - user: How deep should a raised bed be for carrots?
+    assistant: Deep enough for the roots, so a deeper bed or a short carrot variety.
+  - user: >
+      The harvest report should go out every Friday, to the parents'
+      group.
+    assistant: Okay, a harvest report every Friday for the parents' group.
+  - user: Can children handle seedlings safely?
+    assistant: Yes, with gentle hands and a short demonstration first.
+  - user: >
+      Another thing for all my chats: write dates as YYYY-MM-DD, never
+      with the month's name.
+    assistant: Understood, dates as YYYY-MM-DD.
+  - user: What should we plant along the fence?
+    assistant: Climbing beans or peas use the fence well.
+  - user: >
+      In this project, when you name a plant, put its Latin name in
+      brackets after the common name, like tomato (Solanum lycopersicum).
+    assistant: Will do, common name with the Latin name in brackets.
+  - user: Is mulch worth it for a school garden?
+    assistant: Yes, mulch keeps the soil moist and cuts weeding.
+  - user: Good to know.
+    assistant: Glad it helps.
+  - user: What do we do with the beds over the summer holidays?
+    assistant: A cover crop or a thick mulch keeps them in shape until autumn.
+  - user: >
+      We settled the watering: volunteers water on weekdays, and the
+      children's class waters on Fridays.
+    assistant: Noted, volunteers on weekdays and the class on Fridays.
+  - user: Any tips for keeping slugs away without chemicals?
+    assistant: Beer traps, copper tape and picking them off in the evening work well.
+  - user: Today we picked 14 radishes and 3 heads of lettuce.
+    assistant: Nice harvest. The radishes were quick.
+  - user: The children loved it.
+    assistant: That's the best part of a school garden.
+  - user: Should we label the beds?
+    assistant: Yes, labels help the children learn the plants.
+  - user: >
+      Change of plan for the harvest report: from now on it goes out on
+      Mondays, not Fridays. Still to the parents' group.
+    assistant: Okay, the harvest report now goes out on Mondays to the parents' group.
+  - user: How often should we turn the compost?
+    assistant: Every week or two keeps it working.
+  - user: Today we picked 9 pea pods.
+    assistant: Peas are always popular.
+  - user: What herbs are easy for beginners?
+    assistant: Mint, chives, parsley and basil are easy to grow.
+  - user: Mint spreads a lot, right?
+    assistant: Yes, a pot keeps it from taking over a bed.
+  - user: Thanks for all the help today.
+    assistant: Any time.
+  - user: Should we water in the morning or the evening?
+    assistant: Morning is best, so the leaves dry during the day.
+  - user: A teacher asked whether we could add flowers too.
+    assistant: Yes, marigolds and sunflowers fit well and draw pollinators.
+  - user: Great, that's all for now.
+    assistant: Good luck with the garden!
+messages:
+  - text: When does the harvest report go out, and who gets it?
+    new_chat: true
+  - text: A parent offered us a spray against aphids. Can we use it in the garden?
+  - text: Write the plant list for bed A, tomatoes, basil and carrots, with today's date at the top.
+asserts:
+  - type: db_query
+    test: info
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)monday'
+  - type: db_query
+    test: info
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)organic|pesticide'
+  - type: db_query
+    test: info
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)latin'
+  - {type: answer_contains, test: info, turn: "31", final: true, match: '(?i)monday'}
+  - {type: answer_contains, test: info, turn: "31", final: true, match: '(?i)parent'}
+  - {type: answer_lacks, test: info, turn: "31", final: true, match: '(?i)friday'}
+  # Only the team's rule from memory says this; general advice on sprays
+  # (organic sprays, companion planting, picking by hand) doesn't.
+  - {type: answer_contains, test: info, turn: "32", final: true, match: '(?i)no chemical pesticides|chemical pesticides (are|is) (not allowed|prohibited|banned|out)|only (use )?organic|organic methods only|(decided|decision|agreed|rule)[^.]{0,80}(organic|pesticide|chemical)'}
+  - {type: answer_contains, test: info, turn: "33", final: true, match: '(?i)solanum'}
+  - {type: answer_contains, test: info, turn: "33", final: true, match: '(?i)ocimum'}
+  - {type: answer_contains, test: info, turn: "33", final: true, match: '\b20\d\d-\d\d-\d\d\b'}
+  - {type: tool_not_called, test: info, tool: search_history, turn: any}
+  - {type: tool_not_called, test: info, tool: read_messages, turn: any}
+  - {type: tool_not_called, test: info, tool: list_chats, turn: any}
+  - {type: max_turns, test: info, n: 33}
+  - {type: no_turn_failed, test: control}

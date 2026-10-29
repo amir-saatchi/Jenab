@@ -655,16 +655,30 @@ func (r *Registry) UndoUserMemory(ctx context.Context, sources []id.Source, from
 // for the chip's undo (SPEC 3.3). Nothing to revert is ErrNothingToUndo,
 // and an entry the cleanup dropped ErrUndoWindow.
 func (r *Registry) UndoUserMemoryChange(ctx context.Context, n int64, from id.Project, o UndoOptions) (UserMemoryUndo, error) {
-	res, err := r.undoUser(ctx, "[]", fmt.Sprintf("[%d]", n), from, o)
+	return r.UndoUserMemoryChanges(ctx, []int64{n}, from, o)
+}
+
+// UndoUserMemoryChanges is UndoUserMemoryChange for the entries ns, in one
+// transaction, such as a Refresh memory batch from its chip (SPEC 3.5).
+// An entry the cleanup dropped makes it ErrUndoWindow only when nothing
+// is left to revert.
+func (r *Registry) UndoUserMemoryChanges(ctx context.Context, ns []int64, from id.Project, o UndoOptions) (UserMemoryUndo, error) {
+	if len(ns) == 0 {
+		return UserMemoryUndo{}, ErrNothingToUndo
+	}
+	b, _ := json.Marshal(ns)
+	res, err := r.undoUser(ctx, "[]", string(b), from, o)
 	if err == nil && res.Plan.Changes == 0 {
 		err = ErrNothingToUndo
 	}
 	if errors.Is(err, ErrNothingToUndo) {
-		switch gone, gerr := r.userEntryGone(ctx, n); {
-		case gerr != nil:
-			err = gerr
-		case gone:
-			err = fault("%w", ErrUndoWindow)
+		for _, n := range ns {
+			switch gone, gerr := r.userEntryGone(ctx, n); {
+			case gerr != nil:
+				return res, gerr
+			case gone:
+				return res, fault("%w", ErrUndoWindow)
+			}
 		}
 	}
 	return res, err

@@ -90,11 +90,13 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
       .catch(showError)
       .finally(() => setBusy(false))
   }
-  const deny = a.options?.some((o) => o.grant === Grant.GrantDeny)
+  // A refresh's card asks the user, not the agent: Deny takes no note.
+  const refresh = a.target.startsWith("refresh:")
+  const deny = !refresh && a.options?.some((o) => o.grant === Grant.GrantDeny)
   return (
     <Card ref={ref} size="sm" className="not-typeset">
       <CardHeader>
-        <Kicker>Approval · {kinds[a.kind] ?? a.kind}</Kicker>
+        <Kicker>Approval · {refresh ? "Refresh memory" : (kinds[a.kind] ?? a.kind)}</Kicker>
         <CardTitle className="text-base" dir="auto">
           {a.ask}
         </CardTitle>
@@ -107,7 +109,15 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
           {a.risk && <span dir="auto">{a.risk}</span>}
         </CardDescription>
       </CardHeader>
-      {a.kind === "memory" && <MemoryEdit before={a.before} after={a.after} />}
+      {a.kind === "memory" && (
+        <CardContent className="flex flex-col gap-4">
+          {a.edits?.length ? (
+            a.edits.map((e) => <MemoryEdit key={e.target} title={memoryTitle(e.target)} before={e.before} after={e.after} />)
+          ) : (
+            <MemoryEdit before={a.before} after={a.after} />
+          )}
+        </CardContent>
+      )}
       {a.details && (
         <CardContent>
           <Collapsible className="flex flex-col gap-2">
@@ -152,18 +162,25 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
   )
 }
 
+// memoryTitle names a memory section by its target, memory:<scope>/<section>.
+export function memoryTitle(target: string) {
+  const rest = target.replace(/^memory:/, "")
+  const i = rest.indexOf("/")
+  return `${rest.slice(0, i) === "user" ? "User" : "Project"} memory · ${rest.slice(i + 1)}`
+}
+
 // MemoryEdit is a memory edit's section, before and after (SPEC 3.3): the
 // added and removed lines first, in full, so a planted line can't hide in
 // a long section or below blank lines; then the whole section with them
 // marked. Each line takes its own direction, as a section can mix Persian
-// and English lines.
-function MemoryEdit({ before, after }: { before?: string; after?: string }) {
+// and English lines. A refresh's batch names each section by its title.
+export function MemoryEdit({ title, before, after }: { title?: string; before?: string; after?: string }) {
   const ops = React.useMemo(() => lineDiff(before, after), [before, after])
   const changed = React.useMemo(() => changes(ops), [ops])
   return (
-    <CardContent className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <Kicker>Changes</Kicker>
+        <Kicker>{title ? <span dir="auto">{title}</span> : "Changes"}</Kicker>
         <div className="overflow-hidden rounded-lg border text-sm">
           {changed.map((c, i) => (
             <DiffLine key={i} kind={c.kind} text={c.text} blanks={c.blanks} />
@@ -187,7 +204,7 @@ function MemoryEdit({ before, after }: { before?: string; after?: string }) {
           </CollapsibleContent>
         </Collapsible>
       )}
-    </CardContent>
+    </div>
   )
 }
 

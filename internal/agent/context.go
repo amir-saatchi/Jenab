@@ -63,7 +63,7 @@ type window struct {
 func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	w := &r.cs.win
 	c := t.set.Context
-	due := w.last.IsZero() || time.Since(w.last) > cacheIdle
+	due := r.cs.takeCut() || w.last.IsZero() || time.Since(w.last) > cacheIdle
 	if !due {
 		ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n-1)
 		if err != nil {
@@ -193,9 +193,10 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 			m.Parts = parts
 		default:
 			closeOpen()
-			// The number check's mark is for the user only (SPIKE-032).
-			if slices.ContainsFunc(m.Parts, isMark) {
-				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), isMark); len(m.Parts) == 0 {
+			// The number check's mark is for the user only (SPIKE-032),
+			// and so is a refresh's card.
+			if slices.ContainsFunc(m.Parts, notForModel) {
+				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), notForModel); len(m.Parts) == 0 {
 					continue
 				}
 			}

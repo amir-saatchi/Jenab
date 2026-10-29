@@ -42,6 +42,8 @@ export type {
     ProjectRuntime,
     ProviderModels,
     ProviderStatus,
+    RefreshUndo,
+    RefreshUndoRequest,
     RequestView,
     Runtime,
     SearchRequest,

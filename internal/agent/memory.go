@@ -149,7 +149,11 @@ func (r *runner) memoryNotices(ctx context.Context, t *turn) {
 // user memory serves them all.
 func memoryNotice(m store.MemorySection) string {
 	by := "another chat"
-	if m.Source.Kind() != "message" {
+	switch m.Source.Kind() {
+	case "message":
+	case "refresh":
+		by = "Refresh memory"
+	default:
 		by = "the user"
 	}
 	name := fmt.Sprintf("%s memory, section %s", m.Scope, m.Section)

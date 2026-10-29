@@ -29,6 +29,7 @@ import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
+import { RefreshChip } from "@/chat/refresh"
 import { copyText, firstRows, lastNotice, results, rows, splitJoining, toolTurn, type Row } from "@/chat/rows"
 import { UndoTurn } from "@/chat/undo"
 import { useNav } from "@/state/nav"
@@ -210,6 +211,7 @@ const RowView = React.memo(
       const n = row.part.notice
       if (!n) return null
       if (failed && n.kind === NoticeKind.NoticeTurnFailed) return <Failed thread={thread} text={n.text} />
+      if (n.kind === NoticeKind.NoticeMemoryRefreshed && n.edits?.length) return <RefreshChip project={thread.project} notice={n} />
       return <NoticeLine notice={n} time={clock(row.message.created_at)} />
     }
     return (

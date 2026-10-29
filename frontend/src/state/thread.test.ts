@@ -240,6 +240,29 @@ test("an approval level notice doesn't hide the failed turn", () => {
   expect(lastNotice([level])).toBeNull()
 })
 
+test("a refresh's card shows with the agent's work; it and its chip don't hide the failed turn", () => {
+  const notice = (id: string, kind: NoticeKind, text: string): Message => ({
+    ...msg(id, 2, Role.RoleUser),
+    parts: [{ kind: PartKind.PartNotice, notice: { kind, text } }],
+  })
+  const card: Message = {
+    ...msg("01C1", 2, Role.RoleUser),
+    parts: [{
+      kind: PartKind.PartApproval,
+      approval: { id: "a1", kind: "memory", target: "refresh:c1", ask: "Save?", risk: "", options: [] },
+    }],
+  }
+  const turn = [msg("01U1", 1, Role.RoleUser, "go"), msg("01A1", 1, Role.RoleAssistant, "Done.")]
+  const failed = notice("01N1", NoticeKind.NoticeTurnFailed, "no model")
+  const chip = notice("01N2", NoticeKind.NoticeMemoryRefreshed, "Memory refreshed: 1 added")
+  const ms = [...turn, msg("01U2", 2, Role.RoleUser, "again"), failed, card, chip]
+  expect(rows(ms).map((r) => r.kind)).toEqual(["user", "agent", "user", "notice", "agent", "notice"])
+  expect(lastNotice(ms)?.message).toBe(failed)
+  // After an answer, the card joins the answer's item, which keeps its footer.
+  const after = [...turn, { ...card, turn: 1 }, { ...chip, turn: 1 }]
+  expect(rows(after).flatMap((r) => (r.kind === "agent" ? [[r.messages.length, r.last]] : []))).toEqual([[2, true]])
+})
+
 test("a status sent between reading Live and the messages is kept", () => {
   // Live was read at 4; a status came at 4 and a write at 5 before the
   // messages were read.

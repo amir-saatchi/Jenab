@@ -9,6 +9,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // Event kinds of a record, in the chat's order.
@@ -54,7 +55,9 @@ type record struct {
 	subUsage    chat.Usage
 	// db are the answers of the db_query checks, by query and table regex.
 	db map[string][]dbAnswer
-	sc *Scenario
+	// userMemory is user memory at the end, for the transcript.
+	userMemory []store.MemorySection
+	sc         *Scenario
 	// grounding is the run's number check (SPIKE-032); nil is off.
 	grounding *GroundingSpec
 }
@@ -136,6 +139,9 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 		}
 	}
 	if rec.db, err = r.dbQueries(ctx, proj); err != nil {
+		return nil, err
+	}
+	if rec.userMemory, err = r.reg.UserMemory(ctx); err != nil {
 		return nil, err
 	}
 	list := traces.List()
@@ -277,6 +283,17 @@ func (rec *record) transcript() string {
 				fmt.Fprintf(&b, "\n%s\n", d)
 			}
 		}
+	}
+	head := false
+	for _, m := range rec.userMemory {
+		if m.Content == "" {
+			continue
+		}
+		if !head {
+			b.WriteString("\n## User memory at the end\n")
+			head = true
+		}
+		fmt.Fprintf(&b, "\n%s: %s\n", m.Section, m.Content)
 	}
 	if rec.subRequests > 0 {
 		u := rec.subUsage

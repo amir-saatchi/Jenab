@@ -524,24 +524,9 @@ func (c *ChatsDB) AppendMessage(ctx context.Context, m chat.Message) (chat.Messa
 	if err := m.Validate(); err != nil {
 		return m, 0, err
 	}
-	rows, err := encodeParts(m.Parts)
-	if err != nil {
-		return m, 0, err
-	}
 	s, err := Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (uint64, error) {
-		u := m.Usage
-		if _, err := tx.Exec(`INSERT INTO messages (id, chat_id, turn, role, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, created_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			m.ID, m.Chat, m.Turn, m.Role, m.Model, u.Input, u.Output, u.CacheRead, u.CacheWrite, formatTime(m.CreatedAt)); err != nil {
-			if isForeignKey(err) {
-				err = fmt.Errorf("store: chat %s: %w", m.Chat, ErrNotFound)
-			}
+		if err := insertMessage(tx, &m); err != nil {
 			return 0, err
-		}
-		for i, r := range rows {
-			if err := insertPart(tx, m.ID, i, r); err != nil {
-				return 0, err
-			}
 		}
 		return bump(tx, m.Chat)
 	})
@@ -920,13 +905,22 @@ func (c *ChatsDB) SaveSummary(ctx context.Context, ch id.Chat, summary string, r
 	if t := estimateTokens(summary); t > MaxSummaryTokens {
 		return chat.SessionNote{}, &NotesCapError{Summary: true, Tokens: t, Cap: MaxSummaryTokens}
 	}
-	return c.saveNotes(ctx, ch, revision, true, func(cur *chat.SessionNote) error {
-		if t := estimateTokens(cur.Content + summary); t > MaxNotesTokens {
-			return &NotesCapError{Tokens: t, Cap: MaxNotesTokens}
-		}
-		cur.Summary = summary
-		return nil
-	})
+	return c.saveNotes(ctx, ch, revision, true, func(cur *chat.SessionNote) error { return putSummary(cur, summary) })
+}
+
+// putSummary sets the summary of cur, checking the caps. A summary that
+// takes the notes over their cap but leaves them shorter than before goes
+// through, as for SaveNotes.
+func putSummary(cur *chat.SessionNote, summary string) error {
+	if t := estimateTokens(summary); t > MaxSummaryTokens {
+		return &NotesCapError{Summary: true, Tokens: t, Cap: MaxSummaryTokens}
+	}
+	old := estimateTokens(cur.Content + cur.Summary)
+	if t := estimateTokens(cur.Content + summary); t > MaxNotesTokens && t > old {
+		return &NotesCapError{Tokens: t, Cap: MaxNotesTokens}
+	}
+	cur.Summary = summary
+	return nil
 }
 
 // saveNotes reads a chat's notes, checks the revision, lets edit change
@@ -934,44 +928,218 @@ func (c *ChatsDB) SaveSummary(ctx context.Context, ch id.Chat, summary string, r
 // bumpSeq.
 func (c *ChatsDB) saveNotes(ctx context.Context, ch id.Chat, revision int, bumpSeq bool, edit func(*chat.SessionNote) error) (chat.SessionNote, error) {
 	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (chat.SessionNote, error) {
-		cur := chat.SessionNote{Chat: ch}
-		var at string
-		err := tx.QueryRow(`SELECT content, summary, revision, updated_at FROM session_notes WHERE chat_id = ?`, ch).Scan(&cur.Content, &cur.Summary, &cur.Revision, &at)
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-		case err != nil:
-			return cur, err
-		default:
-			if cur.UpdatedAt, err = parseTime(at); err != nil {
-				return cur, err
-			}
-		}
-		if cur.Revision != revision {
-			return cur, &NotesConflictError{Current: cur}
-		}
-		if err := edit(&cur); err != nil {
-			return cur, err
-		}
-		cur.Revision++
-		cur.UpdatedAt = now()
-		if _, err := tx.Exec(`INSERT INTO session_notes (chat_id, content, summary, revision, updated_at) VALUES (?, ?, ?, ?, ?)
-			ON CONFLICT (chat_id) DO UPDATE SET content = excluded.content, summary = excluded.summary, revision = excluded.revision, updated_at = excluded.updated_at`,
-			ch, cur.Content, cur.Summary, cur.Revision, formatTime(cur.UpdatedAt)); err != nil {
-			if isForeignKey(err) {
-				err = fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
-			}
-			return cur, err
-		}
-		if bumpSeq {
-			if _, err := bump(tx, ch); err != nil {
-				return cur, err
-			}
-		}
-		return cur, nil
+		return saveNotesTx(tx, ch, revision, bumpSeq, edit)
 	})
 }
 
+// saveNotesTx is saveNotes inside a transaction.
+func saveNotesTx(tx *sql.Tx, ch id.Chat, revision int, bumpSeq bool, edit func(*chat.SessionNote) error) (chat.SessionNote, error) {
+	cur := chat.SessionNote{Chat: ch}
+	var at string
+	err := tx.QueryRow(`SELECT content, summary, revision, updated_at FROM session_notes WHERE chat_id = ?`, ch).Scan(&cur.Content, &cur.Summary, &cur.Revision, &at)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+	case err != nil:
+		return cur, err
+	default:
+		if cur.UpdatedAt, err = parseTime(at); err != nil {
+			return cur, err
+		}
+	}
+	if cur.Revision != revision {
+		return cur, &NotesConflictError{Current: cur}
+	}
+	if err := edit(&cur); err != nil {
+		return cur, err
+	}
+	cur.Revision++
+	cur.UpdatedAt = now()
+	if _, err := tx.Exec(`INSERT INTO session_notes (chat_id, content, summary, revision, updated_at) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (chat_id) DO UPDATE SET content = excluded.content, summary = excluded.summary, revision = excluded.revision, updated_at = excluded.updated_at`,
+		ch, cur.Content, cur.Summary, cur.Revision, formatTime(cur.UpdatedAt)); err != nil {
+		if isForeignKey(err) {
+			err = fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
+		}
+		return cur, err
+	}
+	if bumpSeq {
+		if _, err := bump(tx, ch); err != nil {
+			return cur, err
+		}
+	}
+	return cur, nil
+}
+
 func now() time.Time { return time.Now().UTC().Truncate(time.Millisecond) }
+
+// ---- Refresh memory's progress (SPEC 3.5) ----
+
+// ReviewChunk is Refresh memory's result for one range of a chat's
+// messages, First to Last, kept so a later refresh doesn't ask for it
+// again. Result is the map call's items as JSON.
+type ReviewChunk struct {
+	First     id.Message `json:"first"`
+	Last      id.Message `json:"last"`
+	Result    string     `json:"result"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+// ReviewState is how far Refresh memory got in a chat: the last message
+// it reviewed and its turn ("" and 0 for none), and the saved chunks
+// after it, oldest first.
+type ReviewState struct {
+	UpTo     id.Message
+	UpToTurn int
+	Chunks   []ReviewChunk
+}
+
+// Review returns the chat's ReviewState. Message IDs are ULIDs, so they
+// order as the messages were written.
+func (c *ChatsDB) Review(ctx context.Context, ch id.Chat) (ReviewState, error) {
+	return readTx(ctx, c.DB, func(tx *sql.Tx) (ReviewState, error) {
+		var r ReviewState
+		err := tx.QueryRow(`SELECT memory_reviewed_up_to, COALESCE((SELECT turn FROM messages WHERE id = memory_reviewed_up_to), 0)
+			FROM chats WHERE id = ?`, ch).Scan(&r.UpTo, &r.UpToTurn)
+		if errors.Is(err, sql.ErrNoRows) {
+			return r, fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
+		}
+		if err != nil {
+			return r, err
+		}
+		r.Chunks, err = queryTx(tx, `SELECT first_id, last_id, result, created_at FROM review_chunks
+			WHERE chat_id = ? AND first_id > ? ORDER BY first_id`, []any{ch, r.UpTo}, func(rs *sql.Rows) (ReviewChunk, error) {
+			var k ReviewChunk
+			var at string
+			if err := rs.Scan(&k.First, &k.Last, &k.Result, &at); err != nil {
+				return k, err
+			}
+			var err error
+			k.CreatedAt, err = parseTime(at)
+			return k, err
+		})
+		return r, err
+	})
+}
+
+// SaveReviewChunk keeps a chunk's result, replacing one that starts at the
+// same message. The chat doesn't show it, so the seq stays.
+func (c *ChatsDB) SaveReviewChunk(ctx context.Context, ch id.Chat, k ReviewChunk) error {
+	if k.CreatedAt.IsZero() {
+		k.CreatedAt = now()
+	}
+	_, err := Do(ctx, c.DB, limit.Background, func(tx *sql.Tx) (struct{}, error) {
+		_, err := tx.Exec(`INSERT INTO review_chunks (chat_id, first_id, last_id, result, created_at) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (chat_id, first_id) DO UPDATE SET last_id = excluded.last_id, result = excluded.result, created_at = excluded.created_at`,
+			ch, k.First, k.Last, k.Result, formatTime(k.CreatedAt))
+		if isForeignKey(err) {
+			err = fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
+		}
+		return struct{}{}, err
+	})
+	return err
+}
+
+// FinishReview is the end of a refresh in chats.db (SPEC 3.5): the notes'
+// summary, the progress and the chip, written in one transaction.
+type FinishReview struct {
+	Chat id.Chat
+	// Summary is the new summary, nil to leave it as it is. NotesRevision
+	// is the notes' revision it was written from.
+	Summary       *string
+	NotesRevision int
+	UpTo          id.Message // the last message reviewed
+	// Chip builds the message with the chip once the summary's fate is
+	// known: summaryErr is nil, or its *NotesCapError or
+	// *NotesConflictError. Nil, or a nil message, writes none.
+	Chip func(summaryErr error) *chat.Message
+}
+
+// Finished is what FinishReview wrote. Message is nil without a chip.
+type Finished struct {
+	Notes      chat.SessionNote // the notes after the summary; zero if it wasn't saved
+	SummaryErr error            // why the summary wasn't saved
+	Message    *chat.Message
+	Seq        uint64
+}
+
+// FinishReview saves a refresh's end. A summary refused for its caps or a
+// stale revision is no error: the rest is written, and SummaryErr says
+// why. The chat's seq goes up once, so the chip's event follows the
+// summary with no gap.
+func (c *ChatsDB) FinishReview(ctx context.Context, f FinishReview) (Finished, error) {
+	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (Finished, error) {
+		var out Finished
+		if f.Summary != nil {
+			n, err := saveNotesTx(tx, f.Chat, f.NotesRevision, false, func(cur *chat.SessionNote) error { return putSummary(cur, *f.Summary) })
+			switch {
+			case err == nil:
+				out.Notes = n
+			case errors.Is(err, ErrTooLong), errors.Is(err, ErrConflict):
+				out.SummaryErr = err
+			default:
+				return out, err
+			}
+		}
+		res, err := tx.Exec(`UPDATE chats SET memory_reviewed_up_to = ? WHERE id = ?`, f.UpTo, f.Chat)
+		if err != nil {
+			return out, err
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			return out, fmt.Errorf("store: chat %s: %w", f.Chat, ErrNotFound)
+		}
+		// The chunks up to the progress are reviewed: a Full refresh's
+		// all, and the old ones it read again.
+		if _, err := tx.Exec(`DELETE FROM review_chunks WHERE chat_id = ? AND first_id <= ?`, f.Chat, f.UpTo); err != nil {
+			return out, err
+		}
+		if f.Chip != nil {
+			if m := f.Chip(out.SummaryErr); m != nil {
+				if err := insertMessage(tx, m); err != nil {
+					return out, err
+				}
+				out.Message = m
+			}
+		}
+		out.Seq, err = bump(tx, f.Chat)
+		return out, err
+	})
+}
+
+// insertMessage writes m with its parts, setting its ID and time if empty,
+// without bumping the seq.
+func insertMessage(tx *sql.Tx, m *chat.Message) error {
+	if m.ID == "" {
+		m.ID = id.Message(id.New())
+	}
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = now()
+	}
+	if m.Turn < 1 {
+		return fmt.Errorf("store: message %s: turn %d, turns start at 1", m.ID, m.Turn)
+	}
+	if err := m.Validate(); err != nil {
+		return err
+	}
+	rows, err := encodeParts(m.Parts)
+	if err != nil {
+		return err
+	}
+	u := m.Usage
+	if _, err := tx.Exec(`INSERT INTO messages (id, chat_id, turn, role, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		m.ID, m.Chat, m.Turn, m.Role, m.Model, u.Input, u.Output, u.CacheRead, u.CacheWrite, formatTime(m.CreatedAt)); err != nil {
+		if isForeignKey(err) {
+			err = fmt.Errorf("store: chat %s: %w", m.Chat, ErrNotFound)
+		}
+		return err
+	}
+	for i, r := range rows {
+		if err := insertPart(tx, m.ID, i, r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // UsageRow is the tokens one chat used with one model on one day.
 type UsageRow struct {

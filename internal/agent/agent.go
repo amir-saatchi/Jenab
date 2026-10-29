@@ -189,6 +189,8 @@ type chatState struct {
 	pub sync.Mutex
 
 	win window // used by the runner only
+
+	refresh refreshState // Refresh memory (refresh.go); under mu
 }
 
 func (o *Orchestrator) state(p id.Project, c id.Chat) *chatState {
@@ -294,7 +296,7 @@ func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m User
 	}
 	if !join {
 		cs.turn, cs.queued, cs.failed = turn, true, false
-		if !cs.runner {
+		if !cs.runner && !cs.refresh.on { // a refresh starts the runner at its end
 			o.startRunner(cs, proj)
 			proj = nil
 		}
@@ -334,6 +336,9 @@ func (o *Orchestrator) Retry(ctx context.Context, p id.Project, c id.Chat) error
 	defer cs.mu.Unlock()
 	if busy, err := cs.retryInTurn(); busy {
 		return err
+	}
+	if cs.refresh.on {
+		return ErrRefreshing
 	}
 	if err := o.load(ctx, cs, proj); err != nil {
 		return err
@@ -413,7 +418,7 @@ func (o *Orchestrator) empty(ctx context.Context, p id.Project, c id.Chat, fn fu
 	cs := o.state(p, c)
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	if cs.running || cs.queued {
+	if cs.running || cs.queued || cs.refresh.on {
 		return ErrInTurn
 	}
 	cs.pub.Lock()
@@ -445,6 +450,7 @@ func (o *Orchestrator) Stop(p id.Project, c id.Chat) {
 		cs.stopping = true
 		cs.cancel(errStopped)
 	}
+	cs.stopRefresh()
 }
 
 // Wrote tells the Orchestrator that the chat changed elsewhere (a title
@@ -479,7 +485,7 @@ func (o *Orchestrator) Live(p id.Project, c id.Chat) Live {
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
-	l := Live{Running: cs.running || cs.queued, Turn: cs.turn, Seq: cs.seq.Load(), Retry: cs.retry, Doing: cs.doing}
+	l := Live{Running: cs.running || cs.queued || cs.refresh.on, Turn: cs.turn, Seq: cs.seq.Load(), Retry: cs.retry, Doing: cs.doing}
 	if w := cs.waiting; w != nil {
 		l.Waiting = &w.w
 	}
@@ -522,7 +528,7 @@ func (cs *chatState) state() chat.State {
 	switch {
 	case cs.waiting != nil:
 		return chat.StateWaiting
-	case cs.running || cs.queued:
+	case cs.running || cs.queued || cs.refresh.on:
 		return chat.StateWorking
 	}
 	return chat.StateIdle
@@ -619,7 +625,7 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 		}
 		for i := len(ms) - 1; i >= 0; i-- {
 			ps := ms[i].Parts
-			if !slices.ContainsFunc(ps, func(p chat.Part) bool { return p.Notice == nil || !aside(p.Notice.Kind) }) {
+			if refreshCard(ms[i]) || !slices.ContainsFunc(ps, func(p chat.Part) bool { return p.Notice == nil || !aside(p.Notice.Kind) }) {
 				continue
 			}
 			last := ps[len(ps)-1]
@@ -665,7 +671,7 @@ func (o *Orchestrator) untrustedTurn(ms []chat.Message) int {
 // aside reports whether a notice of kind is added to a turn after it ended,
 // so it doesn't say how the turn ended.
 func aside(kind chat.NoticeKind) bool {
-	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone
+	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone || kind == chat.NoticeMemoryRefreshed
 }
 
 // bumpSeq raises the known sequence number to s.
@@ -743,9 +749,11 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 		for {
 			tctx, tcancel := context.WithCancelCause(ctx)
 			cs.mu.Lock()
-			if !cs.queued || ctx.Err() != nil {
+			// A refresh that started after the last turn keeps a queued
+			// one, and starts a runner at its end.
+			if !cs.queued || cs.refresh.on || ctx.Err() != nil {
 				cs.runner = false
-				if cs.queued { // the project or the app closed
+				if cs.queued && ctx.Err() != nil { // the project or the app closed
 					cs.queued = false
 					o.publishStatus(cs)
 				}
@@ -763,9 +771,14 @@ func (o *Orchestrator) run(cs *chatState, proj *project.Project, gen int) {
 			if ok && t.ch.Title == "" { // Mother always has one
 				r.startTitle(ctx, &titles, t)
 			}
+			turnEnded(cs)
 		}
 	})
 }
+
+// turnEnded runs between a turn's end and the runner's next look at the
+// queue; tests start a refresh there.
+var turnEnded = func(*chatState) {}
 
 // publishStatus sends the chat's status. cs.mu is held.
 func (o *Orchestrator) publishStatus(cs *chatState) {

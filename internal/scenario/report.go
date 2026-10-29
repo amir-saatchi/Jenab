@@ -38,14 +38,17 @@ type Run struct {
 	Requests int     `json:"requests"`
 	// SubRequests are the subagents' requests, such as the schema
 	// agent's; the token counts are the chat's only.
-	SubRequests int      `json:"subagent_requests,omitempty"`
-	Prompt      int      `json:"prompt_tokens"` // all requests: input, cache read and cache write
-	Input       int      `json:"input_tokens"`  // not read from or written to the cache
-	CacheRead   int      `json:"cache_read_tokens"`
-	CacheWrite  int      `json:"cache_write_tokens"`
-	PeakPrompt  int      `json:"peak_prompt_tokens"`
-	Output      int      `json:"output_tokens"`
-	Asserts     []Result `json:"asserts"`
+	SubRequests int `json:"subagent_requests,omitempty"`
+	// ProviderRequests are all requests the providers got, the ones above
+	// and untraced ones, such as Refresh memory's and titles'.
+	ProviderRequests int      `json:"provider_requests"`
+	Prompt           int      `json:"prompt_tokens"` // all requests: input, cache read and cache write
+	Input            int      `json:"input_tokens"`  // not read from or written to the cache
+	CacheRead        int      `json:"cache_read_tokens"`
+	CacheWrite       int      `json:"cache_write_tokens"`
+	PeakPrompt       int      `json:"peak_prompt_tokens"`
+	Output           int      `json:"output_tokens"`
+	Asserts          []Result `json:"asserts"`
 	// SPIKE-032's number check: its mode and K, its verdicts, and what the
 	// requests after its notice cost.
 	GroundMode    string         `json:"grounding_mode,omitempty"`

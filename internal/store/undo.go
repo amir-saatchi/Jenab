@@ -569,11 +569,19 @@ func (p *ProjectDB) Undo(ctx context.Context, sources []id.Source, o UndoOptions
 // UndoChange is Undo for one change, by its ID, such as a memory edit from
 // its chip (SPEC 3.3).
 func (p *ProjectDB) UndoChange(ctx context.Context, c id.Change, o UndoOptions) (UndoResult, error) {
+	return p.UndoChanges(ctx, []id.Change{c}, o)
+}
+
+// UndoChanges is Undo for the changes cs, by their IDs, in one
+// transaction, such as a Refresh memory batch from its chip (SPEC 3.5).
+func (p *ProjectDB) UndoChanges(ctx context.Context, cs []id.Change, o UndoOptions) (UndoResult, error) {
+	if len(cs) == 0 {
+		return UndoResult{}, ErrNothingToUndo
+	}
 	var res UndoResult
 	_, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
 		res = UndoResult{}
-		b, _ := json.Marshal([]id.Change{c})
-		err := undoTx(tx, undoBase{srcs: "[]", ids: string(b)}, o, &res)
+		err := undoTx(tx, undoBase{srcs: "[]", ids: idsJSON(cs)}, o, &res)
 		if err == nil && o.Check {
 			err = errChecked
 		}
