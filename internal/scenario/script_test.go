@@ -187,7 +187,7 @@ func TestScriptedRunLogsNoErrors(t *testing.T) {
 // The sets with an offline script pass with it, without keys: data-tools
 // through the real data tools on its data.
 func TestOfflineScript(t *testing.T) {
-	for _, set := range []string{"skill-loading", "data-tools", "schema-widen", "schema-widen-check", "session-notes"} {
+	for _, set := range []string{"skill-loading", "data-tools", "schema-widen", "schema-widen-check", "session-notes", "memory-untrusted"} {
 		t.Run(set, func(t *testing.T) { offline(t, filepath.Join("..", "..", "scenarios", set)) })
 	}
 }

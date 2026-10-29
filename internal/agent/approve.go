@@ -48,9 +48,8 @@ const (
 	autoIfTrusted
 	// noAsk: the level doesn't ask, and nothing is recorded or shown.
 	noAsk
-	// askIfUntrusted doesn't ask, as noAsk, unless the turn has read
-	// untrusted content since the user's last message, so a planted line
-	// can't reach memory unseen.
+	// askIfUntrusted doesn't ask, as noAsk, unless untrusted content is
+	// still in the window, so a planted line can't reach memory unseen.
 	askIfUntrusted
 )
 
@@ -87,8 +86,10 @@ func levelDecision(l project.Level, kind string, untrusted bool) decision {
 }
 
 // approve splits a call's approvals in one place: those already given
-// are dropped, and the level and the turn's untrusted mark decide which of
-// the rest are approved without asking (8.8).
+// are dropped, and the level and the untrusted mark decide which of the
+// rest are approved without asking (8.8). For a memory edit the mark holds
+// while a turn with outside data is in the window (3.3); for the rest it
+// holds from the read to the user's next turn.
 func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.Approval, err error) {
 	if len(n.Approvals) == 0 {
 		return nil, nil, nil
@@ -99,13 +100,18 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 	}
 	r.cs.mu.Lock()
 	untrusted := r.cs.untrusted
+	inWindow := untrusted || r.cs.outside > 0 && r.cs.outside >= r.cs.win.start
 	r.cs.mu.Unlock()
 	for _, a := range n.Approvals {
 		ok, err := r.p.DB.Approved(ctx, a.Kind, a.Target)
 		if err != nil {
 			return nil, nil, err
 		}
-		switch d := levelDecision(level, a.Kind, untrusted); {
+		mark := untrusted
+		if a.Kind == "memory" {
+			mark = inWindow
+		}
+		switch d := levelDecision(level, a.Kind, mark); {
 		case ok, d == noAsk:
 		case d == autoApprove:
 			autos = append(autos, a)
@@ -114,6 +120,14 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 		}
 	}
 	return asks, autos, nil
+}
+
+// readOutside marks outside data in the results of turn n (8.8, 3.3).
+func (r *runner) readOutside(n int) {
+	r.cs.mu.Lock()
+	r.cs.untrusted = true
+	r.cs.outside = max(r.cs.outside, n)
+	r.cs.mu.Unlock()
 }
 
 // approveNow is Env.Approve: an approval a call finds it needs while it

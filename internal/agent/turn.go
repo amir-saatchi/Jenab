@@ -644,10 +644,8 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	res, err := r.safeRun(ctx, tl, call)
 	if needs.Effects&tool.Untrusted != 0 {
 		// Outside data entered the turn: Auto asks again until the user's
-		// next message (8.8).
-		r.cs.mu.Lock()
-		r.cs.untrusted = true
-		r.cs.mu.Unlock()
+		// next turn (8.8), and memory edits until the cut that drops it (3.3).
+		r.readOutside(t.n)
 	}
 	if err != nil && ctx.Err() != nil {
 		r.o.d.Traces.tool(t.trace, ToolTrace{CallID: c.ID, Name: c.Name, Started: start, Took: time.Since(start), Bytes: len(res.Text), Error: true})

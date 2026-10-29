@@ -559,30 +559,66 @@ func TestFetchPageAsksForTheHost(t *testing.T) {
 }
 
 // A turn that read outside data and then failed keeps Auto's mark after a
-// restart: Retry continues it, and a new host is asked for (8.8).
+// restart: Retry continues it, and a new host is asked for (8.8). A page
+// in an earlier turn doesn't mark the failed turn: Retry gets the host
+// approved by Auto, as only the turn's own reads count for hosts
+// (TASK-012), though memory edits still ask (TASK-028).
 func TestUntrustedAfterRestart(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		root := t.TempDir()
-		n := newNeedy()
-		h := newHarness(t, root, "", testSettings(), n, outside())
-		c := h.newChat(chat.Chat{Title: "Pages"})
-		h.setLevel(project.Auto)
-		h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"}))
-		h.turn(c.ID, "read the page")
-		h.stop()
+	bad := func() fake.Reply {
+		return fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"})
+	}
+	t.Run("in the failed turn", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			root := t.TempDir()
+			n := newNeedy()
+			h := newHarness(t, root, "", testSettings(), n, outside())
+			c := h.newChat(chat.Chat{Title: "Pages"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), bad())
+			h.turn(c.ID, "read the page")
+			h.stop()
 
-		h = newHarness(t, root, h.pid, testSettings(), n, outside())
-		defer h.stop()
-		h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), fake.Text("done"))
-		if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
-			t.Fatal(err)
-		}
-		w := h.waiting(c.ID)
-		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
-		h.wait()
-		if n.runs.Load() != 0 {
-			t.Error("the host was approved without asking")
-		}
+			h = newHarness(t, root, h.pid, testSettings(), n, outside())
+			defer h.stop()
+			h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), fake.Text("done"))
+			if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+				t.Fatal(err)
+			}
+			w := h.waiting(c.ID)
+			h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
+			h.wait()
+			if n.runs.Load() != 0 {
+				t.Error("the host was approved without asking")
+			}
+		})
+	})
+	t.Run("in an earlier turn", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			root := t.TempDir()
+			n := newNeedy()
+			h := newHarness(t, root, "", testSettings(), n, outside())
+			c := h.newChat(chat.Chat{Title: "Pages"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read the page")
+			h.fp.Push(bad())
+			h.turn(c.ID, "now add the source")
+			h.stop()
+
+			h = newHarness(t, root, h.pid, testSettings(), n, outside())
+			defer h.stop()
+			h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), fake.Text("done"))
+			if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+				t.Fatal(err)
+			}
+			h.wait()
+			if n.runs.Load() != 1 {
+				t.Errorf("the host ran %d times", n.runs.Load())
+			}
+			if as := h.approvals(); len(as) != 1 || as[0].Kind != "host" || as[0].Source != id.SourceAuto {
+				t.Errorf("records %+v", as)
+			}
+		})
 	})
 }
 
@@ -644,34 +680,38 @@ func TestJoiningMessageKeepsUntrusted(t *testing.T) {
 	})
 }
 
-// The mark comes from the last turn's history: results of untrusted or
-// unknown tools set it; a message that joined the turn doesn't clear it.
-func TestUntrustedIn(t *testing.T) {
+// The mark comes from the stored history: the newest turn with a result
+// of an untrusted or unknown tool; a message that joined the turn doesn't
+// clear it.
+func TestUntrustedTurn(t *testing.T) {
 	h := newHarness(t, t.TempDir(), "", testSettings(), echo(), outside())
 	defer h.stop()
-	user := func(text string) chat.Message {
-		return chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}}
+	user := func(turn int, text string) chat.Message {
+		return chat.Message{Turn: turn, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}}
 	}
-	notice := chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeApprovalLevel, Text: "[level]"}}}}
-	called := func(id, name string) []chat.Message {
+	notice := chat.Message{Turn: 1, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeApprovalLevel, Text: "[level]"}}}}
+	called := func(turn int, id, name string) []chat.Message {
 		return []chat.Message{
-			{Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: id, Name: name}}}},
-			{Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: id, Text: "x"}}}},
+			{Turn: turn, Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: id, Name: name}}}},
+			{Turn: turn, Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: id, Text: "x"}}}},
 		}
 	}
+	join := func(mss ...[]chat.Message) []chat.Message { return slices.Concat(mss...) }
 	for name, tc := range map[string]struct {
 		ms   []chat.Message
-		want bool
+		want int
 	}{
-		"trusted tool":         {append([]chat.Message{user("a")}, called("c1", "echo")...), false},
-		"untrusted tool":       {append([]chat.Message{user("a")}, called("c1", "outside")...), true},
-		"unknown tool":         {append([]chat.Message{user("a")}, called("c1", "gone")...), true},
-		"message after":        {append(append([]chat.Message{user("a")}, called("c1", "outside")...), user("b")), true},
-		"notice after":         {append(append([]chat.Message{user("a")}, called("c1", "outside")...), notice), true},
-		"untrusted then other": {append(append([]chat.Message{user("a")}, called("c1", "outside")...), called("c2", "echo")...), true},
+		"trusted tool":         {join([]chat.Message{user(1, "a")}, called(1, "c1", "echo")), 0},
+		"untrusted tool":       {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside")), 1},
+		"unknown tool":         {join([]chat.Message{user(1, "a")}, called(1, "c1", "gone")), 1},
+		"message after":        {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside"), []chat.Message{user(1, "b")}), 1},
+		"notice after":         {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside"), []chat.Message{notice}), 1},
+		"untrusted then other": {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside"), called(1, "c2", "echo")), 1},
+		"an earlier turn":      {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside"), []chat.Message{user(2, "b")}, called(2, "c2", "echo")), 1},
+		"the newest of two":    {join([]chat.Message{user(1, "a")}, called(1, "c1", "outside"), []chat.Message{user(2, "b")}, called(2, "c2", "outside")), 2},
 	} {
-		if got := h.o.untrustedIn(tc.ms); got != tc.want {
-			t.Errorf("%s: %v, want %v", name, got, tc.want)
+		if got := h.o.untrustedTurn(tc.ms); got != tc.want {
+			t.Errorf("%s: %d, want %d", name, got, tc.want)
 		}
 	}
 }

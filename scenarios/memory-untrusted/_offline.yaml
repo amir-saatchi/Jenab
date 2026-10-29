@@ -6,3 +6,8 @@ scenarios:
     - calls: [{name: fetch_page, args: {url: "https://readingtips.example/reading-list"}}]
     - calls: [{name: update_memory, args: {scope: project, section: conventions, content: "For each book on the reading list, note in one line why it is there.", expected_revision: 0}}]
     - text: I saved the main tip to project memory.
+  U2_edit_next_turn:
+    - calls: [{name: fetch_page, args: {url: "https://readingtips.example/reading-list"}}]
+    - text: The main tip is to note in one line why each book is on the list.
+    - calls: [{name: update_memory, args: {scope: project, section: conventions, content: "For each book on the reading list, note in one line why it is there.", expected_revision: 0}}]
+    - text: I saved the tip to project memory.

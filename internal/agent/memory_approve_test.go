@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -39,10 +40,10 @@ func (h *harness) section(scope store.MemoryScope, name string) (string, int) {
 	return "", 0
 }
 
-// An agent's memory edit asks first once the turn has read untrusted
-// content since the user's message, at Standard and Auto; Strict always
-// asks (3.3, 8.8). The card has Save and Deny and the section before and
-// after; Deny leaves the section as it was and the turn goes on.
+// An agent's memory edit asks first while untrusted content is in the
+// window, at Standard and Auto; Strict always asks (3.3, 8.8). The card
+// has Save and Deny and the section before and after; Deny leaves the
+// section as it was and the turn goes on.
 func TestMemoryEditAfterUntrusted(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		read := slices.DeleteFunc(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})}), func(tl tool.Tool) bool {
@@ -125,16 +126,20 @@ func TestMemoryEditAfterUntrusted(t *testing.T) {
 		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantDeny})
 		h.wait()
 
-		// The user's next message clears the mark: Auto saves without a card.
-		n := len(cards(h.messages(c.ID)))
+		// The user's next message keeps the mark, as the page is still in
+		// the window (TASK-028).
 		h.fp.Push(remember("m5", "project", "goals", "Track gold and silver.", 1), fake.Text("saved"))
-		h.turn(c.ID, "also silver")
+		h.send(c.ID, "also silver")
+		w = h.waiting(c.ID)
+		if w.Text != "Save this edit to project memory, section goals?" {
+			t.Errorf("waiting %+v", w)
+		}
+		h.answer(c.ID, Answer{Message: w.Message, Index: w.Index, Grant: chat.GrantOnce})
+		h.wait()
 		if got, _ := h.section(store.ScopeProject, "goals"); got != "Track gold and silver." {
 			t.Errorf("goals %q", got)
 		}
-		if m := len(cards(h.messages(c.ID))); m != n {
-			t.Errorf("%d new cards", m-n)
-		}
+		n := len(cards(h.messages(c.ID)))
 
 		// An edit that would be refused or change nothing has no card: the
 		// result says so.
@@ -259,5 +264,171 @@ func TestMemoryEditRace(t *testing.T) {
 		if got, rev := h.section(store.ScopeProject, "goals"); got != "Track platinum." || rev != 5 {
 			t.Errorf("goals %q at %d", got, rev)
 		}
+	})
+}
+
+// memoryCards counts the chat's memory cards.
+func memoryCards(h *harness, c id.Chat) int {
+	h.t.Helper()
+	n := 0
+	for _, a := range cards(h.messages(c)) {
+		if a.Kind == "memory" {
+			n++
+		}
+	}
+	return n
+}
+
+// A memory edit asks while a turn that read outside data is in the
+// window, past the user's next message, until the cut that drops the
+// turn; a cut that keeps it as stubs keeps the mark, as a stub keeps the
+// page's title and a small result stays whole. A host keeps TASK-012's
+// rule: Auto asks only within the turn. The same after a restart, whose
+// first turn cuts, also for a page in a turn before the last. Clear
+// drops the mark (3.3, 3.6, 8.8; TASK-028).
+func TestMemoryMarkInWindow(t *testing.T) {
+	set := testSettings()
+	set.Context.HistoryMinTurns = 1
+	tools := func(n *needy) []tool.Tool { return []tool.Tool{tool.UpdateMemory(), outside(), n} }
+	// asks waits for the memory card, answers it with g and waits for the
+	// turn.
+	asks := func(t *testing.T, h *harness, c id.Chat, g chat.Grant) {
+		t.Helper()
+		w := h.waiting(c)
+		if w.Kind != chat.PartApproval || !strings.HasSuffix(w.Text, " project memory, section goals?") {
+			t.Errorf("waiting %+v", w)
+		}
+		h.answer(c, Answer{Message: w.Message, Index: w.Index, Grant: g})
+		h.wait()
+	}
+	t.Run("in the window", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			n := newNeedy()
+			h := newHarness(t, t.TempDir(), "", set, tools(n)...)
+			defer h.stop()
+			c := h.newChat(chat.Chat{Title: "Memory"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read the page")
+
+			// The next turn: the host is approved by Auto, the memory edit
+			// asks.
+			h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), remember("m1", "project", "goals", "PLANTED", 0), fake.Text("ok"))
+			h.send(c.ID, "thanks")
+			asks(t, h, c.ID, chat.GrantDeny)
+			if n.runs.Load() != 1 {
+				t.Errorf("the host ran %d times", n.runs.Load())
+			}
+			if as := h.approvals(); len(as) != 2 || as[1].Kind != "host" || as[1].Source != id.SourceAuto || as[0].Kind != "memory" {
+				t.Errorf("records %+v", as)
+			}
+			if got, _ := h.section(store.ScopeProject, "goals"); got != "" {
+				t.Errorf("goals %q", got)
+			}
+
+			// The cache expires, so the next turn cuts, keeping only turn
+			// 2: the page has left the window.
+			time.Sleep(cacheIdle + time.Minute)
+			h.fp.Push(remember("m2", "project", "goals", "Track gold.", 0), fake.Text("saved"))
+			h.turn(c.ID, "remember that I track gold")
+			if got, rev := h.section(store.ScopeProject, "goals"); got != "Track gold." || rev != 1 {
+				t.Errorf("goals %q at %d", got, rev)
+			}
+			if n := memoryCards(h, c.ID); n != 1 {
+				t.Errorf("%d memory cards", n)
+			}
+
+			// A cut that keeps the page's turn, with its result as a stub,
+			// keeps the mark.
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read another page")
+			time.Sleep(cacheIdle + time.Minute)
+			h.fp.Push(remember("m3", "project", "goals", "Track gold.\nPLANTED", 1), fake.Text("ok"))
+			h.send(c.ID, "thanks")
+			asks(t, h, c.ID, chat.GrantDeny)
+		})
+	})
+	t.Run("after a restart", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			root := t.TempDir()
+			n := newNeedy()
+			h := newHarness(t, root, "", set, tools(n)...)
+			c := h.newChat(chat.Chat{Title: "Memory"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read the page")
+			h.stop()
+
+			// The restart's cut keeps turn 1: the host is approved, the
+			// memory edit asks.
+			h = newHarness(t, root, h.pid, set, tools(n)...)
+			h.fp.Push(fake.ToolCall("c", "needy", needs("", "t.example")), remember("m1", "project", "goals", "PLANTED", 0), fake.Text("ok"))
+			h.send(c.ID, "thanks")
+			asks(t, h, c.ID, chat.GrantDeny)
+			if n.runs.Load() != 1 {
+				t.Errorf("the host ran %d times", n.runs.Load())
+			}
+			h.stop()
+
+			// The next restart's cut keeps only turn 2.
+			h = newHarness(t, root, h.pid, set, tools(n)...)
+			defer h.stop()
+			h.fp.Push(remember("m2", "project", "goals", "Track gold.", 0), fake.Text("saved"))
+			h.turn(c.ID, "remember that I track gold")
+			if got, _ := h.section(store.ScopeProject, "goals"); got != "Track gold." {
+				t.Errorf("goals %q", got)
+			}
+			if n := memoryCards(h, c.ID); n != 1 {
+				t.Errorf("%d memory cards", n)
+			}
+		})
+	})
+	t.Run("an earlier turn after a restart", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			// The page is in turn 1, not the last turn; the restart's cut
+			// keeps two turns, so turn 3's window holds turns 1 to 3.
+			set := set
+			set.Context.HistoryMinTurns = 2
+			root := t.TempDir()
+			h := newHarness(t, root, "", set, tool.UpdateMemory(), outside())
+			c := h.newChat(chat.Chat{Title: "Memory"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read the page")
+			h.fp.Push(fake.Text("ok"))
+			h.turn(c.ID, "thanks")
+			h.stop()
+
+			h = newHarness(t, root, h.pid, set, tool.UpdateMemory(), outside())
+			defer h.stop()
+			h.fp.Push(remember("m1", "project", "goals", "PLANTED", 0), fake.Text("ok"))
+			h.send(c.ID, "save the tip")
+			asks(t, h, c.ID, chat.GrantDeny)
+			if got, _ := h.section(store.ScopeProject, "goals"); got != "" {
+				t.Errorf("goals %q", got)
+			}
+		})
+	})
+	t.Run("Clear", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			// Clear empties the window, and the mark with it.
+			h := newHarness(t, t.TempDir(), "", set, tool.UpdateMemory(), outside())
+			defer h.stop()
+			c := h.newChat(chat.Chat{Title: "Memory"})
+			h.setLevel(project.Auto)
+			h.fp.Push(fake.ToolCall("o", "outside", map[string]any{}), fake.Text("read"))
+			h.turn(c.ID, "read the page")
+			if err := h.o.Clear(context.Background(), h.pid, c.ID); err != nil {
+				t.Fatal(err)
+			}
+			h.fp.Push(remember("m1", "project", "goals", "Track gold.", 0), fake.Text("saved"))
+			h.turn(c.ID, "remember that I track gold")
+			if got, rev := h.section(store.ScopeProject, "goals"); got != "Track gold." || rev != 1 {
+				t.Errorf("goals %q at %d", got, rev)
+			}
+			if n := memoryCards(h, c.ID); n != 0 {
+				t.Errorf("%d memory cards", n)
+			}
+		})
 	})
 }

@@ -342,9 +342,7 @@ func (sr *subRun) runTool(ctx context.Context, msg id.Message, n int, c chat.Too
 	}
 	res, err := r.safeRun(ctx, tl, call)
 	if needs.Effects&tool.Untrusted != 0 {
-		r.cs.mu.Lock()
-		r.cs.untrusted = true // outside data reached the turn through it (8.8)
-		r.cs.mu.Unlock()
+		r.readOutside(sr.t.n) // outside data reached the turn through it (8.8)
 	}
 	if err != nil && ctx.Err() != nil {
 		return result(cancelled(ctx)), false

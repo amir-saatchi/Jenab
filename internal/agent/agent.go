@@ -169,16 +169,20 @@ type chatState struct {
 	// that started the turn, so Auto asks where the rules say so (8.8).
 	// A message that joins the turn leaves it set.
 	untrusted bool
-	failed    bool   // the last turn stopped on an error; Retry continues it
-	doing     string // what a tool call shows in the status, such as a long migration (7.5)
-	titling   bool   // a title request is running
-	clears    int    // counts Clear and Delete, so a late title is dropped
-	started   time.Time
-	active    time.Time     // the start of the current request or tool call
-	moved     atomic.Int64  // the last stream event, in Unix nanoseconds
-	limit     time.Duration // how long the current request or tool call may go without moving
-	title     string        // the chat's title, for the runtime panel
-	requests  int
+	// outside is the newest turn with outside data in its results. An
+	// agent's memory edit asks while that turn is in the window, until
+	// the cut that drops it (3.3).
+	outside  int
+	failed   bool   // the last turn stopped on an error; Retry continues it
+	doing    string // what a tool call shows in the status, such as a long migration (7.5)
+	titling  bool   // a title request is running
+	clears   int    // counts Clear and Delete, so a late title is dropped
+	started  time.Time
+	active   time.Time     // the start of the current request or tool call
+	moved    atomic.Int64  // the last stream event, in Unix nanoseconds
+	limit    time.Duration // how long the current request or tool call may go without moving
+	title    string        // the chat's title, for the runtime panel
+	requests int
 
 	// pub keeps a store write and its events together, so events go out
 	// in seq order. Taken after mu, never before.
@@ -419,7 +423,7 @@ func (o *Orchestrator) empty(ctx context.Context, p id.Project, c id.Chat, fn fu
 		return err
 	}
 	cs.clears++
-	cs.loaded, cs.turn, cs.lastUser, cs.failed, cs.untrusted, cs.retry, cs.win = true, 0, "", false, false, nil, window{}
+	cs.loaded, cs.turn, cs.lastUser, cs.failed, cs.untrusted, cs.outside, cs.retry, cs.win = true, 0, "", false, false, 0, nil, window{}
 	o.publishStatus(cs)
 	return nil
 }
@@ -592,7 +596,9 @@ func (o *Orchestrator) Wait(ctx context.Context) error {
 // last turn stopped on an error (its last message, not counting approval
 // level and undo notices, ends with a turn_failed notice), and whether it read
 // outside data since the user's last message, so Retry after a restart
-// keeps Auto's mark (8.8). cs.mu is held.
+// keeps Auto's mark (8.8). It also finds the newest turn with outside
+// data among those the next window can hold: the first turn after a
+// restart cuts, keeping history_min_turns turns (3.3, 3.6). cs.mu is held.
 func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Project) error {
 	if cs.loaded {
 		return nil
@@ -605,9 +611,9 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 	if err != nil {
 		return err
 	}
-	failed, untrusted := false, false
+	failed, outside := false, 0
 	if turn > 0 {
-		ms, _, err := p.Chats.Messages(ctx, cs.key.c, turn, turn)
+		ms, _, err := p.Chats.Messages(ctx, cs.key.c, max(1, turn-o.d.Settings().Context.HistoryMinTurns), turn)
 		if err != nil {
 			return err
 		}
@@ -620,20 +626,20 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 			failed = last.Notice != nil && last.Notice.Kind == chat.NoticeTurnFailed
 			break
 		}
-		untrusted = o.untrustedIn(ms)
+		outside = o.untrustedTurn(ms)
 	}
-	cs.turn, cs.failed, cs.untrusted, cs.loaded = turn, failed, untrusted, true
+	cs.turn, cs.failed, cs.untrusted, cs.outside, cs.loaded = turn, failed, outside > 0 && outside == turn, outside, true
 	cs.bumpSeq(seq)
 	return nil
 }
 
-// untrustedIn reports whether a tool with the Untrusted effect has a
-// result in ms, the last turn's messages. Only a new turn clears the
-// mark, so a message that joined the turn doesn't (8.8). A tool no longer
-// known counts as untrusted.
-func (o *Orchestrator) untrustedIn(ms []chat.Message) bool {
+// untrustedTurn is the newest turn in ms with a result of a tool with the
+// Untrusted effect, or 0. Only a new turn clears Auto's mark, so a message
+// that joined the turn doesn't (8.8). A tool no longer known counts as
+// untrusted.
+func (o *Orchestrator) untrustedTurn(ms []chat.Message) int {
 	names := map[string]string{} // tool call ID to tool name
-	untrusted := false
+	newest := 0
 	for _, m := range ms {
 		switch m.Role {
 		case chat.RoleAssistant:
@@ -648,12 +654,12 @@ func (o *Orchestrator) untrustedIn(ms []chat.Message) bool {
 					continue
 				}
 				if tl, ok := o.d.Tools.Get(names[p.ToolResult.CallID]); !ok || tl.Spec().Effects&tool.Untrusted != 0 {
-					untrusted = true
+					newest = max(newest, m.Turn)
 				}
 			}
 		}
 	}
-	return untrusted
+	return newest
 }
 
 // aside reports whether a notice of kind is added to a turn after it ended,
