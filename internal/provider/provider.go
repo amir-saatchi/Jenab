@@ -41,7 +41,16 @@ type Request struct {
 	// 8.3). APIs without a tool choice get no tools. Empty lets the
 	// model choose.
 	ToolChoice string
-	MaxTokens  int
+	// Schema is the JSON Schema of the answer, an object, for an answer in
+	// JSON (SPIKE-030). The prompt carries it too, the same for every
+	// model; a backend passes it to the API's JSON mode where the API has
+	// one, and ignores it otherwise. A request with both a schema and
+	// tools sends both. When the API rejects the schema, the Registry
+	// sends the request again without it, and drops it from then on for
+	// the same model, use of tools and schema (SPEC 3.8). Empty means
+	// none.
+	Schema    json.RawMessage
+	MaxTokens int
 	// Thinking asks for the model's thinking where it has it. False turns
 	// it off where the API allows (Ollama: think false).
 	Thinking bool

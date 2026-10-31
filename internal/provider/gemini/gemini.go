@@ -54,6 +54,9 @@ type backend struct {
 	skip map[ladderKey]int // the first level of the ladder the model takes
 }
 
+// SendsSchema: Request.Schema goes in response_format (provider.JSONMode).
+func (b *backend) SendsSchema() bool { return true }
+
 type ladderKey struct {
 	model    string
 	thinking bool
@@ -156,8 +159,20 @@ type request struct {
 	SystemInstruction string    `json:"system_instruction,omitempty"`
 	Tools             []tool    `json:"tools,omitempty"`
 	GenerationConfig  genConfig `json:"generation_config"`
-	Store             bool      `json:"store"`
-	Stream            bool      `json:"stream"`
+	// ResponseFormat asks for JSON that matches a schema (structured
+	// output); nil without one.
+	ResponseFormat *responseFormat `json:"response_format,omitempty"`
+	Store          bool            `json:"store"`
+	Stream         bool            `json:"stream"`
+}
+
+// responseFormat is a text answer in JSON. The schema is sent as given;
+// Google ignores the keywords it doesn't take, such as minLength, and the
+// caller checks the answer anyway.
+type responseFormat struct {
+	Type     string          `json:"type"`      // text
+	MimeType string          `json:"mime_type"` // application/json
+	Schema   json.RawMessage `json:"schema"`
 }
 
 type genConfig struct {
@@ -505,6 +520,9 @@ func (b *backend) body(ctx context.Context, req provider.Request) (*request, err
 	}
 	if req.ToolChoice == provider.ToolsNone && len(r.Tools) > 0 {
 		r.GenerationConfig.ToolChoice = "none"
+	}
+	if len(req.Schema) > 0 {
+		r.ResponseFormat = &responseFormat{Type: "text", MimeType: "application/json", Schema: req.Schema}
 	}
 	names := map[string]string{} // call ID → tool name, for function_result
 	for _, m := range req.Messages {

@@ -530,6 +530,40 @@ func TestRefreshRetry(t *testing.T) {
 	})
 }
 
+// Every call passes the schema its prompt shows, for the API's JSON mode,
+// the retry too. Go still checks the answer: an empty text, which an API
+// that ignores minLength lets through, gets the retry (TASK-029).
+func TestRefreshSchema(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Schema"})
+		h.addTurns(c.ID, 1, 1)
+		h.fp.Push(mapReply(mapItem("goal", "project", "")), mapReply(mapItem("goal", "project", "Weekly")),
+			mergeReply(edit("project", "goals", "Weekly."), ""))
+		h.refresh(c.ID, false)
+		h.wait()
+		calls := h.fp.Calls()
+		if len(calls) != 3 {
+			t.Fatalf("calls %q", callTexts(calls))
+		}
+		for i, want := range []jsonSchema{mapSchema, mapSchema, mergeSchema} {
+			if got := string(calls[i].Schema); got != want.text {
+				t.Errorf("call %d: schema %s, want %s", i, got, want.text)
+			}
+			if !strings.Contains(calls[i].System[0].Text, want.text) {
+				t.Errorf("call %d: the prompt doesn't show the schema", i)
+			}
+		}
+		if fix := calls[1].Messages[2].Parts[0].Text.Text; !strings.Contains(fix, "at /items/0/text") {
+			t.Errorf("the retry's message %q", fix)
+		}
+		if got, _ := h.section(store.ScopeProject, "goals"); got != "Weekly." {
+			t.Errorf("goals %q", got)
+		}
+	})
+}
+
 // A failed call ends the refresh with a notice; nothing is applied.
 func TestRefreshFails(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -537,7 +571,10 @@ func TestRefreshFails(t *testing.T) {
 		defer h.stop()
 		c := h.newChat(chat.Chat{Title: "Fails"})
 		h.addTurns(c.ID, 1, 1)
-		h.fp.Push(fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"}))
+		// Twice: a 400 to a request with a schema is sent again without
+		// it (TASK-029).
+		bad := fake.Fail(&provider.Error{Kind: provider.BadRequest, Provider: "p", Status: 400, Message: "bad"})
+		h.fp.Push(bad, bad)
 		h.refresh(c.ID, false)
 		h.wait()
 		chips := refreshChips(h.messages(c.ID))

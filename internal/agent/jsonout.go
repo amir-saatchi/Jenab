@@ -12,10 +12,11 @@ import (
 	"golang.org/x/text/message"
 )
 
-// JSON answers by text (SPIKE-030): the schema is in the prompt, the
-// answer is read leniently, checked against the schema, and a wrong
-// answer gets one retry that lists what was wrong. The same for every
-// model (1); no provider's JSON mode is used.
+// JSON answers (SPIKE-030): the schema is in the prompt, the same for
+// every model (1), and also in the request, for the API's JSON mode where
+// the provider layer has one (TASK-029). The answer is read leniently,
+// checked against the schema, and a wrong answer gets one retry that lists
+// what was wrong.
 
 // jsonSchema is a compiled schema with its text for the prompt.
 type jsonSchema struct {

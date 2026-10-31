@@ -1070,7 +1070,7 @@ func (rf *refresh) replan(ctx context.Context, edits []plannedEdit) ([]plannedEd
 // the caller.
 func (rf *refresh) jsonCall(ctx context.Context, sys, user string, s jsonSchema, maxTokens int, v any, check func() []string) error {
 	msgs := []chat.Message{{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: user}}}}}
-	text, err := rf.call(ctx, sys, msgs, maxTokens)
+	text, err := rf.call(ctx, sys, msgs, s.text, maxTokens)
 	if err != nil {
 		return err
 	}
@@ -1090,7 +1090,7 @@ func (rf *refresh) jsonCall(ctx context.Context, sys, user string, s jsonSchema,
 	msgs = append(msgs,
 		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}},
 		chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: fixRequest(problems)}}}})
-	if text, err = rf.call(ctx, sys, msgs, maxTokens); err != nil {
+	if text, err = rf.call(ctx, sys, msgs, s.text, maxTokens); err != nil {
 		return err
 	}
 	zero(v)
@@ -1109,10 +1109,11 @@ func problemLines(err error) []string {
 func zero(v any) { reflect.ValueOf(v).Elem().SetZero() }
 
 // call sends one background request with thinking off, and returns the
-// answer's text. A retryable provider error is tried again, up to
-// refreshTries in all.
-func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, maxTokens int) (string, error) {
-	req := provider.Request{Model: rf.plan.model, MaxTokens: maxTokens, System: []provider.Block{{Text: sys}}, Messages: msgs}
+// answer's text. schema, the one the prompt shows, also goes to the API's
+// JSON mode where it has one. A retryable provider error is tried again,
+// up to refreshTries in all.
+func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, schema string, maxTokens int) (string, error) {
+	req := provider.Request{Model: rf.plan.model, MaxTokens: maxTokens, System: []provider.Block{{Text: sys}}, Messages: msgs, Schema: json.RawMessage(schema)}
 	for try := 0; ; try++ {
 		var text strings.Builder
 		var err error

@@ -34,6 +34,19 @@ type rRequest struct {
 	Store           bool       `json:"store"`
 	Include         []string   `json:"include"`
 	Reasoning       *rReasonCf `json:"reasoning,omitempty"`
+	Text            *rTextCf   `json:"text,omitempty"`
+}
+
+// rTextCf asks for JSON that matches a schema (structured outputs).
+type rTextCf struct {
+	Format rFormat `json:"format"`
+}
+
+type rFormat struct {
+	Type   string          `json:"type"` // json_schema
+	Name   string          `json:"name"`
+	Schema json.RawMessage `json:"schema"`
+	Strict bool            `json:"strict"`
 }
 
 type rReasonCf struct {
@@ -295,6 +308,9 @@ func (a *responsesAPI) body(ctx context.Context, req provider.Request) ([]byte, 
 	}
 	if req.ToolChoice == provider.ToolsNone && len(r.Tools) > 0 {
 		r.ToolChoice = "none"
+	}
+	if len(req.Schema) > 0 {
+		r.Text = &rTextCf{Format: rFormat{Type: "json_schema", Name: schemaName, Schema: req.Schema}}
 	}
 	for _, m := range req.Messages {
 		switch m.Role {

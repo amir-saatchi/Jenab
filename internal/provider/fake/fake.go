@@ -98,6 +98,11 @@ func (p *Provider) Stream(ctx context.Context, req provider.Request) iter.Seq2[p
 	}
 }
 
+// SendsSchema: the fake stands for a backend with a JSON mode, so the
+// Registry may send a request again without its schema
+// (provider.JSONMode).
+func (p *Provider) SendsSchema() bool { return true }
+
 // Models returns Listed.
 func (p *Provider) Models(context.Context) ([]provider.ModelInfo, error) {
 	return p.Listed, p.ListErr

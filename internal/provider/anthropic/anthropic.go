@@ -345,6 +345,10 @@ func (b *backend) streamError(typ, msg string) *provider.Error {
 // mapped.
 var callIDs = provider.CallIDRule{Allowed: provider.IDChar}
 
+// body builds the request. req.Schema is not sent: the API's structured
+// outputs need every object to close its properties, which the app's
+// schemas don't, and the mapping is untested (TASK-029). The prompt
+// carries the schema.
 func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error) {
 	r := request{Model: req.Model, MaxTokens: req.MaxTokens, CacheControl: ephemeral}
 	if r.MaxTokens <= 0 {

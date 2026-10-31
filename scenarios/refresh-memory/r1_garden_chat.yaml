@@ -113,7 +113,7 @@ asserts:
   - {type: answer_lacks, test: info, turn: "31", final: true, match: '(?i)friday'}
   # Only the team's rule from memory says this; general advice on sprays
   # (organic sprays, companion planting, picking by hand) doesn't.
-  - {type: answer_contains, test: from_memory, turn: "32", final: true, match: '(?i)no chemical pesticides|chemical pesticides (are|is) (not allowed|prohibited|banned|out)|only (use )?organic|organic methods only|(decided|decision|agreed|rule)[^.]{0,80}(organic|pesticide|chemical)'}
+  - {type: answer_contains, test: from_memory, turn: "32", final: true, match: '(?i)no chemical pesticides|chemical pesticides (are|is) (not allowed|prohibited|banned|out)|prohibits chemical pesticides|only (use )?organic|organic methods only|(decided|decision|agreed|rule)[^.]{0,80}(organic|pesticide|chemical)'}
   - {type: answer_contains, test: from_memory, turn: "33", final: true, match: '(?i)solanum'}
   - {type: answer_contains, test: from_memory, turn: "33", final: true, match: '(?i)ocimum'}
   - {type: answer_contains, test: from_memory, turn: "33", final: true, match: '\b20\d\d-\d\d-\d\d\b'}

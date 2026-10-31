@@ -50,6 +50,9 @@ type backend struct {
 	shown map[string]*shown // /api/show answers by model
 }
 
+// SendsSchema: Request.Schema goes in format (provider.JSONMode).
+func (b *backend) SendsSchema() bool { return true }
+
 // shown is what /api/show tells about a model.
 type shown struct {
 	Capabilities []string                   `json:"capabilities"`
@@ -146,13 +149,15 @@ func (b *backend) Models(ctx context.Context) ([]provider.ModelInfo, error) {
 }
 
 type request struct {
-	Model     string    `json:"model"`
-	Messages  []message `json:"messages"`
-	Tools     []tool    `json:"tools,omitempty"`
-	Stream    bool      `json:"stream"`
-	Think     *bool     `json:"think,omitempty"`
-	Options   options   `json:"options"`
-	KeepAlive string    `json:"keep_alive"`
+	Model    string    `json:"model"`
+	Messages []message `json:"messages"`
+	Tools    []tool    `json:"tools,omitempty"`
+	Stream   bool      `json:"stream"`
+	Think    *bool     `json:"think,omitempty"`
+	// Format is the answer's JSON Schema (Ollama's structured outputs).
+	Format    json.RawMessage `json:"format,omitempty"`
+	Options   options         `json:"options"`
+	KeepAlive string          `json:"keep_alive"`
 }
 
 type options struct {
@@ -295,7 +300,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 }
 
 func (b *backend) body(ctx context.Context, req provider.Request) (*request, error) {
-	r := &request{Model: req.Model, Stream: true, KeepAlive: keepAlive,
+	r := &request{Model: req.Model, Stream: true, KeepAlive: keepAlive, Format: req.Schema,
 		Options: options{NumCtx: req.Context, NumPredict: req.MaxTokens}}
 	// Thinking is set only for models that report it: others reject
 	// think: true. Unknown means the model's default.

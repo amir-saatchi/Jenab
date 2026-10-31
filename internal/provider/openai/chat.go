@@ -55,6 +55,10 @@ type base struct {
 	client *sdk.Client
 }
 
+// SendsSchema: both APIs send Request.Schema as json_schema
+// (provider.JSONMode).
+func (b *base) SendsSchema() bool { return true }
+
 // toolCallsOnly is the content of an assistant message with only tool
 // calls (SPEC 3.8).
 const toolCallsOnly = " "
@@ -236,8 +240,18 @@ func (a *chatAPI) params(ctx context.Context, req provider.Request) (sdk.ChatCom
 	if req.MaxTokens > 0 {
 		p.MaxCompletionTokens = sdk.Int(int64(req.MaxTokens))
 	}
+	if len(req.Schema) > 0 {
+		p.ResponseFormat = sdk.ChatCompletionNewParamsResponseFormatUnion{OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
+			JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{Name: schemaName, Schema: req.Schema, Strict: sdk.Bool(false)},
+		}}
+	}
 	return p, nil
 }
+
+// schemaName names the answer's schema in a JSON mode request. strict is
+// false: strict mode takes only schemas whose objects close their
+// properties and require them all, and the app's schemas don't.
+const schemaName = "answer"
 
 func systemText(bs []provider.Block) string {
 	var parts []string

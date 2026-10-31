@@ -2,11 +2,14 @@ package provider
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"iter"
 	"log/slog"
 	"maps"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -93,6 +96,10 @@ type conn struct {
 	streak  int           // calls in a row that succeeded
 	last    *Error
 	reports map[string]ModelInfo // from the last Models call, by ID
+	// noSchema holds the models whose API rejected the answer schema,
+	// until the connection's kind or base URL changes or the app
+	// restarts.
+	noSchema map[schemaKey]bool
 }
 
 // NewRegistry returns a Registry for the providers in d.Settings.
@@ -130,6 +137,7 @@ func (r *Registry) Apply(s config.LLMSettings) {
 		c.mu.Lock()
 		if c.set.Kind != ps.Kind || c.set.BaseURL != ps.BaseURL {
 			c.backend = nil
+			c.noSchema = nil // another endpoint
 		}
 		c.set, c.kind = ps, Kind(ps.Kind)
 		if c.current == c.limit || c.current > lim {
@@ -340,8 +348,119 @@ func (r *Registry) admit(ctx context.Context, c *conn, p limit.Priority, yield f
 	}
 }
 
-// run streams one request with the stall timeouts and the end checks.
+// run streams one request. A schema the API rejects is dropped: the
+// request is sent again without it, and later requests with the same
+// model, use of tools and schema go without it (SPEC 3.8). The prompt
+// still carries the schema.
 func (r *Registry) run(ctx context.Context, c *conn, b Provider, req Request, yield func(Event, error) bool) {
+	if len(req.Schema) == 0 {
+		req.Schema = nil
+	}
+	key := newSchemaKey(req)
+	if req.Schema != nil && c.schemaDropped(key) {
+		req.Schema = nil
+	}
+	started, err := r.attempt(ctx, c, b, req, yield)
+	// ctx.Err: a 400 that raced the caller's cancel is not sent again. A
+	// test can't time that race; the cancel itself never reaches here as
+	// a 400.
+	if err != nil && !started && req.Schema != nil && sendsSchema(b) && ctx.Err() == nil && schemaRejected(err) {
+		first := err
+		if wait, _, _ := c.pause(); wait > 0 {
+			// Another call paused the provider meanwhile: no request now.
+			yield(Event{}, r.failed(c, first))
+			return
+		}
+		req.Schema = nil
+		started, err = r.attempt(ctx, c, b, req, yield)
+		// Only an API that took the request without the schema shows the
+		// schema was the problem.
+		if err == nil || started {
+			if c.dropSchema(b, key) {
+				r.d.Log.Info("provider: the API rejected the answer schema; the prompt alone carries it for this model", "provider", c.name, "model", req.Model, "tools", key.tools, "schema", key.schema, "err", r.redact(first.Error()))
+			}
+		} else {
+			r.d.Log.Info("provider: a request with an answer schema failed, and failed again without it; the schema is kept", "provider", c.name, "model", req.Model, "err", r.redact(first.Error()))
+		}
+	}
+	if err != nil {
+		yield(Event{}, r.failed(c, err))
+	}
+}
+
+// JSONMode is a backend that sends Request.Schema to its API's JSON mode.
+// Only such a backend's 400 can be about the schema; a request to any
+// other is never sent again without it.
+type JSONMode interface {
+	SendsSchema() bool
+}
+
+func sendsSchema(b Provider) bool {
+	j, ok := b.(JSONMode)
+	return ok && j.SendsSchema()
+}
+
+// schemaKey is what a dropped schema is remembered for: the model,
+// whether the request has tools, since some APIs reject only the pair,
+// and the schema, since an API may take one schema and not another.
+type schemaKey struct {
+	model  string
+	tools  bool
+	schema string // a short hash
+}
+
+func newSchemaKey(req Request) schemaKey {
+	k := schemaKey{model: req.Model, tools: len(req.Tools) > 0}
+	if req.Schema != nil {
+		sum := sha256.Sum256(req.Schema)
+		k.schema = hex.EncodeToString(sum[:8])
+	}
+	return k
+}
+
+// schemaRejected reports an error that may be the API refusing the
+// schema: a 400 or 422 of kind request. Auth errors, a missing model,
+// rate limits and transport errors never are.
+func schemaRejected(err error) bool {
+	var pe *Error
+	return errors.As(err, &pe) && pe.Kind == BadRequest &&
+		(pe.Status == http.StatusBadRequest || pe.Status == http.StatusUnprocessableEntity)
+}
+
+func (c *conn) schemaDropped(k schemaKey) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.noSchema[k]
+}
+
+// dropSchema remembers that k's requests go without a schema, unless the
+// connection was rebuilt since b served the request. It reports whether
+// this is new.
+func (c *conn) dropSchema(b Provider, k schemaKey) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.backend != b || c.noSchema[k] {
+		return false
+	}
+	if c.noSchema == nil {
+		c.noSchema = map[schemaKey]bool{}
+	}
+	c.noSchema[k] = true
+	return true
+}
+
+func (r *Registry) redact(s string) string {
+	if r.d.Secrets == nil {
+		return s
+	}
+	return r.d.Secrets.Redact(s)
+}
+
+// attempt streams one request with the stall timeouts and the end checks.
+// It yields the events, and returns the error that ended the stream, not
+// yet yielded; started reports whether any event was yielded. A caller
+// that stops reading ends it with no error.
+func (r *Registry) attempt(ctx context.Context, c *conn, b Provider, req Request, yield func(Event, error) bool) (started bool, err error) {
 	ictx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	first := FirstEvent
@@ -377,20 +496,19 @@ func (r *Registry) run(ctx context.Context, c *conn, b Provider, req Request, yi
 			} else if ctx.Err() != nil {
 				err = ctx.Err() // the caller cancelled: not the provider's fault
 			}
-			yield(Event{}, r.failed(c, err))
-			return
+			return started, err
 		}
 		if ev.Kind == EventDone {
 			if terr := truncated(c.name, req, ev.Usage); terr != nil {
-				yield(Event{}, r.failed(c, terr))
-				return
+				return started, terr
 			}
 			c.succeeded()
 			yield(ev, nil)
-			return
+			return true, nil
 		}
+		started = true
 		if !yield(ev, nil) {
-			return
+			return true, nil
 		}
 		mu.Lock()
 		window = Between
@@ -398,14 +516,12 @@ func (r *Registry) run(ctx context.Context, c *conn, b Provider, req Request, yi
 		timer.Reset(Between)
 	}
 	if serr := stallErr(ErrCutOff); serr != nil {
-		yield(Event{}, r.failed(c, serr))
-		return
+		return started, serr
 	}
 	if ctx.Err() != nil {
-		yield(Event{}, ctx.Err())
-		return
+		return started, ctx.Err()
 	}
-	yield(Event{}, r.failed(c, TransportError(c.name, "the stream ended without a done event", ErrCutOff)))
+	return started, TransportError(c.name, "the stream ended without a done event", ErrCutOff)
 }
 
 // failed records err against c and returns it, redacted, as an *Error
