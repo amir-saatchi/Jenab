@@ -1,0 +1,198 @@
+{
+  "set": "School garden",
+  "started": "2026-10-31T12:10:06.6903373Z",
+  "took_seconds": 32.6050515,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 3,
+      "passed": 3,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "db_query": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 0,
+      "avg_output_tokens": 0,
+      "avg_seconds": 10.868136699999999,
+      "cache_read_share": 0,
+      "spread": {
+        "db_query": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L4_refresh_short",
+      "rep": 1,
+      "seconds": 8.3105154,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report is sent to the parents' group every Monday.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals:…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report is sent to the parents' group every Monday.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals:…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: The harvest report is sent to the parents' group every Monday.\ndecisions: Use only organic methods and no c…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L4_refresh_short",
+      "rep": 2,
+      "seconds": 12.8640981,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: Send the harvest report to the parents' group every Monday.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals: Pl…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: Send the harvest report to the parents' group every Monday.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals: Pl…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: Send the harvest report to the parents' group every Monday.\ndecisions: Use only organic methods and no chem…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "L4_refresh_short",
+      "rep": 3,
+      "seconds": 11.4297966,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report is sent to the parents' group on Mondays.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals: P…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report is sent to the parents' group on Mondays.\ndecisions: Use only organic methods and no chemical pesticides in the garden.\ngoals: P…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: The harvest report is sent to the parents' group on Mondays.\ndecisions: Use only organic methods and no che…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

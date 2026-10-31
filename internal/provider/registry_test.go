@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -415,6 +416,39 @@ func TestThinkingIsNotATruncation(t *testing.T) {
 	s := newSetup(t, provider.KindCompatible, 1, fake.Reply{Events: []provider.Event{fake.Done(provider.StopEnd, chat.Usage{Input: 1730})}})
 	if _, err := collect(s.reg, limit.Interactive, req); err != nil {
 		t.Fatalf("err = %v, want none", err)
+	}
+}
+
+// Tool definitions are not counted: llama3.2:3b's Ollama template sends
+// them only when the last message is the user's, so after a tool result
+// Ollama read about 600 tokens of an estimated 3,400 (SPIKE-038,
+// TASK-032). Messages cut from the same request are still a truncation.
+func TestToolsAreNotATruncation(t *testing.T) {
+	schema := `{"type":"object","properties":{"q":{"type":"string","description":"` + strings.Repeat("what to look for ", 150) + `"}}}`
+	var tools []provider.ToolDef
+	for _, name := range []string{"search", "read", "write", "query", "remember"} {
+		tools = append(tools, provider.ToolDef{Name: name, Description: strings.Repeat("Does one thing well. ", 40), Schema: json.RawMessage(schema)})
+	}
+	call := []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "c1", Name: "search", Args: json.RawMessage(`{"q":"x"}`)}}}
+	result := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: "c1", Text: "Found it."}}}
+	short := provider.Request{Model: "p/m1", Tools: tools, Messages: []chat.Message{
+		{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: strings.Repeat("Find the report. ", 100)}}}},
+		{Role: chat.RoleAssistant, Parts: call},
+		{Role: chat.RoleUser, Parts: result},
+	}}
+	if n := provider.EstimateTokens(short); n < 3000 {
+		t.Fatalf("EstimateTokens = %d, want the tools counted", n)
+	}
+	s := newSetup(t, provider.KindOllama, 1, fake.Reply{Events: []provider.Event{fake.Done(provider.StopEnd, chat.Usage{Input: 600})}})
+	if _, err := collect(s.reg, limit.Interactive, short); err != nil {
+		t.Fatalf("err = %v, want none", err)
+	}
+
+	long := short
+	long.Messages = append([]chat.Message{{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: strings.Repeat("BTC closed higher today. ", 2000)}}}}}, short.Messages...)
+	s = newSetup(t, provider.KindOllama, 1, fake.Reply{Events: []provider.Event{fake.Done(provider.StopEnd, chat.Usage{Input: 4096})}})
+	if _, err := collect(s.reg, limit.Interactive, long); kindOf(err) != provider.TooLarge {
+		t.Fatalf("err = %v, want too_large", err)
 	}
 }
 

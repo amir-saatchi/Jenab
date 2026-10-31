@@ -628,8 +628,10 @@ func truncated(provider string, req Request, u *chat.Usage) *Error {
 	got := u.Input + u.CacheRead + u.CacheWrite
 	// Without thinking: every backend drops some of it (Chat Completions
 	// all of it, the others another provider's), so counting it would
-	// flag a request that was sent whole.
-	est := estimate(req, false)
+	// flag a request that was sent whole. Without tool definitions: some
+	// Ollama templates send them only when the last message is the
+	// user's (TASK-032), and a real cut drops old messages, not tools.
+	est := estimate(req, false, false)
 	if got == 0 || est < minEstimate || got*2 >= est {
 		return nil
 	}
@@ -640,15 +642,17 @@ func truncated(provider string, req Request, u *chat.Usage) *Error {
 // EstimateTokens is a rough count of a request's input tokens: 4 bytes a
 // token over every text the model reads, thinking included. Images are
 // not counted.
-func EstimateTokens(req Request) int { return estimate(req, true) }
+func EstimateTokens(req Request) int { return estimate(req, true, true) }
 
-func estimate(req Request, thinking bool) int {
+func estimate(req Request, thinking, tools bool) int {
 	n := 0
 	for _, b := range req.System {
 		n += len(b.Text)
 	}
-	for _, t := range req.Tools {
-		n += len(t.Name) + len(t.Description) + len(t.Schema)
+	if tools {
+		for _, t := range req.Tools {
+			n += len(t.Name) + len(t.Description) + len(t.Schema)
+		}
 	}
 	for _, m := range req.Messages {
 		for _, p := range m.Parts {

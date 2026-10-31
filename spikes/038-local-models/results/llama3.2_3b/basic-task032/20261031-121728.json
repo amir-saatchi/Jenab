@@ -1,0 +1,417 @@
+{
+  "set": "Crypto ledger",
+  "started": "2026-10-31T12:17:28.5636167Z",
+  "took_seconds": 826.9732434,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/llama3.2:3b"
+  ],
+  "summary": [
+    {
+      "model": "local/llama3.2:3b",
+      "runs": 9,
+      "passed": 3,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 3,
+          "fail": 3,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 6,
+          "fail": 3,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 3535,
+      "avg_output_tokens": 87,
+      "avg_seconds": 91.8855101,
+      "cache_read_share": 0,
+      "spread": {
+        "answer_contains": {
+          "min": 0.5,
+          "max": 0.5
+        },
+        "runs": {
+          "min": 0.3333333333333333,
+          "max": 0.3333333333333333
+        },
+        "tool_called": {
+          "min": 0.6666666666666666,
+          "max": 0.6666666666666666
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L1_tool_answer",
+      "rep": 1,
+      "seconds": 106.6385424,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3589,
+      "input_tokens": 3589,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2984,
+      "output_tokens": 44,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "To water tomatoes in summer, it's recommended to water deeply twice a week, more often in a heat wave.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L1_tool_answer",
+      "rep": 2,
+      "seconds": 79.653685,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3589,
+      "input_tokens": 3589,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2984,
+      "output_tokens": 56,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "To determine how often to water tomatoes in summer, according to the garden.example page, it's recommended to water deeply twice a week in summer, more in a hea…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L1_tool_answer",
+      "rep": 3,
+      "seconds": 78.5689964,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3589,
+      "input_tokens": 3589,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2984,
+      "output_tokens": 46,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "According to garden.example, tomatoes should be watered deeply twice a week in summer, or more often in a heat wave.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L2_db_question",
+      "rep": 1,
+      "seconds": 89.4334469,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3488,
+      "input_tokens": 3488,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2973,
+      "output_tokens": 114,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT MAX(date) FROM prices WHERE coin = \\\"BTC\\\" AND month = 9\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "It seems the column 'month' does not exist in the database. In SQLite, dates are stored in the format 'YYYY-MM-DD'. We can try to find the highest BTC close by …"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "It seems the column 'month' does not exist in the database. In SQLite, dates are stored in the format 'YYYY-MM-DD'. We can try to find the highest BTC close by …"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L2_db_question",
+      "rep": 2,
+      "seconds": 96.1148421,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3488,
+      "input_tokens": 3488,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2973,
+      "output_tokens": 127,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT MAX(date) FROM prices WHERE coin = \\\"BTC\\\" AND month = 9\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "It seems that the `month` column is not a standard column in the `prices` table. The `date` column likely contains the date in a format that cannot be parsed as…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "It seems that the `month` column is not a standard column in the `prices` table. The `date` column likely contains the date in a format that cannot be parsed as…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L2_db_question",
+      "rep": 3,
+      "seconds": 96.3637172,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3520,
+      "input_tokens": 3520,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2973,
+      "output_tokens": 119,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT MAX(date) FROM prices WHERE coin = \\\"BTC\\\" AND date \\u003e= \\\"2026-09-01\\\" AND date \\…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "[Error: Invalid SQL query]\n\nYou can use the query tool to write an SQL query. For example, to get the highest BTC close in September, you can try: SELECT MAX(cl…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "[Error: Invalid SQL query]\n\nYou can use the query tool to write an SQL query. For example, to get the highest BTC close in September, you can try: SELECT MAX(cl…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L3_memory_save",
+      "rep": 1,
+      "seconds": 100.019896,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3519,
+      "input_tokens": 3519,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2988,
+      "output_tokens": 147,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L3_memory_save",
+      "rep": 2,
+      "seconds": 92.2366869,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3519,
+      "input_tokens": 3519,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2988,
+      "output_tokens": 79,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"session_notes\",\"content\":\"\",\"expected_revision\":0}"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L3_memory_save",
+      "rep": 3,
+      "seconds": 87.939778,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 3519,
+      "input_tokens": 3519,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 2988,
+      "output_tokens": 55,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"section\":\"session_notes\",\"content\":\"\",\"expected_revision\":0,\"scope\":\"user\"}"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
