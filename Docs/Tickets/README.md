@@ -69,7 +69,7 @@
 | [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Done | 3 |
 | [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Open | 3 |
 | [TASK-028](TASK-028-memory-mark-in-window.md) | Keep the untrusted mark for memory edits while the content is in the window | Task | Done | 3 |
-| [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Open | 3 |
+| [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Done | 3 |
 | [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Open | 3 |
 
 ## Phase 1
