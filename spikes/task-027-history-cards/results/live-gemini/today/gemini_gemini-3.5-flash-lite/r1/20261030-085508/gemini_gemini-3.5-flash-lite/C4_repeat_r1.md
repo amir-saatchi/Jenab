@@ -1,0 +1,354 @@
+# C4_repeat
+
+The pace per route table again, for heart rate
+
+Good behaviour: Turn 6, past the cut, built pace_by_route: per route run at least 3 times, the average pace. The follow-up names that table; a good answer saves a table of the average heart rate per route with the same rule.
+
+## Turn 1
+
+**User:** How many runs are in the log, and since when?
+
+> call query {"sql":"SELECT COUNT(*) AS n, MIN(date) AS first FROM runs"}
+
+> result query:
+> 1 row:
+> n | first
+> 46 | 2026-05-03
+
+**Agent:** 46 runs since 2026-05-03.
+
+## Turn 2
+
+**User:** What's my total distance so far?
+
+> call query {"sql":"SELECT ROUND(SUM(km), 1) AS km FROM runs"}
+
+> result query:
+> 1 row:
+> km
+> 318.4
+
+**Agent:** 318.4 km.
+
+## Turn 3
+
+**User:** Log today's run, 2026-08-30, 7.2 km in 41 minutes, average heart rate 151, Riverside loop.
+
+> call insert {"rows":[{"avg_hr":151,"date":"2026-08-30","km":7.2,"minutes":41,"route":"Riverside loop"}],"table":"runs"}
+
+> result insert:
+> inserted 1 row into runs.
+
+**Agent:** Logged 7.2 km in 41 minutes on the Riverside loop.
+
+## Turn 4
+
+**User:** Which routes do I run?
+
+> call query {"sql":"SELECT route, COUNT(*) AS n FROM runs GROUP BY route ORDER BY n DESC"}
+
+> result query:
+> 5 rows:
+> route | n
+> Riverside loop | 17
+> Park laps | 12
+> Forest trail | 9
+> Track | 6
+> City bridges | 2
+
+**Agent:** Riverside loop (17 runs), Park laps (12), Forest trail (9), Track (6) and City bridges (2).
+
+## Turn 5
+
+**User:** Is 151 a high average heart rate for an easy run?
+
+**Agent:** For most adults it is in the middle of a moderate effort. An easy run is usually below about 75% of your maximum; if your maximum is near 190, that is around 140 or lower.
+
+## Turn 6
+
+**User:** Make a table of my average pace per route, in minutes per km with one decimal, only for routes I've run at least 3 times, fastest first.
+
+> call save_view {"yaml":"version: 1\nid: pace_by_route\ntitle: Pace per route\ntype: table\nquery: |\n  SELECT route, COUNT(*) AS runs,\n         ROUND(SUM(minutes) / SUM(km), 1) AS pace\n  FROM runs\n  GROUP BY route\n  HAVING COUNT(*) \u003e= 3\n  ORDER BY pace ASC\ncolumns:\n  - { field: route, label: \"Route\" }\n  - { field: runs, label: \"Runs\" }\n  - { field: pace, label: \"Pace (min/km)\" }\n"}
+
+> result save_view:
+> saved view (revision 1).
+
+**Agent:** Saved pace_by_route, "Pace per route". It shows each route you have run at least 3 times with its average pace in minutes per km, one decimal, fastest first; City bridges is left out with 2 runs.
+
+## Turn 7
+
+**User:** Save the 10k training plan I use, https://example.org/10k-plan
+
+> call save_link {"title":"10k training plan","url":"https://example.org/10k-plan"}
+
+> result save_link:
+> saved link 1 to Resources.
+
+**Agent:** Saved "10k training plan".
+
+## Turn 8
+
+**User:** What was my fastest Track session?
+
+> call query {"sql":"SELECT date, km, minutes, ROUND(minutes / km, 2) AS pace FROM runs WHERE route = 'Track' ORDER BY pace ASC LIMIT 1"}
+
+> result query:
+> 1 row:
+> date | km | minutes | pace
+> 2026-07-21 | 5.0 | 23 | 4.6
+
+**Agent:** On 2026-07-21, 5 km in 23 minutes, 4:36 per km.
+
+## Turn 9
+
+**User:** Log 2026-09-02, Park laps, 5.6 km, 33 minutes, heart rate 146.
+
+> call insert {"rows":[{"avg_hr":146,"date":"2026-09-02","km":5.6,"minutes":33,"route":"Park laps"}],"table":"runs"}
+
+> result insert:
+> inserted 1 row into runs.
+
+**Agent:** Logged 5.6 km on Park laps.
+
+## Turn 10
+
+**User:** How many km did I run in August?
+
+> call query {"sql":"SELECT ROUND(SUM(km), 1) AS km FROM runs WHERE date BETWEEN '2026-08-01' AND '2026-08-31'"}
+
+> result query:
+> 1 row:
+> km
+> 71.3
+
+**Agent:** 71.3 km.
+
+## Turn 11
+
+**User:** What shoes do people recommend for forest trails? Search for it.
+
+> call web_search {"limit":5,"query":"trail running shoes recommendation forest"}
+
+> result web_search:
+> 2 results:
+> 1. The best trail shoes of 2026 — gear.example.com/trail-2026 — 2026-04-02
+> 2. Do you need trail shoes for forest paths? — run.example.org/forest — 2026-06-18
+
+**Agent:** Testers like grippy lugs and a rock plate for rooty forest paths; the second article says road shoes are fine on dry, packed trails.
+
+## Turn 12
+
+**User:** Every Monday at 07:00, add up last week's runs of at least 2 km and insert one row into run_totals with the period, the km, the minutes and how many runs there were.
+
+> call save_pipeline {"yaml":"version: 1\nid: weekly_run_totals\ndescription: Last week's runs of 2 km or more, summed into run_totals\ntrigger:\n  schedule: \"0 7 * * 1\"\n  timezone: Europe/Berlin\nsteps:\n  - id: week\n    use: db.query\n    with:\n      sql: |\n        SELECT strftime('%Y-W%W', date('now', '-7 day')) AS period,\n               ROUND(SUM(km), 1) AS km, SUM(minutes) AS minutes, COUNT(*) AS runs\n        FROM runs\n        WHERE date \u003e= date('now', 'weekday 1', '-14 day')\n          AND date \u003c date('now', 'weekday 1', '-7 day')\n          AND km \u003e= 2\n  - id: save\n    use: db.inse…
+
+> result save_pipeline:
+> saved pipeline (revision 1).
+
+**Agent:** Saved weekly_run_totals. Every Monday at 07:00 it sums last week's runs of 2 km or more and adds a row to run_totals with the week, km, minutes and the number of runs.
+
+## Turn 13
+
+**User:** Run it now to test it.
+
+> call run_pipeline {"id":"weekly_run_totals"}
+
+> result run_pipeline:
+> started run r_402.
+
+**Agent:** Started run r_402.
+
+## Turn 14
+
+**User:** What's my average heart rate on the Forest trail?
+
+> call query {"sql":"SELECT ROUND(AVG(avg_hr)) AS hr FROM runs WHERE route = 'Forest trail'"}
+
+> result query:
+> 1 row:
+> hr
+> 156
+
+**Agent:** 156.
+
+## Turn 15
+
+**User:** Log 2026-09-14, Forest trail, 9.1 km, 58 minutes, heart rate 158.
+
+> call insert {"rows":[{"avg_hr":158,"date":"2026-09-14","km":9.1,"minutes":58,"route":"Forest trail"}],"table":"runs"}
+
+> result insert:
+> inserted 1 row into runs.
+
+**Agent:** Logged 9.1 km on the Forest trail.
+
+## Turn 16
+
+**User:** How should I warm up before track intervals?
+
+**Agent:** Ten to fifteen minutes of easy jogging, a few minutes of drills such as high knees and skips, then three or four short strides at the pace of your intervals.
+
+## Turn 17
+
+**User:** Make a line chart of my weekly km since May.
+
+> call save_view {"yaml":"version: 1\nid: km_per_week\ntitle: Km per week\ntype: chart\nchart_type: line\nquery: SELECT strftime('%Y-%W', date) AS week, ROUND(SUM(km), 1) AS km FROM runs WHERE date \u003e= '2026-05-01' GROUP BY week ORDER BY week\nx: { field: week, label: \"Week\" }\ny:\n  - { field: km, label: \"Km\" }\n"}
+
+> result save_view:
+> saved view (revision 1).
+
+**Agent:** Saved km_per_week, "Km per week".
+
+## Turn 18
+
+**User:** Which month did I run the most?
+
+> call query {"sql":"SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(km), 1) AS km FROM runs GROUP BY month ORDER BY km DESC LIMIT 1"}
+
+> result query:
+> 1 row:
+> month | km
+> 2026-08 | 71.3
+
+**Agent:** August, with 71.3 km.
+
+## Turn 19
+
+**User:** Log 2026-10-05, Riverside loop, 8.0 km, 45 minutes, heart rate 149.
+
+> call insert {"rows":[{"avg_hr":149,"date":"2026-10-05","km":8,"minutes":45,"route":"Riverside loop"}],"table":"runs"}
+
+> result insert:
+> inserted 1 row into runs.
+
+**Agent:** Logged 8 km on the Riverside loop.
+
+## Turn 20
+
+**User:** How many runs did I do in September?
+
+> call query {"sql":"SELECT COUNT(*) AS n FROM runs WHERE date BETWEEN '2026-09-01' AND '2026-09-30'"}
+
+> result query:
+> 1 row:
+> n
+> 8
+
+**Agent:** Eight.
+
+## Turn 21
+
+**User:** Search for a half marathon in Hamburg next spring.
+
+> call web_search {"limit":5,"query":"Hamburg half marathon spring 2027"}
+
+> result web_search:
+> 2 results:
+> 1. Hamburg Half Marathon, 25 April 2027 — events.example.com/hh-half — 2026-10-01
+> 2. Spring races in northern Germany — run.example.org/north — 2026-09-12
+
+**Agent:** The Hamburg Half Marathon is on 25 April 2027.
+
+## Turn 22
+
+**User:** Nice, that gives me six months.
+
+**Agent:** Yes, a bit over six months, enough for a steady build from your current 15 to 20 km a week.
+
+## Turn 23
+
+**User:** Make that pace per route table again, but with the average heart rate per route instead, same rules.
+
+> call describe_table {"name":"runs"}
+
+> result describe_table:
+> table runs
+> - date TEXT (primary key 1)
+> - km REAL
+> - minutes INTEGER
+> - avg_hr INTEGER
+> - route TEXT
+> rows: 8
+
+> call load_skill {"name":"config-guide"}
+
+*Skill loaded: config-guide*
+
+> result load_skill:
+> 
+
+> call query {"sql":"SELECT * FROM runs"}
+
+> result query:
+> date | km | minutes | avg_hr | route
+> 2026-09-02 | 5.60 | 33 | 146 | Park laps
+> 2026-09-14 | 9.10 | 58 | 158 | Forest trail
+> 2026-09-21 | 7.40 | 42 | 150 | Riverside loop
+> 2026-09-28 | 1.60 | 11 | 132 | Park laps
+> 2026-10-05 | 8.00 | 45 | 149 | Riverside loop
+> 2026-10-12 | 12.40 | 79 | 155 | Forest trail
+> 2026-10-16 | 6.10 | 36 | 147 | Park laps
+> 2026-10-18 | 5.00 | 24 | 168 | Track
+> (8 rows)
+
+**Agent:** Let's see what columns `pace_by_route` should have.
+Average heart rate per route:
+We want to group by `route` and calculate average heart rate, or total runs, total km, avg hr, etc. Or let's see what a typical pace_by_route table view might look like.
+Let's query what `pace_by_route` would compute:
+```sql
+SELECT 
+  route,
+  COUNT(*) AS runs,
+  SUM(km) AS total_km,
+  ROUND(AVG(avg_hr)) AS avg_hr
+FROM runs
+GROUP BY route
+```
+Wait, what columns should the table view have?
+- route (text)
+- runs (number)
+- total_km (number)
+- avg_hr (number)
+Let's check table view formatting and options in `config-guide`.
+Let's check if there are any specific rules or default sort.
+Default sort: `{ field: route, direction: asc }` (or avg_hr, total_km, etc.).
+Let's check the exact view requirements from `config-guide`:
+```yaml
+version: 1
+id: pace_by_route
+title: Average heart rate per route
+type: table
+query: |
+  SELECT 
+    route,
+    COUNT(*) AS runs,
+    ROUND(SUM(km), 1) AS total_km,
+    ROUND(AVG(avg_hr)) AS avg_hr
+  FROM runs
+  GROUP BY route
+default_sort: { field: route, direction: asc }
+columns:
+  - { field: route, label: "Route", format: text }
+  - { field: runs, label: "Runs", format: number }
+  - { field: total_km, label: "Total km", format: number, format_options: { decimals: 1 } }
+  - { field: avg_hr, label: "Avg HR", format: number }
+```
+Wait, let's verify if `pace_by_route` had row actions or rows_from. Since `runs` has date as primary key, grouping by `route` means rows aren't individual run rows (so no `rows_from` needed unless we group by something with a key, but aggregated tables don't usually have row actions unless `rows_from` is a table matching the key).
+Let's call `save_view` with this YAML config.
+
+> call save_view {"yaml":"version: 1\nid: pace_by_route\ntitle: Average heart rate per route\ntype: table\nquery: |\n  SELECT \n    route,\n    COUNT(*) AS runs,\n    ROUND(SUM(km), 1) AS total_km,\n    ROUND(AVG(avg_hr)) AS avg_hr\n  FROM runs\n  GROUP BY route\ndefault_sort: { field: route, direction: asc }\ncolumns:\n  - { field: route, label: \"Route\", format: text }\n  - { field: runs, label: \"Runs\", format: number }\n  - { field: total_km, label: \"Total km\", format: number, format_options: { decimals: 1 } }\n  - { field: avg_hr, label: \"Avg HR\", format: number }\n"}
+
+> result save_view:
+> saved view (revision 1).
+
+**Agent:** I have updated the `pace_by_route` table view to show the average heart rate per route, along with the total runs and distance for each route.
+
+## Requests
+
+| # | input | cache read | cache write | output | stop | took | error |
+|---|---|---|---|---|---|---|---|
+| 1 | 2429 | 1945 | 0 | 243 | tool_use | 4.5 s |  |
+| 2 | 2694 | 1931 | 0 | 88 | tool_use | 1.2 s |  |
+| 3 | 2184 | 2537 | 0 | 292 | tool_use | 4.5 s |  |
+| 4 | 2507 | 2512 | 0 | 739 | tool_use | 5.2 s |  |
+| 5 | 1808 | 3959 | 0 | 74 | end | 2.5 s |  |

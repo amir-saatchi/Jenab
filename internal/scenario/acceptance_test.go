@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"iter"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -133,8 +134,9 @@ func TestAcceptanceRestart(t *testing.T) {
 
 	// The purchase was out of the window when turn 25 asked about it, and
 	// the search found it on disk after the restart.
+	// A history card can bring it back (3.6), but not turn 3's messages.
 	ask := asking("my first Bitcoin purchase")
-	if strings.Contains(textOfAll(ask.Messages), "Bitstamp") {
+	if slices.ContainsFunc(ask.Messages, func(m chat.Message) bool { return m.Turn == 3 }) {
 		t.Error("turn 3 is still in the window at turn 25")
 	}
 	var args json.RawMessage

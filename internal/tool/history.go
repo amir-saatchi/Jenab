@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -153,6 +154,12 @@ func readMessages() Tool {
 		if err != nil {
 			return Result{}, err
 		}
+		// History cards' mark of outside data is for the app only (3.6).
+		ms = slices.DeleteFunc(ms, func(m chat.Message) bool {
+			return len(m.Parts) > 0 && !slices.ContainsFunc(m.Parts, func(p chat.Part) bool {
+				return p.Notice == nil || p.Notice.Kind != chat.NoticeCardOutside
+			})
+		})
 		if len(ms) == 0 {
 			return Result{Text: fmt.Sprintf("No messages in turns %d–%d.", a.From, a.To)}, nil
 		}

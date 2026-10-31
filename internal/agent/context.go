@@ -52,6 +52,8 @@ type window struct {
 	last      time.Time          // the last request
 	fired     map[int]bool       // turns whose number check fired (SPIKE-032)
 	tainted   []taint            // numbers the chat's write calls saved without a source, and where (SPIKE-032)
+	cards     map[int]chat.Part  // history cards by the turn whose message has them, kept until a cut drops the turn (3.6); a part without text for none
+	carded    map[int][]int      // the turns those cards show
 }
 
 // cutIfDue cuts the window at the start of a turn when it has passed
@@ -69,13 +71,14 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		if err != nil {
 			return err
 		}
-		prev := shape(r.o.earlier(ms, t.n), w)
+		prev := shape(withCards(ms, w.cards), w)
 		due = t.n-w.start > c.HistoryMaxTurns || provider.EstimateTokens(provider.Request{Messages: prev}) > c.HistoryMaxTokens
 	}
 	if !due {
 		return nil
 	}
 	w.start, w.stubBelow, w.stubbed = max(1, t.n-c.HistoryMinTurns), t.n, map[string]bool{}
+	w.dropCards()
 	if t.ch.Kind == chat.KindMother {
 		list, err := r.chatList(ctx)
 		if err != nil {
@@ -113,7 +116,8 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 			t.seen = m.ID
 		}
 	}
-	ms = r.o.earlier(ms, t.n) // SPIKE-037, spike-only
+	r.findCards(ctx, t, ms)
+	ms = withCards(ms, w.cards)
 	msgs := shape(ms, w)
 	if r.trim(t, msgs) {
 		msgs = shape(ms, w)
@@ -194,9 +198,11 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 		default:
 			closeOpen()
 			// The number check's mark is for the user only (SPIKE-032),
-			// and so is a refresh's card.
-			if slices.ContainsFunc(m.Parts, notForModel) {
-				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), notForModel); len(m.Parts) == 0 {
+			// and so is a refresh's card. History cards' mark is for the
+			// app only (3.6).
+			hidden := func(p chat.Part) bool { return notForModel(p) || cardMark(p) }
+			if slices.ContainsFunc(m.Parts, hidden) {
+				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), hidden); len(m.Parts) == 0 {
 					continue
 				}
 			}

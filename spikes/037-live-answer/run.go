@@ -26,11 +26,11 @@ const (
 	condStacked = "stacked" // Part A: today's finish turns and prompt rule
 	condLive    = "live"    // Part A: the live answer and the reversed rule item
 	condWindow  = "window"  // Part B: today's window
-	condAnswers = "answers" // Part B: answers only
-	condTrace   = "trace"   // Part B: answers and the trace line
+	condAnswers = "answers" // Part B: answers only (dropped in TASK-027; in old results)
+	condTrace   = "trace"   // Part B: answers and the trace line (dropped in TASK-027; in old results)
 )
 
-var condsOf = map[string][]string{"A": {condStacked, condLive}, "B": {condWindow, condAnswers, condTrace}}
+var condsOf = map[string][]string{"A": {condStacked, condLive}, "B": {condWindow}}
 
 // job is one run: a test on a model under a condition.
 type job struct {
@@ -223,18 +223,7 @@ func (r *run) play(ctx context.Context, res *runResult) error {
 		Settings: func() config.Settings { return set }, Traces: r.tr, Log: r.h.log,
 		LiveAnswer: r.j.Cond == condLive,
 	}
-	switch r.j.Cond {
-	case condAnswers:
-		d.Earlier = earlierTurns{}.earlier
-	case condTrace:
-		d.Earlier = earlierTurns{trace: true, line: func(c chat.ToolCall, res *chat.ToolResult) (string, string) {
-			text := ""
-			if res != nil {
-				text = res.Text
-			}
-			return traceLine(c.Name, c.Args, text)
-		}}.earlier
-	}
+	d.NoHistoryCards = true // the window as Parts A and B measured it
 	if r.td.Part == "B" {
 		d.Card = func(context.Context, *project.Project) (string, error) { return r.w.card(), nil }
 	}

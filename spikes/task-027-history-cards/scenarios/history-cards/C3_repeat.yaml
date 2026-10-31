@@ -1,0 +1,14 @@
+id: C3_repeat
+title: "The spending against budget chart again, for 2025"
+tests: [repeat]
+context: main
+why: >-
+  Turn 5, past the cut, built spend_vs_budget: bars of each category's monthly spending in 2026 next to its budget, y axis 'EUR per month'. The follow-up names that chart; a good answer saves the same chart for 2025.
+messages:
+  - text: "Make that spending against budget bar chart for 2025 as well."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '2025'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'budgets'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'chart_type:\s*\\?"?bar'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'EUR per month'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

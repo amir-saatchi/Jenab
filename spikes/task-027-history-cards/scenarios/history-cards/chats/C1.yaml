@@ -1,0 +1,155 @@
+# C1, coins (English). 22 earlier turns; the follow-up is turn 23, so the
+# window after the cut holds turns 20-22.
+#   turn 4:  btc_weekly_vol, the follow-up C1_repeat needs (26 weeks, the
+#            "Volatility (%)" label)
+#   turn 9:  eth_gap_check, the follow-up C1_para needs (30-day high, 6%)
+#   turn 21: the ETH/BTC ratio query, in the window, for C1_ctrl
+# No other turn mentions volatility, the gap check or the ratio.
+turns:
+  - user: How many days of prices do we have for BTC, ETH and SOL?
+    calls:
+      - {name: query, args: {sql: "SELECT 'btc' AS coin, COUNT(*) AS days, MIN(date) AS first, MAX(date) AS last FROM btc_prices UNION ALL SELECT 'eth', COUNT(*), MIN(date), MAX(date) FROM eth_prices UNION ALL SELECT 'sol', COUNT(*), MIN(date), MAX(date) FROM sol_prices"}, result: "3 rows:\ncoin | days | first | last\nbtc | 14 | 2026-10-06 | 2026-10-19\neth | 14 | 2026-10-06 | 2026-10-19\nsol | 14 | 2026-10-06 | 2026-10-19"}
+    answer: Fourteen days for each coin, from 2026-10-06 to 2026-10-19.
+  - user: What was BTC's highest close in that range?
+    calls:
+      - {name: query, args: {sql: "SELECT date, price FROM btc_prices ORDER BY price DESC LIMIT 1"}, result: "1 row:\ndate | price\n2026-10-08 | 63150"}
+    answer: 63,150 USD on 2026-10-08.
+  - user: Search the news for Solana stories from this week.
+    calls:
+      - {name: web_search, args: {query: Solana, freshness: week, limit: 5}, result: "3 results:\n1. Solana validators vote on fee change — news.example.com/s/41 — 2026-10-16\n2. A new Solana wallet passes 2 million users — news.example.com/s/42 — 2026-10-15\n3. Solana network had a 40-minute slowdown — news.example.com/s/43 — 2026-10-13"}
+    answer: "Three stories: validators voting on a fee change (Oct 16), a wallet passing 2 million users (Oct 15), and a 40-minute network slowdown (Oct 13)."
+  - user: "Build a table view of BTC's weekly volatility: for each of the last 26 weeks, the standard deviation of the daily returns in percent, newest week first. Label that column 'Volatility (%)'."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: btc_weekly_vol
+            title: BTC weekly volatility
+            type: table
+            query: |
+              WITH r AS (
+                SELECT date, (price / LAG(price) OVER (ORDER BY date) - 1) * 100 AS ret
+                FROM btc_prices
+                WHERE date >= date('now', '-182 day')
+              )
+              SELECT strftime('%Y-%W', date) AS week,
+                     ROUND(SQRT(AVG(ret * ret) - AVG(ret) * AVG(ret)), 2) AS vol
+              FROM r
+              WHERE ret IS NOT NULL
+              GROUP BY week
+              ORDER BY week DESC
+            columns:
+              - { field: week, label: "Week" }
+              - { field: vol, label: "Volatility (%)" }
+        result: saved view (revision 1).
+    answer: Saved btc_weekly_vol, "BTC weekly volatility". It has one row per week for the last 26 weeks (182 days), with the standard deviation of the daily returns in percent, newest week first.
+  - user: Save the Solana whitepaper to our resources, https://example.org/solana.pdf
+    calls:
+      - {name: save_link, args: {url: "https://example.org/solana.pdf", title: Solana whitepaper}, result: saved link 1 to Resources.}
+    answer: Saved "Solana whitepaper" to Resources.
+  - user: On which day did ETH fall the most?
+    calls:
+      - {name: query, args: {sql: "SELECT date, price - LAG(price) OVER (ORDER BY date) AS change FROM eth_prices ORDER BY change ASC LIMIT 1"}, result: "1 row:\ndate | change\n2026-10-13 | -96"}
+    answer: On 2026-10-13, when it closed 96 USD lower than the day before.
+  - user: What is a halving, in two sentences?
+    answer: A halving is the point, about every four years, when the reward for mining a new Bitcoin block is cut in half. It slows down how fast new coins are made.
+  - user: Do we have any SOL stories in coin_news?
+    calls:
+      - {name: query, args: {sql: "SELECT date, title FROM coin_news WHERE coin = 'SOL' ORDER BY date DESC"}, result: "2 rows:\ndate | title\n2026-10-16 | Validators vote on fee change\n2026-10-11 | Solana conference opens in Lisbon"}
+    answer: "Two: \"Validators vote on fee change\" (2026-10-16) and \"Solana conference opens in Lisbon\" (2026-10-11)."
+  - user: "Every day at 07:15 UTC, check whether ETH closed more than 6% below its highest close of the last 30 days. If it did, add a row to price_alerts with coin ETH, kind 'gap', the date and the gap in percent."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: eth_gap_check
+            description: A gap row in price_alerts when ETH closes more than 6% below its 30-day high
+            trigger:
+              schedule: "15 7 * * *"
+              timezone: UTC
+            steps:
+              - id: latest
+                use: db.query
+                with:
+                  sql: |
+                    SELECT date, price,
+                           (SELECT MAX(price) FROM eth_prices WHERE date >= date('now', '-30 day')) AS high
+                    FROM eth_prices
+                    ORDER BY date DESC
+                    LIMIT 1
+              - id: save_gap
+                use: db.insert
+                if: ${{ steps.latest.rows[0].price < steps.latest.rows[0].high * 0.94 }}
+                with:
+                  table: price_alerts
+                  row:
+                    coin: ETH
+                    kind: gap
+                    date: ${{ steps.latest.rows[0].date }}
+                    value: ${{ (1 - steps.latest.rows[0].price / steps.latest.rows[0].high) * 100 }}
+        result: saved pipeline (revision 1).
+    answer: Saved eth_gap_check. Every day at 07:15 UTC it compares ETH's last close with its highest close of the last 30 days, and adds a 'gap' row to price_alerts when the close is more than 6% lower.
+  - user: Run it once now.
+    calls:
+      - {name: run_pipeline, args: {id: eth_gap_check}, result: started run r_201.}
+    answer: Started run r_201.
+  - user: Did ETH close above 2,500 on any day?
+    calls:
+      - {name: query, args: {sql: "SELECT date, price FROM eth_prices WHERE price > 2500"}, result: "0 rows"}
+    answer: No. Its highest close in these 14 days was below 2,500 USD.
+  - user: What's the average SOL price over the 14 days?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(price), 1) AS avg FROM sol_prices"}, result: "1 row:\navg\n143.6"}
+    answer: 143.6 USD.
+  - user: Make a line chart of SOL's daily close, titled 'Solana close'.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: sol_close_chart
+            title: Solana close
+            type: chart
+            chart_type: line
+            query: SELECT date, price FROM sol_prices ORDER BY date
+            x: { field: date, label: "Date", format: date }
+            y:
+              - { field: price, label: "Close (USD)" }
+        result: saved view (revision 1).
+    answer: Saved sol_close_chart, "Solana close", a line of the daily close.
+  - user: Which BTC stories did we store on 2026-10-15?
+    calls:
+      - {name: query, args: {sql: "SELECT title, url FROM coin_news WHERE coin = 'BTC' AND date = '2026-10-15'"}, result: "1 row:\ntitle | url\nMiners move coins to exchanges | https://news.example.com/b/7"}
+    answer: One, "Miners move coins to exchanges".
+  - user: How many rows are in price_alerts now?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM price_alerts"}, result: "1 row:\nn\n0"}
+    answer: None yet.
+  - user: When is the next Ethereum network upgrade? Look it up.
+    calls:
+      - {name: web_search, args: {query: next Ethereum network upgrade date, limit: 5}, result: "2 results:\n1. Ethereum's next upgrade set for early 2027 — news.example.com/e/77 — 2026-10-12\n2. Core developers discuss the upgrade timeline — blog.example.org/eth-dev — 2026-10-09"}
+    answer: The core developers are aiming for early 2027; the date is not final yet.
+  - user: Save the first of those articles to resources.
+    calls:
+      - {name: save_link, args: {url: "https://news.example.com/e/77", title: "Ethereum's next upgrade set for early 2027"}, result: saved link 2 to Resources.}
+    answer: Saved it to Resources.
+  - user: What was BTC's lowest close?
+    calls:
+      - {name: query, args: {sql: "SELECT date, price FROM btc_prices ORDER BY price ASC LIMIT 1"}, result: "1 row:\ndate | price\n2026-10-13 | 60420"}
+    answer: 60,420 USD on 2026-10-13.
+  - user: How much did BTC and ETH change from the first day to the last, in percent?
+    calls:
+      - {name: query, args: {sql: "SELECT 'btc' AS coin, ROUND((SELECT price FROM btc_prices ORDER BY date DESC LIMIT 1) * 100.0 / (SELECT price FROM btc_prices ORDER BY date LIMIT 1) - 100, 1) AS pct UNION ALL SELECT 'eth', ROUND((SELECT price FROM eth_prices ORDER BY date DESC LIMIT 1) * 100.0 / (SELECT price FROM eth_prices ORDER BY date LIMIT 1) - 100, 1)"}, result: "2 rows:\ncoin | pct\nbtc | -1.2\neth | -4.1"}
+    answer: BTC fell 1.2% and ETH 4.1%.
+  - user: And SOL over the same days?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND((SELECT price FROM sol_prices ORDER BY date DESC LIMIT 1) * 100.0 / (SELECT price FROM sol_prices ORDER BY date LIMIT 1) - 100, 1) AS pct"}, result: "1 row:\npct\n2.3"}
+    answer: SOL rose 2.3%.
+  - user: Show me the ETH/BTC price ratio for each of the last 10 days.
+    calls:
+      - {name: query, args: {sql: "SELECT e.date, ROUND(e.price / b.price, 5) AS eth_btc FROM eth_prices e JOIN btc_prices b ON b.date = e.date WHERE e.date >= '2026-10-10' ORDER BY e.date"}, result: "10 rows:\ndate | eth_btc\n2026-10-10 | 0.04121\n2026-10-11 | 0.04109\n2026-10-12 | 0.04088\n2026-10-13 | 0.04040\n2026-10-14 | 0.04052\n2026-10-15 | 0.04031\n2026-10-16 | 0.04017\n2026-10-17 | 0.04003\n2026-10-18 | 0.03994\n2026-10-19 | 0.03981"}
+    answer: The ratio went from 0.04121 on 2026-10-10 to 0.03981 on 2026-10-19.
+  - user: So it is going down?
+    answer: Yes, a little every day but one, from 0.0412 to 0.0398 in ten days.

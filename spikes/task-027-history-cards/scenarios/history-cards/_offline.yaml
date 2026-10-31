@@ -1,0 +1,13 @@
+# Scripted answers, to test the harness with no keys. C1_repeat saves the
+# table its checks want; C1_ctrl saves a chart without the line type, so
+# one of its checks fails; C6_ctrl queries.
+scenarios:
+  C1_repeat:
+    - calls: [{name: save_view, args: {yaml: "id: sol_weekly_vol\ntype: table\ntitle: SOL weekly volatility\nsql: SELECT week, stdev FROM sol_prices LIMIT 26 -- 182 days\ncolumns: [{name: stdev, label: 'Volatility (%)'}]\n"}}]
+    - text: Saved the SOL table.
+  C1_ctrl:
+    - calls: [{name: save_view, args: {yaml: "id: eth_btc_ratio\ntype: chart\ntitle: ETH/BTC ratio\nsql: SELECT e.day, e.close / b.close FROM eth_prices e JOIN btc_prices b USING (day)\n"}}]
+    - text: Saved the chart.
+  C6_ctrl:
+    - calls: [{name: query, args: {sql: "SELECT avg(area_m2) FROM flats WHERE area = 'سعادت آباد'"}}]
+    - text: میانگین متراژ سعادت‌آباد ۹۸ متر است.

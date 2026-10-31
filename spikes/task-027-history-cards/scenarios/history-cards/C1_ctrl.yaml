@@ -1,0 +1,13 @@
+id: C1_ctrl
+title: "The ratio as a chart, from a turn in the window (control)"
+tests: [control]
+context: main
+why: >-
+  Turn 21, in the window, queried the ETH/BTC ratio of the last 10 days. The follow-up needs no older turn.
+messages:
+  - text: "Save that ratio as a line chart view, titled 'ETH/BTC ratio'."
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: save_view, args_match: 'eth_prices'}
+  - {type: tool_called, test: control, turn: last, tool: save_view, args_match: 'btc_prices'}
+  - {type: tool_called, test: control, turn: last, tool: save_view, args_match: 'chart_type:\s*\\?"?line'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

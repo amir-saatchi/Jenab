@@ -1,0 +1,12 @@
+id: C6_ctrl
+title: "Saadat Abad's average area, from a turn in the window (Persian, control)"
+tests: [control]
+context: main
+why: >-
+  Turn 21, in the window, asked Punak's average area. The follow-up needs no older turn.
+messages:
+  - text: "سعادت‌آباد چطور؟"
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'سعادت'}
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'area_m2'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

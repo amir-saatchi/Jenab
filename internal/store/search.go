@@ -669,3 +669,54 @@ func startsWords(text []rune, forms [][][]rune) bool {
 	}
 	return true
 }
+
+// History cards (SPEC 3.6) weigh each word of the user's message by how
+// many earlier turns of the chat have it, and by how common it is in the
+// project's chats. Both match a word as Search does: a word that starts
+// with it, in a text part.
+
+// TurnsWith returns the turns of chat ch before turn before with a text
+// part that has a word starting with word, oldest first.
+func (c *ChatsDB) TurnsWith(ctx context.Context, ch id.Chat, word string, before int) ([]int, error) {
+	terms, err := queryTerms(word)
+	if err != nil || len(terms) != 1 {
+		return nil, err
+	}
+	return Query(ctx, c.DB, `SELECT DISTINCT m.turn
+		FROM messages_fts f
+		JOIN message_parts p ON p.rowid = f.rowid
+		JOIN messages m ON m.id = p.message_id
+		WHERE messages_fts MATCH ?1 AND m.turn < ?2
+		ORDER BY m.turn`, []any{ftsQuery(terms, ch), before},
+		func(r *sql.Rows) (int, error) {
+			var t int
+			return t, r.Scan(&t)
+		})
+}
+
+// TextParts is the number of text parts in the project's chats.
+func (c *ChatsDB) TextParts(ctx context.Context) (int, error) {
+	return count(ctx, c.DB, `SELECT COUNT(*) FROM message_parts WHERE type = 'text'`)
+}
+
+// PartsWith is the number of text parts in the project's chats with a
+// word starting with word, counted up to limit.
+func (c *ChatsDB) PartsWith(ctx context.Context, word string, limit int) (int, error) {
+	terms, err := queryTerms(word)
+	if err != nil || len(terms) != 1 || limit <= 0 {
+		return 0, err
+	}
+	return count(ctx, c.DB, `SELECT COUNT(*) FROM (SELECT rowid FROM messages_fts WHERE messages_fts MATCH ? LIMIT ?)`,
+		ftsQuery(terms, ""), limit)
+}
+
+func count(ctx context.Context, db *DB, q string, args ...any) (int, error) {
+	n, err := Query(ctx, db, q, args, func(r *sql.Rows) (int, error) {
+		var n int
+		return n, r.Scan(&n)
+	})
+	if err != nil || len(n) == 0 {
+		return 0, err
+	}
+	return n[0], nil
+}

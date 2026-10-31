@@ -1,0 +1,13 @@
+id: C8_para
+title: "The watchlist drops table, for gains (Persian, paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 10, past the cut, built watch_drops: watchlist symbols down more than 8% over the last 5 trading days, with the change, biggest drop first. The follow-up asks for a similar list of the shares that went up a lot; a good answer saves the same table for gains of more than 8% over 5 trading days.
+messages:
+  - text: "یه لیست مشابه هم می‌خوام از سهم‌هایی که این مدت حسابی بالا رفتن."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'watchlist'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '1\.08|\b8\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'LIMIT 6|\b5\b'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

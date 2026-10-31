@@ -3,13 +3,9 @@ package agent
 // SPIKE-037 Part A (a prototype): a live answer. Spike-only: the spike's
 // harness turns it on through Deps.LiveAnswer to compare the conditions;
 // the app's zero value keeps today's loop. Part B (earlier turns as
-// answers only) lives in spikes/037-live-answer/, behind Deps.Earlier.
+// answers only) was dropped in TASK-024; TASK-027 took out its hook.
 
-import (
-	"strings"
-
-	"github.com/amir-saatchi/jenab/internal/chat"
-)
+import "strings"
 
 // liveRule is item 4 of the prompt rule with a live answer (SPIKE-037):
 // the finish turn's answer replaces the earlier one, so it is written
@@ -30,13 +26,4 @@ func (o *Orchestrator) rule() string {
 		}
 	}
 	return strings.Join(lines, "\n")
-}
-
-// earlier is what a request keeps of the turns before cur: Deps.Earlier's,
-// or with none, ms as they are (SPIKE-037 Part B, spike-only).
-func (o *Orchestrator) earlier(ms []chat.Message, cur int) []chat.Message {
-	if o.d.Earlier == nil {
-		return ms
-	}
-	return o.d.Earlier(ms, cur)
 }

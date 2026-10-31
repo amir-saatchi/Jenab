@@ -1,0 +1,13 @@
+id: C4_repeat
+title: "The pace per route table again, for heart rate"
+tests: [repeat]
+context: main
+why: >-
+  Turn 6, past the cut, built pace_by_route: per route run at least 3 times, the average pace. The follow-up names that table; a good answer saves a table of the average heart rate per route with the same rule.
+messages:
+  - text: "Make that pace per route table again, but with the average heart rate per route instead, same rules."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'avg_hr'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '(?i)having\s+count\(\*\)\s*((>|\x5cu003e)=\s*3|(>|\x5cu003e)\s*2)'}  # the args are JSON, where > is backslash-u003e
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'route'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

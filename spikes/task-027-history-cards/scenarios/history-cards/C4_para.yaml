@@ -1,0 +1,13 @@
+id: C4_para
+title: "The weekly run totals, per month (paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 12, past the cut, built weekly_run_totals: on Mondays, last week's runs of at least 2 km summed into run_totals (period, km, minutes, runs). The follow-up calls it a digest; a good answer saves the same pipeline per month, with the 2 km rule.
+messages:
+  - text: "Could I also get that kind of digest per calendar month, on the first of each month?"
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'run_totals'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'km\s*(>|\x5cu003e)=\s*2(\.0)?\b'}  # the args are JSON, where > is backslash-u003e
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '\b1 \* \*'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

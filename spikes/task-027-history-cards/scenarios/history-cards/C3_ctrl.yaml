@@ -1,0 +1,12 @@
+id: C3_ctrl
+title: "Transport in July, from a turn in the window (control)"
+tests: [control]
+context: main
+why: >-
+  Turn 21, in the window, summed transport for September. The follow-up needs no older turn.
+messages:
+  - text: "And what about July, same category?"
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'transport'}
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: '2026-07'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

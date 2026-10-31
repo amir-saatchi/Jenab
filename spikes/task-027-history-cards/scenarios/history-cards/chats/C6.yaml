@@ -1,0 +1,151 @@
+# C6, renting a flat in Tehran (Persian). 22 earlier turns; the follow-up
+# is turn 23.
+#   turn 3:  saadat_rent_per_m2, the follow-up C6_repeat needs (80 to 120
+#            square metres, rent per square metre in thousand toman,
+#            cheapest first, its label)
+#   turn 9:  rent_weekly_avg, the follow-up C6_para needs (rent_weekly with
+#            metric and value, deposits over 500 million left out)
+#   turn 21: the average area in Punak, in the window, for C6_ctrl
+turns:
+  - user: چند تا آگهی اجاره داریم و از چه محله‌هایی؟
+    calls:
+      - {name: query, args: {sql: "SELECT neighborhood, COUNT(*) AS n FROM rent_listings GROUP BY neighborhood ORDER BY n DESC"}, result: "4 rows:\nneighborhood | n\nسعادت‌آباد | 11\nپونک | 7\nشهرک غرب | 6\nستارخان | 4"}
+    answer: ۲۸ آگهی داریم؛ سعادت‌آباد ۱۱، پونک ۷، شهرک غرب ۶ و ستارخان ۴.
+  - user: ارزان‌ترین اجاره کدام است؟
+    calls:
+      - {name: query, args: {sql: "SELECT id, neighborhood, area_m2, deposit_mt, rent_mt FROM rent_listings ORDER BY rent_mt ASC LIMIT 1"}, result: "1 row:\nid | neighborhood | area_m2 | deposit_mt | rent_mt\n17 | ستارخان | 65 | 300 | 14"}
+    answer: آگهی ۱۷ در ستارخان، ۶۵ متر، با ۳۰۰ میلیون ودیعه و ماهی ۱۴ میلیون تومان اجاره.
+  - user: "یک جدول از آگهی‌های سعادت‌آباد بساز که اجاره‌ی هر متر مربع را به هزار تومان نشان بدهد، فقط واحدهای ۸۰ تا ۱۲۰ متری، از ارزان‌ترین به گران‌ترین."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: saadat_rent_per_m2
+            title: اجاره‌ی هر متر در سعادت‌آباد
+            type: table
+            query: |
+              SELECT id, area_m2, rooms, deposit_mt, rent_mt,
+                     ROUND(rent_mt * 1000.0 / area_m2) AS rent_per_m2
+              FROM rent_listings
+              WHERE neighborhood = 'سعادت‌آباد'
+                AND area_m2 BETWEEN 80 AND 120
+              ORDER BY rent_per_m2 ASC
+            columns:
+              - { field: id, label: "آگهی" }
+              - { field: area_m2, label: "متراژ" }
+              - { field: rooms, label: "خواب" }
+              - { field: deposit_mt, label: "ودیعه (میلیون تومان)" }
+              - { field: rent_mt, label: "اجاره (میلیون تومان)" }
+              - { field: rent_per_m2, label: "اجاره‌ی هر متر (هزار تومان)" }
+        result: saved view (revision 1).
+    answer: جدول saadat_rent_per_m2 ذخیره شد. واحدهای ۸۰ تا ۱۲۰ متری سعادت‌آباد را با اجاره‌ی هر متر مربع به هزار تومان نشان می‌دهد، از ارزان‌ترین به گران‌ترین.
+  - user: لینک سایت قرارداد نمونه را ذخیره کن، https://example.org/gharardad
+    calls:
+      - {name: save_link, args: {url: "https://example.org/gharardad", title: قرارداد نمونه‌ی اجاره}, result: saved link 1 to Resources.}
+    answer: «قرارداد نمونه‌ی اجاره» در منابع ذخیره شد.
+  - user: فرق ودیعه و اجاره در قرارداد چیست؟
+    answer: ودیعه پولی است که اول قرارداد به صاحبخانه می‌دهید و آخر قرارداد پس می‌گیرید؛ اجاره را هر ماه می‌پردازید و برنمی‌گردد. هر چه ودیعه بیشتر باشد، معمولاً اجاره‌ی ماهانه کمتر است.
+  - user: آگهی جدیدی دیدم، اضافه‌اش کن. پونک، ۹۰ متر، دو خواب، ودیعه ۴۰۰، اجاره ۲۲، تاریخ ۱۴۰۵/۰۷/۰۵.
+    calls:
+      - {name: insert, args: {table: rent_listings, rows: [{neighborhood: پونک, area_m2: 90, rooms: 2, deposit_mt: 400, rent_mt: 22, posted: "2026-09-27"}]}, result: inserted 1 row into rent_listings.}
+    answer: اضافه شد؛ پونک، ۹۰ متر، دو خواب، ۴۰۰ میلیون ودیعه و ۲۲ میلیون اجاره، با تاریخ ۲۰۲۶-۰۹-۲۷.
+  - user: کدام آگهی‌ها پارکینگ دارند؟
+    calls:
+      - {name: describe_table, args: {name: rent_listings}, result: "rent_listings: id INTEGER, neighborhood TEXT, area_m2 INTEGER, rooms INTEGER, deposit_mt INTEGER, rent_mt INTEGER, posted TEXT, url TEXT; primary key (id); 28 rows"}
+    answer: جدول rent_listings ستونی برای پارکینگ ندارد. اگر بخواهید، می‌توانم بپرسم ستونش را اضافه کنند.
+  - user: نه لازم نیست. میانگین اجاره در شهرک غرب چقدر است؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(rent_mt), 1) AS avg FROM rent_listings WHERE neighborhood = 'شهرک غرب'"}, result: "1 row:\navg\n31.5"}
+    answer: ماهی ۳۱٫۵ میلیون تومان.
+  - user: "هر شنبه ساعت ۹ صبح، میانگین اجاره‌ی هر محله را برای آگهی‌های هفت روز گذشته حساب کن و در جدول rent_weekly بنویس. آگهی‌هایی که ودیعه‌شان بیشتر از ۵۰۰ میلیون است را حساب نکن."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: rent_weekly_avg
+            description: میانگین اجاره‌ی هر محله در هفت روز گذشته، بدون ودیعه‌های بالای ۵۰۰ میلیون
+            trigger:
+              schedule: "0 9 * * 6"
+              timezone: Asia/Tehran
+            steps:
+              - id: avg
+                use: db.query
+                with:
+                  sql: |
+                    SELECT neighborhood, ROUND(AVG(rent_mt), 1) AS value
+                    FROM rent_listings
+                    WHERE posted >= date('now', '-7 day')
+                      AND deposit_mt <= 500
+                    GROUP BY neighborhood
+              - id: save
+                use: db.insert
+                for_each: ${{ steps.avg.rows }}
+                with:
+                  table: rent_weekly
+                  row:
+                    week: ${{ now('2006-01-02') }}
+                    neighborhood: ${{ item.neighborhood }}
+                    metric: rent
+                    value: ${{ item.value }}
+        result: saved pipeline (revision 1).
+    answer: rent_weekly_avg ذخیره شد. هر شنبه ساعت ۹ صبح به وقت تهران، میانگین اجاره‌ی آگهی‌های هفت روز گذشته را برای هر محله حساب می‌کند و با metric برابر rent در rent_weekly می‌نویسد. آگهی‌های با ودیعه‌ی بیشتر از ۵۰۰ میلیون حساب نمی‌شوند.
+  - user: یک بار همین الان اجرایش کن.
+    calls:
+      - {name: run_pipeline, args: {id: rent_weekly_avg}, result: started run r_611.}
+    answer: اجرای r_611 شروع شد.
+  - user: بزرگ‌ترین واحد کدام است؟
+    calls:
+      - {name: query, args: {sql: "SELECT id, neighborhood, area_m2, rent_mt FROM rent_listings ORDER BY area_m2 DESC LIMIT 1"}, result: "1 row:\nid | neighborhood | area_m2 | rent_mt\n5 | شهرک غرب | 160 | 48"}
+    answer: آگهی ۵ در شهرک غرب، ۱۶۰ متر، ماهی ۴۸ میلیون.
+  - user: در اینترنت ببین قانون جدید سقف افزایش اجاره چیست.
+    calls:
+      - {name: web_search, args: {query: سقف افزایش اجاره ۱۴۰۵, limit: 5}, result: "2 results:\n1. سقف افزایش اجاره‌بها در تهران ۲۵ درصد تعیین شد — news.example.ir/r/88 — 2026-04-02\n2. پرسش و پاسخ درباره‌ی قانون اجاره — law.example.ir/ejare — 2026-05-11"}
+    answer: طبق خبرها، سقف افزایش اجاره‌بها در تهران امسال ۲۵ درصد است.
+  - user: آن خبر اول را ذخیره کن.
+    calls:
+      - {name: save_link, args: {url: "https://news.example.ir/r/88", title: سقف افزایش اجاره‌بها در تهران ۲۵ درصد}, result: saved link 2 to Resources.}
+    answer: ذخیره شد.
+  - user: چند آگهی سه‌خوابه داریم؟
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM rent_listings WHERE rooms = 3"}, result: "1 row:\nn\n5"}
+    answer: پنج آگهی.
+  - user: برای بازدید از خانه چه چیزهایی را باید چک کنم؟
+    answer: فشار آب و آبگرمکن، نم و ترک دیوارها، سیستم گرمایش و کولر، پنجره‌ها، و اینکه سند و مالکیت به نام همان کسی است که قرارداد می‌بندد.
+  - user: یک نمودار ستونی از تعداد آگهی‌های هر محله بساز.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: listings_by_area
+            title: آگهی‌ها به تفکیک محله
+            type: chart
+            chart_type: bar
+            query: SELECT neighborhood, COUNT(*) AS n FROM rent_listings GROUP BY neighborhood ORDER BY n DESC
+            x: { field: neighborhood, label: "محله" }
+            y:
+              - { field: n, label: "تعداد آگهی" }
+        result: saved view (revision 1).
+    answer: نمودار listings_by_area ذخیره شد.
+  - user: کم‌ودیعه‌ترین آگهی ستارخان؟
+    calls:
+      - {name: query, args: {sql: "SELECT id, area_m2, deposit_mt, rent_mt FROM rent_listings WHERE neighborhood = 'ستارخان' ORDER BY deposit_mt ASC LIMIT 1"}, result: "1 row:\nid | area_m2 | deposit_mt | rent_mt\n22 | 70 | 150 | 19"}
+    answer: آگهی ۲۲، ۷۰ متر، ۱۵۰ میلیون ودیعه و ۱۹ میلیون اجاره.
+  - user: یک پیام کوتاه برای صاحبخانه‌ی آگهی ۲۲ بنویس که وقت بازدید بگیرم.
+    answer: سلام، وقت بخیر. آگهی آپارتمان ۷۰ متری شما در ستارخان را دیدم. اگر امکانش هست، برای بازدید این هفته یک وقت هماهنگ کنیم. ممنون.
+  - user: آگهی‌های این هفته چندتاست؟
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM rent_listings WHERE posted >= '2026-10-13'"}, result: "1 row:\nn\n6"}
+    answer: شش آگهی.
+  - user: چند آگهی در پونک داریم؟
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM rent_listings WHERE neighborhood = 'پونک'"}, result: "1 row:\nn\n8"}
+    answer: هشت آگهی.
+  - user: میانگین متراژشان چقدر است؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(area_m2)) AS avg_area FROM rent_listings WHERE neighborhood = 'پونک'"}, result: "1 row:\navg_area\n94"}
+    answer: حدود ۹۴ متر.
+  - user: ممنون.
+    answer: خواهش می‌کنم.

@@ -1,0 +1,148 @@
+# C4, a running log (English). 22 earlier turns; the follow-up is turn 23.
+#   turn 6:  pace_by_route, the follow-up C4_repeat needs (routes run at
+#            least 3 times, one decimal)
+#   turn 12: weekly_run_totals, the follow-up C4_para needs (runs of at
+#            least 2 km only, run_totals and its columns)
+# C4_ctrl needs no earlier turn.
+turns:
+  - user: How many runs are in the log, and since when?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n, MIN(date) AS first FROM runs"}, result: "1 row:\nn | first\n46 | 2026-05-03"}
+    answer: 46 runs since 2026-05-03.
+  - user: What's my total distance so far?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(km), 1) AS km FROM runs"}, result: "1 row:\nkm\n318.4"}
+    answer: 318.4 km.
+  - user: Log today's run, 2026-08-30, 7.2 km in 41 minutes, average heart rate 151, Riverside loop.
+    calls:
+      - {name: insert, args: {table: runs, rows: [{date: "2026-08-30", km: 7.2, minutes: 41, avg_hr: 151, route: Riverside loop}]}, result: inserted 1 row into runs.}
+    answer: Logged 7.2 km in 41 minutes on the Riverside loop.
+  - user: Which routes do I run?
+    calls:
+      - {name: query, args: {sql: "SELECT route, COUNT(*) AS n FROM runs GROUP BY route ORDER BY n DESC"}, result: "5 rows:\nroute | n\nRiverside loop | 17\nPark laps | 12\nForest trail | 9\nTrack | 6\nCity bridges | 2"}
+    answer: Riverside loop (17 runs), Park laps (12), Forest trail (9), Track (6) and City bridges (2).
+  - user: Is 151 a high average heart rate for an easy run?
+    answer: For most adults it is in the middle of a moderate effort. An easy run is usually below about 75% of your maximum; if your maximum is near 190, that is around 140 or lower.
+  - user: "Make a table of my average pace per route, in minutes per km with one decimal, only for routes I've run at least 3 times, fastest first."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: pace_by_route
+            title: Pace per route
+            type: table
+            query: |
+              SELECT route, COUNT(*) AS runs,
+                     ROUND(SUM(minutes) / SUM(km), 1) AS pace
+              FROM runs
+              GROUP BY route
+              HAVING COUNT(*) >= 3
+              ORDER BY pace ASC
+            columns:
+              - { field: route, label: "Route" }
+              - { field: runs, label: "Runs" }
+              - { field: pace, label: "Pace (min/km)" }
+        result: saved view (revision 1).
+    answer: Saved pace_by_route, "Pace per route". It shows each route you have run at least 3 times with its average pace in minutes per km, one decimal, fastest first; City bridges is left out with 2 runs.
+  - user: Save the 10k training plan I use, https://example.org/10k-plan
+    calls:
+      - {name: save_link, args: {url: "https://example.org/10k-plan", title: 10k training plan}, result: saved link 1 to Resources.}
+    answer: Saved "10k training plan".
+  - user: What was my fastest Track session?
+    calls:
+      - {name: query, args: {sql: "SELECT date, km, minutes, ROUND(minutes / km, 2) AS pace FROM runs WHERE route = 'Track' ORDER BY pace ASC LIMIT 1"}, result: "1 row:\ndate | km | minutes | pace\n2026-07-21 | 5.0 | 23 | 4.6"}
+    answer: On 2026-07-21, 5 km in 23 minutes, 4:36 per km.
+  - user: Log 2026-09-02, Park laps, 5.6 km, 33 minutes, heart rate 146.
+    calls:
+      - {name: insert, args: {table: runs, rows: [{date: "2026-09-02", km: 5.6, minutes: 33, avg_hr: 146, route: Park laps}]}, result: inserted 1 row into runs.}
+    answer: Logged 5.6 km on Park laps.
+  - user: How many km did I run in August?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(km), 1) AS km FROM runs WHERE date BETWEEN '2026-08-01' AND '2026-08-31'"}, result: "1 row:\nkm\n71.3"}
+    answer: 71.3 km.
+  - user: What shoes do people recommend for forest trails? Search for it.
+    calls:
+      - {name: web_search, args: {query: trail running shoes recommendation forest, limit: 5}, result: "2 results:\n1. The best trail shoes of 2026 — gear.example.com/trail-2026 — 2026-04-02\n2. Do you need trail shoes for forest paths? — run.example.org/forest — 2026-06-18"}
+    answer: Testers like grippy lugs and a rock plate for rooty forest paths; the second article says road shoes are fine on dry, packed trails.
+  - user: "Every Monday at 07:00, add up last week's runs of at least 2 km and insert one row into run_totals with the period, the km, the minutes and how many runs there were."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: weekly_run_totals
+            description: Last week's runs of 2 km or more, summed into run_totals
+            trigger:
+              schedule: "0 7 * * 1"
+              timezone: Europe/Berlin
+            steps:
+              - id: week
+                use: db.query
+                with:
+                  sql: |
+                    SELECT strftime('%Y-W%W', date('now', '-7 day')) AS period,
+                           ROUND(SUM(km), 1) AS km, SUM(minutes) AS minutes, COUNT(*) AS runs
+                    FROM runs
+                    WHERE date >= date('now', 'weekday 1', '-14 day')
+                      AND date < date('now', 'weekday 1', '-7 day')
+                      AND km >= 2
+              - id: save
+                use: db.insert
+                with:
+                  table: run_totals
+                  row:
+                    period: ${{ steps.week.rows[0].period }}
+                    km: ${{ steps.week.rows[0].km }}
+                    minutes: ${{ steps.week.rows[0].minutes }}
+                    runs: ${{ steps.week.rows[0].runs }}
+        result: saved pipeline (revision 1).
+    answer: Saved weekly_run_totals. Every Monday at 07:00 it sums last week's runs of 2 km or more and adds a row to run_totals with the week, km, minutes and the number of runs.
+  - user: Run it now to test it.
+    calls:
+      - {name: run_pipeline, args: {id: weekly_run_totals}, result: started run r_402.}
+    answer: Started run r_402.
+  - user: What's my average heart rate on the Forest trail?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(avg_hr)) AS hr FROM runs WHERE route = 'Forest trail'"}, result: "1 row:\nhr\n156"}
+    answer: 156.
+  - user: Log 2026-09-14, Forest trail, 9.1 km, 58 minutes, heart rate 158.
+    calls:
+      - {name: insert, args: {table: runs, rows: [{date: "2026-09-14", km: 9.1, minutes: 58, avg_hr: 158, route: Forest trail}]}, result: inserted 1 row into runs.}
+    answer: Logged 9.1 km on the Forest trail.
+  - user: How should I warm up before track intervals?
+    answer: Ten to fifteen minutes of easy jogging, a few minutes of drills such as high knees and skips, then three or four short strides at the pace of your intervals.
+  - user: Make a line chart of my weekly km since May.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: km_per_week
+            title: Km per week
+            type: chart
+            chart_type: line
+            query: SELECT strftime('%Y-%W', date) AS week, ROUND(SUM(km), 1) AS km FROM runs WHERE date >= '2026-05-01' GROUP BY week ORDER BY week
+            x: { field: week, label: "Week" }
+            y:
+              - { field: km, label: "Km" }
+        result: saved view (revision 1).
+    answer: Saved km_per_week, "Km per week".
+  - user: Which month did I run the most?
+    calls:
+      - {name: query, args: {sql: "SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(km), 1) AS km FROM runs GROUP BY month ORDER BY km DESC LIMIT 1"}, result: "1 row:\nmonth | km\n2026-08 | 71.3"}
+    answer: August, with 71.3 km.
+  - user: Log 2026-10-05, Riverside loop, 8.0 km, 45 minutes, heart rate 149.
+    calls:
+      - {name: insert, args: {table: runs, rows: [{date: "2026-10-05", km: 8.0, minutes: 45, avg_hr: 149, route: Riverside loop}]}, result: inserted 1 row into runs.}
+    answer: Logged 8 km on the Riverside loop.
+  - user: How many runs did I do in September?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM runs WHERE date BETWEEN '2026-09-01' AND '2026-09-30'"}, result: "1 row:\nn\n8"}
+    answer: Eight.
+  - user: Search for a half marathon in Hamburg next spring.
+    calls:
+      - {name: web_search, args: {query: Hamburg half marathon spring 2027, limit: 5}, result: "2 results:\n1. Hamburg Half Marathon, 25 April 2027 — events.example.com/hh-half — 2026-10-01\n2. Spring races in northern Germany — run.example.org/north — 2026-09-12"}
+    answer: The Hamburg Half Marathon is on 25 April 2027.
+  - user: Nice, that gives me six months.
+    answer: Yes, a bit over six months, enough for a steady build from your current 15 to 20 km a week.

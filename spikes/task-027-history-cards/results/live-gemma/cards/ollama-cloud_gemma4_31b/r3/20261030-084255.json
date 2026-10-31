@@ -1,0 +1,864 @@
+{
+  "set": "Home data",
+  "started": "2026-10-30T08:42:55.6470552Z",
+  "took_seconds": 122.3565265,
+  "scale": 1,
+  "reps": 1,
+  "models": [
+    "ollama-cloud/gemma4:31b"
+  ],
+  "summary": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "runs": 19,
+      "passed": 15,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 5,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 48,
+          "fail": 11,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 18744,
+      "avg_output_tokens": 998,
+      "avg_seconds": 6.439100315789474,
+      "cache_read_share": 0
+    }
+  ],
+  "runs": [
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C1_ctrl",
+      "rep": 3,
+      "seconds": 4.7696717,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21893,
+      "input_tokens": 21893,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8548,
+      "output_tokens": 841,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C1_para",
+      "rep": 3,
+      "seconds": 22.7651862,
+      "turns": 23,
+      "requests": 9,
+      "provider_requests": 9,
+      "prompt_tokens": 68142,
+      "input_tokens": 68142,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 12640,
+      "output_tokens": 2412,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"eth_gap_check\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C1_repeat",
+      "rep": 3,
+      "seconds": 7.2349515,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 12965,
+      "input_tokens": 12965,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8022,
+      "output_tokens": 484,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C2_ctrl",
+      "rep": 3,
+      "seconds": 2.606813,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9500,
+      "input_tokens": 9500,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4828,
+      "output_tokens": 155,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT company, COUNT(*) AS count \\nFROM job_posts \\nGROUP BY company \\nHAVING count \\u003e …"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Kraftwerk Labs (2) and Nordlicht GmbH (2).\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Kraftwerk Labs (2) and Nordlicht GmbH (2).\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C2_para",
+      "rep": 3,
+      "seconds": 5.9939651000000005,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 14774,
+      "input_tokens": 14774,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5270,
+      "output_tokens": 642,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C2_repeat",
+      "rep": 3,
+      "seconds": 4.0420057,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9857,
+      "input_tokens": 9857,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5214,
+      "output_tokens": 623,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C3_repeat",
+      "rep": 3,
+      "seconds": 7.722742,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21891,
+      "input_tokens": 21891,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 9146,
+      "output_tokens": 1692,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C4_ctrl",
+      "rep": 3,
+      "seconds": 2.6741973,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9088,
+      "input_tokens": 9088,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4623,
+      "output_tokens": 181,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, km, route FROM runs WHERE date BETWEEN '2026-10-01' AND '2026-10-31' ORDER BY k…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was 12.40 km on the Forest trail (2026-10-12).\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was 12.40 km on the Forest trail (2026-10-12).\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C4_para",
+      "rep": 3,
+      "seconds": 7.2331631,
+      "turns": 23,
+      "requests": 1,
+      "provider_requests": 1,
+      "prompt_tokens": 4631,
+      "input_tokens": 4631,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4631,
+      "output_tokens": 1618,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C4_repeat",
+      "rep": 3,
+      "seconds": 6.6071888,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21029,
+      "input_tokens": 21029,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8511,
+      "output_tokens": 1285,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: hr_by_route\\ntitle: Heart rate per route\\ntype: table\\nquery: |\\n  SELECT r…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: hr_by_route\\ntitle: Heart rate per route\\ntype: table\\nquery: |\\n  SELECT r…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C5_ctrl",
+      "rep": 3,
+      "seconds": 2.7797571,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9179,
+      "input_tokens": 9179,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4676,
+      "output_tokens": 172,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C5_para",
+      "rep": 3,
+      "seconds": 4.6548563,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10675,
+      "input_tokens": 10675,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5786,
+      "output_tokens": 952,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C5_repeat",
+      "rep": 3,
+      "seconds": 7.3403428,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 20970,
+      "input_tokens": 20970,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8743,
+      "output_tokens": 1517,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C6_para",
+      "rep": 3,
+      "seconds": 9.4162329,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 32636,
+      "input_tokens": 32636,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7107,
+      "output_tokens": 1836,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و پول پیش ه…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و پول پیش ه…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و پول پیش ه…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و پول پیش ه…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"rent_weekly_avg\",\"scope\":\"every chat in the project\"}"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C6_repeat",
+      "rep": 3,
+      "seconds": 5.0092814,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21748,
+      "input_tokens": 21748,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8688,
+      "output_tokens": 1032,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C7_ctrl",
+      "rep": 3,
+      "seconds": 2.3458021000000002,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8731,
+      "input_tokens": 8731,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4432,
+      "output_tokens": 138,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT author, COUNT(*) as book_count FROM books GROUP BY author ORDER BY book_count DESC LI…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "محمود دولت‌آبادی با ۳ کتاب، بیشترین تعداد را در فهرست شما دارد.\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C7_repeat",
+      "rep": 3,
+      "seconds": 4.8945413,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 19440,
+      "input_tokens": 19440,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7583,
+      "output_tokens": 498,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C8_para",
+      "rep": 3,
+      "seconds": 8.0366771,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 18191,
+      "input_tokens": 18191,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7176,
+      "output_tokens": 1652,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "ollama-cloud/gemma4:31b",
+      "scenario": "C8_repeat",
+      "rep": 3,
+      "seconds": 6.2155306,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 20803,
+      "input_tokens": 20803,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8496,
+      "output_tokens": 1241,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    }
+  ]
+}

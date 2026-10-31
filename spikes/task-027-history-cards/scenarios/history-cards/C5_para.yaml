@@ -1,0 +1,13 @@
+id: C5_para
+title: "The frost guard, for heat (paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 11, past the cut, built frost_guard: after a night below 3 °C, a 'cover the bed' row in garden_tasks for each bed sown in the last 30 days. The follow-up calls it the cold-night protection; a good answer saves the same pipeline for a high above 32 °C, for the beds of the last 30 days.
+messages:
+  - text: "Could we have a heat version of the cold-night protection? When yesterday's high was above 32 °C, remind me to shade the young plants."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'garden_tasks'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '-30 day|30 days'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'temp_max'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

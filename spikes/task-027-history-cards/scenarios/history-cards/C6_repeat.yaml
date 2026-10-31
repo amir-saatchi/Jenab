@@ -1,0 +1,14 @@
+id: C6_repeat
+title: "The rent per square metre table again, for Punak (Persian)"
+tests: [repeat]
+context: main
+why: >-
+  Turn 3, past the cut, built saadat_rent_per_m2: Saadat Abad flats of 80 to 120 m2 with the rent per m2 in thousand toman, cheapest first. The follow-up names that table; a good answer saves the same table for Punak.
+messages:
+  - text: "همین جدول اجاره‌ی هر متر مربع را برای پونک هم بساز."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'پونک'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '\b80\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '\b120\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '1000'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

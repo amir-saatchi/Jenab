@@ -1,0 +1,13 @@
+id: C2_ctrl
+title: "Companies with more than one post (control, no earlier turn)"
+tests: [control]
+context: main
+why: >-
+  A new question the tables answer; no earlier turn is needed.
+messages:
+  - text: "Which companies have more than one post in job_posts? Give the counts."
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'job_posts'}
+  - {type: answer_contains, test: control, turn: last, final: true, match: 'Kraftwerk Labs'}
+  - {type: answer_contains, test: control, turn: last, final: true, match: 'Nordlicht'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

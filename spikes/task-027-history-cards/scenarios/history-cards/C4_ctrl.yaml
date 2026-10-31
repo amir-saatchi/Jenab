@@ -1,0 +1,13 @@
+id: C4_ctrl
+title: "The longest run in October (control, no earlier turn)"
+tests: [control]
+context: main
+why: >-
+  A new question the tables answer; no earlier turn is needed.
+messages:
+  - text: "What was my longest run in October, and on which route?"
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'runs'}
+  - {type: answer_contains, test: control, turn: last, final: true, match: '12[.,]4'}
+  - {type: answer_contains, test: control, turn: last, final: true, match: '(?i)forest'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

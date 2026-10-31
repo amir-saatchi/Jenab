@@ -139,14 +139,6 @@ func TestCountCalls(t *testing.T) {
 	}
 }
 
-func TestWords(t *testing.T) {
-	got := words("Make that 14-day chart for ETH; eth_prices has it. سلام دنیا")
-	want := []string{"make", "that", "14", "day", "chart", "for", "eth", "prices", "has", "it", "سلام", "دنیا"}
-	if !slices.Equal(got, want) {
-		t.Errorf("words = %q", got)
-	}
-}
-
 // The long chats' histories load with their own turn in place, and every
 // referent turn is past the cut but the control's.
 func TestHistories(t *testing.T) {
@@ -164,41 +156,6 @@ func TestHistories(t *testing.T) {
 				t.Errorf("%s: turn %d is not whole", id, i+1)
 			}
 		}
-	}
-}
-
-func TestCard(t *testing.T) {
-	text := func(s string) []chat.Part { return []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: s}}} }
-	ms := []chat.Message{
-		{Turn: 2, Role: chat.RoleUser, Parts: text("Build a bar chart.")},
-		{Turn: 2, Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "a", Name: callName,
-			Args: json.RawMessage(`{"name":"save_view","arguments":{"yaml":"chart_type: bar"}}`)}}}},
-		{Turn: 2, Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: "a", Text: "saved"}}}},
-		{Turn: 2, Role: chat.RoleAssistant, Parts: text("Saved btc_chart.")},
-	}
-	want := "[From turn 2 of this chat, before the recent turns:\nUser: Build a bar chart.\nCall: save_view {\"yaml\":\"chart_type: bar\"}\nAnswer: Saved btc_chart.]"
-	if got := card(2, ms); got != want {
-		t.Errorf("card:\n%s\nwant\n%s", got, want)
-	}
-}
-
-// earlier adds a turn's card to its first user message only after a cut,
-// finds it once and leaves the messages it was given as they were.
-func TestEarlier(t *testing.T) {
-	c := newCards(nil)
-	text := func(s string) []chat.Part { return []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: s}}} }
-	ms := []chat.Message{
-		{Chat: "c", Turn: 8, Role: chat.RoleUser, Parts: text("old")},
-		{Chat: "c", Turn: 11, Role: chat.RoleUser, Parts: text("new")},
-	}
-	c.memo[cardKey{"c", 11}] = chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: "[card]"}}
-	out := c.earlier(ms, 11)
-	if len(out[1].Parts) != 2 || out[1].Parts[1].Text.Text != "[card]" || len(ms[1].Parts) != 1 {
-		t.Errorf("earlier: %+v", out)
-	}
-	ms[0].Turn = 1 // the window starts at turn 1: no cut yet
-	if got := c.earlier(ms, 11); len(got[1].Parts) != 1 {
-		t.Error("a card without a cut")
 	}
 }
 

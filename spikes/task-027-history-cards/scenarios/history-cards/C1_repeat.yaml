@@ -1,0 +1,13 @@
+id: C1_repeat
+title: "The weekly volatility table again, for SOL"
+tests: [repeat]
+context: main
+why: >-
+  Turn 4, past the cut, built btc_weekly_vol: the standard deviation of daily returns per week over the last 26 weeks (182 days), newest first, labelled 'Volatility (%)'. The follow-up names that table; a good answer saves the same table on sol_prices.
+messages:
+  - text: "Make that weekly volatility table for SOL too; sol_prices has the same columns as btc_prices."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'sol_prices'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '\b182\b|\b26\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'Volatility \(%\)'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

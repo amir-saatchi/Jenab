@@ -1,0 +1,864 @@
+{
+  "set": "Home data",
+  "started": "2026-10-31T08:07:12.6772728Z",
+  "took_seconds": 486.1669132,
+  "scale": 1,
+  "reps": 1,
+  "models": [
+    "gemini/gemini-3.5-flash-lite"
+  ],
+  "summary": [
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "runs": 19,
+      "passed": 15,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 5,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 49,
+          "fail": 10,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 31266,
+      "avg_output_tokens": 1453,
+      "avg_seconds": 25.587305331578943,
+      "cache_read_share": 0.5780825745677604
+    }
+  ],
+  "runs": [
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_ctrl",
+      "rep": 1,
+      "seconds": 60.9416694,
+      "turns": 23,
+      "requests": 11,
+      "provider_requests": 11,
+      "prompt_tokens": 55317,
+      "input_tokens": 23520,
+      "cache_read_tokens": 31797,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6231,
+      "output_tokens": 1166,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_para",
+      "rep": 1,
+      "seconds": 20.9851853,
+      "turns": 23,
+      "requests": 14,
+      "provider_requests": 14,
+      "prompt_tokens": 79326,
+      "input_tokens": 26613,
+      "cache_read_tokens": 52713,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6964,
+      "output_tokens": 2433,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"to\":19,\"from\":12}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_repeat",
+      "rep": 1,
+      "seconds": 57.4889595,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 16116,
+      "input_tokens": 7510,
+      "cache_read_tokens": 8606,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6065,
+      "output_tokens": 1251,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_ctrl",
+      "rep": 1,
+      "seconds": 7.7894264,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9709,
+      "input_tokens": 7743,
+      "cache_read_tokens": 1966,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4910,
+      "output_tokens": 161,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT company, COUNT(*) AS count FROM job_posts GROUP BY company HAVING COUNT(*) \\u003e 1 O…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Nordlicht GmbH and Kraftwerk Labs each have 2 posts in `job_posts`.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Nordlicht GmbH and Kraftwerk Labs each have 2 posts in `job_posts`.\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_para",
+      "rep": 1,
+      "seconds": 24.3395837,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 32762,
+      "input_tokens": 16283,
+      "cache_read_tokens": 16479,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6799,
+      "output_tokens": 2126,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: stale_interviews\\ntitle: Waiting interviews\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: stale_interviews\\ntitle: Waiting interviews\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: stale_interviews\\ntitle: Waiting interviews\\ntype: table\\nquery: |\\n  SELEC…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_repeat",
+      "rep": 1,
+      "seconds": 8.518636,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10230,
+      "input_tokens": 6273,
+      "cache_read_tokens": 3957,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5488,
+      "output_tokens": 804,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C3_repeat",
+      "rep": 1,
+      "seconds": 24.8832473,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 32005,
+      "input_tokens": 15091,
+      "cache_read_tokens": 16914,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5872,
+      "output_tokens": 1199,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_ctrl",
+      "rep": 1,
+      "seconds": 7.0381178,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 9174,
+      "input_tokens": 7243,
+      "cache_read_tokens": 1931,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4670,
+      "output_tokens": 247,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, km, minutes, route FROM runs WHERE date BETWEEN '2026-10-01' AND '2026-10-31' O…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was on **2026-10-12**, covering **12.4 km** in 79 minutes on the **Forest trail**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was on **2026-10-12**, covering **12.4 km** in 79 minutes on the **Forest trail**.\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_para",
+      "rep": 1,
+      "seconds": 53.3704799,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 26574,
+      "input_tokens": 10368,
+      "cache_read_tokens": 16206,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6817,
+      "output_tokens": 2274,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Last month's runs of 2 km or more, summed …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Last month's runs of 2 km or more, summed …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Last month's runs of 2 km or more, summed …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"from\":1,\"chat_id\":\"01M68G5NR5FJGK7F283C93MQ5C\",\"to\":19}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_repeat",
+      "rep": 1,
+      "seconds": 16.6560816,
+      "turns": 23,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 20978,
+      "input_tokens": 8496,
+      "cache_read_tokens": 12482,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5935,
+      "output_tokens": 1305,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: hr_by_route\\ntitle: Average heart rate per route\\ntype: table\\nquery: |\\n  …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: hr_by_route\\ntitle: Average heart rate per route\\ntype: table\\nquery: |\\n  …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: hr_by_route\\ntitle: Average heart rate per route\\ntype: table\\nquery: |\\n  …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_ctrl",
+      "rep": 1,
+      "seconds": 11.4156322,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 14448,
+      "input_tokens": 10516,
+      "cache_read_tokens": 3932,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4946,
+      "output_tokens": 319,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_para",
+      "rep": 1,
+      "seconds": 10.2945248,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 11355,
+      "input_tokens": 5378,
+      "cache_read_tokens": 5977,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6329,
+      "output_tokens": 1370,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_repeat",
+      "rep": 1,
+      "seconds": 22.9636531,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 32662,
+      "input_tokens": 13169,
+      "cache_read_tokens": 19493,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6204,
+      "output_tokens": 1627,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per raised bed (R1–R4)\\ntype: chart\\nchart_ty…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per raised bed (R1–R4)\\ntype: chart\\nchart_ty…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per raised bed (R1–R4)\\ntype: chart\\nchart_ty…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per raised bed (R1–R4)\\ntype: chart\\nchart_ty…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"from\":1}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C6_para",
+      "rep": 1,
+      "seconds": 68.2197303,
+      "turns": 23,
+      "requests": 17,
+      "provider_requests": 17,
+      "prompt_tokens": 119430,
+      "input_tokens": 33205,
+      "cache_read_tokens": 86225,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 9493,
+      "output_tokens": 4863,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"گزارش\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C6_repeat",
+      "rep": 1,
+      "seconds": 28.5275338,
+      "turns": 23,
+      "requests": 7,
+      "provider_requests": 7,
+      "prompt_tokens": 42254,
+      "input_tokens": 15248,
+      "cache_read_tokens": 27006,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7416,
+      "output_tokens": 2305,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: punak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C7_ctrl",
+      "rep": 1,
+      "seconds": 10.5922645,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 13682,
+      "input_tokens": 9766,
+      "cache_read_tokens": 3916,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4661,
+      "output_tokens": 279,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT author, COUNT(*) as cnt FROM books GROUP BY author ORDER BY cnt DESC LIMIT 1\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "محمود دولت‌آبادی با ۳ کتاب بیشترین سهم را در فهرست شما دارد.\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C7_repeat",
+      "rep": 1,
+      "seconds": 24.4032392,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 32772,
+      "input_tokens": 13146,
+      "cache_read_tokens": 19626,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6369,
+      "output_tokens": 1836,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_2025\\ntitle: صفحه‌های خوانده‌شده در …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C8_para",
+      "rep": 1,
+      "seconds": 16.6729885,
+      "turns": 23,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 19661,
+      "input_tokens": 14160,
+      "cache_read_tokens": 5501,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5273,
+      "output_tokens": 1042,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C8_repeat",
+      "rep": 1,
+      "seconds": 11.057848,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 15602,
+      "input_tokens": 6915,
+      "cache_read_tokens": 8687,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5672,
+      "output_tokens": 1005,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shepna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    }
+  ]
+}

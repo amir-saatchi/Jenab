@@ -1,0 +1,128 @@
+# C7, a reading log (Persian). 22 earlier turns; the follow-up is turn 23.
+#   turn 7:  pages_per_month, the follow-up C7_repeat needs (bars, this
+#            year from reading_log, the «صفحه در ماه» label)
+#   turn 13: cheshmeh_news, the follow-up C7_para needs (a daily news
+#            search, the five newest, book_news)
+# C7_ctrl needs no earlier turn.
+turns:
+  - user: الان چند کتاب در فهرستم دارم؟
+    calls:
+      - {name: query, args: {sql: "SELECT status, COUNT(*) AS n FROM books GROUP BY status"}, result: "3 rows:\nstatus | n\nfinished | 9\nreading | 2\nto_read | 6"}
+    answer: ۱۷ کتاب؛ ۹ تا تمام شده، ۲ تا در حال خواندن و ۶ تا برای بعد.
+  - user: کدام‌ها را الان می‌خوانم؟
+    calls:
+      - {name: query, args: {sql: "SELECT title, author, pages FROM books WHERE status = 'reading'"}, result: "2 rows:\ntitle | author | pages\nسمفونی مردگان | عباس معروفی | 344\nکلیدر | محمود دولت‌آبادی | 2836"}
+    answer: «سمفونی مردگان» از عباس معروفی و «کلیدر» از محمود دولت‌آبادی.
+  - user: امروز ۴۰ صفحه از سمفونی مردگان خواندم، ۱۴۰۵/۰۶/۱۰.
+    calls:
+      - {name: insert, args: {table: reading_log, rows: [{date: "2026-09-01", book_id: 11, pages: 40}]}, result: inserted 1 row into reading_log.}
+    answer: ثبت شد؛ ۴۰ صفحه از «سمفونی مردگان» در ۲۰۲۶-۰۹-۰۱.
+  - user: کلیدر چند جلد است؟
+    answer: کلیدر ده جلد است که معمولاً در پنج مجلد چاپ می‌شود؛ طولانی‌ترین رمان فارسی است.
+  - user: بیشترین صفحه‌ای که در یک روز خوانده‌ام چقدر بوده؟
+    calls:
+      - {name: query, args: {sql: "SELECT date, SUM(pages) AS pages FROM reading_log GROUP BY date ORDER BY pages DESC LIMIT 1"}, result: "1 row:\ndate | pages\n2026-03-21 | 162"}
+    answer: ۱۶۲ صفحه در ۲۰۲۶-۰۳-۲۱، روز اول نوروز.
+  - user: لینک فهرست کتاب‌های برگزیده‌ی امسال را ذخیره کن، https://example.ir/bargozide-1405
+    calls:
+      - {name: save_link, args: {url: "https://example.ir/bargozide-1405", title: کتاب‌های برگزیده‌ی ۱۴۰۵}, result: saved link 1 to Resources.}
+    answer: در منابع ذخیره شد.
+  - user: "یک نمودار ستونی بساز از تعداد صفحه‌هایی که هر ماه خوانده‌ام، برای امسال، و محور عمودی را «صفحه در ماه» بنویس."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: pages_per_month
+            title: صفحه‌های خوانده‌شده در هر ماه
+            type: chart
+            chart_type: bar
+            query: |
+              SELECT strftime('%Y-%m', date) AS month, SUM(pages) AS pages
+              FROM reading_log
+              WHERE date BETWEEN '2026-01-01' AND '2026-12-31'
+              GROUP BY month
+              ORDER BY month
+            x: { field: month, label: "ماه" }
+            y:
+              - { field: pages, label: "صفحه در ماه" }
+        result: saved view (revision 1).
+    answer: نمودار pages_per_month ذخیره شد؛ برای هر ماه امسال یک ستون با جمع صفحه‌های خوانده‌شده، و محور عمودی «صفحه در ماه» است.
+  - user: کتاب «شازده احتجاب» را به فهرست بعدی‌ها اضافه کن، از هوشنگ گلشیری، ۱۲۰ صفحه.
+    calls:
+      - {name: insert, args: {table: books, rows: [{title: شازده احتجاب, author: هوشنگ گلشیری, pages: 120, status: to_read}]}, result: inserted 1 row into books.}
+    answer: «شازده احتجاب» به فهرست کتاب‌های بعدی اضافه شد.
+  - user: به کدام کتاب‌ها امتیاز ۵ داده‌ام؟
+    calls:
+      - {name: query, args: {sql: "SELECT title, author FROM books WHERE rating = 5"}, result: "3 rows:\ntitle | author\nبوف کور | صادق هدایت\nسووشون | سیمین دانشور\nجای خالی سلوچ | محمود دولت‌آبادی"}
+    answer: «بوف کور»، «سووشون» و «جای خالی سلوچ».
+  - user: یک کتاب شبیه سووشون پیشنهاد بده.
+    answer: «چراغ‌ها را من خاموش می‌کنم» از زویا پیرزاد؛ آن هم داستان زنی است در خانواده و جامعه‌ای که دارد عوض می‌شود، با نثری آرام و دقیق.
+  - user: اضافه‌اش کن به بعدی‌ها، ۳۰۰ صفحه است.
+    calls:
+      - {name: insert, args: {table: books, rows: [{title: چراغ‌ها را من خاموش می‌کنم, author: زویا پیرزاد, pages: 300, status: to_read}]}, result: inserted 1 row into books.}
+    answer: اضافه شد.
+  - user: میانگین صفحه‌هایی که در روز می‌خوانم چقدر است؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(pages), 1) AS avg FROM (SELECT date, SUM(pages) AS pages FROM reading_log GROUP BY date)"}, result: "1 row:\navg\n31.4"}
+    answer: روزهایی که می‌خوانید، به طور میانگین ۳۱٫۴ صفحه.
+  - user: "هر روز ساعت ۷ صبح در اخبار دنبال کتاب‌های تازه‌ی نشر چشمه بگرد و پنج تای آخر را در book_news ذخیره کن."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: cheshmeh_news
+            description: پنج خبر تازه درباره‌ی کتاب‌های نشر چشمه، هر روز، در book_news
+            trigger:
+              schedule: "0 7 * * *"
+              timezone: Asia/Tehran
+            steps:
+              - id: find
+                use: web.search
+                with:
+                  query: نشر چشمه کتاب تازه
+                  source: news
+                  freshness: day
+                  limit: 5
+              - id: save
+                use: db.insert
+                for_each: ${{ steps.find.results }}
+                with:
+                  table: book_news
+                  on_conflict: skip
+                  row:
+                    url: ${{ item.url }}
+                    date: ${{ item.date }}
+                    title: ${{ item.title }}
+                    publisher: چشمه
+        result: saved pipeline (revision 1).
+    answer: cheshmeh_news ذخیره شد. هر روز ساعت ۷ صبح به وقت تهران، پنج خبر تازه‌ی روز درباره‌ی کتاب‌های نشر چشمه را پیدا می‌کند و در book_news می‌گذارد.
+  - user: همین حالا یک بار اجرایش کن.
+    calls:
+      - {name: run_pipeline, args: {id: cheshmeh_news}, result: started run r_712.}
+    answer: اجرای r_712 شروع شد.
+  - user: امروز ۶۰ صفحه از کلیدر خواندم، ۱۴۰۵/۰۷/۰۲.
+    calls:
+      - {name: insert, args: {table: reading_log, rows: [{date: "2026-09-24", book_id: 12, pages: 60}]}, result: inserted 1 row into reading_log.}
+    answer: ثبت شد؛ ۶۰ صفحه از «کلیدر» در ۲۰۲۶-۰۹-۲۴.
+  - user: درباره‌ی محمود دولت‌آبادی چند خط بنویس.
+    answer: محمود دولت‌آبادی، زاده‌ی ۱۳۱۹ در دولت‌آباد سبزوار، از مهم‌ترین رمان‌نویسان معاصر ایران است. «کلیدر» و «جای خالی سلوچ» از شناخته‌شده‌ترین کارهای او هستند و بیشتر درباره‌ی زندگی روستاییان خراسان‌اند.
+  - user: کتاب‌های تمام‌شده‌ی امسال را با امتیازشان نشان بده.
+    calls:
+      - {name: query, args: {sql: "SELECT title, finished_on, rating FROM books WHERE status = 'finished' AND finished_on >= '2026-01-01' ORDER BY finished_on"}, result: "6 rows:\ntitle | finished_on | rating\nبوف کور | 2026-01-19 | 5\nسووشون | 2026-02-27 | 5\nمدیر مدرسه | 2026-04-08 | 4\nجای خالی سلوچ | 2026-05-30 | 5\nچشم‌هایش | 2026-07-12 | 4\nشب‌های تهران | 2026-08-25 | 3"}
+    answer: شش کتاب؛ «بوف کور» (۵)، «سووشون» (۵)، «مدیر مدرسه» (۴)، «جای خالی سلوچ» (۵)، «چشم‌هایش» (۴) و «شب‌های تهران» (۳).
+  - user: لینک این نقد را هم ذخیره کن، https://example.ir/naghd-kelidar
+    calls:
+      - {name: save_link, args: {url: "https://example.ir/naghd-kelidar", title: نقدی بر کلیدر}, result: saved link 2 to Resources.}
+    answer: ذخیره شد.
+  - user: سمفونی مردگان را چقدر دیگر باید بخوانم؟
+    calls:
+      - {name: query, args: {sql: "SELECT b.pages - COALESCE(SUM(l.pages), 0) AS left_pages FROM books b LEFT JOIN reading_log l ON l.book_id = b.id WHERE b.id = 11"}, result: "1 row:\nleft_pages\n96"}
+    answer: ۹۶ صفحه‌ی دیگر مانده است.
+  - user: با روزی ۳۰ صفحه کی تمام می‌شود؟
+    answer: حدود چهار روز؛ سه روز ۳۰ صفحه و روز چهارم ۶ صفحه.
+  - user: خوب است. یک جمله‌ی خوب از سمفونی مردگان یادت هست؟
+    answer: جمله‌ی دقیقش را از حفظ ندارم و نمی‌خواهم اشتباه نقل کنم؛ اگر بخواهید، بعد از تمام کردن کتاب جمله‌های محبوبتان را برایتان ثبت می‌کنم.
+  - user: باشه، ممنون.
+    answer: خواهش می‌کنم، خواندن خوش.

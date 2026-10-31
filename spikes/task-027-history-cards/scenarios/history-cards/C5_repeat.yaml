@@ -1,0 +1,14 @@
+id: C5_repeat
+title: "The water per bed chart again, for the raised beds"
+tests: [repeat]
+context: main
+why: >-
+  Turn 4, past the cut, built water_per_bed: stacked bars of the liters each bed got per week since April, labelled 'Liters per week'. The follow-up names that chart; a good answer saves the same chart for R1 to R4 only.
+messages:
+  - text: "Make that liters per bed chart again, but only for the raised beds R1 to R4."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'watering'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '(?i)stack'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'Liters per week'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'R1'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

@@ -1,0 +1,141 @@
+# C8, the Tehran stock exchange (Persian, with English table names). 22
+# earlier turns; the follow-up is turn 23.
+#   turn 5:  foulad_femeli_ma20, the follow-up C8_repeat needs (lines, the
+#            20-day moving average, three months)
+#   turn 10: watch_drops, the follow-up C8_para needs (watchlist symbols,
+#            5 trading days, 8%, sorted by the change)
+#   turn 21: Shepna's last close, in the window, for C8_ctrl
+turns:
+  - user: در watchlist چه نمادهایی داریم؟
+    calls:
+      - {name: query, args: {sql: "SELECT symbol, note FROM watchlist ORDER BY symbol"}, result: "6 rows:\nsymbol | note\nخودرو | خودروسازی\nشپنا | پالایشی\nفملی | مس\nفولاد | فولاد مبارکه\nوبملت | بانکی\nکگل | سنگ آهن"}
+    answer: شش نماد؛ خودرو، شپنا، فملی، فولاد، وبملت و کگل.
+  - user: قیمت‌ها از کی تا کی در tse_prices هست؟
+    calls:
+      - {name: query, args: {sql: "SELECT MIN(date) AS first, MAX(date) AS last, COUNT(DISTINCT date) AS days FROM tse_prices"}, result: "1 row:\nfirst | last | days\n2026-06-21 | 2026-10-19 | 82"}
+    answer: از ۲۰۲۶-۰۶-۲۱ تا ۲۰۲۶-۱۰-۱۹، ۸۲ روز معاملاتی.
+  - user: کدام نماد بیشترین حجم معامله را در روز آخر داشت؟
+    calls:
+      - {name: query, args: {sql: "SELECT symbol, volume FROM tse_prices WHERE date = (SELECT MAX(date) FROM tse_prices) ORDER BY volume DESC LIMIT 1"}, result: "1 row:\nsymbol | volume\nخودرو | 412000000"}
+    answer: خودرو، با حدود ۴۱۲ میلیون سهم.
+  - user: یادداشت کگل در watchlist چیست؟
+    answer: «سنگ آهن».
+  - user: "یک نمودار خطی از قیمت پایانی فولاد و فملی در سه ماه گذشته بساز، هر دو روی یک نمودار، همراه با میانگین متحرک ۲۰ روزه‌ی هر کدام."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: foulad_femeli_ma20
+            title: فولاد و فملی با میانگین ۲۰ روزه
+            type: chart
+            chart_type: line
+            query: |
+              SELECT date, symbol, close,
+                     AVG(close) OVER (PARTITION BY symbol ORDER BY date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) AS ma20
+              FROM tse_prices
+              WHERE symbol IN ('فولاد', 'فملی')
+                AND date >= date('now', '-3 month')
+              ORDER BY date
+            x: { field: date, label: "تاریخ", format: date }
+            y:
+              - { field: close, label: "قیمت پایانی", series: symbol }
+              - { field: ma20, label: "میانگین ۲۰ روزه", series: symbol, style: dashed }
+        result: saved view (revision 1).
+    answer: نمودار foulad_femeli_ma20 ذخیره شد؛ قیمت پایانی فولاد و فملی در سه ماه گذشته، هر کدام با میانگین متحرک ۲۰ روزه‌اش به صورت خط‌چین.
+  - user: لینک کدال را ذخیره کن، https://example.ir/codal
+    calls:
+      - {name: save_link, args: {url: "https://example.ir/codal", title: کدال}, result: saved link 1 to Resources.}
+    answer: ذخیره شد.
+  - user: P/E یعنی چه؟
+    answer: نسبت قیمت به سود هر سهم است؛ یعنی قیمت سهم چند برابر سود سالانه‌ی هر سهم است. هرچه کمتر باشد، سهم نسبت به سودش ارزان‌تر است، ولی باید با هم‌صنعت‌هایش مقایسه شود.
+  - user: وبملت در یک ماه گذشته چقدر بالا یا پایین رفته؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND((SELECT close FROM tse_prices WHERE symbol = 'وبملت' ORDER BY date DESC LIMIT 1) * 100.0 / (SELECT close FROM tse_prices WHERE symbol = 'وبملت' AND date <= date('2026-10-19', '-1 month') ORDER BY date DESC LIMIT 1) - 100, 1) AS pct"}, result: "1 row:\npct\n4.6"}
+    answer: ۴٫۶ درصد بالا رفته.
+  - user: در اخبار ببین درباره‌ی فملی چه خبر است.
+    calls:
+      - {name: web_search, args: {query: فملی مس, freshness: week, limit: 5}, result: "2 results:\n1. فملی گزارش فروش شهریور را منتشر کرد — news.example.ir/b/31 — 2026-10-12\n2. قیمت جهانی مس به بالاترین رقم شش ماه اخیر رسید — news.example.ir/b/29 — 2026-10-09"}
+    answer: فملی گزارش فروش شهریور را منتشر کرده و قیمت جهانی مس هم به بالاترین رقم شش ماه اخیر رسیده است.
+  - user: "یک جدول بساز از نمادهای watchlist که در ۵ روز معاملاتی اخیر بیشتر از ۸ درصد افت کرده‌اند، با درصد تغییر، مرتب از بیشترین افت."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: watch_drops
+            title: افت نمادهای دیده‌بان
+            type: table
+            query: |
+              WITH d AS (
+                SELECT DISTINCT date FROM tse_prices ORDER BY date DESC LIMIT 6
+              ), p AS (
+                SELECT t.symbol,
+                       MAX(CASE WHEN t.date = (SELECT MAX(date) FROM d) THEN t.close END) AS last,
+                       MAX(CASE WHEN t.date = (SELECT MIN(date) FROM d) THEN t.close END) AS first
+                FROM tse_prices t
+                JOIN watchlist w ON w.symbol = t.symbol
+                WHERE t.date IN (SELECT date FROM d)
+                GROUP BY t.symbol
+              )
+              SELECT symbol, ROUND((last - first) * 100.0 / first, 1) AS change_pct
+              FROM p
+              WHERE last < first * 0.92
+              ORDER BY change_pct ASC
+            columns:
+              - { field: symbol, label: "نماد" }
+              - { field: change_pct, label: "تغییر (درصد)" }
+        result: saved view (revision 1).
+    answer: جدول watch_drops ذخیره شد؛ نمادهای watchlist را که در ۵ روز معاملاتی اخیر بیشتر از ۸ درصد افت کرده‌اند با درصد تغییر نشان می‌دهد، از بیشترین افت.
+  - user: کگل در یک هفته‌ی گذشته چقدر تغییر کرده؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND((SELECT close FROM tse_prices WHERE symbol = 'کگل' ORDER BY date DESC LIMIT 1) * 100.0 / (SELECT close FROM tse_prices WHERE symbol = 'کگل' AND date <= '2026-10-12' ORDER BY date DESC LIMIT 1) - 100, 1) AS pct"}, result: "1 row:\npct\n3.2"}
+    answer: ۳٫۲ درصد بالا رفته.
+  - user: میانگین حجم روزانه‌ی شپنا در یک ماه گذشته؟
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(volume)) AS avg_volume FROM tse_prices WHERE symbol = 'شپنا' AND date >= '2026-09-19'"}, result: "1 row:\navg_volume\n86500000"}
+    answer: حدود ۸۶٫۵ میلیون سهم در روز.
+  - user: صندوق درآمد ثابت چیست؟
+    answer: صندوقی است که بیشتر پولش را در اوراق بدهی و سپرده‌ی بانکی می‌گذارد؛ سودش کمتر از سهام است ولی نوسانش هم خیلی کمتر است و برای پول کوتاه‌مدت مناسب‌تر است.
+  - user: وبملت را از watchlist بردار... نه، صبر کن، بماند.
+    answer: باشد، وبملت در watchlist می‌ماند.
+  - user: کدام نماد در سه ماه گذشته بیشترین رشد را داشته؟
+    calls:
+      - {name: query, args: {sql: "WITH f AS (SELECT symbol, close FROM tse_prices WHERE date = (SELECT MIN(date) FROM tse_prices WHERE date >= '2026-07-19')), l AS (SELECT symbol, close FROM tse_prices WHERE date = '2026-10-19') SELECT l.symbol, ROUND((l.close - f.close) * 100.0 / f.close, 1) AS pct FROM l JOIN f ON f.symbol = l.symbol ORDER BY pct DESC LIMIT 1"}, result: "1 row:\nsymbol | pct\nکگل | 21.3"}
+    answer: کگل، با ۲۱٫۳ درصد رشد.
+  - user: لینک این تحلیل درباره‌ی سنگ آهن را هم نگه دار، https://example.ir/sang-ahan
+    calls:
+      - {name: save_link, args: {url: "https://example.ir/sang-ahan", title: تحلیل بازار سنگ آهن}, result: saved link 2 to Resources.}
+    answer: ذخیره شد.
+  - user: یک نمودار ستونی از حجم معاملات روزانه‌ی خودرو در یک ماه گذشته بساز.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: khodro_volume
+            title: حجم معاملات خودرو
+            type: chart
+            chart_type: bar
+            query: SELECT date, volume FROM tse_prices WHERE symbol = 'خودرو' AND date >= date('now', '-1 month') ORDER BY date
+            x: { field: date, label: "تاریخ", format: date }
+            y:
+              - { field: volume, label: "حجم" }
+        result: saved view (revision 1).
+    answer: نمودار khodro_volume ذخیره شد.
+  - user: بازار فردا تعطیل است؟
+    answer: نمی‌توانم تقویم تعطیلات بورس را از اینجا ببینم؛ اگر بخواهید در اخبار جستجو می‌کنم.
+  - user: نه، مهم نیست. بالاترین قیمت فولاد در این مدت؟
+    calls:
+      - {name: query, args: {sql: "SELECT date, close FROM tse_prices WHERE symbol = 'فولاد' ORDER BY close DESC LIMIT 1"}, result: "1 row:\ndate | close\n2026-09-02 | 6180"}
+    answer: ۶٬۱۸۰ ریال در ۲۰۲۶-۰۹-۰۲.
+  - user: کلاً بازار این هفته چطور بود؟
+    calls:
+      - {name: web_search, args: {query: شاخص کل بورس تهران این هفته, freshness: week, limit: 5}, result: "1 result:\n1. شاخص کل در هفته‌ای که گذشت ۱٫۸ درصد بالا رفت — news.example.ir/b/40 — 2026-10-17"}
+    answer: طبق خبرها، شاخص کل این هفته ۱٫۸ درصد بالا رفته است.
+  - user: آخرین قیمت پایانی شپنا چند بود؟
+    calls:
+      - {name: query, args: {sql: "SELECT date, close FROM tse_prices WHERE symbol = 'شپنا' ORDER BY date DESC LIMIT 1"}, result: "1 row:\ndate | close\n2026-10-19 | 5420"}
+    answer: ۵٬۴۲۰ ریال در ۲۰۲۶-۱۰-۱۹.
+  - user: خوب. ممنون.
+    answer: خواهش می‌کنم.

@@ -1,0 +1,13 @@
+id: C5_ctrl
+title: "Today's watering (control, no earlier turn)"
+tests: [control]
+context: main
+why: >-
+  A new entry; no earlier turn is needed.
+messages:
+  - text: "Log today's watering: 6 liters on B2."
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: insert, args_match: 'B2'}
+  - {type: tool_called, test: control, turn: last, tool: insert, args_match: '"liters":\s*6\b'}
+  - {type: tool_called, test: control, turn: last, tool: insert, args_match: '2026-10-20'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

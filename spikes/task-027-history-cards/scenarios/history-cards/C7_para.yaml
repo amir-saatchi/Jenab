@@ -1,0 +1,14 @@
+id: C7_para
+title: "The Cheshmeh news search, for Niloufar (Persian, paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 13, past the cut, built cheshmeh_news: every day at 07:00, the five newest news items of the day on Cheshmeh's books into book_news. The follow-up calls it the daily follow-up; a good answer saves the same pipeline for Niloufar.
+messages:
+  - text: "برای انتشارات نیلوفر هم همون پیگیری روزانه رو راه بنداز."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'نیلوفر'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'book_news'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '\b5\b'}
+  - {type: tool_called, test: info, turn: last, tool: save_pipeline, args_match: 'day'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

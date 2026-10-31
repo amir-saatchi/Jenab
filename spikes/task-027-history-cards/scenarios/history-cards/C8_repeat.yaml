@@ -1,0 +1,14 @@
+id: C8_repeat
+title: "The 20-day moving average chart again, for Khodro and Shepna (Persian)"
+tests: [repeat]
+context: main
+why: >-
+  Turn 5, past the cut, built foulad_femeli_ma20: lines of the close of Foulad and Femeli over three months, each with its 20-day moving average. The follow-up names that chart; a good answer saves the same chart for Khodro and Shepna.
+messages:
+  - text: "همین نمودار میانگین متحرک ۲۰ روزه را برای خودرو و شپنا هم بساز."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'خودرو'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'شپنا'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '19 PRECEDING|\b20\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '3 month|-90 day'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

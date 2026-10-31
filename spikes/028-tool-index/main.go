@@ -280,7 +280,8 @@ func (h *harness) runSet(ctx context.Context, name, cond, model string) error {
 			}
 		}
 	}
-	var cur *cards // the run's cards (conditions 3 and 4); runs go one at a time
+	var mu sync.Mutex
+	carded := map[string][]int{} // the earlier turns the app cards, by scenario (conditions 3 and 4)
 	reps := h.reps
 	if name == longSet {
 		reps = h.longReps
@@ -301,8 +302,10 @@ func (h *harness) runSet(ctx context.Context, name, cond, model string) error {
 			if h.budget.why(providerKind(h.models, model)) != "" && !l.Passed {
 				l.Stopped = true
 			}
-			if cur != nil {
-				l.Cards = cur.carded(from)
+			if hasCards(cond) {
+				mu.Lock()
+				l.Cards = carded[r.Scenario]
+				mu.Unlock()
 				if at := hist[r.Scenario].At; at < from-historyMin {
 					hit := slices.Contains(l.Cards, at) // the needed turn is past the cut
 					l.CardHit = &hit
@@ -323,20 +326,27 @@ func (h *harness) runSet(ctx context.Context, name, cond, model string) error {
 			d.Tools, d.ToolIndex = newIndex(all, d.Skills)
 			d.Skills = keepSkills(d.Skills, all, d.Tools)
 		}
-		if hasCards(cond) {
-			cur = newCards(d.Projects)
-			d.Earlier = cur.earlier
-		}
+		d.NoHistoryCards = !hasCards(cond) // TASK-027: the app's own cards
 	}
 	if hasIndex(cond) {
 		opt.Call = unwrap
 	}
 	if name == longSet {
 		opt.Setup = func(ctx context.Context, sc *scenario.Scenario, p *project.Project, c id.Chat) error {
-			if cur != nil {
-				cur.pid = p.ID
+			if err := seed(ctx, p, c, hist[sc.ID].Turns, hasIndex(cond)); err != nil {
+				return err
 			}
-			return seed(ctx, p, c, hist[sc.ID].Turns, hasIndex(cond))
+			// The cards the app adds to the message: it finds them the
+			// same way at the follow-up's first request, after the cut.
+			from := len(hist[sc.ID].Turns) + 1
+			scores, err := agent.CardScores(ctx, p.Chats, c, sc.Messages[0].Text, from)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			carded[sc.ID] = agent.PickCards(scores, from-historyMin)
+			mu.Unlock()
+			return nil
 		}
 	}
 	rep, err := scenario.RunSet(ctx, s, opt)

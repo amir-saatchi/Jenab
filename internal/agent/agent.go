@@ -73,12 +73,10 @@ type Deps struct {
 	// user's view. The request stays append-only. Spike-only: the app
 	// leaves it off.
 	LiveAnswer bool
-	// Earlier is SPIKE-037's Part B and SPIKE-028's history cards: it gets
-	// a request's messages and the current turn, and returns what the
-	// request keeps of earlier turns.
-	// Spike-only: the spike's harness sets it to compare its conditions;
-	// the app leaves it nil, today's window.
-	Earlier func(ms []chat.Message, cur int) []chat.Message
+	// NoHistoryCards leaves history cards out (3.6), for harnesses that
+	// compare them with the window alone. Spike-only: the app leaves it
+	// off.
+	NoHistoryCards bool
 	// ToolIndex is SPIKE-028's tool index: text added to block 1 after
 	// the prompt rule, for a chat of the kind. Spike-only: the spike's
 	// harness sets it with a registry of its own; the app leaves it nil,
@@ -113,8 +111,11 @@ type Orchestrator struct {
 	// cardDown has the projects whose card failure is logged, until a
 	// card of theirs works again.
 	cardDown map[id.Project]bool
-	busy     int           // calls in progress and runners
-	idle     chan struct{} // closed when busy drops to 0
+	// parts are the projects' counts of text parts for history cards,
+	// reused for a while (3.6).
+	parts map[id.Project]partsCount
+	busy  int           // calls in progress and runners
+	idle  chan struct{} // closed when busy drops to 0
 }
 
 type key struct {
@@ -640,14 +641,18 @@ func (o *Orchestrator) load(ctx context.Context, cs *chatState, p *project.Proje
 }
 
 // untrustedTurn is the newest turn in ms with a result of a tool with the
-// Untrusted effect, or 0. Only a new turn clears Auto's mark, so a message
-// that joined the turn doesn't (8.8). A tool no longer known counts as
-// untrusted.
+// Untrusted effect, or with history cards that show such a turn (3.6), or
+// 0. Only a new turn clears Auto's mark, so a message that joined the turn
+// doesn't (8.8). A tool no longer known counts as untrusted.
 func (o *Orchestrator) untrustedTurn(ms []chat.Message) int {
 	names := map[string]string{} // tool call ID to tool name
 	newest := 0
 	for _, m := range ms {
 		switch m.Role {
+		case chat.RoleUser:
+			if slices.ContainsFunc(m.Parts, cardMark) {
+				newest = max(newest, m.Turn)
+			}
 		case chat.RoleAssistant:
 			for _, p := range m.Parts {
 				if p.ToolCall != nil {
@@ -668,10 +673,12 @@ func (o *Orchestrator) untrustedTurn(ms []chat.Message) int {
 	return newest
 }
 
-// aside reports whether a notice of kind is added to a turn after it ended,
-// so it doesn't say how the turn ended.
+// aside reports whether a notice of kind doesn't say how its turn ended: it
+// is added to a turn after it ended, or, for history cards' mark, is
+// hidden.
 func aside(kind chat.NoticeKind) bool {
-	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone || kind == chat.NoticeMemoryRefreshed
+	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone || kind == chat.NoticeMemoryRefreshed ||
+		kind == chat.NoticeCardOutside
 }
 
 // bumpSeq raises the known sequence number to s.

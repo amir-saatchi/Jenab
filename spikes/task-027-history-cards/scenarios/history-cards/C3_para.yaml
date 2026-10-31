@@ -1,0 +1,13 @@
+id: C3_para
+title: "The grocery watch, for eating out (paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 10, past the cut, built grocery_watch: on Sundays at 20:00, a row in budget_warnings when this month's groceries pass 85% of their budget. The follow-up calls it a weekend nudge; a good answer saves the same pipeline for eating_out with 85%.
+messages:
+  - text: "Can eating out get that same weekend nudge?"
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'eating_out'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'budget_warnings'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '\b85\b|0\.85'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

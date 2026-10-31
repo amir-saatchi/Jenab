@@ -1,0 +1,91 @@
+# TASK-027: history cards after a cut. One project with eight long chats
+# (chats/C1..C8, 22 earlier turns each; C6-C8 in Persian). The harness
+# writes all eight into the project, and the chat under test gets its own
+# turns before the scenario's one message, so that message is turn 23 and
+# the first request cuts: turns 1-19 are past the cut (history_min_turns
+# 3). Each chat has three follow-ups: one that repeats the old turn's
+# words, one that paraphrases them, and a control that needs no turn
+# past the cut. The checks read turn 23's calls.
+#
+# Written before the card scorer was run on it (TASK-027 scope 1).
+title: Home data
+card: card.md
+today: 2026-10-20
+fixture: fixture.sql
+
+tools:
+  - name: query
+    areas: [tables]
+    description: Run one read-only SQL SELECT on the project database; returns up to 200 rows and the total count.
+    schema: {type: object, properties: {sql: {type: string}}, required: [sql], additionalProperties: false}
+    kind: sql
+    arg: sql
+  - name: describe_table
+    areas: [tables]
+    description: Columns, types, keys, indexes and row count of a table.
+    schema: {type: object, properties: {name: {type: string}}, required: [name], additionalProperties: false}
+    kind: describe
+    arg: name
+  - name: insert
+    areas: [tables]
+    description: Insert rows into a table. Each row is an object of column values.
+    schema:
+      type: object
+      properties:
+        table: {type: string}
+        rows: {type: array, items: {type: object}, minItems: 1}
+      required: [table, rows]
+      additionalProperties: false
+  - name: save_view
+    areas: [views]
+    description: Validate and save a table or chart view config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string}}, required: [yaml], additionalProperties: false}
+  - name: save_pipeline
+    areas: [pipelines]
+    description: Validate and save a pipeline config (full YAML). Returns all errors with paths, or success.
+    schema: {type: object, properties: {yaml: {type: string}}, required: [yaml], additionalProperties: false}
+  - name: run_pipeline
+    areas: [pipelines]
+    description: Start a pipeline run; returns the run ID.
+    schema:
+      type: object
+      properties:
+        id: {type: string}
+        inputs: {type: object}
+      required: [id]
+      additionalProperties: false
+  - name: web_search
+    description: Search the web or the news; returns titles, URLs, dates and snippets.
+    schema:
+      type: object
+      properties:
+        query: {type: string}
+        limit: {type: integer, minimum: 1, maximum: 20}
+        freshness: {type: string, enum: [day, week, month, any]}
+      required: [query]
+      additionalProperties: false
+  - name: save_link
+    description: Save a link to the project's Resources panel, with a title, an optional note and tags.
+    schema:
+      type: object
+      properties:
+        url: {type: string, pattern: '^https?://'}
+        title: {type: string, minLength: 1}
+        note: {type: string}
+        tags: {type: array, items: {type: string, pattern: '^[a-z0-9-]+$'}, maxItems: 10}
+      required: [url, title]
+      additionalProperties: false
+
+rules:
+  insert:
+    - result: inserted the rows.
+  save_view:
+    - result: saved view (revision 1).
+  save_pipeline:
+    - result: saved pipeline (revision 1).
+  run_pipeline:
+    - result: started run r_901.
+  web_search:
+    - result: no results
+  save_link:
+    - result: saved link 17 to Resources.

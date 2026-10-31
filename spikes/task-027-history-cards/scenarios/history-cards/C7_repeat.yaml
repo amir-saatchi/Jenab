@@ -1,0 +1,14 @@
+id: C7_repeat
+title: "The pages per month chart again, for last year (Persian)"
+tests: [repeat]
+context: main
+why: >-
+  Turn 7, past the cut, built pages_per_month: bars of the pages read each month this year, from reading_log, y axis «صفحه در ماه». The follow-up names that chart; a good answer saves the same chart for 2025.
+messages:
+  - text: "همین نمودار صفحه در ماه را برای پارسال هم بساز."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '2025'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'reading_log'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'chart_type:\s*\\?"?bar'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'صفحه در ماه'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

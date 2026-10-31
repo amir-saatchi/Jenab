@@ -113,6 +113,11 @@ const (
 	// NoticeMemoryRefreshed is the chip of a Refresh memory batch (3.5):
 	// Edits are its edits, which its undo reverts together.
 	NoticeMemoryRefreshed NoticeKind = "memory_refreshed"
+	// NoticeCardOutside marks a turn whose history cards (3.6) show a turn
+	// that read outside data: the turn counts as having read it too (8.8),
+	// after a restart as well. It is not shown, and the model never reads
+	// it.
+	NoticeCardOutside NoticeKind = "card_outside"
 )
 
 // MemoryDiff is one section a Refresh memory batch changes (3.5): its

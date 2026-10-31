@@ -82,6 +82,9 @@ func TestReadMessages(t *testing.T) {
 			Questions: []chat.QuestionItem{{Header: "Coin", Question: "Which coin?", Options: []chat.Option{{Label: "BTC"}, {Label: "ETH"}}}},
 			Answers:   map[string][]string{"Coin": {"BTC"}}, AnsweredAt: &at}},
 	)
+	// History cards' mark of outside data is for the app only.
+	addMessage(t, env, env.Chat, 2, chat.RoleUser,
+		chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeCardOutside, Text: "[turn 2's history cards show turns that read outside data]"}})
 	for turn := 3; turn <= 30; turn++ {
 		addMessage(t, env, env.Chat, turn, chat.RoleUser, text(fmt.Sprintf("message %d", turn)))
 	}
@@ -95,6 +98,9 @@ func TestReadMessages(t *testing.T) {
 	got = mustText(t, env, "read_messages", `{"from": 2, "to": 2}`)
 	contains(t, got, "[image images/a.png image/png]", "[notice task_finished: task t1 finished]",
 		"[approval host: Allow example.com? — Allow]", `[question Coin: Which coin? — {"Coin":["BTC"]}]`)
+	if strings.Contains(got, "card_outside") || strings.Count(got, "— turn 2 ·") != 1 {
+		t.Errorf("turn 2 with the mark:\n%s", got)
+	}
 
 	got = mustText(t, env, "read_messages", `{"from": 5, "to": 30}`)
 	contains(t, got, "message 24", "[only turns 5–24; at most 20 turns a call]")

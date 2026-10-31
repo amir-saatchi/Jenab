@@ -1,0 +1,166 @@
+# C2, a job search (English). 22 earlier turns; the follow-up is turn 23.
+#   turn 3:  job_scan_go, the follow-up C2_repeat needs (weekdays, the
+#            70,000 EUR floor, job_posts)
+#   turn 8:  stale_apps, the follow-up C2_para needs (14 days, oldest
+#            first, company, title and days waiting)
+# C2_ctrl needs no earlier turn. Turn 12 also speaks of interviews (web
+# tips), as a long chat would; it has none of C2_para's details.
+turns:
+  - user: How many job posts do we have, and from which dates?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS posts, MIN(posted) AS first, MAX(posted) AS last FROM job_posts"}, result: "1 row:\nposts | first | last\n24 | 2026-09-02 | 2026-10-17"}
+    answer: 24 posts, from 2026-09-02 to 2026-10-17.
+  - user: Which post pays the most?
+    calls:
+      - {name: query, args: {sql: "SELECT id, company, title, salary_max FROM job_posts ORDER BY salary_max DESC LIMIT 1"}, result: "1 row:\nid | company | title | salary_max\n12 | Kraftwerk Labs | Backend Engineer | 98000"}
+    answer: Post 12, Backend Engineer at Kraftwerk Labs, up to 98,000 EUR.
+  - user: "Every weekday at 09:00 Berlin time, search the web for remote Go developer jobs posted in the last day, keep only the ones with a salary of at least 70,000 EUR, and save them into job_posts."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: job_scan_go
+            description: Remote Go developer jobs of the last day, 70,000 EUR or more, into job_posts
+            trigger:
+              schedule: "0 9 * * 1-5"
+              timezone: Europe/Berlin
+            steps:
+              - id: find
+                use: web.search
+                with:
+                  query: remote Go developer job
+                  freshness: day
+                  limit: 20
+              - id: save
+                use: db.insert
+                for_each: ${{ steps.find.results }}
+                if: ${{ item.salary_min >= 70000 }}
+                with:
+                  table: job_posts
+                  on_conflict: skip
+                  row:
+                    company: ${{ item.company }}
+                    title: ${{ item.title }}
+                    city: ${{ item.city }}
+                    remote: 1
+                    salary_min: ${{ item.salary_min }}
+                    salary_max: ${{ item.salary_max }}
+                    posted: ${{ item.date }}
+                    url: ${{ item.url }}
+        result: saved pipeline (revision 1).
+    answer: Saved job_scan_go. Monday to Friday at 09:00 Berlin time it searches for remote Go developer jobs from the last day and stores those paying at least 70,000 EUR in job_posts.
+  - user: Start it once now so I can see what it finds.
+    calls:
+      - {name: run_pipeline, args: {id: job_scan_go}, result: started run r_311.}
+    answer: Started run r_311.
+  - user: I applied to post 12 today, 2026-09-24.
+    calls:
+      - {name: insert, args: {table: applications, rows: [{post_id: 12, applied_on: "2026-09-24", status: sent}]}, result: inserted 1 row into applications.}
+    answer: Added your application to post 12 (Kraftwerk Labs), sent on 2026-09-24.
+  - user: Save this Go salary report to resources, https://example.org/go-salaries-2026
+    calls:
+      - {name: save_link, args: {url: "https://example.org/go-salaries-2026", title: Go salary report 2026}, result: saved link 1 to Resources.}
+    answer: Saved "Go salary report 2026".
+  - user: How many of my applications are still just 'sent'?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM applications WHERE status = 'sent'"}, result: "1 row:\nn\n5"}
+    answer: Five.
+  - user: "Make a table of my sent applications that have had no answer for 14 days or more, oldest first, with the company, the job title and the days waiting."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: stale_apps
+            title: Waiting applications
+            type: table
+            query: |
+              SELECT p.company, p.title, a.applied_on,
+                     CAST(julianday('now') - julianday(a.applied_on) AS INTEGER) AS days_waiting
+              FROM applications a
+              JOIN job_posts p ON p.id = a.post_id
+              WHERE a.status = 'sent'
+                AND julianday('now') - julianday(a.applied_on) >= 14
+              ORDER BY a.applied_on ASC
+            columns:
+              - { field: company, label: "Company" }
+              - { field: title, label: "Job" }
+              - { field: applied_on, label: "Sent", format: date }
+              - { field: days_waiting, label: "Days waiting" }
+        result: saved view (revision 1).
+    answer: Saved stale_apps, "Waiting applications". It lists sent applications that have waited 14 days or more, oldest first, with the company, the job, the date sent and the days waiting.
+  - user: What does "Werkstudent" mean in these German posts?
+    answer: A Werkstudent is a student who works part time, usually up to 20 hours a week during term, at a company in their field. Those posts are for enrolled students only.
+  - user: Which posts are in Berlin and remote?
+    calls:
+      - {name: query, args: {sql: "SELECT id, company, title FROM job_posts WHERE city = 'Berlin' AND remote = 1"}, result: "3 rows:\nid | company | title\n4 | Nordlicht GmbH | Go Developer\n12 | Kraftwerk Labs | Backend Engineer\n19 | Spreewerk | Platform Engineer"}
+    answer: Three, posts 4 (Nordlicht GmbH), 12 (Kraftwerk Labs) and 19 (Spreewerk).
+  - user: I applied to 19 as well, today, 2026-10-01.
+    calls:
+      - {name: insert, args: {table: applications, rows: [{post_id: 19, applied_on: "2026-10-01", status: sent}]}, result: inserted 1 row into applications.}
+    answer: Added your application to post 19 (Spreewerk), sent on 2026-10-01.
+  - user: Find me some tips for Go technical interviews.
+    calls:
+      - {name: web_search, args: {query: Go technical interview tips, limit: 5}, result: "3 results:\n1. 30 Go interview questions with answers — blog.example.org/go-qa — 2026-08-30\n2. How to talk about concurrency in an interview — dev.example.com/concurrency — 2026-07-11\n3. Live coding in Go: what interviewers look for — news.example.com/j/9 — 2026-09-19"}
+    answer: "Three good ones: a list of 30 Go questions with answers, a piece on explaining concurrency, and what interviewers look for in live coding."
+  - user: Save the live coding one.
+    calls:
+      - {name: save_link, args: {url: "https://news.example.com/j/9", title: "Live coding in Go: what interviewers look for"}, result: saved link 2 to Resources.}
+    answer: Saved it to Resources.
+  - user: What is the average minimum salary of the remote posts?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(salary_min)) AS avg_min FROM job_posts WHERE remote = 1"}, result: "1 row:\navg_min\n68400"}
+    answer: 68,400 EUR.
+  - user: Make a bar chart of how many posts each city has.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: posts_by_city
+            title: Posts per city
+            type: chart
+            chart_type: bar
+            query: SELECT city, COUNT(*) AS posts FROM job_posts GROUP BY city ORDER BY posts DESC
+            x: { field: city, label: "City" }
+            y:
+              - { field: posts, label: "Posts" }
+        result: saved view (revision 1).
+    answer: Saved posts_by_city, "Posts per city".
+  - user: Which companies did I apply to in September?
+    calls:
+      - {name: query, args: {sql: "SELECT DISTINCT p.company FROM applications a JOIN job_posts p ON p.id = a.post_id WHERE a.applied_on BETWEEN '2026-09-01' AND '2026-09-30'"}, result: "4 rows:\ncompany\nKraftwerk Labs\nNordlicht GmbH\nHafenbit\nOstsee Data"}
+    answer: Kraftwerk Labs, Nordlicht GmbH, Hafenbit and Ostsee Data.
+  - user: Write me a short, polite follow-up email for Kraftwerk Labs.
+    answer: |
+      Subject: Backend Engineer application
+
+      Hello,
+
+      I applied for the Backend Engineer role on 24 September and wanted to ask whether there is any news. I am still very interested and happy to answer any questions.
+
+      Kind regards
+  - user: Now the same in German.
+    answer: |
+      Betreff: Bewerbung als Backend Engineer
+
+      Guten Tag,
+
+      ich habe mich am 24. September auf die Stelle als Backend Engineer beworben und wollte fragen, ob es schon Neuigkeiten gibt. Ich bin weiterhin sehr interessiert und beantworte gern Ihre Fragen.
+
+      Mit freundlichen Grüßen
+  - user: How many posts have Kubernetes in the title?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM job_posts WHERE title LIKE '%Kubernetes%'"}, result: "1 row:\nn\n2"}
+    answer: Two.
+  - user: How many applications have I sent in total?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM applications"}, result: "1 row:\nn\n9"}
+    answer: Nine.
+  - user: And how many got any reply?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM applications WHERE status <> 'sent'"}, result: "1 row:\nn\n3"}
+    answer: Three of the nine.
+  - user: So a third. Thanks.
+    answer: Yes, a third so far. Good luck with the rest!

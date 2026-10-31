@@ -166,6 +166,16 @@ test("an undo notice keeps the turn's footer", () => {
   expect(lasts([...turn, undone, msg("u2", 1, Role.RoleUser, "more"), msg("a2", 1, Role.RoleAssistant, "Ok.")])).toEqual([false, true])
 })
 
+test("history cards' mark is not shown and keeps the turn's footer", () => {
+  const mark = { ...msg("n1", 1, Role.RoleUser), parts: [{ kind: PartKind.PartNotice, notice: { kind: NoticeKind.NoticeCardOutside, text: "[mark]" } }] }
+  const ms = [msg("u1", 1, Role.RoleUser, "go"), mark, msg("a1", 1, Role.RoleAssistant, "Done.")]
+  const rs = rows(ms)
+  expect(rs.map((r) => r.kind)).toEqual(["user", "agent"])
+  expect(rs.map((r) => (r.kind === "agent" ? r.last : null))).toEqual([null, true])
+  expect(rows([...ms, { ...mark, id: "n2" }]).map((r) => (r.kind === "agent" ? r.last : null))).toEqual([null, true])
+  expect(lastNotice([...ms, mark])).toBeNull()
+})
+
 test("a chat opens with about two screens of rows", () => {
   const long = Array.from({ length: 30 }, (_, i) => `line ${i}`).join("\n")
   const ms = Array.from({ length: 40 }, (_, i) => msg(`m${i}`, i + 1, Role.RoleUser, i % 2 ? long : "hi"))

@@ -1,0 +1,146 @@
+# C5, a vegetable garden (English). 22 earlier turns; the follow-up is
+# turn 23.
+#   turn 4:  water_per_bed, the follow-up C5_repeat needs (stacked bars,
+#            weeks, the "Liters per week" label)
+#   turn 11: frost_guard, the follow-up C5_para needs (beds sown in the
+#            last 30 days, garden_tasks and its columns)
+# C5_ctrl needs no earlier turn.
+turns:
+  - user: Which beds do we have and what's in them?
+    calls:
+      - {name: query, args: {sql: "SELECT bed, plant, sown_on FROM garden_beds ORDER BY bed"}, result: "6 rows:\nbed | plant | sown_on\nB1 | tomatoes | 2026-04-20\nB2 | peppers | 2026-04-22\nB3 | beans | 2026-05-10\nR1 | lettuce | 2026-08-25\nR2 | spinach | 2026-09-05\nR3 | radishes | 2026-09-12"}
+    answer: Six beds. B1 tomatoes, B2 peppers, B3 beans, and the raised beds R1 lettuce, R2 spinach and R3 radishes.
+  - user: How much rain did we get in August?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(rain_mm), 1) AS mm FROM weather WHERE date BETWEEN '2026-08-01' AND '2026-08-31'"}, result: "1 row:\nmm\n38.5"}
+    answer: 38.5 mm.
+  - user: I watered B1 and B2 with 8 liters each today, 2026-09-01.
+    calls:
+      - {name: insert, args: {table: watering, rows: [{date: "2026-09-01", bed: B1, liters: 8}, {date: "2026-09-01", bed: B2, liters: 8}]}, result: inserted 2 rows into watering.}
+    answer: Logged 8 liters each for B1 and B2.
+  - user: "Make a stacked bar chart of the liters of water each bed got per week, since the start of April, with the y axis labelled 'Liters per week'."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: water_per_bed
+            title: Water per bed
+            type: chart
+            chart_type: bar
+            stacked: true
+            query: |
+              SELECT strftime('%Y-%W', date) AS week, bed, SUM(liters) AS liters
+              FROM watering
+              WHERE date >= '2026-04-01'
+              GROUP BY week, bed
+              ORDER BY week, bed
+            x: { field: week, label: "Week" }
+            y:
+              - { field: liters, label: "Liters per week", series: bed }
+        result: saved view (revision 1).
+    answer: Saved water_per_bed, "Water per bed". Each week since the start of April has one bar, stacked by bed; the y axis is "Liters per week".
+  - user: When should I harvest the beans?
+    answer: Pick them when the pods are firm and about as thick as a pencil, before the beans inside bulge, usually 8 to 10 weeks after sowing; for B3 that was from mid-July.
+  - user: What was the hottest day this summer?
+    calls:
+      - {name: query, args: {sql: "SELECT date, temp_max FROM weather WHERE date BETWEEN '2026-06-01' AND '2026-08-31' ORDER BY temp_max DESC LIMIT 1"}, result: "1 row:\ndate | temp_max\n2026-07-28 | 34.1"}
+    answer: 2026-07-28, at 34.1 °C.
+  - user: Save this page on companion planting, https://example.org/companions
+    calls:
+      - {name: save_link, args: {url: "https://example.org/companions", title: Companion planting}, result: saved link 1 to Resources.}
+    answer: Saved "Companion planting".
+  - user: Add a new bed, R4, with garlic, sown 2026-09-20.
+    calls:
+      - {name: insert, args: {table: garden_beds, rows: [{bed: R4, plant: garlic, sown_on: "2026-09-20"}]}, result: inserted 1 row into garden_beds.}
+    answer: Added R4 with garlic, sown on 2026-09-20.
+  - user: How many days did it rain in September?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS days FROM weather WHERE date BETWEEN '2026-09-01' AND '2026-09-30' AND rain_mm > 0"}, result: "1 row:\ndays\n11"}
+    answer: Eleven days.
+  - user: Do radishes need much water?
+    answer: Yes, steady moisture. If the soil dries out they turn woody and hot, so water a little every two or three days when it doesn't rain.
+  - user: "Every morning at 06:00, if last night's minimum temperature in weather was below 3 °C, add a row to garden_tasks with the date, the bed and 'cover the bed' for every bed sown in the last 30 days."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: frost_guard
+            description: A task to cover each young bed after a night below 3 °C
+            trigger:
+              schedule: "0 6 * * *"
+              timezone: Europe/Berlin
+            steps:
+              - id: night
+                use: db.query
+                with:
+                  sql: SELECT date, temp_min FROM weather ORDER BY date DESC LIMIT 1
+              - id: young
+                use: db.query
+                if: ${{ steps.night.rows[0].temp_min < 3 }}
+                with:
+                  sql: SELECT bed FROM garden_beds WHERE sown_on >= date('now', '-30 day')
+              - id: tasks
+                use: db.insert
+                if: ${{ steps.night.rows[0].temp_min < 3 }}
+                for_each: ${{ steps.young.rows }}
+                with:
+                  table: garden_tasks
+                  row:
+                    date: ${{ steps.night.rows[0].date }}
+                    bed: ${{ item.bed }}
+                    task: cover the bed
+        result: saved pipeline (revision 1).
+    answer: Saved frost_guard. Every morning at 06:00, when the last night went below 3 °C, it adds a 'cover the bed' task to garden_tasks for each bed sown in the last 30 days.
+  - user: Log 5 liters on R1 and R2 today, 2026-09-24.
+    calls:
+      - {name: insert, args: {table: watering, rows: [{date: "2026-09-24", bed: R1, liters: 5}, {date: "2026-09-24", bed: R2, liters: 5}]}, result: inserted 2 rows into watering.}
+    answer: Logged 5 liters each for R1 and R2.
+  - user: What's the total water used this year?
+    calls:
+      - {name: query, args: {sql: "SELECT SUM(liters) AS liters FROM watering WHERE date >= '2026-01-01'"}, result: "1 row:\nliters\n1462"}
+    answer: 1,462 liters.
+  - user: Find out when garlic sown in September is ready.
+    calls:
+      - {name: web_search, args: {query: autumn sown garlic harvest time, limit: 5}, result: "2 results:\n1. Growing garlic: plant in autumn, harvest in July — garden.example.org/garlic — 2025-10-04\n2. When are garlic bulbs ready? — grow.example.com/garlic-ready — 2026-03-15"}
+    answer: Garlic sown now is ready next July, when the lower leaves turn yellow.
+  - user: Which bed got the most water in September?
+    calls:
+      - {name: query, args: {sql: "SELECT bed, SUM(liters) AS liters FROM watering WHERE date BETWEEN '2026-09-01' AND '2026-09-30' GROUP BY bed ORDER BY liters DESC LIMIT 1"}, result: "1 row:\nbed | liters\nB1 | 64"}
+    answer: B1, the tomatoes, with 64 liters.
+  - user: Should I still water the tomatoes this late?
+    answer: Less. With cooler days and the last fruits ripening, water only when the top few centimetres are dry, and stop once you pull the plants.
+  - user: Make a line chart of the daily high and low temperature since August.
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: temps_chart
+            title: Daily high and low
+            type: chart
+            chart_type: line
+            query: SELECT date, temp_max, temp_min FROM weather WHERE date >= '2026-08-01' ORDER BY date
+            x: { field: date, label: "Date", format: date }
+            y:
+              - { field: temp_max, label: "High (°C)" }
+              - { field: temp_min, label: "Low (°C)" }
+        result: saved view (revision 1).
+    answer: Saved temps_chart, "Daily high and low".
+  - user: Which beds were sown after August?
+    calls:
+      - {name: query, args: {sql: "SELECT bed, plant, sown_on FROM garden_beds WHERE sown_on > '2026-08-31'"}, result: "3 rows:\nbed | plant | sown_on\nR2 | spinach | 2026-09-05\nR3 | radishes | 2026-09-12\nR4 | garlic | 2026-09-20"}
+    answer: R2 (spinach), R3 (radishes) and R4 (garlic).
+  - user: How much rain so far in October?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(rain_mm), 1) AS mm FROM weather WHERE date >= '2026-10-01'"}, result: "1 row:\nmm\n22.0"}
+    answer: 22 mm.
+  - user: Save this article on mulching too, https://example.org/mulch
+    calls:
+      - {name: save_link, args: {url: "https://example.org/mulch", title: Mulching}, result: saved link 2 to Resources.}
+    answer: Saved "Mulching".
+  - user: Is straw good mulch for the garlic?
+    answer: Yes. A few centimetres of straw keeps the soil from freezing hard and holds moisture; pull it back in spring when the shoots are up.
+  - user: Great, I'll get some this weekend.
+    answer: Good plan. Put it on after the first hard frost, once the soil has cooled.

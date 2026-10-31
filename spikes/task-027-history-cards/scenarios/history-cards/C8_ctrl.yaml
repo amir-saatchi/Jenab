@@ -1,0 +1,12 @@
+id: C8_ctrl
+title: "Khodro's last close, from a turn in the window (Persian, control)"
+tests: [control]
+context: main
+why: >-
+  Turn 21, in the window, asked Shepna's last close. The follow-up needs no older turn.
+messages:
+  - text: "برای خودرو هم همین را بگو."
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'خودرو'}
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'close'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

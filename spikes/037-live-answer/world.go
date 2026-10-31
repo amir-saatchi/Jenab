@@ -236,38 +236,3 @@ func thousands(n int) string {
 	}
 	return s
 }
-
-// traceLine is each tool's trace entry (SPIKE-037's trace variant): its
-// main argument and what it made. Tools not listed take earlier.go's
-// default, the first string argument and the result's ref.
-func traceLine(name string, args json.RawMessage, result string) (main, made string) {
-	var m map[string]any
-	_ = json.Unmarshal(args, &m)
-	str := func(k string) string {
-		s, _ := m[k].(string)
-		return s
-	}
-	switch name {
-	case "create_table":
-		return str("name"), ""
-	case "insert_rows":
-		n := 0
-		if rows, ok := m["rows"].([]any); ok {
-			n = len(rows)
-		}
-		return fmt.Sprintf("%s +%d rows", str("table"), n), ""
-	case "read_table":
-		return str("name"), ""
-	case "subagent":
-		if id := reTaskID.FindString(result); id != "" {
-			return "", "task " + id
-		}
-	case "task_status":
-		return str("id"), ""
-	case "read_messages":
-		return fmt.Sprintf("from %v", m["from"]), ""
-	}
-	return "", ""
-}
-
-var reTaskID = regexp.MustCompile(`\bt_\d+\b`)

@@ -1,0 +1,14 @@
+id: C1_para
+title: "The ETH gap check, for BTC (paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 9, past the cut, built eth_gap_check: a 'gap' row in price_alerts when ETH closes more than 6% below its highest close of the last 30 days. The follow-up calls it an early heads-up when the coin sinks under its recent top; a good answer saves the same pipeline on btc_prices.
+messages:
+  - text: "Could Bitcoin get the same early heads-up when it sinks well under its recent top?"
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'btc_prices'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'price_alerts'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '0\.94|0\.06|\b6(\.0)?\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '\b30\b'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

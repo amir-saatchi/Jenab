@@ -7,9 +7,20 @@ export type Row =
   | { kind: "agent"; id: string; messages: Message[]; last: boolean }
   | { kind: "notice"; id: string; message: Message; part: Part }
 
-// aside are the notices added to a turn after it ended (agent.aside), so
-// they don't say how the turn ended.
-const aside: (NoticeKind | undefined)[] = [NoticeKind.NoticeApprovalLevel, NoticeKind.NoticeTurnUndone, NoticeKind.NoticeMemoryRefreshed]
+// aside are the notices that don't say how a turn ended (agent.aside):
+// those added to a turn after it ended, and hidden ones.
+const aside: (NoticeKind | undefined)[] = [
+  NoticeKind.NoticeApprovalLevel,
+  NoticeKind.NoticeTurnUndone,
+  NoticeKind.NoticeMemoryRefreshed,
+  NoticeKind.NoticeCardOutside,
+]
+
+// hidden tells whether a message holds only notices nobody reads: history
+// cards' mark of outside data, for the app (agent.cardMark).
+function hidden(m: Message) {
+  return isNotice(m) && (m.parts ?? []).every((p) => p.notice?.kind === NoticeKind.NoticeCardOutside)
+}
 
 // isNotice tells whether a user message is a note from the app.
 function isNotice(m: Message) {
@@ -41,6 +52,7 @@ export function rows(messages: Message[]): Row[] {
   }
   for (; i < messages.length; i++) {
     const m = messages[i]
+    if (hidden(m)) continue
     if (m.role !== Role.RoleUser || refreshCard(m)) {
       if (group) group.push(m)
       else group = [m]

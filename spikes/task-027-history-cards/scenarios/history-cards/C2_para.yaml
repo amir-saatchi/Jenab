@@ -1,0 +1,14 @@
+id: C2_para
+title: "The stale applications list, after interviews (paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 8, past the cut, built stale_apps: sent applications with no answer for 14 days or more, oldest first, with the company, the job and the days waiting. The follow-up asks for that overview for applications after an interview; a good answer saves the same table with status interview.
+messages:
+  - text: "Can I get that same overview for applications stuck after an interview, the ones nobody has replied to for a while?"
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: 'interview'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '\b14\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '(?i)company'}
+  - {type: tool_called, test: history, turn: last, tool: save_view, args_match: '(?i)days'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

@@ -1,0 +1,864 @@
+{
+  "set": "Home data",
+  "started": "2026-10-30T08:57:38.0969979Z",
+  "took_seconds": 151.3072391,
+  "scale": 1,
+  "reps": 1,
+  "models": [
+    "mistral/ministral-14b-latest"
+  ],
+  "summary": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "runs": 19,
+      "passed": 12,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 5,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 35,
+          "fail": 24,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 17482,
+      "avg_output_tokens": 255,
+      "avg_seconds": 7.962882721052634,
+      "cache_read_share": 0.7437110894355936
+    }
+  ],
+  "runs": [
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C1_ctrl",
+      "rep": 1,
+      "seconds": 4.5801227,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 22009,
+      "input_tokens": 4729,
+      "cache_read_tokens": 17280,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8279,
+      "output_tokens": 170,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: \\\"ETH/BTC ratio\\\"\\ntype: chart\\nchart_type: line\\nque…"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: \\\"ETH/BTC ratio\\\"\\ntype: chart\\nchart_type: line\\nque…"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: \\\"ETH/BTC ratio\\\"\\ntype: chart\\nchart_type: line\\nque…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C1_para",
+      "rep": 1,
+      "seconds": 6.8626648,
+      "turns": 23,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 21941,
+      "input_tokens": 2229,
+      "cache_read_tokens": 19712,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5930,
+      "output_tokens": 190,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"chat_id\":\"current\",\"from\":16}"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C1_repeat",
+      "rep": 1,
+      "seconds": 5.2993719,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21638,
+      "input_tokens": 7430,
+      "cache_read_tokens": 14208,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8198,
+      "output_tokens": 266,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\nquery: |\\n  WITH r AS (\\n    …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\nquery: |\\n  WITH r AS (\\n    …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\nquery: |\\n  WITH r AS (\\n    …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C2_ctrl",
+      "rep": 1,
+      "seconds": 2.68626,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10405,
+      "input_tokens": 1189,
+      "cache_read_tokens": 9216,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5231,
+      "output_tokens": 61,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT company, COUNT(*) AS count FROM job_posts GROUP BY company HAVING COUNT(*) \\u003e 1\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Two companies have more than one job post:\n\n- **Kraftwerk Labs**: 2 posts\n- **Nordlicht GmbH**: 2 posts\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Two companies have more than one job post:\n\n- **Kraftwerk Labs**: 2 posts\n- **Nordlicht GmbH**: 2 posts\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C2_para",
+      "rep": 1,
+      "seconds": 18.5877814,
+      "turns": 23,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 15784,
+      "input_tokens": 1960,
+      "cache_read_tokens": 13824,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5390,
+      "output_tokens": 243,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C2_repeat",
+      "rep": 1,
+      "seconds": 6.0014916,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10528,
+      "input_tokens": 1056,
+      "cache_read_tokens": 9472,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5391,
+      "output_tokens": 296,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C3_repeat",
+      "rep": 1,
+      "seconds": 13.7360527,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 21802,
+      "input_tokens": 11818,
+      "cache_read_tokens": 9984,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8562,
+      "output_tokens": 751,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget\\ntitle: \\\"Spending against budget, 2025–2026\\\"\\ntype: cha…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget\\ntitle: \\\"Spending against budget, 2025–2026\\\"\\ntype: cha…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget\\ntitle: \\\"Spending against budget, 2025–2026\\\"\\ntype: cha…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget\\ntitle: \\\"Spending against budget, 2025–2026\\\"\\ntype: cha…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C4_ctrl",
+      "rep": 1,
+      "seconds": 3.6306237,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10067,
+      "input_tokens": 851,
+      "cache_read_tokens": 9216,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5077,
+      "output_tokens": 89,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, km, route FROM runs WHERE date BETWEEN '2026-10-01' AND '2026-10-20' ORDER BY k…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October so far was **12.4 km on 2026-10-12**, on the **Forest trail** route.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October so far was **12.4 km on 2026-10-12**, on the **Forest trail** route.\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C4_para",
+      "rep": 1,
+      "seconds": 3.0053407,
+      "turns": 23,
+      "requests": 1,
+      "provider_requests": 1,
+      "prompt_tokens": 5145,
+      "input_tokens": 537,
+      "cache_read_tokens": 4608,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5145,
+      "output_tokens": 111,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C4_repeat",
+      "rep": 1,
+      "seconds": 11.0383503,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 37015,
+      "input_tokens": 13463,
+      "cache_read_tokens": 23552,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8342,
+      "output_tokens": 253,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pace_by_route\\ntitle: \\\"Average heart rate per route\\\"\\ntype: table\\nquery:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pace_by_route\\ntitle: \\\"Average heart rate per route\\\"\\ntype: table\\nquery:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pace_by_route\\ntitle: \\\"Average heart rate per route\\\"\\ntype: table\\nquery:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"chat_id\":\"this chat\",\"from\":6,\"to\":6}"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C5_ctrl",
+      "rep": 1,
+      "seconds": 3.5335377,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10149,
+      "input_tokens": 805,
+      "cache_read_tokens": 9344,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5101,
+      "output_tokens": 55,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"rows\":[{\"bed\":\"B2\",\"date\":\"2026-10-20\",\"liters\":6}],\"table\":\"watering\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C5_para",
+      "rep": 1,
+      "seconds": 9.0003901,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 11117,
+      "input_tokens": 1901,
+      "cache_read_tokens": 9216,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5729,
+      "output_tokens": 389,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C5_repeat",
+      "rep": 1,
+      "seconds": 10.5437282,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 20987,
+      "input_tokens": 7035,
+      "cache_read_tokens": 13952,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8021,
+      "output_tokens": 390,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed (R1-R4)\\ntype: chart\\nchart_type: bar\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed (R1-R4)\\ntype: chart\\nchart_type: bar\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed (R1-R4)\\ntype: chart\\nchart_type: bar\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed (R1-R4)\\ntype: chart\\nchart_type: bar\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C6_para",
+      "rep": 1,
+      "seconds": 10.0345312,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 15336,
+      "input_tokens": 1384,
+      "cache_read_tokens": 13952,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5318,
+      "output_tokens": 303,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_pipeline"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"chat_id\":\"this_chat\",\"from\":5}"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C6_repeat",
+      "rep": 1,
+      "seconds": 10.7727759,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 13939,
+      "input_tokens": 4723,
+      "cache_read_tokens": 9216,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8346,
+      "output_tokens": 308,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: ponk_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: t…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: ponk_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype: t…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C7_ctrl",
+      "rep": 1,
+      "seconds": 7.2285232,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 16748,
+      "input_tokens": 2924,
+      "cache_read_tokens": 13824,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5969,
+      "output_tokens": 202,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT author, COUNT(*) as count FROM books WHERE rating IS NOT NULL GROUP BY author ORDER B…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "در فهرست کتاب‌های **امتیازی** که خوانده‌اید، **محمود دولت‌آبادی** با یک کتاب («سووشون») ب…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"کتاب\",\"scope\":\"chat\",\"substring\":true}"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C7_repeat",
+      "rep": 1,
+      "seconds": 12.2073867,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 36379,
+      "input_tokens": 13211,
+      "cache_read_tokens": 23168,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8364,
+      "output_tokens": 316,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "read_messages {\"chat_id\":\"this_chat\",\"from\":7,\"to\":7}"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C8_para",
+      "rep": 1,
+      "seconds": 4.5993582,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 10238,
+      "input_tokens": 894,
+      "cache_read_tokens": 9344,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5261,
+      "output_tokens": 173,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "mistral/ministral-14b-latest",
+      "scenario": "C8_repeat",
+      "rep": 1,
+      "seconds": 7.9464807,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 20945,
+      "input_tokens": 6993,
+      "cache_read_tokens": 13952,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7971,
+      "output_tokens": 288,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shapna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shapna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shapna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: khodro_shapna_ma20\\ntitle: خودرو و شپنا با میانگین ۲۰ …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    }
+  ]
+}

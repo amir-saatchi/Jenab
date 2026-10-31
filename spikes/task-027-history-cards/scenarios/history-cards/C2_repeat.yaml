@@ -1,0 +1,14 @@
+id: C2_repeat
+title: "The Go job scan again, for Rust"
+tests: [repeat]
+context: main
+why: >-
+  Turn 3, past the cut, built job_scan_go: on weekdays at 09:00 Berlin time, remote Go developer jobs of the last day paying at least 70,000 EUR, into job_posts. The follow-up names the job scan; a good answer saves the same pipeline for Rust.
+messages:
+  - text: "Set up the same job scan for remote Rust developer jobs."
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '(?i)rust'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'job_posts'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '70[,.]?000|70k'}
+  - {type: tool_called, test: info, turn: last, tool: save_pipeline, args_match: '1-5'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

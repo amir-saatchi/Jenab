@@ -352,6 +352,14 @@ export enum NoticeKind {
      * Edits are its edits, which its undo reverts together.
      */
     NoticeMemoryRefreshed = "memory_refreshed",
+
+    /**
+     * NoticeCardOutside marks a turn whose history cards (3.6) show a turn
+     * that read outside data: the turn counts as having read it too (8.8),
+     * after a restart as well. It is not shown, and the model never reads
+     * it.
+     */
+    NoticeCardOutside = "card_outside",
 };
 
 /**

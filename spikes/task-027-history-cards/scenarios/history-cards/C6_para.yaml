@@ -1,0 +1,14 @@
+id: C6_para
+title: "The weekly rent average, for deposits (Persian, paraphrase)"
+tests: [paraphrase]
+context: main
+why: >-
+  Turn 9, past the cut, built rent_weekly_avg: on Saturdays, each neighbourhood's average rent of the last seven days into rent_weekly (metric rent), leaving out deposits over 500 million. The follow-up calls it the end-of-week report and deposits 'pool-e pish'; a good answer saves the same pipeline for deposits.
+messages:
+  - text: "می‌شه اون گزارش آخر هفته رو برای پول پیش هم راه بندازی؟"
+asserts:
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'rent_weekly'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'deposit_mt'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: '\b500\b'}
+  - {type: tool_called, test: history, turn: last, tool: save_pipeline, args_match: 'metric'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

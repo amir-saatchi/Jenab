@@ -1,0 +1,140 @@
+# C3, household spending (English). 22 earlier turns; the follow-up is
+# turn 23.
+#   turn 5:  spend_vs_budget, the follow-up C3_repeat needs (bars, budgets,
+#            the "EUR per month" label)
+#   turn 10: grocery_watch, the follow-up C3_para needs (85% of the budget,
+#            month to date, budget_warnings)
+#   turn 21: transport in September, in the window, for C3_ctrl
+turns:
+  - user: Which spending categories do we have?
+    calls:
+      - {name: query, args: {sql: "SELECT category, monthly_eur FROM budgets ORDER BY category"}, result: "6 rows:\ncategory | monthly_eur\neating_out | 180\ngroceries | 450\nhousehold | 90\nhealth | 60\nleisure | 150\ntransport | 120"}
+    answer: Six, each with a monthly budget in EUR. eating_out 180, groceries 450, household 90, health 60, leisure 150 and transport 120.
+  - user: How much did we spend in total in September?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE date BETWEEN '2026-09-01' AND '2026-09-30'"}, result: "1 row:\ntotal\n1012.35"}
+    answer: 1,012.35 EUR.
+  - user: Add yesterday's pharmacy receipt, 23.80 EUR, health, on 2026-10-02.
+    calls:
+      - {name: insert, args: {table: expenses, rows: [{date: "2026-10-02", category: health, amount_eur: 23.8, note: pharmacy}]}, result: inserted 1 row into expenses.}
+    answer: Added 23.80 EUR for health on 2026-10-02.
+  - user: What was the single biggest expense this year?
+    calls:
+      - {name: query, args: {sql: "SELECT date, category, amount_eur, note FROM expenses WHERE date >= '2026-01-01' ORDER BY amount_eur DESC LIMIT 1"}, result: "1 row:\ndate | category | amount_eur | note\n2026-03-14 | household | 389.0 | washing machine"}
+    answer: The washing machine, 389 EUR on 2026-03-14.
+  - user: "Make a bar chart of each category's spending per month this year next to its monthly budget, in EUR, with the y axis labelled 'EUR per month'."
+    calls:
+      - name: save_view
+        args:
+          yaml: |
+            version: 1
+            id: spend_vs_budget
+            title: Spending against budget, 2026
+            type: chart
+            chart_type: bar
+            query: |
+              SELECT strftime('%Y-%m', e.date) AS month, e.category,
+                     ROUND(SUM(e.amount_eur), 2) AS spent,
+                     b.monthly_eur AS budget
+              FROM expenses e
+              JOIN budgets b ON b.category = e.category
+              WHERE e.date BETWEEN '2026-01-01' AND '2026-12-31'
+              GROUP BY month, e.category
+              ORDER BY month, e.category
+            x: { field: month, label: "Month" }
+            y:
+              - { field: spent, label: "EUR per month", series: category }
+              - { field: budget, label: "Budget", series: category, style: dashed }
+        result: saved view (revision 1).
+    answer: Saved spend_vs_budget, "Spending against budget, 2026". Each month has a bar per category for what was spent, with the category's monthly budget as a dashed mark; the y axis is "EUR per month".
+  - user: Save the tenants' association page, https://example.org/mieterverein
+    calls:
+      - {name: save_link, args: {url: "https://example.org/mieterverein", title: Tenants' association}, result: saved link 1 to Resources.}
+    answer: Saved it to Resources.
+  - user: How much do we spend on eating out per month on average?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(AVG(total), 2) AS avg FROM (SELECT strftime('%Y-%m', date) AS m, SUM(amount_eur) AS total FROM expenses WHERE category = 'eating_out' GROUP BY m)"}, result: "1 row:\navg\n164.7"}
+    answer: About 164.70 EUR a month, a little under its 180 EUR budget.
+  - user: Is a rice cooker household or groceries?
+    answer: Household. Groceries is for food and drink you buy to cook at home; things you keep and use, such as a rice cooker, go under household.
+  - user: Then add the rice cooker, 54.99 EUR, household, 2026-10-04.
+    calls:
+      - {name: insert, args: {table: expenses, rows: [{date: "2026-10-04", category: household, amount_eur: 54.99, note: rice cooker}]}, result: inserted 1 row into expenses.}
+    answer: Added 54.99 EUR for household on 2026-10-04.
+  - user: "Every Sunday at 20:00, look at this month's grocery spending so far. If it is above 85% of the groceries budget, add a row to budget_warnings with the category, the month and the share in percent."
+    calls:
+      - name: save_pipeline
+        args:
+          yaml: |
+            version: 1
+            id: grocery_watch
+            description: A row in budget_warnings when groceries pass 85% of the monthly budget
+            trigger:
+              schedule: "0 20 * * 0"
+              timezone: Europe/Berlin
+            steps:
+              - id: month_so_far
+                use: db.query
+                with:
+                  sql: |
+                    SELECT strftime('%Y-%m', 'now') AS month,
+                           SUM(e.amount_eur) * 100.0 / b.monthly_eur AS share
+                    FROM expenses e
+                    JOIN budgets b ON b.category = e.category
+                    WHERE e.category = 'groceries'
+                      AND e.date >= date('now', 'start of month')
+              - id: warn
+                use: db.insert
+                if: ${{ steps.month_so_far.rows[0].share > 85 }}
+                with:
+                  table: budget_warnings
+                  row:
+                    category: groceries
+                    month: ${{ steps.month_so_far.rows[0].month }}
+                    share_pct: ${{ steps.month_so_far.rows[0].share }}
+        result: saved pipeline (revision 1).
+    answer: Saved grocery_watch. Every Sunday at 20:00 it adds up this month's groceries so far, and when that is more than 85% of the 450 EUR budget it adds a row to budget_warnings with the month and the share.
+  - user: Which shop do we buy groceries at most often?
+    calls:
+      - {name: query, args: {sql: "SELECT note, COUNT(*) AS n FROM expenses WHERE category = 'groceries' GROUP BY note ORDER BY n DESC LIMIT 1"}, result: "1 row:\nnote | n\nLidl | 31"}
+    answer: Lidl, 31 times.
+  - user: How much was leisure in August?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE category = 'leisure' AND date BETWEEN '2026-08-01' AND '2026-08-31'"}, result: "1 row:\ntotal\n212.4"}
+    answer: 212.40 EUR, over its 150 EUR budget.
+  - user: What did we spend it on?
+    calls:
+      - {name: query, args: {sql: "SELECT date, amount_eur, note FROM expenses WHERE category = 'leisure' AND date BETWEEN '2026-08-01' AND '2026-08-31' ORDER BY amount_eur DESC"}, result: "4 rows:\ndate | amount_eur | note\n2026-08-09 | 96.0 | concert tickets\n2026-08-16 | 58.4 | climbing hall\n2026-08-23 | 34.0 | cinema\n2026-08-29 | 24.0 | museum"}
+    answer: Mostly the concert tickets (96 EUR), then the climbing hall, the cinema and a museum.
+  - user: Tips for cutting the grocery bill without eating worse?
+    answer: Plan the week's meals before you shop, buy the store brand for staples, cook larger batches and freeze portions, and shop once a week with a list rather than daily.
+  - user: Add the Lidl receipt from today, 2026-10-11, 63.15 EUR.
+    calls:
+      - {name: insert, args: {table: expenses, rows: [{date: "2026-10-11", category: groceries, amount_eur: 63.15, note: Lidl}]}, result: inserted 1 row into expenses.}
+    answer: Added 63.15 EUR for groceries at Lidl on 2026-10-11.
+  - user: How many expenses have no note?
+    calls:
+      - {name: query, args: {sql: "SELECT COUNT(*) AS n FROM expenses WHERE note IS NULL OR note = ''"}, result: "1 row:\nn\n7"}
+    answer: Seven.
+  - user: Search the web for this year's average German household spending on food.
+    calls:
+      - {name: web_search, args: {query: average German household spending on food 2026, limit: 5}, result: "2 results:\n1. Households spend 15% of their budget on food — stats.example.org/food — 2026-06-30\n2. Food prices up 2.1% on last year — news.example.com/f/12 — 2026-09-28"}
+    answer: German households spend about 15% of their budget on food, and food prices are up 2.1% on last year.
+  - user: Save the first one.
+    calls:
+      - {name: save_link, args: {url: "https://stats.example.org/food", title: Households spend 15% of their budget on food}, result: saved link 2 to Resources.}
+    answer: Saved it.
+  - user: Which month this year had the highest total?
+    calls:
+      - {name: query, args: {sql: "SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE date >= '2026-01-01' GROUP BY month ORDER BY total DESC LIMIT 1"}, result: "1 row:\nmonth | total\n2026-03 | 1388.6"}
+    answer: March, at 1,388.60 EUR, mostly because of the washing machine.
+  - user: How did health spending go this year, month by month?
+    calls:
+      - {name: query, args: {sql: "SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE category = 'health' AND date >= '2026-01-01' GROUP BY month"}, result: "10 rows:\nmonth | total\n2026-01 | 41.2\n2026-02 | 18.5\n2026-03 | 66.0\n2026-04 | 12.9\n2026-05 | 30.0\n2026-06 | 8.4\n2026-07 | 51.7\n2026-08 | 22.0\n2026-09 | 37.6\n2026-10 | 23.8"}
+    answer: Between 8 and 66 EUR a month; only March, at 66 EUR, went over the 60 EUR budget.
+  - user: What did I spend on transport in September?
+    calls:
+      - {name: query, args: {sql: "SELECT ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE category = 'transport' AND date BETWEEN '2026-09-01' AND '2026-09-30'"}, result: "1 row:\ntotal\n84.2"}
+    answer: 84.20 EUR.
+  - user: OK, that's under budget at least.
+    answer: Yes, 35.80 EUR under the 120 EUR budget.

@@ -46,7 +46,7 @@ run at a time, the models side by side.
   (`TestToolIndexHook`).
 - `scenario.Options.Deps`: changes a run's orchestrator deps before it
   starts: here the registry with the index, `ToolIndex`, and
-  `Deps.Earlier` for the cards.
+  `Deps.NoHistoryCards` in conditions 1 and 2.
 - `scenario.Options.Call`: maps a call to the call the checks read, so
   `call_tool(X, a)` is checked as a call of X; the transcript shows both
   (`> call call_tool→X {a}`).
@@ -75,15 +75,14 @@ Nil leaves each as it was (`TestDepsAndCallHooks`, `TestSetupHook`).
   With no app hook for that result, the spike rewrites it in the requests
   it sends (the store and transcripts keep the app's text). These calls
   count as "index tool called natively" (`TestRedirect`).
-- `cards.go`: the cards, through `Deps.Earlier`. The words of the turn's
-  user message are searched one at a time with the store's message search
-  (`search_history`'s), scored by idf over the chat's turns. A card's turn
-  is before the window, shares at least 2 words, scores at least 4.0 and
-  better than every turn in the window; a second card scores at least half
-  the first. A turn's cards are found at its first request and kept, so its
-  requests stay append-only. No word list: the same in every language the
-  tokenizer splits. The thresholds were set on the offline scripts before
-  any live run.
+- The cards: since TASK-027 they are the app's own (`internal/agent/cards.go`,
+  SPEC 3.6), on unless `Deps.NoHistoryCards` is set; this spike's
+  `cards.go`, which gave them through `Deps.Earlier`, was removed. The
+  harness records the carded turns from `agent.CardScores` and
+  `agent.PickCards` after seeding, as the app finds them at the
+  follow-up's first request. Two things differ from the runs in
+  `results/`: the app's rule for small words and its thresholds, and a
+  card's calls of non-core tools show as `call_tool` in condition 3.
 - `history.go`: a long chat's earlier turns, written into the store as the
   app writes them (calls of non-core tools as `call_tool` in conditions 2
   and 3).

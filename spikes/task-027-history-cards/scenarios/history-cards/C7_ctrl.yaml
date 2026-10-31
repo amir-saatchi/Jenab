@@ -1,0 +1,12 @@
+id: C7_ctrl
+title: "The author with the most books (Persian, control, no earlier turn)"
+tests: [control]
+context: main
+why: >-
+  A new question the tables answer; no earlier turn is needed.
+messages:
+  - text: "کدام نویسنده بیشترین کتاب را در فهرست من دارد؟"
+asserts:
+  - {type: tool_called, test: control, turn: last, tool: query, args_match: 'books'}
+  - {type: answer_contains, test: control, turn: last, final: true, match: 'دولت'}
+  - {type: tool_called, test: info, turn: last, tools: [search_history, read_messages]}

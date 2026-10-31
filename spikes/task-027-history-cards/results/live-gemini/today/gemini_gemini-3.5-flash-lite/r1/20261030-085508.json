@@ -1,0 +1,1028 @@
+{
+  "set": "Home data",
+  "started": "2026-10-30T08:55:08.4370201Z",
+  "took_seconds": 688.9057375,
+  "scale": 1,
+  "reps": 1,
+  "models": [
+    "gemini/gemini-3.5-flash-lite"
+  ],
+  "summary": [
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "runs": 24,
+      "passed": 20,
+      "errors": 2,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 5,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 59,
+          "fail": 8,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 33329,
+      "avg_output_tokens": 1618,
+      "avg_seconds": 28.703491437499995,
+      "cache_read_share": 0.5956102781048963
+    }
+  ],
+  "runs": [
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_ctrl",
+      "rep": 1,
+      "seconds": 10.7440244,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 14657,
+      "input_tokens": 8185,
+      "cache_read_tokens": 6472,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5635,
+      "output_tokens": 1245,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: eth_btc_ratio\\ntitle: ETH/BTC ratio\\ntype: chart\\nchart_type: line\\nquery: …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_para",
+      "rep": 1,
+      "seconds": 10.6818202,
+      "turns": 23,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 30920,
+      "input_tokens": 13094,
+      "cache_read_tokens": 17826,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5800,
+      "output_tokens": 1460,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: btc_gap_check\\ndescription: A gap row in price_alerts when BTC closes more …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"alert\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C1_repeat",
+      "rep": 1,
+      "seconds": 73.5129098,
+      "turns": 23,
+      "requests": 13,
+      "provider_requests": 13,
+      "prompt_tokens": 58113,
+      "input_tokens": 20939,
+      "cache_read_tokens": 37174,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6450,
+      "output_tokens": 1939,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: sol_weekly_vol\\ntitle: SOL weekly volatility\\ntype: table\\nquery: |\\n  WITH…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"btc_weekly_vol\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_ctrl",
+      "rep": 1,
+      "seconds": 8.9349236,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8717,
+      "input_tokens": 6761,
+      "cache_read_tokens": 1956,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4410,
+      "output_tokens": 168,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT company, COUNT(*) AS posts_count FROM job_posts GROUP BY company HAVING COUNT(*) \\u00…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Here are the companies with more than one post in `job_posts`:\n\n- **Nordlicht GmbH**: 2 posts\n- **Kraftwerk Labs**: 2 posts\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Here are the companies with more than one post in `job_posts`:\n\n- **Nordlicht GmbH**: 2 posts\n- **Kraftwerk Labs**: 2 posts\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_para",
+      "rep": 1,
+      "seconds": 27.6322525,
+      "turns": 23,
+      "requests": 7,
+      "provider_requests": 7,
+      "prompt_tokens": 32269,
+      "input_tokens": 18236,
+      "cache_read_tokens": 14033,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4930,
+      "output_tokens": 849,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C2_repeat",
+      "rep": 1,
+      "seconds": 16.0267387,
+      "turns": 23,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 18667,
+      "input_tokens": 9039,
+      "cache_read_tokens": 9628,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5312,
+      "output_tokens": 1214,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: job_scan_rust\\ndescription: Remote Rust developer jobs of the last day, 70,…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"job_scan_go\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C3_ctrl",
+      "rep": 1,
+      "seconds": 8.1064393,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8917,
+      "input_tokens": 7013,
+      "cache_read_tokens": 1904,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4493,
+      "output_tokens": 82,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE category = 'transport' AND dat…"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT ROUND(SUM(amount_eur), 2) AS total FROM expenses WHERE category = 'transport' AND dat…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C3_para",
+      "rep": 1,
+      "seconds": 53.8112231,
+      "turns": 23,
+      "requests": 9,
+      "provider_requests": 9,
+      "prompt_tokens": 44074,
+      "input_tokens": 16930,
+      "cache_read_tokens": 27144,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6366,
+      "output_tokens": 1995,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eating_out_watch\\ndescription: A row in budget_warnings when eating_out pas…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eating_out_watch\\ndescription: A row in budget_warnings when eating_out pas…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: eating_out_watch\\ndescription: A row in budget_warnings when eating_out pas…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"nudge\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C3_repeat",
+      "rep": 1,
+      "seconds": 58.2065383,
+      "turns": 23,
+      "requests": 9,
+      "provider_requests": 9,
+      "prompt_tokens": 51351,
+      "input_tokens": 20640,
+      "cache_read_tokens": 30711,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8765,
+      "output_tokens": 4359,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: spend_vs_budget_2025\\ntitle: Spending against budget, 2025\\ntype: chart\\nch…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"spend_vs_budget\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_ctrl",
+      "rep": 1,
+      "seconds": 5.8553571,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8883,
+      "input_tokens": 6959,
+      "cache_read_tokens": 1924,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4517,
+      "output_tokens": 246,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, km, minutes, avg_hr, route FROM runs WHERE date BETWEEN '2026-10-01' AND '2026-…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was **12.4 km** on **October 12, 2026**, on the **Forest trail** route (79 minutes, avg HR 155).\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "Your longest run in October was **12.4 km** on **October 12, 2026**, on the **Forest trail** route (79 minutes, avg HR 155).\n"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_para",
+      "rep": 1,
+      "seconds": 67.0289024,
+      "turns": 23,
+      "requests": 14,
+      "provider_requests": 14,
+      "prompt_tokens": 80473,
+      "input_tokens": 23185,
+      "cache_read_tokens": 57288,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7514,
+      "output_tokens": 3281,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Previous month's runs of 2 km or more, sum…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Previous month's runs of 2 km or more, sum…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: monthly_run_totals\\ndescription: Previous month's runs of 2 km or more, sum…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"digest\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C4_repeat",
+      "rep": 1,
+      "seconds": 19.2963198,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 24506,
+      "input_tokens": 11622,
+      "cache_read_tokens": 12884,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5767,
+      "output_tokens": 1436,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pace_by_route\\ntitle: Average heart rate per route\\ntype: table\\nquery: |\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pace_by_route\\ntitle: Average heart rate per route\\ntype: table\\nquery: |\\n…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_ctrl",
+      "rep": 1,
+      "seconds": 17.3299585,
+      "turns": 23,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 13431,
+      "input_tokens": 9572,
+      "cache_read_tokens": 3859,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4621,
+      "output_tokens": 313,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"liters\":6,\"date\":\"2026-10-20\"}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"liters\":6,\"date\":\"2026-10-20\"}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "insert {\"table\":\"watering\",\"rows\":[{\"bed\":\"B2\",\"liters\":6,\"date\":\"2026-10-20\"}]}"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_para",
+      "rep": 1,
+      "seconds": 30.7673766,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 25210,
+      "input_tokens": 13177,
+      "cache_read_tokens": 12033,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6343,
+      "output_tokens": 2034,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: heat_guard\\ndescription: A task to shade each young bed after a day above 3…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"frost_guard\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C5_repeat",
+      "rep": 1,
+      "seconds": 34.5463923,
+      "turns": 23,
+      "requests": 8,
+      "provider_requests": 8,
+      "prompt_tokens": 42444,
+      "input_tokens": 14675,
+      "cache_read_tokens": 27769,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 6772,
+      "output_tokens": 2414,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: water_per_bed\\ntitle: Water per bed\\ntype: chart\\nchart_type: bar\\nstacked:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"scope\":\"project\",\"query\":\"water_per_bed\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C6_ctrl",
+      "rep": 1,
+      "seconds": 7.2845674,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8773,
+      "input_tokens": 6816,
+      "cache_read_tokens": 1957,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4454,
+      "output_tokens": 196,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT COUNT(*) AS n, ROUND(AVG(area_m2)) AS avg_area FROM rent_listings WHERE neighborhood …"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT COUNT(*) AS n, ROUND(AVG(area_m2)) AS avg_area FROM rent_listings WHERE neighborhood …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C6_para",
+      "rep": 1,
+      "seconds": 75.8263557,
+      "turns": 23,
+      "requests": 19,
+      "provider_requests": 19,
+      "prompt_tokens": 131180,
+      "input_tokens": 38952,
+      "cache_read_tokens": 92228,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 10523,
+      "output_tokens": 6302,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: rent_weekly_avg\\ndescription: میانگین اجاره و ودیعه‌ی …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"scope\":\"project\",\"query\":\"رپورت\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C6_repeat",
+      "rep": 1,
+      "seconds": 46.3017465,
+      "turns": 23,
+      "requests": 11,
+      "provider_requests": 11,
+      "prompt_tokens": 61009,
+      "input_tokens": 20568,
+      "cache_read_tokens": 40441,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 7478,
+      "output_tokens": 3143,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: poonak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: poonak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: poonak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: poonak_rent_per_m2\\ntitle: اجاره‌ی هر متر در پونک\\ntype:…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"saadat_rent_per_m2\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C7_ctrl",
+      "rep": 1,
+      "seconds": 8.4819706,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8751,
+      "input_tokens": 6793,
+      "cache_read_tokens": 1958,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4447,
+      "output_tokens": 258,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT author, COUNT(*) as cnt FROM books GROUP BY author ORDER BY cnt DESC LIMIT 5\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "control",
+          "status": "pass",
+          "why": "محمود دولت‌آبادی با ۳ کتاب بیشترین تعداد را در فهرست شما دارد (از جمله سمفونی مردگان اثر…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C7_para",
+      "rep": 1,
+      "seconds": 25.0457916,
+      "turns": 23,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 24887,
+      "input_tokens": 12645,
+      "cache_read_tokens": 12242,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5659,
+      "output_tokens": 1388,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: niloofar_news\\ndescription: پنج خبر تازه درباره‌ی کتا…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: niloofar_news\\ndescription: پنج خبر تازه درباره‌ی کتا…"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: niloofar_news\\ndescription: پنج خبر تازه درباره‌ی کتا…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "save_pipeline {\"yaml\":\"version: 1\\nid: niloofar_news\\ndescription: پنج خبر تازه درباره‌ی کتا…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"چشمه\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C7_repeat",
+      "rep": 1,
+      "seconds": 67.8416797,
+      "turns": 23,
+      "requests": 16,
+      "provider_requests": 16,
+      "prompt_tokens": 89554,
+      "input_tokens": 28429,
+      "cache_read_tokens": 61125,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 8135,
+      "output_tokens": 3933,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_last_year\\ntitle: صفحه‌های خوانده‌شده …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_last_year\\ntitle: صفحه‌های خوانده‌شده …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_last_year\\ntitle: صفحه‌های خوانده‌شده …"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "pass",
+          "why": "save_view {\"yaml\":\"version: 1\\nid: pages_per_month_last_year\\ntitle: صفحه‌های خوانده‌شده …"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "search_history {\"query\":\"pages_per_month\"}"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C8_ctrl",
+      "rep": 1,
+      "seconds": 9.86617,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 8771,
+      "input_tokens": 6838,
+      "cache_read_tokens": 1933,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4426,
+      "output_tokens": 133,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, close FROM tse_prices WHERE symbol = 'خودرو' ORDER BY date DESC LIMIT 1\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "control",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, close FROM tse_prices WHERE symbol = 'خودرو' ORDER BY date DESC LIMIT 1\"}"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C8_para",
+      "rep": 1,
+      "error": "context canceled",
+      "seconds": 5.7516131999999995,
+      "turns": 23,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 4357,
+      "input_tokens": 2409,
+      "cache_read_tokens": 1948,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4357,
+      "output_tokens": 457,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "history",
+          "status": "fail",
+          "why": "not called: save_view"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: search_history, read_messages"
+        }
+      ]
+    },
+    {
+      "model": "gemini/gemini-3.5-flash-lite",
+      "scenario": "C8_repeat",
+      "rep": 1,
+      "error": "fixture: context canceled",
+      "seconds": 0.0027232,
+      "turns": 0,
+      "requests": 0,
+      "provider_requests": 0,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": null
+    }
+  ]
+}
