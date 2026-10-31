@@ -55,4 +55,6 @@ Done on 2026-10-31. Commit 2b4fb8c; results and scripts are in `spikes/038-local
   - On a laptop CPU, expect 1-4 minutes a turn, and 4-5 GB of free RAM for a 4B model at an 8k context.
   - *Refresh memory* loses facts on 3-4B models; a bigger or cloud model does it better.
   - A short note in the connection settings and the docs should say this.
+- **Compared with gemma4:31b** on Ollama Cloud (the same sets, 3 reps): every run passed, in 6-17 s, Refresh memory included, with JSON mode and without. Its schema answers came in a code fence both ways, so Ollama Cloud doesn't seem to hold the model to `format` as local Ollama does.
+- **After TASK-032,** llama3.2:3b's basic runs no longer break: tool + answer 3/3, database question 0/3, memory save 0/3.
 - **Not done:** lfm3:1.7b needs Ollama 0.40.13 or newer. qwen3.5:4b's refresh without JSON mode didn't run for lack of free RAM.

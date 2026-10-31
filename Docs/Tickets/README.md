@@ -73,7 +73,7 @@
 | [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Done | 3 |
 | [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Done | 3 |
 | [TASK-031](TASK-031-history-cards-paraphrases.md) | History cards for paraphrased follow-ups | Task | Open (later) | 3 |
-| [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Open | 3 |
+| [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Done | 3 |
 
 ## Phase 1
 

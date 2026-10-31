@@ -531,7 +531,7 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
   - **One pause per provider:** when a call is `rate_limited` or `overloaded`, every call to that provider waits until the pause ends, instead of each call trying again on its own. The provider's limit for background calls is also halved (at least 1), then raised by one after every 20 calls in a row that succeed, up to its setting (7.6). A key that another app also uses is handled this way, with nothing to set.
   - How long a caller keeps trying is up to the caller: chat turns and subagents (8.3), pipeline steps (6.5). Starting values, tuned with the benchmark.
 - **Silent truncation:**
-  - Jenab compares the reported `prompt_tokens` with its own estimate for the request.
+  - Jenab compares the reported `prompt_tokens` with its own estimate for the request, without thinking and tool definitions: some Ollama templates send the tools only when the last message is the user's, and a real cut drops old messages (TASK-032).
   - A large shortfall is a truncation error, not a normal reply. Ollama drops old messages without an error (SPIKE-017).
 - **Ollama** (SPIKE-017):
   - `/v1` ignores `num_ctx` and uses a small default context (4,096 tokens without a GPU). It also reads only `max_tokens`, and turns thinking off only with `reasoning_effort: "none"`.
