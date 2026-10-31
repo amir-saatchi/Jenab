@@ -1,0 +1,8 @@
+# SPIKE-038, second part: the local Ollama with an 8k context, so the
+# 3-4B models fit in this PC's free RAM (32k needed about 5-6 GB).
+providers:
+  - name: local
+    kind: ollama
+    base_url: http://127.0.0.1:11434
+    models:
+      - {id: lfm3:1.7b, context: 8192}

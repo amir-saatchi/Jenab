@@ -1,0 +1,198 @@
+{
+  "set": "School garden",
+  "started": "2026-10-31T16:48:38.9278871Z",
+  "took_seconds": 179.1185273,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/lfm3:1.7b"
+  ],
+  "summary": [
+    {
+      "model": "local/lfm3:1.7b",
+      "runs": 3,
+      "passed": 2,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "db_query": {
+          "pass": 4,
+          "fail": 2,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 0,
+      "avg_output_tokens": 0,
+      "avg_seconds": 59.70599466666667,
+      "cache_read_share": 0,
+      "spread": {
+        "db_query": {
+          "min": 0,
+          "max": 1
+        },
+        "runs": {
+          "min": 0,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L4_refresh_short",
+      "rep": 1,
+      "seconds": 63.2041825,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: [i7] The harvest report is sent to the parents' group.\ndecisions: [i2] no chemical pesticides in the garden at all, only organic methods.\n[ i6 ] Th…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: [i7] The harvest report is sent to the parents' group.\ndecisions: [i2] no chemical pesticides in the garden at all, only organic methods.\n[ i6 ] Th…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: [i7] The harvest report is sent to the parents' group.\ndecisions: [i2] no chemical pesticides in the garden…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L4_refresh_short",
+      "rep": 2,
+      "seconds": 63.0554216,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: [i5] track the beds and the harvest here.\n[ i7 ] The harvest report is sent to the parents' group.\ndecisions: [i2] no chemical pesticides in the ga…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: [i5] track the beds and the harvest here.\n[ i7 ] The harvest report is sent to the parents' group.\ndecisions: [i2] no chemical pesticides in the ga…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: [i5] track the beds and the harvest here.\n[ i7 ] The harvest report is sent to the parents' group.\ndecision…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L4_refresh_short",
+      "rep": 3,
+      "seconds": 52.8583799,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

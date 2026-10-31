@@ -1,0 +1,417 @@
+{
+  "set": "Crypto ledger",
+  "started": "2026-10-31T16:40:29.3078732Z",
+  "took_seconds": 489.4897721,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/lfm3:1.7b"
+  ],
+  "summary": [
+    {
+      "model": "local/lfm3:1.7b",
+      "runs": 9,
+      "passed": 9,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 9,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 9884,
+      "avg_output_tokens": 469,
+      "avg_seconds": 54.38715042222223,
+      "cache_read_share": 0,
+      "spread": {
+        "answer_contains": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_called": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L1_tool_answer",
+      "rep": 1,
+      "seconds": 61.8745284,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6509,
+      "input_tokens": 6509,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3349,
+      "output_tokens": 183,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "According to the page \"Watering a vegetable garden\" on garden.example:\n\n**Tomatoes:** water deeply **twice a week in summer**, and even more frequently during a…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L1_tool_answer",
+      "rep": 2,
+      "seconds": 33.6192535,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6509,
+      "input_tokens": 6509,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3349,
+      "output_tokens": 183,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "According to the page \"Watering a vegetable garden\" on garden.example:\n\n**Tomatoes:** water deeply **twice a week in summer**, and even more frequently during a…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L1_tool_answer",
+      "rep": 3,
+      "seconds": 31.3811215,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6509,
+      "input_tokens": 6509,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3349,
+      "output_tokens": 183,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "According to the page \"Watering a vegetable garden\" on garden.example:\n\n**Tomatoes:** water deeply **twice a week in summer**, and even more frequently during a…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L2_db_question",
+      "rep": 1,
+      "seconds": 87.120827,
+      "turns": 1,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 15561,
+      "input_tokens": 15561,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4563,
+      "output_tokens": 955,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, close FROM prices WHERE coin = 'BTC' AND date \\u003e= '2026-09-01' AND date \\u0…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **64,336** USD on **2026-09-27**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **64,336** USD on **2026-09-27**.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "2 calls",
+          "value": 2
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L2_db_question",
+      "rep": 2,
+      "seconds": 130.6176773,
+      "turns": 1,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 23844,
+      "input_tokens": 23844,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5858,
+      "output_tokens": 1166,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, close FROM prices WHERE coin = 'BTC' AND strftime('%Y-%m', date) = '2026-09' OR…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **$64,336**, recorded on **2026-09-27**. \n\nFor reference, the top five closes were:\n| Date | Close |\n|---|---|\n| 202…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **$64,336**, recorded on **2026-09-27**. \n\nFor reference, the top five closes were:\n| Date | Close |\n|---|---|\n| 202…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "2 calls",
+          "value": 2
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L2_db_question",
+      "rep": 3,
+      "seconds": 62.3070766,
+      "turns": 1,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 10163,
+      "input_tokens": 10163,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3578,
+      "output_tokens": 516,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "pass",
+          "why": "query {\"sql\":\"SELECT date, close FROM prices WHERE coin = 'BTC' AND strftime('%Y-%m', date) = '2026-09' OR…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **$64,336**, recorded on **2026-09-27**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "pass",
+          "why": "The highest BTC close in September 2026 was **$64,336**, recorded on **2026-09-27**.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L3_memory_save",
+      "rep": 1,
+      "seconds": 27.5867842,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6610,
+      "input_tokens": 6610,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3444,
+      "output_tokens": 334,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L3_memory_save",
+      "rep": 2,
+      "seconds": 28.1996626,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6620,
+      "input_tokens": 6620,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3454,
+      "output_tokens": 368,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "L3_memory_save",
+      "rep": 3,
+      "seconds": 26.7774227,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6636,
+      "input_tokens": 6636,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3470,
+      "output_tokens": 338,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
