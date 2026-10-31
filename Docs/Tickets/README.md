@@ -74,6 +74,7 @@
 | [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Done | 3 |
 | [TASK-031](TASK-031-history-cards-paraphrases.md) | History cards for paraphrased follow-ups | Task | Open (later) | 3 |
 | [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Done | 3 |
+| [TASK-033](TASK-033-less-fixed-context.md) | Less fixed context per request | Task | Open | 3 |
 
 ## Phase 1
 
@@ -119,7 +120,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-10](P2-10-session-notes.md) | Session notes | P1-06, P2-09 | Done |
 | [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Done |
 | [P2-12](P2-12-export.md) | Export a project | P1-04 | Done |
-| [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Open |
+| [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Done |
 | [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | Open |
 
 ## Notes

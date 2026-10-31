@@ -457,7 +457,7 @@ context:
   - **Time:** the search has 300 ms. A slower database, or any failure, leaves the turn without cards and logs a warning. The project's count of text parts is reused for 10 minutes. Harnesses can switch cards off; the app can't.
   - **Measured** (2026-10-30 and 31): repeats were done 13/24 → 24/24 on gemma4:31b with 44% fewer prompt tokens, about the same on gemini-3.5-flash-lite (7/8 → 6/8, one a fixture flaw) with 46% fewer, and 4/24 → 20/24 on ministral-14b. Paraphrases are mostly missed. A false card on a control changed no answer on the reference models.
 
-These sizes are starting values, to be tuned with the benchmark.
+These sizes were checked with the benchmark (P2-13) and kept: other values changed nothing beyond noise, and `history_min_turns: 1` cost 56 % more tokens and lost answers, so it is at least 2. Memory and notes stayed far below their caps.
 
 ### 3.7 Tool outputs and web pages
 
