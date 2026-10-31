@@ -1,0 +1,415 @@
+{
+  "set": "Crypto ledger",
+  "started": "2026-10-31T08:30:03.9930815Z",
+  "took_seconds": 78.8506325,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/granite4:350m"
+  ],
+  "summary": [
+    {
+      "model": "local/granite4:350m",
+      "runs": 9,
+      "passed": 1,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 1,
+          "fail": 5,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 3,
+          "fail": 6,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 6480,
+      "avg_output_tokens": 83,
+      "avg_seconds": 8.760935600000002,
+      "cache_read_share": 0,
+      "spread": {
+        "answer_contains": {
+          "min": 0,
+          "max": 0.5
+        },
+        "runs": {
+          "min": 0,
+          "max": 0.3333333333333333
+        },
+        "tool_called": {
+          "min": 0.3333333333333333,
+          "max": 0.3333333333333333
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L1_tool_answer",
+      "rep": 1,
+      "seconds": 28.3902289,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6137,
+      "input_tokens": 6137,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3136,
+      "output_tokens": 97,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "pass",
+          "why": "The page you requested was read. Based on that information, tomatoes should be watered deeply twice a week in summer. Lettuce can be watered a little every day,…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L1_tool_answer",
+      "rep": 2,
+      "seconds": 12.541943,
+      "turns": 1,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 9400,
+      "input_tokens": 9400,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3263,
+      "output_tokens": 184,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "I'm sorry, but I couldn't find any matching query results. The weather information provided is for the Garden example, not the garden itself. Could you please c…"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L1_tool_answer",
+      "rep": 3,
+      "seconds": 4.9564049,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6137,
+      "input_tokens": 6137,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3136,
+      "output_tokens": 57,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "tool",
+          "status": "pass",
+          "why": "fetch_page {\"url\":\"https://garden.example/watering\"}"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "The task is to read the page about watering a vegetable garden and provide how often to water tomatoes in summer.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "1 calls",
+          "value": 1
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L2_db_question",
+      "rep": 1,
+      "seconds": 5.2802665,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6120,
+      "input_tokens": 6120,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3130,
+      "output_tokens": 56,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "fail",
+          "why": "not called: query"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "The highest BTC close in September was **$62,150.00**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "The highest BTC close in September was **$62,150.00**.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L2_db_question",
+      "rep": 2,
+      "seconds": 5.0002721,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6122,
+      "input_tokens": 6122,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3132,
+      "output_tokens": 56,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "fail",
+          "why": "not called: query"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "The highest BTC close in September was **$31,000**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "The highest BTC close in September was **$31,000**.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L2_db_question",
+      "rep": 3,
+      "seconds": 4.7567786,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6115,
+      "input_tokens": 6115,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3125,
+      "output_tokens": 51,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "query",
+          "status": "fail",
+          "why": "not called: query"
+        },
+        {
+          "type": "answer_contains",
+          "test": "answer",
+          "status": "fail",
+          "why": "The highest BTC close in September was **61,234.56 USD**.\n"
+        },
+        {
+          "type": "answer_contains",
+          "test": "info",
+          "status": "fail",
+          "why": "The highest BTC close in September was **61,234.56 USD**.\n"
+        },
+        {
+          "type": "max_calls",
+          "test": "info",
+          "status": "pass",
+          "why": "0 calls"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L3_memory_save",
+      "rep": 1,
+      "seconds": 3.0410938,
+      "turns": 1,
+      "requests": 2,
+      "provider_requests": 2,
+      "prompt_tokens": 6063,
+      "input_tokens": 6063,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3058,
+      "output_tokens": 29,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L3_memory_save",
+      "rep": 2,
+      "seconds": 9.9659864,
+      "turns": 1,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 9225,
+      "input_tokens": 9225,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3145,
+      "output_tokens": 149,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"user\",\"content\":\"TL;DR: I can assist with tasks within this project, prov…"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "fail",
+          "why": "turn 1 failed: [the turn stopped: the model sent tool calls that couldn't run, 3 times in a row. Use Retry to try again, or pick anothe…"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L3_memory_save",
+      "rep": 3,
+      "seconds": 4.9154462,
+      "turns": 1,
+      "requests": 1,
+      "provider_requests": 1,
+      "prompt_tokens": 3005,
+      "input_tokens": 3005,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3005,
+      "output_tokens": 74,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "fail",
+          "why": "not called: update_memory"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

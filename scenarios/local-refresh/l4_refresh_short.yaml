@@ -1,0 +1,54 @@
+id: L4_refresh_short
+title: 'Refresh memory on a 6-turn chat'
+tests: ["refreshed"]
+context: main
+why: >
+  In 6 turns the user states the project's goal, the team's rule of no
+  chemical pesticides, a preference for dates as YYYY-MM-DD, and a
+  harvest report on Fridays, which a later turn moves to Mondays; one
+  turn gives a harvest count. Refresh memory keeps the rule and the newer
+  report day. Whether the old day, the count or the date format reached
+  memory is recorded, not checked.
+history:
+  - user: >
+      The goal of this project: plan our school's vegetable garden, what
+      grows in each raised bed and what we harvest.
+    assistant: Got it. We can track the beds and the harvest here.
+  - user: >
+      We decided as a team: no chemical pesticides in the garden at all,
+      only organic methods.
+    assistant: Noted, organic methods only, no chemical pesticides.
+  - user: The harvest report goes out every Friday, to the parents' group.
+    assistant: Okay, a harvest report every Friday for the parents' group.
+  - user: For all my chats, write dates as YYYY-MM-DD.
+    assistant: Understood, dates as YYYY-MM-DD.
+  - user: Today we picked 14 radishes.
+    assistant: Nice, the radishes were quick.
+  - user: >
+      Change of plan: the harvest report now goes out on Mondays, not
+      Fridays. Still to the parents' group.
+    assistant: Okay, the harvest report now goes out on Mondays to the parents' group.
+messages:
+  - refresh: true
+asserts:
+  - type: db_query
+    test: refreshed
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)monday'
+  - type: db_query
+    test: refreshed
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)organic|pesticide'
+  - type: db_query
+    test: info
+    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
+    match: '(?i)YYYY-MM-DD'
+  - type: db_query
+    test: info
+    query: "SELECT count(*) FROM _jenab_memory WHERE content LIKE '%Friday%' AND content NOT LIKE '%Monday%'"
+    match: '^0$'
+  - type: db_query
+    test: info
+    query: "SELECT count(*) FROM _jenab_memory WHERE content LIKE '%14 radish%'"
+    match: '^0$'
+  - {type: no_turn_failed, test: info}

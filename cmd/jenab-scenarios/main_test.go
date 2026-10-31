@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"iter"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/scenario"
 )
 
@@ -61,3 +67,52 @@ func TestPickScripted(t *testing.T) {
 		t.Errorf("no models file: %v", err)
 	}
 }
+
+// -json-mode off: the backend gets no schema, and isn't a JSONMode, so
+// the Registry doesn't send twice for it. -schema-log: a line per request
+// with a schema, none for one without.
+func TestSchemaWatch(t *testing.T) {
+	for _, strip := range []bool{false, true} {
+		var got []provider.Request
+		var log bytes.Buffer
+		f := func(provider.Connection) (provider.Provider, error) { return &fake{seen: &got}, nil }
+		all := schemaWatch(map[provider.Kind]provider.Factory{provider.KindOllama: f}, strip, &log)
+		p, err := all[provider.KindOllama](provider.Connection{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := p.(provider.JSONMode); ok {
+			t.Error("the wrapper is a JSONMode")
+		}
+		msg := chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "hi"}}}}
+		for range p.Stream(context.Background(), provider.Request{Model: "m", Messages: []chat.Message{msg}, Schema: json.RawMessage(`{"type":"object","properties":{"items":{},"edits":{}}}`)}) {
+		}
+		for range p.Stream(context.Background(), provider.Request{Model: "m"}) {
+		}
+		if len(got) != 2 || (got[0].Schema == nil) != strip || got[0].Model != "m" {
+			t.Errorf("strip %v: the backend got %+v", strip, got)
+		}
+		var c schemaCall
+		if err := json.Unmarshal(log.Bytes(), &c); err != nil {
+			t.Fatalf("strip %v: the log %q: %v", strip, log.String(), err)
+		}
+		if c.Schema != "edits,items" || c.Messages != 1 || c.Sent == strip || c.Answer != `{"items":[]}` || !c.Valid || c.Input == "" {
+			t.Errorf("strip %v: the log line %+v", strip, c)
+		}
+	}
+}
+
+type fake struct{ seen *[]provider.Request }
+
+func (f *fake) SendsSchema() bool { return true }
+
+func (f *fake) Stream(_ context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
+	*f.seen = append(*f.seen, req)
+	return func(yield func(provider.Event, error) bool) {
+		if len(req.Messages) > 0 {
+			yield(provider.Event{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: `{"items":[]}`}}}, nil)
+		}
+	}
+}
+
+func (f *fake) Models(context.Context) ([]provider.ModelInfo, error) { return nil, nil }

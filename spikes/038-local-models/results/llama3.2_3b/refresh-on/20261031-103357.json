@@ -1,0 +1,198 @@
+{
+  "set": "School garden",
+  "started": "2026-10-31T10:33:57.8730873Z",
+  "took_seconds": 352.2122392,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/llama3.2:3b"
+  ],
+  "summary": [
+    {
+      "model": "local/llama3.2:3b",
+      "runs": 3,
+      "passed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "db_query": {
+          "pass": 2,
+          "fail": 4,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 0,
+      "avg_output_tokens": 0,
+      "avg_seconds": 117.40352436666667,
+      "cache_read_share": 0,
+      "spread": {
+        "db_query": {
+          "min": 0,
+          "max": 0.5
+        },
+        "runs": {
+          "min": 0,
+          "max": 0
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L4_refresh_short",
+      "rep": 1,
+      "seconds": 193.1299614,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: on Mondays\ndecisions: the harvest report now goes out on Mondays"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "conventions: on Mondays\ndecisions: the harvest report now goes out on Mondays"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: on Mondays\ndecisions: the harvest report now goes out on Mondays"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L4_refresh_short",
+      "rep": 2,
+      "seconds": 91.1920525,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "goal: plan our school's vegetable garden, what grows in each raised bed and what we harvest\nopen_question: what grows in…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "goal: plan our school's vegetable garden, what grows in each raised bed and what we harvest\nopen_question: what grows in…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "goal: plan our school's vegetable garden, what grows in each raised bed and what we harvest\nopen_question: what grows in…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/llama3.2:3b",
+      "scenario": "L4_refresh_short",
+      "rep": 3,
+      "seconds": 67.8885592,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "decision: report now goes out on Mondays\npreference: report should be sent on Mondays, every Monday"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "decision: report now goes out on Mondays\npreference: report should be sent on Mondays, every Monday"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "decision: report now goes out on Mondays\npreference: report should be sent on Mondays, every Monday"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

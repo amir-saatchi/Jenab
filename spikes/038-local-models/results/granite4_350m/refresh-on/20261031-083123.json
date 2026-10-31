@@ -1,0 +1,198 @@
+{
+  "set": "School garden",
+  "started": "2026-10-31T08:31:23.0318807Z",
+  "took_seconds": 1776.8029915,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/granite4:350m"
+  ],
+  "summary": [
+    {
+      "model": "local/granite4:350m",
+      "runs": 3,
+      "passed": 1,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "db_query": {
+          "pass": 2,
+          "fail": 4,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 0,
+      "avg_output_tokens": 0,
+      "avg_seconds": 592.2664618333333,
+      "cache_read_share": 0,
+      "spread": {
+        "db_query": {
+          "min": 0,
+          "max": 1
+        },
+        "runs": {
+          "min": 0,
+          "max": 1
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L4_refresh_short",
+      "rep": 1,
+      "seconds": 45.8337978,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report goes out every Friday, to the parents' group.\ndecisions: We decided as a team: no chemical pesticides in the garden at all, only…"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "pass",
+          "why": "conventions: The harvest report goes out every Friday, to the parents' group.\ndecisions: We decided as a team: no chemical pesticides in the garden at all, only…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "conventions: The harvest report goes out every Friday, to the parents' group.\ndecisions: We decided as a team: no chemic…"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "1"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L4_refresh_short",
+      "rep": 2,
+      "seconds": 1709.633156,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 4,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "model": "local/granite4:350m",
+      "scenario": "L4_refresh_short",
+      "rep": 3,
+      "seconds": 21.3324317,
+      "turns": 6,
+      "requests": 0,
+      "provider_requests": 3,
+      "prompt_tokens": 0,
+      "input_tokens": 0,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 0,
+      "output_tokens": 0,
+      "asserts": [
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "refreshed",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "fail",
+          "why": "NULL"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "db_query",
+          "test": "info",
+          "status": "pass",
+          "why": "0"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

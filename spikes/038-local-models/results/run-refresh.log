@@ -1,0 +1,29 @@
+== qwen3.5:4b start 13:57:27
+models: local/qwen3.5:4b
+
+scenarios/local-refresh (School garden)
+  local/qwen3.5:4b             L4_refresh_short                     r1  fail in 4m19.2s, 3 requests to the providers: db_query
+== refresh on done 14:03:54
+== low RAM, qwen3.5:4b stopped
+== unloaded qwen3.5:4b 14:03:57: {"models":[]}
+== llama3.2:3b start 14:03:57
+models: local/llama3.2:3b
+
+scenarios/local-refresh (School garden)
+  local/llama3.2:3b            L4_refresh_short                     r1  fail in 3m13.1s, 3 requests to the providers: db_query
+  local/llama3.2:3b            L4_refresh_short                     r2  fail in 1m31.1s, 3 requests to the providers: db_query, db_query
+  local/llama3.2:3b            L4_refresh_short                     r3  fail in 1m7.8s, 3 requests to the providers: db_query
+  local/llama3.2:3b: 0/3 runs passed, 0 broke, 0 skipped
+  report: results/llama3.2_3b\refresh-on\20261031-103357.md
+== refresh on done 14:09:50
+models: local/llama3.2:3b
+
+scenarios/local-refresh (School garden)
+  local/llama3.2:3b            L4_refresh_short                     r1  fail in 2m16.2s, 4 requests to the providers: db_query
+  local/llama3.2:3b            L4_refresh_short                     r2  fail in 1m22.8s, 3 requests to the providers: db_query, db_query
+  local/llama3.2:3b            L4_refresh_short                     r3  fail in 1m6.9s, 3 requests to the providers: db_query
+  local/llama3.2:3b: 0/3 runs passed, 0 broke, 0 skipped
+  report: results/llama3.2_3b\refresh-off\20261031-103950.md
+== refresh off done 14:14:36
+== unloaded llama3.2:3b 14:14:39: {"models":[]}
+== all done 14:14:58

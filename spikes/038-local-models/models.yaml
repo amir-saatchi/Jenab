@@ -1,0 +1,10 @@
+# SPIKE-038: the local Ollama on this PC. No key. The same context for
+# every model (granite4:350m's trained maximum).
+providers:
+  - name: local
+    kind: ollama
+    base_url: http://127.0.0.1:11434
+    models:
+      - {id: granite4:350m, context: 32768}
+      - {id: llama3.2:3b, context: 32768}
+      - {id: qwen3.5:4b, context: 32768}

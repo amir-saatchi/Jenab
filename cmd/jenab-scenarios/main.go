@@ -13,18 +13,25 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"io"
+	"iter"
 	"log/slog"
+	"maps"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/backends"
 	"github.com/amir-saatchi/jenab/internal/scenario"
 	"github.com/amir-saatchi/jenab/internal/sqlworker"
@@ -170,6 +177,8 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		tellK      = fs.Int("tell-k", 0, "with -grounding: tell the model only at this many unsourced numbers; 0 is k")
 		tellSaved  = fs.Bool("tell-saved", false, "with -grounding: also tell the model of an unsourced number in what it saved")
 		compute    = fs.Bool("compute", false, "with -grounding: block 1 asks the model to compute numbers with query")
+		jsonMode   = fs.String("json-mode", "on", "SPIKE-038: off sends no answer schema to the APIs' JSON mode; the prompt still has it")
+		schemaLog  = fs.String("schema-log", "", "SPIKE-038: a JSONL file that gets each request with an answer schema and its answer")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -181,6 +190,27 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			return err
 		}
 		ground.TellK, ground.TellSaved, ground.Compute = *tellK, *tellSaved, *compute
+	}
+	var strip bool
+	switch *jsonMode {
+	case "on":
+	case "off":
+		strip = true
+	default:
+		return fmt.Errorf("-json-mode is on or off, not %q", *jsonMode)
+	}
+	all := backends.All()
+	if strip || *schemaLog != "" {
+		var log io.Writer
+		if *schemaLog != "" {
+			f, err := os.OpenFile(*schemaLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			log = f
+		}
+		all = schemaWatch(all, strip, log)
 	}
 	ss, err := load(fs.Args())
 	if err != nil {
@@ -219,7 +249,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		}
 		fmt.Fprintf(w, "\n%s (%s)\n", s.Dir, s.Title)
 		rep, runErr := scenario.RunSet(ctx, s, scenario.Options{
-			Models: models, Backends: backends.All(), Reps: *reps, Scale: *scale, Timeout: *timeout,
+			Models: models, Backends: all, Reps: *reps, Scale: *scale, Timeout: *timeout,
 			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script, Grounding: ground,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
 		})
@@ -254,6 +284,109 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// schemaWatch wraps each backend for SPIKE-038. With strip, its requests
+// carry no answer schema (the runs without JSON mode); the wrapper isn't a
+// provider.JSONMode, so the Registry never sends a request twice for it,
+// and the prompt is the app's, schema included. With log, each request
+// that has a schema gets a JSON line: which schema, its messages (1 for a
+// first try, 3 for the retry that lists what was wrong), whether the
+// schema was sent, and the answer.
+func schemaWatch(all map[provider.Kind]provider.Factory, strip bool, log io.Writer) map[provider.Kind]provider.Factory {
+	var mu sync.Mutex
+	out := map[provider.Kind]provider.Factory{}
+	for k, f := range all {
+		out[k] = func(c provider.Connection) (provider.Provider, error) {
+			p, err := f(c)
+			if err != nil {
+				return nil, err
+			}
+			return watched{Provider: p, strip: strip, log: log, mu: &mu}, nil
+		}
+	}
+	return out
+}
+
+type watched struct {
+	provider.Provider
+	strip bool
+	log   io.Writer
+	mu    *sync.Mutex
+}
+
+// schemaCall is a schema-log line.
+type schemaCall struct {
+	Time     string  `json:"time"`
+	Model    string  `json:"model"`
+	Schema   string  `json:"schema"` // the schema's top keys: items for a map call, edits,items,summary for the merge
+	Messages int     `json:"messages"`
+	Sent     bool    `json:"sent"`   // the schema went to the API
+	Input    string  `json:"input"`  // a hash of the first user message, to tell the calls apart
+	Answer   string  `json:"answer"` // the answer's text
+	Valid    bool    `json:"valid"`  // the answer is a JSON object as it is
+	Seconds  float64 `json:"seconds"`
+	Error    string  `json:"error,omitempty"`
+}
+
+func (w watched) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
+	schema := req.Schema
+	if w.strip {
+		req.Schema = nil
+	}
+	if schema == nil || w.log == nil {
+		return w.Provider.Stream(ctx, req)
+	}
+	return func(yield func(provider.Event, error) bool) {
+		start := time.Now()
+		var text strings.Builder
+		var failed error
+		for ev, err := range w.Provider.Stream(ctx, req) {
+			if err != nil {
+				failed = err
+			} else if ev.Kind == provider.EventPart && ev.Part.Text != nil {
+				text.WriteString(ev.Part.Text.Text)
+			}
+			if !yield(ev, err) {
+				break
+			}
+		}
+		c := schemaCall{Time: start.Format(time.RFC3339), Model: req.Model, Schema: schemaName(schema), Messages: len(req.Messages),
+			Sent: req.Schema != nil, Input: firstUser(req.Messages), Answer: text.String(), Seconds: time.Since(start).Seconds()}
+		var obj map[string]any
+		c.Valid = json.Unmarshal([]byte(strings.TrimSpace(c.Answer)), &obj) == nil
+		if failed != nil {
+			c.Error = failed.Error()
+		}
+		line, _ := json.Marshal(c)
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		w.log.Write(append(line, '\n'))
+	}
+}
+
+func schemaName(s json.RawMessage) string {
+	var v struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+	}
+	json.Unmarshal(s, &v)
+	return strings.Join(slices.Sorted(maps.Keys(v.Properties)), ",")
+}
+
+func firstUser(ms []chat.Message) string {
+	for _, m := range ms {
+		if m.Role != chat.RoleUser {
+			continue
+		}
+		h := fnv.New32a()
+		for _, p := range m.Parts {
+			if p.Text != nil {
+				h.Write([]byte(p.Text.Text))
+			}
+		}
+		return fmt.Sprintf("%08x", h.Sum32())
+	}
+	return ""
 }
 
 // pick reads the models to run: from the models file and the keys, or a

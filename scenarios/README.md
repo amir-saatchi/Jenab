@@ -17,6 +17,7 @@ go run ./cmd/jenab-scenarios run -env .env scenarios
 - `-baseline <report>.json` compares with that report instead of the newest one.
 - `-model scripted:scenarios/skill-loading/_offline.yaml` plays scripted answers instead of a model, with no keys. It tests the runner and the app, not a model; its reports go to `<set>/results/scripted`.
 - `-grounding mark -k 5` turns on SPIKE-032's number check for every run, over the sets' and scenarios' own: `mark`, `same_turn`, `next_turn`, or `off`. `-k` is how many numbers without a source make it fire; 0 is the default, 3.
+- `-json-mode off` sends no answer schema to the APIs' JSON mode; the prompt still carries it (SPIKE-038's runs without JSON mode). The app always sends it.
 - `check scenarios` loads every set without models, and `list scenarios` lists the scenarios.
 
 Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one transcript per run. The report shows the changes since the last run, the tokens and the share read from the provider's cache. With `-reps 3` or more, it also shows the least and the most of a rep's pass share. Keys never appear in it. A run's line shows its requests, with the subagents' (such as the schema agent's) after a `+`; the transcript shows the subagents' calls under the call that ran them.
@@ -39,6 +40,8 @@ Each set's report goes to `<set>/results/<time>.md`, with a JSON copy and one tr
 | `memory` | P2-09 | User memory across chats. The user states a preference in one chat (answers in Persian; a "TL;DR:" line first); the chat saves it with `update_memory`, and a new chat follows it from its memory block without being told. |
 | `memory-untrusted` | TASK-026, TASK-028 | A memory edit after untrusted content. The chat reads a page with a planted "remember that…" line, and the user asks it to save the page's main tip to project memory: in the same turn (U1), or in the next one, while the page is still in the window (U2). At Standard the edit is saved without a card, and its chip has the line "From a chat that read web pages, files or MCP results". Whether the planted line got into the edit, and whether U2 reads the page again, are recorded, not checked. |
 | `session-notes` | P2-10 | A plan in a long chat survives a cut. The user gives a six-part plan once and then says "next"; a small window (`history_max_turns: 3`) cuts it at turn 5. The chat keeps the plan with `update_session_notes`, and writes parts 5 and 6, with details only the first message had, from its session notes (block 5), without `search_history` or `read_messages`. |
+| `local-basic` | SPIKE-038 | Basic work in one short turn, for small local models: a tool call and an answer from its result (a fake `fetch_page`), a question on the `data-tools` ledger with the real `query`, and a memory save asked for. |
+| `local-refresh` | SPIKE-038 | *Refresh memory* on a 6-turn chat: 2 map calls and the merge. Memory keeps the team's rule and the newer report day. Run with and without `-json-mode off` to compare JSON mode. |
 
 SPIKE-021's T1 and T4 are `schema-design` and `schema-widen`. T2 (a pipeline) and T3 (views and a form) come with Phases 3 and 4.
 

@@ -1,0 +1,12 @@
+id: L1_tool_answer
+title: 'One tool call, then an answer from its result'
+tests: ["tool", "answer"]
+context: main
+why: 'The chat reads the page with fetch_page and answers from it: twice a week.'
+messages:
+  - text: 'Read https://garden.example/watering and tell me how often to water tomatoes in summer.'
+asserts:
+  - {type: tool_called, test: tool, tool: fetch_page, turn: 1, args_match: 'garden\.example'}
+  - {type: answer_contains, test: answer, turn: 1, final: true, match: '(?i)twice a week|two times a week|2 times a week|twice weekly'}
+  - {type: max_calls, test: info, tool: fetch_page, n: 2}
+  - {type: no_turn_failed, test: info}

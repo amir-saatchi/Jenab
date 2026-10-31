@@ -1,0 +1,12 @@
+# SPIKE-038: Refresh memory (SPEC 3.5) on a short chat, for small local
+# models. Six turns of history, then a refresh: one map call per chunk of
+# up to 5 turns (2 here) and the merge, so 3 requests, plus a retry for
+# an answer that doesn't match the schema. The checks read memory at the
+# end; no questions follow in a new chat, to keep runs short.
+#
+# Run it twice to compare JSON mode: as the app does (the schema goes to
+# Ollama's format), and with jenab-scenarios run -json-mode off, which
+# leaves the schema in the prompt only.
+#
+# No fake tools. An empty project: no tables, no card.
+title: School garden

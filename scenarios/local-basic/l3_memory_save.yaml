@@ -1,0 +1,11 @@
+id: L3_memory_save
+title: 'A memory save, asked for'
+tests: ["saved"]
+context: main
+why: 'The user asks the chat to remember a format for all chats; it saves it with update_memory.'
+messages:
+  - text: 'Please remember this for all my chats: start every answer with a one-line summary that begins with "TL;DR:".'
+asserts:
+  - {type: tool_called, test: saved, tool: update_memory, turn: 1, args_match: 'TL;DR', result_match: '^Saved (user|project) memory'}
+  - {type: tool_called, test: info, tool: update_memory, turn: 1, args_match: '"scope":\s*"user"'}
+  - {type: no_turn_failed, test: info}

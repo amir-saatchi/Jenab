@@ -1,0 +1,13 @@
+id: L2_db_question
+title: 'A database question'
+tests: ["query", "answer"]
+context: main
+why: 'Answer from the prices table with query: 64,336 USD (on 2026-09-27).'
+messages:
+  - text: 'What was the highest BTC close in September?'
+asserts:
+  - {type: tool_called, test: query, tool: query, turn: 1, args_match: '(?i)prices'}
+  - {type: answer_contains, test: answer, turn: 1, final: true, match: '64,?336'}
+  - {type: answer_contains, test: info, turn: 1, final: true, match: '(?i)\b27\b|2026-09-27'}
+  - {type: max_calls, test: info, tool: query, n: 3}
+  - {type: no_turn_failed, test: info}

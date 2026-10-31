@@ -1,0 +1,31 @@
+# SPIKE-038: Jenab's basic work on small local models (Ollama on a laptop
+# CPU). Short prompts, one turn each: a tool call and an answer, a
+# database question, a memory save. Refresh memory is the local-refresh
+# set. The same prompts, loop and configs as every model.
+#
+# The project is the data-tools ledger (its data and card, read from that
+# set), for the real query tool. fetch_page is a fake with a local fixture
+# page, never a live one. update_memory and the data tools are the real
+# ones.
+title: Crypto ledger
+card: ../data-tools/card.md
+today: 2026-10-01
+data: ../data-tools/data.sql
+
+tools:
+  - name: fetch_page
+    delay: 1s
+
+rules:
+  fetch_page:
+    - result: |
+        [page "Watering a vegetable garden" — garden.example]
+        # Watering a vegetable garden
+
+        Water in the morning, so the leaves dry during the day.
+
+        - Tomatoes: water deeply twice a week in summer, more in a heat wave.
+        - Lettuce: a little every day; its roots are shallow.
+        - Carrots: once a week, deeply, so the roots grow down.
+
+        Mulch keeps the soil moist and cuts watering by about a third.
