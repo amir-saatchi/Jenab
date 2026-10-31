@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,19 +29,37 @@ import (
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
+// Harnesses: the app's own, and P2-13's plain chat harness (agent
+// Deps.Plain), whose chats get only plainTools.
+const (
+	HarnessJenab = "jenab"
+	HarnessPlain = "plain"
+)
+
+// Harnesses are the harnesses a run can use.
+var Harnesses = []string{HarnessJenab, HarnessPlain}
+
+// plainTools are the plain harness's tools: a page, reading on in it and
+// a question to the user. No data tools, memory, notes, history search,
+// bucket or skills.
+var plainTools = []string{"fetch_page", "read_ref", "search_ref", "ask_user"}
+
 // Options are how a set runs.
 type Options struct {
-	Models   *Models // the providers and the models to run
-	Backends map[provider.Kind]provider.Factory
-	Reps     int     // runs of each scenario on each model; 0 means 1
-	Scale    float64 // multiplies tool delays and message times; 0 means 1
-	Timeout  time.Duration
-	Parallel int      // runs at a time; 0 means 1
-	Only     []string // scenario IDs to run; empty runs all
-	Temp     string   // where the runs' projects go; "" is the system's
-	Keep     bool     // keep the runs' projects
-	Log      *slog.Logger
-	Progress func(Run) // called after each run
+	Models *Models // the providers and the models to run
+	// Harnesses run each scenario in each of them, for P2-13's side by
+	// side; empty is the app's alone, with no harness in the report.
+	Harnesses []string
+	Backends  map[provider.Kind]provider.Factory
+	Reps      int     // runs of each scenario on each model; 0 means 1
+	Scale     float64 // multiplies tool delays and message times; 0 means 1
+	Timeout   time.Duration
+	Parallel  int      // runs at a time; 0 means 1
+	Only      []string // scenario IDs to run; empty runs all
+	Temp      string   // where the runs' projects go; "" is the system's
+	Keep      bool     // keep the runs' projects
+	Log       *slog.Logger
+	Progress  func(Run) // called after each run
 	// Settings changes the app settings of every run, after the set's
 	// and the scenario's.
 	Settings func(*config.Settings)
@@ -88,6 +107,15 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 	if opt.Log == nil {
 		opt.Log = slog.New(slog.DiscardHandler)
 	}
+	for _, h := range opt.Harnesses {
+		if !slices.Contains(Harnesses, h) {
+			return nil, fmt.Errorf("scenario: harness %q: the harnesses are %s", h, strings.Join(Harnesses, ", "))
+		}
+	}
+	harnesses := opt.Harnesses
+	if len(harnesses) == 0 {
+		harnesses = []string{""}
+	}
 	for _, n := range opt.Only {
 		if !slices.ContainsFunc(s.Scenarios, func(sc *Scenario) bool { return sc.ID == n }) {
 			return nil, fmt.Errorf("scenario: no scenario %s in the set", n)
@@ -108,10 +136,11 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 		return nil, fmt.Errorf("scenario: the set's skills: %w", err)
 	}
 	type job struct {
-		model string
-		sc    *Scenario
-		rep   int
-		i     int
+		model   string
+		harness string
+		sc      *Scenario
+		rep     int
+		i       int
 	}
 	// Models take turns, so parallel runs spread over the providers.
 	var jobs []job
@@ -121,11 +150,13 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 		}
 		for rep := 1; rep <= opt.Reps; rep++ {
 			for _, m := range opt.Models.Run {
-				jobs = append(jobs, job{m, sc, rep, len(jobs)})
+				for _, h := range harnesses {
+					jobs = append(jobs, job{m, h, sc, rep, len(jobs)})
+				}
 			}
 		}
 	}
-	rep := &Report{Set: s.Title, Dir: s.Dir, Started: time.Now().UTC(), Scale: opt.Scale, Reps: opt.Reps, Models: opt.Models.Run}
+	rep := &Report{Set: s.Title, Dir: s.Dir, Started: time.Now().UTC(), Scale: opt.Scale, Reps: opt.Reps, Models: opt.Models.Run, Harnesses: opt.Harnesses}
 	runs := make([]Run, len(jobs))
 	ch := make(chan job)
 	var wg sync.WaitGroup
@@ -133,7 +164,7 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 	for range opt.Parallel {
 		wg.Go(func() {
 			for j := range ch {
-				r := (&run{opt: opt, sc: j.sc, skills: skills, model: j.model}).do(ctx, j.rep)
+				r := (&run{opt: opt, sc: j.sc, skills: skills, model: j.model, harness: j.harness}).do(ctx, j.rep)
 				runs[j.i] = r
 				if opt.Progress != nil {
 					mu.Lock()
@@ -167,8 +198,11 @@ type run struct {
 	sc     *Scenario
 	skills *skill.Set
 	model  string // "provider/id"
-	db     *sql.DB
-	fp     *fake.Provider // the scripted model, with Options.Script
+	// harness is jenab or plain, or "" for the app's without a name in
+	// the report.
+	harness string
+	db      *sql.DB
+	fp      *fake.Provider // the scripted model, with Options.Script
 
 	// The app: opened at the start and again after a restart.
 	paths  config.Paths
@@ -185,10 +219,16 @@ type run struct {
 	// requests counts every request the providers got, traced or not,
 	// such as Refresh memory's and titles'.
 	requests atomic.Int64
+
+	// day is the clock's day since a message with a day; nil is the set's.
+	day atomic.Pointer[time.Time]
 }
 
+// plain reports whether the run is in the plain chat harness.
+func (r *run) plain() bool { return r.harness == HarnessPlain }
+
 func (r *run) do(ctx context.Context, rep int) Run {
-	out := Run{Model: r.model, Scenario: r.sc.ID, Rep: rep}
+	out := Run{Model: r.model, Harness: r.harness, Scenario: r.sc.ID, Rep: rep}
 	if why := r.sc.skip(); why != "" {
 		out.Skipped = why
 		return out
@@ -213,6 +253,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 			out.Grounding, out.GroundExtra = rec.groundResults(), rec.groundExtra()
 		}
 		out.ProviderRequests = int(r.requests.Load())
+		out.TurnStats, out.MemoryTokens, out.NotesTokens = rec.turnStats(), rec.memoryTokens, rec.notesTokens
 		out.Asserts = check(rec, r.sc)
 		out.Transcript = r.opt.Models.redact(rec.transcript())
 	}
@@ -304,6 +345,9 @@ func (r *run) open(ctx context.Context) error {
 		Now:       r.now,
 		Grounding: r.grounding().agent(),
 	}
+	if r.plain() {
+		d.Plain, d.NoHistoryCards, d.Card, d.Skills = true, true, nil, nil
+	}
 	if r.opt.Deps != nil {
 		r.opt.Deps(&d)
 	}
@@ -320,11 +364,14 @@ func (r *run) grounding() *GroundingSpec {
 	return r.sc.Grounding
 }
 
-// now is the clock: the set's day at the time of day now, so block 1's
-// date matches the fixture's card.
+// now is the clock: the set's day, or the last message's day, at the
+// time of day now, so block 1's date matches the fixture's card.
 func (r *run) now() time.Time {
 	n := time.Now()
 	day := r.sc.set.Today
+	if d := r.day.Load(); d != nil {
+		day = *d
+	}
 	if day.IsZero() {
 		return n
 	}
@@ -506,6 +553,9 @@ type sent struct {
 	index int
 	id    id.Message
 	at    time.Duration // since the start
+	// done is when the chat was next idle, since the start: the end of
+	// its turn for a message sent while the chat was idle.
+	done time.Duration
 }
 
 // send plays the messages: one without a time waits until the chat is
@@ -514,9 +564,16 @@ type sent struct {
 func (r *run) send(ctx context.Context) ([]sent, error) {
 	start := time.Now()
 	var out []sent
+	idle := func() error {
+		err := r.idle(ctx)
+		if len(out) > 0 && out[len(out)-1].done == 0 {
+			out[len(out)-1].done = time.Since(start)
+		}
+		return err
+	}
 	for i, m := range r.sc.Messages {
 		if m.At == nil {
-			if err := r.idle(ctx); err != nil {
+			if err := idle(); err != nil {
 				return out, err
 			}
 		} else if err := r.sleep(ctx, time.Duration(*m.At)-time.Duration(float64(time.Since(start))/r.opt.Scale)); err != nil {
@@ -532,6 +589,9 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 				return out, fmt.Errorf("message %d: %w", i+1, err)
 			}
 		}
+		if !m.day.IsZero() {
+			r.day.Store(&m.day)
+		}
 		if m.Refresh {
 			if err := r.o.Refresh(ctx, r.pid, r.cid, agent.RefreshOptions{}); err != nil {
 				return out, fmt.Errorf("message %d: refresh: %w", i+1, err)
@@ -544,7 +604,7 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 		}
 		out = append(out, sent{index: i, id: mid, at: time.Since(start)})
 	}
-	return out, r.idle(ctx)
+	return out, idle()
 }
 
 // nextChat makes the next chat under test, for a new_chat message.

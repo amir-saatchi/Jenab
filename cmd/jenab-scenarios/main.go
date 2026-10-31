@@ -30,7 +30,10 @@ import (
 	"sync"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/backends"
 	"github.com/amir-saatchi/jenab/internal/scenario"
@@ -179,6 +182,8 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		compute    = fs.Bool("compute", false, "with -grounding: block 1 asks the model to compute numbers with query")
 		jsonMode   = fs.String("json-mode", "on", "SPIKE-038: off sends no answer schema to the APIs' JSON mode; the prompt still has it")
 		schemaLog  = fs.String("schema-log", "", "SPIKE-038: a JSONL file that gets each request with an answer schema and its answer")
+		harness    = fs.String("harness", "", "P2-13: harnesses to run each scenario in, comma-separated: jenab, plain (a plain chat harness); the report shows them side by side")
+		ctxFlag    = fs.String("context", "", "context settings over the sets', as key=value, comma-separated, such as history_max_turns=12,history_min_turns=4 (P2-13's tuning)")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -225,6 +230,10 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			return err
 		}
 	}
+	override, err := contextSettings(*ctxFlag)
+	if err != nil {
+		return err
+	}
 	models, script, err := pick(split(*modelList), *modelsFile, *envFile)
 	if err != nil {
 		return err
@@ -251,6 +260,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		rep, runErr := scenario.RunSet(ctx, s, scenario.Options{
 			Models: models, Backends: all, Reps: *reps, Scale: *scale, Timeout: *timeout,
 			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script, Grounding: ground,
+			Harnesses: split(*harness), Settings: override,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
 		})
 		if rep == nil {
@@ -389,6 +399,55 @@ func firstUser(ms []chat.Message) string {
 	return ""
 }
 
+// contextSettings reads -context: config.yaml's context keys as
+// key=value, set over each run's settings. Nil for none.
+func contextSettings(s string) (func(*config.Settings), error) {
+	kv := split(s)
+	if len(kv) == 0 {
+		return nil, nil
+	}
+	m := map[string]any{}
+	for _, p := range kv {
+		k, v, ok := strings.Cut(p, "=")
+		if !ok {
+			return nil, fmt.Errorf("-context: %q is not key=value", p)
+		}
+		var n any
+		if err := yaml.Unmarshal([]byte(v), &n); err != nil {
+			return nil, fmt.Errorf("-context: %s: %v", k, err)
+		}
+		m[strings.TrimSpace(k)] = n
+	}
+	b, err := yaml.Marshal(map[string]any{"context": m})
+	if err != nil {
+		return nil, err
+	}
+	var c struct {
+		Context map[string]any `yaml:"context"`
+	}
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return nil, err
+	}
+	// Each key checked on the defaults, so a typo or a bad value stops here.
+	if _, probs, err := config.ParseSettings(b); err != nil {
+		return nil, fmt.Errorf("-context: %v", err)
+	} else if len(probs) > 0 {
+		return nil, fmt.Errorf("-context: %s: %s", probs[0].Path, probs[0].Msg)
+	}
+	return func(set *config.Settings) {
+		cur, _ := yaml.Marshal(map[string]any{"context": set.Context})
+		var all map[string]map[string]any
+		yaml.Unmarshal(cur, &all)
+		for k, v := range c.Context {
+			all["context"][k] = v
+		}
+		merged, _ := yaml.Marshal(all)
+		if s, _, err := config.ParseSettings(merged); err == nil {
+			set.Context = s.Context
+		}
+	}, nil
+}
+
 // pick reads the models to run: from the models file and the keys, or a
 // script for scripted:<file>, which needs neither and runs alone.
 func pick(names []string, modelsFile, envFile string) (*scenario.Models, *scenario.Script, error) {
@@ -437,7 +496,7 @@ func mine(s *scenario.Set, ids []string) []string {
 
 // line is a run's progress line.
 func line(r scenario.Run) string {
-	head := fmt.Sprintf("%-28s %-36s r%d", r.Model, r.Scenario, r.Rep)
+	head := fmt.Sprintf("%-28s %-36s r%d", r.Lane(), r.Scenario, r.Rep)
 	switch {
 	case r.Skipped != "":
 		return head + "  skip (" + r.Skipped + ")"

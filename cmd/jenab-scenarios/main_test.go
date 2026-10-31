@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/scenario"
 )
@@ -20,7 +21,7 @@ func TestCheckFindsTheRepoSets(t *testing.T) {
 	if err := check([]string{root}, &b); err != nil {
 		t.Fatal(err)
 	}
-	for _, set := range []string{"multi-part", "role-skills", "skill-loading"} {
+	for _, set := range []string{"bench-bitcoin", "multi-part", "role-skills", "skill-loading"} {
 		if !strings.Contains(b.String(), set) {
 			t.Errorf("check missed %s:\n%s", set, b.String())
 		}
@@ -116,3 +117,24 @@ func (f *fake) Stream(_ context.Context, req provider.Request) iter.Seq2[provide
 }
 
 func (f *fake) Models(context.Context) ([]provider.ModelInfo, error) { return nil, nil }
+
+func TestContextSettings(t *testing.T) {
+	set, err := contextSettings("history_max_turns=12, history_min_turns=4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := config.Defaults()
+	c.Context.HistoryMaxTokens = 9000
+	set(&c)
+	if c.Context.HistoryMaxTurns != 12 || c.Context.HistoryMinTurns != 4 || c.Context.HistoryMaxTokens != 9000 {
+		t.Errorf("context %+v", c.Context)
+	}
+	if set, err := contextSettings(""); set != nil || err != nil {
+		t.Errorf("empty: %v", err)
+	}
+	for _, bad := range []string{"history_max_turns", "history_max_turn=3", "history_max_turns=-1"} {
+		if _, err := contextSettings(bad); err == nil {
+			t.Errorf("took %q", bad)
+		}
+	}
+}

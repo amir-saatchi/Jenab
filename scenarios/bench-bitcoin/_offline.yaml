@@ -1,0 +1,37 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -harness jenab,plain -model scripted:scenarios/bench-bitcoin/_offline.yaml scenarios/bench-bitcoin
+# It tests the runner and both harnesses, not a model. The replies fetch
+# the pages and answer from them, as a plain chat would; they use no data
+# tools, so the jenab harness's info checks on them fail.
+scenarios:
+  B1_two_weeks:
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-05"}}], usage: {input: 1500, output: 40}}
+    - {text: "I'll keep the closes here. Bitcoin closed at 62,418 on 5 October.", usage: {input: 1900, cache_read: 1500, output: 30}}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-06"}}]}
+    - {text: "Added: Bitcoin 63,105 on 6 October."}
+    - {text: "It rose 687 USD, or 1.1 %."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-07"}}]}
+    - {text: "Added 7 October: 64,890."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-08"}}]}
+    - {text: "Added 8 October: 64,212."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-09"}}]}
+    - {text: "Added 9 October: 65,377."}
+    - {text: "Friday 9 October, at 65,377."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-10"}}, {name: fetch_page, args: {url: "https://markets.example/daily/2026-10-11"}}, {name: fetch_page, args: {url: "https://markets.example/daily/2026-10-12"}}]}
+    - {text: "Added 10, 11 and 12 October."}
+    - {text: "Ethereum from today: 2,455 on 12 October."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-13"}}]}
+    - {text: "Added 13 October."}
+    - {text: "On 10 October: Exchange outage in Seoul sets off a weekend sell-off."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-14"}}]}
+    - {text: "Added 14 October."}
+    - {text: "62,418 on 5 October."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-15"}}]}
+    - {text: "Added 15 October."}
+    - {text: "Since Monday 12 October, to compare the two coins."}
+    - {calls: [{name: fetch_page, args: {url: "https://markets.example/daily/2026-10-16"}}]}
+    - {text: "Added 16 October."}
+    - {text: "Week one averaged 64,000; this week 64,212."}
+    - {text: "15 October, at 2,603."}
+    - {text: "We have 12 days of closes."}
+    - {text: "Ledger Wire, on Wednesday 7 October."}

@@ -1,0 +1,108 @@
+id: B1_two_weeks
+title: 'Two weeks of the Bitcoin project'
+tests: [q1_change, q2_high, q3_drop_headline, q4_first_close, q5_eth_start, q6_week_avgs, q7_eth_high, q8_day_count, q9_etf_source, usual]
+context: main
+why: >
+  Over two weeks the user adds each day's prices and headlines from one
+  page a day, adds Ethereum on day 8, and asks about earlier work. Every
+  answer is on the pages; the checks hold the values. "The usual" is
+  defined once (turn 4) and used on later days, the last time ten turns
+  later (turn 14).
+
+# Expected answers, from pages/ (BTC and ETH closes in USD):
+#   day      BTC     ETH    top headline (source)
+#   10-05  62,418  2,431   Bitcoin starts October above $62,000 (Block Times)
+#   10-06  63,105  2,452   record hash rate (Coin Street Journal)
+#   10-07  64,890  2,498   Spot bitcoin ETFs take in $1.2 billion (Ledger Wire)
+#   10-08  64,212  2,476   Profit-taking trims bitcoin (The Hash Daily)
+#   10-09  65,377  2,530   two-month high (Coin Street Journal)
+#   10-10  61,904  2,389   Exchange outage in Seoul (Asia Coin Report)
+#   10-11  62,250  2,402   Seoul exchange restores withdrawals
+#   10-12  63,480  2,455   Bitcoin wins back half
+#   10-13  64,020  2,511   Large holders added coins
+#   10-14  63,615  2,544   Ether outperforms
+#   10-15  64,805  2,603   Ether reaches its highest close in two months
+#   10-16  65,140  2,588   Bitcoin ends the week near $65,000
+# q1 (turn 3): +687 USD, +1.1 % (1.10 % passes too).
+# q2 (turn 7): Friday 9 October, 65,377.
+# q3 (turn 11): the largest fall is 10 October (-3,473): the Seoul outage
+#   (11 October also names Seoul, so the check is on "outage").
+# q4 (turn 13): 62,418 on 5 October.
+# q5 (turn 15): Ethereum since Monday 12 October, to compare the two coins.
+# q6 (turn 17): week one 64,000 (64,000.4), this week 64,212.
+# q7 (turn 18): 15 October, 2,603.
+# q8 (turn 19): 12 days (5 to 16 October, the weekend included); "**12** days" passes.
+# q9 (turn 20): Ledger Wire, 7 October.
+# usual (turns 5 and 14): the day's page is fetched without being told how.
+messages:
+  - day: 2026-10-05
+    text: >
+      I want to follow Bitcoin for the next weeks: its close in USD each
+      day, and the day's headlines with their sources. The data comes from
+      one page a day, https://markets.example/daily/YYYY-MM-DD (today is
+      https://markets.example/daily/2026-10-05). Set up what you need to
+      keep this, and add today's data.
+  - day: 2026-10-06
+    text: Daily update for Tuesday 6 October, please.
+  - text: How much did Bitcoin's close change since yesterday, in dollars and in percent?
+  - day: 2026-10-07
+    text: >
+      From now on, when I say "the usual", I mean the daily update: fetch
+      the day's page and add its data. The usual for Wednesday 7 October,
+      please.
+  - day: 2026-10-08
+    text: The usual, Thursday 8 October.
+  - day: 2026-10-09
+    text: The usual for Friday 9 October.
+  - text: Which day this week had the highest Bitcoin close, and what was it?
+  - day: 2026-10-12
+    text: >
+      Monday 12 October. We missed the weekend, so add Saturday 10 and
+      Sunday 11 October too, then today.
+  - text: >
+      Change of plan: from today on, also track Ethereum's close, from the
+      same page, so I can compare the two coins. The days before today
+      don't need it. Add today's Ethereum close too.
+  - day: 2026-10-13
+    text: The usual, Tuesday 13 October.
+  - text: What was the top headline on the day Bitcoin fell the most since we started?
+  - day: 2026-10-14
+    text: The usual for Wednesday 14 October.
+  - text: What was Bitcoin's close on the first day we tracked it?
+  - day: 2026-10-15
+    text: The usual, Thursday 15 October.
+  - text: Remind me, since when do we track Ethereum, and why did we add it?
+  - day: 2026-10-16
+    text: The usual for Friday 16 October.
+  - text: >
+      Compare Bitcoin's average close in our first week (5 to 9 October)
+      with this week (12 to 16 October).
+  - text: On which day did Ethereum close highest since we track it, and at what price?
+  - text: How many days of Bitcoin closes do we have now?
+  - text: Which outlet reported the ETF inflows, and on which day?
+asserts:
+  # The follow-up questions: the final answer of the turn.
+  - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '\b687\b'}
+  - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '1\.10?\s*%'}
+  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '65,?377'}
+  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '(?i)friday|\b9(th)?\s+oct|oct\w*\.?\s+9\b|10-09'}
+  - {type: answer_contains, test: q3_drop_headline, turn: "11", final: true, match: '(?i)outage'}
+  - {type: answer_contains, test: q4_first_close, turn: "13", final: true, match: '62,?418'}
+  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)\b12(th)?\s+oct|oct\w*\.?\s+12\b|10-12|monday'}
+  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)compar'}
+  - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?000\b'}
+  - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?212\b'}
+  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '2,?603\b'}
+  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '(?i)\b15(th)?\s+oct|oct\w*\.?\s+15\b|10-15|thursday'}
+  - {type: answer_contains, test: q8_day_count, turn: "19", final: true, match: '(?i)\b(12|twelve)\**\s+(days|daily|closes|entries|rows|records|data points|prices)'}
+  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)ledger wire'}
+  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)wednesday|\b7(th)?\s+oct|oct\w*\.?\s+7\b|10-07'}
+  # "The usual" a day and ten turns after it was defined.
+  - {type: tool_called, test: usual, tool: fetch_page, turn: "5", args_match: '2026-10-08'}
+  - {type: tool_called, test: usual, tool: fetch_page, turn: "14", args_match: '2026-10-15'}
+  # The work, recorded: tables, rows and what the app's chat used.
+  - {type: tool_called, test: info, harness: jenab, tool: request_schema_change, turn: "1"}
+  - {type: tool_called, test: info, harness: jenab, tool: insert, turn: "16"}
+  - {type: tool_called, test: info, harness: jenab, tool: query, turn: "17"}
+  - {type: no_turn_failed, test: info}
+  - {type: max_turns, test: info, n: 20}

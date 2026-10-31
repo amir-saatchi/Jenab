@@ -57,8 +57,10 @@ type Deps struct {
 	// is logged and leaves the block as it was. Nil, or "", leaves the
 	// block out.
 	Card func(ctx context.Context, p *project.Project) (string, error)
-	// Now is the clock for block 1's date (3.1); nil is time.Now. The
-	// scenario runner gives a fixture's day.
+	// Now is the clock for block 1's date (3.1) and the cache's idle time
+	// (3.6); nil is time.Now. The scenario runner gives a fixture's day,
+	// and a later day for a message of a later day, so its chat cuts as
+	// after a night.
 	Now func() time.Time
 	// Traces records each turn for the turn inspector (8.4); nil, with
 	// the developer tools off, records nothing.
@@ -77,6 +79,12 @@ type Deps struct {
 	// compare them with the window alone. Spike-only: the app leaves it
 	// off.
 	NoHistoryCards bool
+	// Plain makes chats a plain chat harness, for P2-13's benchmark: block
+	// 1 alone, without memory, the card, notes or history cards, and the
+	// whole history in every request with tool results as they came. Only
+	// when the history nears the model's window are the oldest turns
+	// dropped. Harness-only: the app leaves it off.
+	Plain bool
 	// ToolIndex is SPIKE-028's tool index: text added to block 1 after
 	// the prompt rule, for a chat of the kind. Spike-only: the spike's
 	// harness sets it with a registry of its own; the app leaves it nil,

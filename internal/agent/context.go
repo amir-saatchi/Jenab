@@ -63,9 +63,12 @@ type window struct {
 // cut and kept until the next one (3.1), so a role change takes effect
 // then.
 func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
+	if r.o.d.Plain {
+		return r.plainWindow(ctx, t)
+	}
 	w := &r.cs.win
 	c := t.set.Context
-	due := r.cs.takeCut() || w.last.IsZero() || time.Since(w.last) > cacheIdle
+	due := r.cs.takeCut() || w.last.IsZero() || r.o.d.Now().Sub(w.last) > cacheIdle
 	if !due {
 		ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n-1)
 		if err != nil {
@@ -105,8 +108,11 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 // prefix holds, but asks for an answer without calls (8.3).
 func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Request, error) {
 	w := &r.cs.win
-	r.refreshCard(ctx, t)
-	r.memoryNotices(ctx, t)
+	plain := r.o.d.Plain
+	if !plain {
+		r.refreshCard(ctx, t)
+		r.memoryNotices(ctx, t)
+	}
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
 		return provider.Request{}, err
@@ -116,10 +122,12 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 			t.seen = m.ID
 		}
 	}
-	r.findCards(ctx, t, ms)
-	ms = withCards(ms, w.cards)
+	if !plain {
+		r.findCards(ctx, t, ms)
+		ms = withCards(ms, w.cards)
+	}
 	msgs := shape(ms, w)
-	if r.trim(t, msgs) {
+	if !plain && r.trim(t, msgs) {
 		msgs = shape(ms, w)
 	}
 	req := provider.Request{Model: t.model, System: w.system, Messages: msgs, Thinking: true, Image: r.image}
@@ -132,8 +140,53 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		req.Messages = append(req.Messages, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser,
 			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: lastRequest}}}})
 	}
-	w.last = time.Now()
+	w.last = r.o.d.Now()
 	return req, nil
+}
+
+// Plain's window (Deps.Plain): it drops the oldest turns once the
+// history passes plainFull of the model's window, until it is under
+// plainKeep of it.
+const (
+	plainFull = 0.8
+	plainKeep = 0.5
+)
+
+// plainWindow is the plain chat harness's window (Deps.Plain): every
+// turn from the first, tool results as they came, and block 1 alone,
+// built again when the date changes, as a chat app's system prompt has
+// today's date. Only when the history nears the model's window are the
+// oldest turns dropped, with no summary and no line about them.
+func (r *runner) plainWindow(ctx context.Context, t *turn) error {
+	w := &r.cs.win
+	w.start = max(w.start, 1)
+	sys := []provider.Block{{Text: r.block1(t), Name: "System prompt", Cache: true}}
+	if w.system == nil || w.system[0].Text != sys[0].Text {
+		w.system = sys
+	}
+	if t.window <= 0 {
+		return nil
+	}
+	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n-1)
+	if err != nil {
+		return err
+	}
+	size := func(from int) int {
+		var keep []chat.Message
+		for _, m := range ms {
+			if m.Turn >= from {
+				keep = append(keep, m)
+			}
+		}
+		return provider.EstimateTokens(provider.Request{System: w.system, Messages: shape(keep, w)})
+	}
+	if float64(size(w.start)) <= plainFull*float64(t.window) {
+		return nil
+	}
+	for w.start < t.n && float64(size(w.start)) > plainKeep*float64(t.window) {
+		w.start++
+	}
+	return nil
 }
 
 // shape is the window's messages as the model sees them: tool results of
@@ -262,6 +315,31 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 // Mother's chat list and the session notes. The cache point is after the
 // last block.
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
+	blocks := []provider.Block{{Text: r.block1(t), Name: "System prompt, role and skills"}}
+	mem, seen := r.memoryBlocks(ctx)
+	blocks = append(blocks, mem...)
+	r.cs.win.mem = seen
+	card, schema, _ := r.card(ctx, t)
+	if card != "" {
+		blocks = append(blocks, provider.Block{Text: card, Name: cardBlock})
+	}
+	w := &r.cs.win
+	if t.ch.Kind == chat.KindMother {
+		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})
+	}
+	if notes := r.notesBlock(ctx, t); notes != "" {
+		blocks = append(blocks, provider.Block{Text: notes, Name: notesBlockName})
+	}
+	if n := w.start - 1; n > 0 {
+		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
+	}
+	blocks[len(blocks)-1].Cache = true
+	return blocks, schema, nil
+}
+
+// block1 is block 1 (3.1): the system prompt with today's date, the role,
+// the loaded skills and the skill list.
+func (r *runner) block1(t *turn) string {
 	tools := r.o.d.Tools.For(t.ch.Kind)
 	var b strings.Builder
 	b.WriteString(base(tools))
@@ -291,26 +369,7 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 	if s := r.o.skills().Block(t.ch.Kind, t.ch.Skills); s != "" {
 		b.WriteString("\n\n" + s)
 	}
-	blocks := []provider.Block{{Text: b.String(), Name: "System prompt, role and skills"}}
-	mem, seen := r.memoryBlocks(ctx)
-	blocks = append(blocks, mem...)
-	r.cs.win.mem = seen
-	card, schema, _ := r.card(ctx, t)
-	if card != "" {
-		blocks = append(blocks, provider.Block{Text: card, Name: cardBlock})
-	}
-	w := &r.cs.win
-	if t.ch.Kind == chat.KindMother {
-		blocks = append(blocks, provider.Block{Text: w.chatList, Name: "Chat list"})
-	}
-	if notes := r.notesBlock(ctx, t); notes != "" {
-		blocks = append(blocks, provider.Block{Text: notes, Name: notesBlockName})
-	}
-	if n := w.start - 1; n > 0 {
-		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
-	}
-	blocks[len(blocks)-1].Cache = true
-	return blocks, schema, nil
+	return b.String()
 }
 
 // cardBlock is the project card's block name, as the turn inspector shows

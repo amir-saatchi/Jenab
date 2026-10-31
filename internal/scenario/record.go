@@ -59,7 +59,16 @@ type record struct {
 	db map[string][]dbAnswer
 	// userMemory is user memory at the end, for the transcript.
 	userMemory []store.MemorySection
-	sc         *Scenario
+	// memoryTokens and notesTokens are the sizes at the end, as the caps
+	// count them: user and project memory, and the chats' session notes
+	// (3.3, 3.4).
+	memoryTokens, notesTokens int
+	// turnSecs are each turn's seconds, from its message to the chat's
+	// next idle.
+	turnSecs map[int]float64
+	// harness is the run's: jenab or plain, or "" for the app's.
+	harness string
+	sc      *Scenario
 	// grounding is the run's number check (SPIKE-032); nil is off.
 	grounding *GroundingSpec
 }
@@ -97,7 +106,7 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	for _, s := range sent {
 		index[s.id] = s.index
 	}
-	rec := &record{sc: r.sc}
+	rec := &record{sc: r.sc, harness: r.harness, turnSecs: map[int]float64{}}
 	for _, m := range ms {
 		calls := slices.ContainsFunc(m.Parts, func(p chat.Part) bool { return p.ToolCall != nil })
 		msg, scripted := index[m.ID]
@@ -145,6 +154,29 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	}
 	if rec.userMemory, err = r.reg.UserMemory(ctx); err != nil {
 		return nil, err
+	}
+	pm, err := proj.DB.Memory(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rec.memoryTokens = store.MemoryTokens(rec.userMemory) + store.MemoryTokens(pm)
+	for _, c := range r.chats {
+		n, err := proj.Chats.Notes(ctx, c)
+		if err != nil {
+			return nil, err
+		}
+		rec.notesTokens += (len(n.Content) + len(n.Summary) + 3) / 4
+	}
+	turnOf := map[int]int{}
+	for _, e := range rec.events {
+		if e.kind == evUser && e.msg >= 0 {
+			turnOf[e.msg] = e.turn
+		}
+	}
+	for _, s := range sent {
+		if t, ok := turnOf[s.index]; ok && s.done > s.at {
+			rec.turnSecs[t] += (s.done - s.at).Seconds()
+		}
 	}
 	list := traces.List()
 	for _, t := range slices.Backward(list) {
@@ -224,6 +256,33 @@ func (rec *record) output() int {
 		n += q.Usage.Output
 	}
 	return n
+}
+
+// turnStats are each turn's requests, tokens and seconds.
+func (rec *record) turnStats() []TurnStat {
+	var out []TurnStat
+	at := map[int]int{}
+	for i, q := range rec.requests {
+		n := rec.reqTurn[i]
+		j, ok := at[n]
+		if !ok {
+			j = len(out)
+			at[n] = j
+			s := TurnStat{Turn: n, First: promptOf(q.Usage), Seconds: rec.turnSecs[n]}
+			for _, b := range q.Blocks {
+				s.Estimate += b.Tokens
+				s.Blocks = append(s.Blocks, BlockStat{b.Name, b.Tokens})
+			}
+			out = append(out, s)
+		}
+		s := &out[j]
+		s.Requests++
+		s.Prompt += promptOf(q.Usage)
+		s.CacheRead += q.Usage.CacheRead
+		s.Output += q.Usage.Output
+	}
+	slices.SortFunc(out, func(a, b TurnStat) int { return a.Turn - b.Turn })
+	return out
 }
 
 // failure is the last request's error when the run ended on one.

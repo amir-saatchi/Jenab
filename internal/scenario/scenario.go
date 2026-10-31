@@ -158,6 +158,11 @@ const (
 	KindSQL      = "sql"      // a read-only SELECT on the fixture database
 	KindDescribe = "describe" // a table of the fixture database
 	KindConfig   = "config"   // a stored config by id
+	// KindPage is a fake fetch_page: the first matching rule's result is
+	// the page's text, stored in the bucket as the real one stores a page,
+	// so it has a ref and becomes a stub at a cut (3.7). A first line "# "
+	// is its title.
+	KindPage = "page"
 )
 
 // ToolSpec is a fake tool. It replaces a real tool of the same name.
@@ -165,7 +170,7 @@ type ToolSpec struct {
 	Name        string         `yaml:"name"`
 	Description string         `yaml:"description"`
 	Schema      map[string]any `yaml:"schema"` // JSON Schema of the arguments
-	Kind        string         `yaml:"kind"`   // rules (the default), sql, describe or config
+	Kind        string         `yaml:"kind"`   // rules (the default), sql, describe, config or page
 	Arg         string         `yaml:"arg"`    // the argument sql, describe and config read
 	Mother      bool           `yaml:"mother"` // only the Mother chat gets it
 	// Areas are the parts of a project it works on: tables, pipelines or
@@ -186,6 +191,7 @@ type ToolSpec struct {
 type Rule struct {
 	Match  string   `yaml:"match"`
 	Result string   `yaml:"result"`
+	File   string   `yaml:"file"`  // a file in the set whose text is the result
 	Delay  Duration `yaml:"delay"` // instead of the tool's
 	Error  bool     `yaml:"error"` // the result is an error the model sees
 	re     *regexp.Regexp
@@ -254,12 +260,19 @@ type HistoryTurn struct {
 // chat's last. With Refresh it is no message but Refresh memory on the
 // chat (3.5), once the chat is idle; the next message waits for its end,
 // and its card, if any, is saved.
+//
+// With Day (YYYY-MM-DD) the runner's clock moves to that day before the
+// message, and stays there for the messages after it: block 1's date
+// follows at the next cut, and the chat cuts as after a night, since the
+// cache's idle time is read from the same clock (3.6).
 type Message struct {
 	Text    string    `yaml:"text"`
 	At      *Duration `yaml:"at"`
 	Restart bool      `yaml:"restart"`
 	NewChat bool      `yaml:"new_chat"`
 	Refresh bool      `yaml:"refresh"`
+	Day     string    `yaml:"day"`
+	day     time.Time
 }
 
 // Assert is one check on a finished run. Each type uses some fields.
@@ -301,6 +314,9 @@ type Assert struct {
 	// name as an SQL string, and one answer must match.
 	Query string `yaml:"query"`
 	Table string `yaml:"table"`
+	// Harness: the check is for runs in this harness only (jenab or
+	// plain); in the other it is skipped.
+	Harness string `yaml:"harness"`
 	// Other holds fields only planned checks use.
 	Other map[string]any `yaml:",inline"`
 }
@@ -391,6 +407,9 @@ func Load(dir string) (*Set, error) {
 		return nil, fmt.Errorf("%s: mother_skills needs a skills folder", SetFile)
 	}
 	if err := s.checkTools(); err != nil {
+		return nil, fmt.Errorf("%s: %w", SetFile, err)
+	}
+	if err := readRuleFiles(dir, s.Rules); err != nil {
 		return nil, fmt.Errorf("%s: %w", SetFile, err)
 	}
 	if err := compileRules(s.Rules, s.tool); err != nil {
@@ -514,6 +533,10 @@ func (s *Set) checkTools() error {
 		case "":
 			t.Kind = KindRules
 		case KindRules:
+		case KindPage:
+			if t.Name != "fetch_page" {
+				return fmt.Errorf("%s (%s): kind page is for fetch_page", where, t.Name)
+			}
 		case KindSQL, KindDescribe, KindConfig:
 			if t.Arg == "" {
 				return fmt.Errorf("%s (%s): kind %s needs arg, the argument it reads", where, t.Name, t.Kind)
@@ -522,7 +545,7 @@ func (s *Set) checkTools() error {
 				return fmt.Errorf("%s (%s): kind %s needs a fixture", where, t.Name, t.Kind)
 			}
 		default:
-			return fmt.Errorf("%s (%s): unknown kind %q; the kinds are rules, sql, describe and config", where, t.Name, t.Kind)
+			return fmt.Errorf("%s (%s): unknown kind %q; the kinds are rules, sql, describe, config and page", where, t.Name, t.Kind)
 		}
 		if t.Background && t.BackgroundArg != "" {
 			return fmt.Errorf("%s (%s): background and background_arg exclude each other", where, t.Name)
@@ -550,6 +573,26 @@ func (s *Set) tool(name string) *ToolSpec {
 	return nil
 }
 
+// readRuleFiles reads each rule's file in dir as its result.
+func readRuleFiles(dir string, rs map[string][]*Rule) error {
+	for name, list := range rs {
+		for i, r := range list {
+			if r.File == "" {
+				continue
+			}
+			if r.Result != "" {
+				return fmt.Errorf("rules.%s[%d]: result and file both give the result; keep one", name, i)
+			}
+			b, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(r.File)))
+			if err != nil {
+				return fmt.Errorf("rules.%s[%d]: %w", name, i, err)
+			}
+			r.Result = strings.ReplaceAll(string(b), "\r\n", "\n")
+		}
+	}
+	return nil
+}
+
 // compileRules checks rules: each names a fake tool of kind rules, and
 // its Match compiles.
 func compileRules(rs map[string][]*Rule, tool func(string) *ToolSpec) error {
@@ -558,7 +601,7 @@ func compileRules(rs map[string][]*Rule, tool func(string) *ToolSpec) error {
 		if t == nil {
 			return fmt.Errorf("rules.%s: no such fake tool", name)
 		}
-		if t.Kind != KindRules {
+		if t.Kind != KindRules && t.Kind != KindPage {
 			return fmt.Errorf("rules.%s: the tool is of kind %s, which has no rules", name, t.Kind)
 		}
 		for i, r := range list {
@@ -623,6 +666,16 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		if m.NewChat && m.At != nil {
 			return nil, fmt.Errorf("messages[%d]: a new chat waits until the chat is idle, so it has no at", i)
 		}
+		if m.Day != "" {
+			if m.At != nil {
+				return nil, fmt.Errorf("messages[%d]: a new day waits until the chat is idle, so it has no at", i)
+			}
+			d, err := time.ParseInLocation(time.DateOnly, m.Day, time.Local)
+			if err != nil {
+				return nil, fmt.Errorf("messages[%d]: day %q is not a date as YYYY-MM-DD", i, m.Day)
+			}
+			sc.Messages[i].day = d
+		}
 	}
 	if sc.Messages[0].At != nil || sc.Messages[0].Restart {
 		return nil, errors.New("messages[0]: the first message starts the scenario, so it has no at or restart")
@@ -639,6 +692,9 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		if s.tool(name) == nil {
 			return nil, fmt.Errorf("delays.%s: no such fake tool", name)
 		}
+	}
+	if err := readRuleFiles(s.Dir, sc.Rules); err != nil {
+		return nil, err
 	}
 	if err := compileRules(sc.Rules, s.tool); err != nil {
 		return nil, err
@@ -738,6 +794,9 @@ func (s *Set) checkAssert(a Assert) error {
 	}
 	if (a.Query != "" || a.Table != "") && a.Type != "db_query" {
 		return fmt.Errorf("query and table are for db_query")
+	}
+	if a.Harness != "" && !slices.Contains(Harnesses, a.Harness) {
+		return fmt.Errorf("harness %q: the harnesses are %s", a.Harness, strings.Join(Harnesses, ", "))
 	}
 	for _, re := range slices.Concat([]string{a.Match, a.ArgsMatch, a.ArgsNot, a.AnswerMatch, a.ResultMatch, a.Table}, a.ResultLine, a.Markers) {
 		if _, err := regexp.Compile(re); err != nil {

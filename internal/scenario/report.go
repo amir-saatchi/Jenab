@@ -20,8 +20,11 @@ type Report struct {
 	Scale   float64   `json:"scale"`
 	Reps    int       `json:"reps"`
 	Models  []string  `json:"models"`
-	Summary []Summary `json:"summary"`
-	Runs    []Run     `json:"runs"`
+	// Harnesses are the harnesses each model ran in (P2-13); empty is the
+	// app's alone.
+	Harnesses []string  `json:"harnesses,omitempty"`
+	Summary   []Summary `json:"summary"`
+	Runs      []Run     `json:"runs"`
 }
 
 // Run is one scenario on one model. Error is a run that broke, such as a
@@ -29,6 +32,7 @@ type Report struct {
 // count.
 type Run struct {
 	Model    string  `json:"model"`
+	Harness  string  `json:"harness,omitempty"` // jenab or plain; "" is the app's, unnamed
 	Scenario string  `json:"scenario"`
 	Rep      int     `json:"rep"`
 	Skipped  string  `json:"skipped,omitempty"`
@@ -56,7 +60,62 @@ type Run struct {
 	GroundVariant string         `json:"grounding_variant,omitempty"` // round 2's switches
 	Grounding     []GroundResult `json:"grounding,omitempty"`
 	GroundExtra   *GroundExtra   `json:"grounding_extra,omitempty"`
-	Transcript    string         `json:"-"`
+	// TurnStats are each turn's requests, tokens and seconds (P2-13).
+	TurnStats []TurnStat `json:"turn_stats,omitempty"`
+	// MemoryTokens and NotesTokens are the sizes at the end, as the caps
+	// count them: user and project memory, and the session notes.
+	MemoryTokens int    `json:"memory_tokens,omitempty"`
+	NotesTokens  int    `json:"notes_tokens,omitempty"`
+	Transcript   string `json:"-"`
+}
+
+// TurnStat is one turn's requests: their prompt tokens added up, the
+// first one's alone (the context the turn starts with), the share read
+// from the cache, the output, and the seconds from the message to the
+// chat's next idle. Subagents' requests aren't in it.
+type TurnStat struct {
+	Turn     int `json:"turn"`
+	Requests int `json:"requests"`
+	Prompt   int `json:"prompt_tokens"`
+	First    int `json:"first_prompt_tokens"`
+	// Estimate is the first request's size as the app estimates it, 4
+	// bytes a token: the same for every provider, and for scripted runs.
+	Estimate  int     `json:"first_estimate_tokens"`
+	CacheRead int     `json:"cache_read_tokens"`
+	Output    int     `json:"output_tokens"`
+	Seconds   float64 `json:"seconds"`
+	// Blocks is the first request's estimate by context block (3.1): what
+	// the turn starts with.
+	Blocks []BlockStat `json:"blocks,omitempty"`
+}
+
+// BlockStat is one context block's estimated size.
+type BlockStat struct {
+	Name   string `json:"name"`
+	Tokens int    `json:"tokens"`
+}
+
+// Lane is the run's model, with its harness after a "·" when it has one:
+// the column it has in the report.
+func (r Run) Lane() string {
+	if r.Harness == "" {
+		return r.Model
+	}
+	return r.Model + " · " + r.Harness
+}
+
+// lanes are the report's columns: each model, in each harness.
+func (rep *Report) lanes() []string {
+	if len(rep.Harnesses) == 0 {
+		return rep.Models
+	}
+	var out []string
+	for _, m := range rep.Models {
+		for _, h := range rep.Harnesses {
+			out = append(out, Run{Model: m, Harness: h}.Lane())
+		}
+	}
+	return out
 }
 
 // Passed reports whether the run didn't break and no check failed;
@@ -75,8 +134,8 @@ func (r Run) Passed() bool {
 
 // Summary is one model's numbers.
 type Summary struct {
-	Model   string          `json:"model"`
-	Runs    int             `json:"runs"` // not skipped
+	Model   string          `json:"model"` // the lane: the model, with its harness when it has one
+	Runs    int             `json:"runs"`  // not skipped
 	Passed  int             `json:"passed"`
 	Errors  int             `json:"errors"`
 	Skipped int             `json:"skipped"`
@@ -89,6 +148,20 @@ type Summary struct {
 	// Spread is, with 3 or more reps, the least and the most of each rep's
 	// pass share: of the runs (spreadRuns) and of each check.
 	Spread map[string]Range `json:"spread,omitempty"`
+	// Tests count the checks by their test label, "info" left out.
+	Tests map[string]Rate `json:"tests,omitempty"`
+	// Per turn and per run, for P2-13: the averages of the turns' prompt
+	// tokens, first request's prompt tokens and seconds; requests and the
+	// peak prompt per run; the least and the most of a run's cache read
+	// share; and the largest memory and notes at a run's end.
+	TurnPrompt  int     `json:"avg_turn_prompt_tokens,omitempty"`
+	TurnFirst   int     `json:"avg_turn_first_prompt_tokens,omitempty"`
+	TurnSeconds float64 `json:"avg_turn_seconds,omitempty"`
+	Requests    float64 `json:"avg_requests,omitempty"`
+	PeakPrompt  int     `json:"avg_peak_prompt_tokens,omitempty"`
+	CacheRange  Range   `json:"cache_read_range"`
+	Memory      int     `json:"max_memory_tokens,omitempty"`
+	Notes       int     `json:"max_notes_tokens,omitempty"`
 }
 
 // Range is the least and the most of a share across reps.
@@ -124,12 +197,12 @@ func (r Rate) String() string {
 
 func (rep *Report) summarize() {
 	rep.Summary = nil
-	for _, m := range rep.Models {
-		s := Summary{Model: m, Checks: map[string]Rate{}}
-		var prompt, output, cached int
-		var secs float64
+	for _, m := range rep.lanes() {
+		s := Summary{Model: m, Checks: map[string]Rate{}, Tests: map[string]Rate{}, CacheRange: Range{Min: 1}}
+		var prompt, output, cached, turns, turnPrompt, turnFirst, reqs, peak int
+		var secs, turnSecs float64
 		for _, r := range rep.Runs {
-			if r.Model != m {
+			if r.Lane() != m {
 				continue
 			}
 			if r.Skipped != "" {
@@ -144,24 +217,47 @@ func (rep *Report) summarize() {
 				s.Errors++
 			}
 			prompt, output, cached, secs = prompt+r.Prompt, output+r.Output, cached+r.CacheRead, secs+r.Seconds
+			reqs, peak = reqs+r.Requests, peak+r.PeakPrompt
+			if r.Prompt > 0 {
+				share := float64(r.CacheRead) / float64(r.Prompt)
+				s.CacheRange.Min, s.CacheRange.Max = min(s.CacheRange.Min, share), max(s.CacheRange.Max, share)
+			}
+			s.Memory, s.Notes = max(s.Memory, r.MemoryTokens), max(s.Notes, r.NotesTokens)
+			for _, t := range r.TurnStats {
+				turns++
+				turnPrompt, turnFirst, turnSecs = turnPrompt+t.Prompt, turnFirst+t.First, turnSecs+t.Seconds
+			}
 			for _, a := range r.Asserts {
 				if a.Test == "info" {
 					continue
 				}
-				c := s.Checks[a.Type]
-				switch a.Status {
-				case Pass:
-					c.Pass++
-				case Fail:
-					c.Fail++
-				default:
-					c.Skip++
+				count := func(rs map[string]Rate, k string) {
+					c := rs[k]
+					switch a.Status {
+					case Pass:
+						c.Pass++
+					case Fail:
+						c.Fail++
+					default:
+						c.Skip++
+					}
+					rs[k] = c
 				}
-				s.Checks[a.Type] = c
+				count(s.Checks, a.Type)
+				if a.Test != "" {
+					count(s.Tests, a.Test)
+				}
 			}
+		}
+		if s.CacheRange.Min > s.CacheRange.Max {
+			s.CacheRange = Range{}
+		}
+		if turns > 0 {
+			s.TurnPrompt, s.TurnFirst, s.TurnSeconds = turnPrompt/turns, turnFirst/turns, turnSecs/float64(turns)
 		}
 		if s.Runs > 0 {
 			s.Prompt, s.Output, s.Seconds = prompt/s.Runs, output/s.Runs, secs/float64(s.Runs)
+			s.Requests, s.PeakPrompt = float64(reqs)/float64(s.Runs), peak/s.Runs
 		}
 		if prompt > 0 {
 			s.CacheRead = float64(cached) / float64(prompt)
@@ -189,7 +285,7 @@ func (rep *Report) spread(model string) map[string]Range {
 		runs, passed := 0, 0
 		checks := map[string]Rate{}
 		for _, r := range rep.Runs {
-			if r.Model != model || r.Rep != k || r.Skipped != "" {
+			if r.Lane() != model || r.Rep != k || r.Skipped != "" {
 				continue
 			}
 			runs++
@@ -235,7 +331,7 @@ func (rep *Report) cell(model, scenario string) string {
 	pass, n, errs := 0, 0, 0
 	skipped := ""
 	for _, r := range rep.Runs {
-		if r.Model != model || r.Scenario != scenario {
+		if r.Lane() != model || r.Scenario != scenario {
 			continue
 		}
 		if r.Skipped != "" {
@@ -288,7 +384,7 @@ func (rep *Report) checkTypes() []string {
 func (rep *Report) ran(model string) []string {
 	var out []string
 	for _, r := range rep.Runs {
-		if r.Model == model && r.Skipped == "" && !slices.Contains(out, r.Scenario) {
+		if r.Lane() == model && r.Skipped == "" && !slices.Contains(out, r.Scenario) {
 			out = append(out, r.Scenario)
 		}
 	}
@@ -303,7 +399,7 @@ func (rep *Report) Changes(prev *Report) []string {
 		return nil
 	}
 	var out []string
-	for _, m := range rep.Models {
+	for _, m := range rep.lanes() {
 		now, _ := rep.summary(m)
 		was, ok := prev.summary(m)
 		if !ok {
@@ -348,13 +444,13 @@ func (rep *Report) Markdown(prev *Report) string {
 	}
 	if types := rep.checkTypes(); len(types) > 0 {
 		b.WriteString("\n## Checks\n\nPassed of counted; skipped checks are left out.\n\n| Check |")
-		for _, m := range rep.Models {
+		for _, m := range rep.lanes() {
 			b.WriteString(" " + m + " |")
 		}
-		b.WriteString("\n|---|" + strings.Repeat("---|", len(rep.Models)) + "\n")
+		b.WriteString("\n|---|" + strings.Repeat("---|", len(rep.lanes())) + "\n")
 		for _, t := range types {
 			b.WriteString("| " + t + " |")
-			for _, m := range rep.Models {
+			for _, m := range rep.lanes() {
 				s, _ := rep.summary(m)
 				cell := s.Checks[t].String()
 				if r, ok := s.Spread[t]; ok {
@@ -366,18 +462,19 @@ func (rep *Report) Markdown(prev *Report) string {
 		}
 	}
 	b.WriteString("\n## Scenarios\n\nRuns passed of runs.\n\n| Scenario |")
-	for _, m := range rep.Models {
+	for _, m := range rep.lanes() {
 		b.WriteString(" " + m + " |")
 	}
-	b.WriteString("\n|---|" + strings.Repeat("---|", len(rep.Models)) + "\n")
+	b.WriteString("\n|---|" + strings.Repeat("---|", len(rep.lanes())) + "\n")
 	for _, sc := range rep.scenarios() {
 		b.WriteString("| " + sc + " |")
-		for _, m := range rep.Models {
+		for _, m := range rep.lanes() {
 			b.WriteString(" " + rep.cell(m, sc) + " |")
 		}
 		b.WriteString("\n")
 	}
 	rep.groundMarkdown(&b)
+	rep.sideBySide(&b)
 	if prev != nil {
 		fmt.Fprintf(&b, "\n## Changes since %s\n\n", prev.Started.Format(time.RFC3339))
 		ch := rep.Changes(prev)
@@ -391,7 +488,7 @@ func (rep *Report) Markdown(prev *Report) string {
 	var fails []string
 	for _, r := range rep.Runs {
 		if r.Error != "" {
-			fails = append(fails, fmt.Sprintf("- %s, %s r%d broke: %s", r.Model, r.Scenario, r.Rep, clip(r.Error, 300)))
+			fails = append(fails, fmt.Sprintf("- %s, %s r%d broke: %s", r.Lane(), r.Scenario, r.Rep, clip(r.Error, 300)))
 		}
 		for _, a := range r.Asserts {
 			if a.Status == Fail {
@@ -399,7 +496,7 @@ func (rep *Report) Markdown(prev *Report) string {
 				if a.Test == "info" {
 					info = " (info)"
 				}
-				fails = append(fails, fmt.Sprintf("- %s, %s r%d: %s%s: %s", r.Model, r.Scenario, r.Rep, a.Type, info, clip(a.Why, 300)))
+				fails = append(fails, fmt.Sprintf("- %s, %s r%d: %s%s%s: %s", r.Lane(), r.Scenario, r.Rep, a.Type, label(a.Test), info, clip(a.Why, 300)))
 			}
 		}
 	}
@@ -407,6 +504,102 @@ func (rep *Report) Markdown(prev *Report) string {
 		b.WriteString("\n## Failures\n\n" + strings.Join(fails, "\n") + "\n")
 	}
 	return b.String()
+}
+
+// label is a check's test label in brackets, for a failure's line; ""
+// and "info" are left out.
+func label(test string) string {
+	if test == "" || test == "info" {
+		return ""
+	}
+	return " [" + test + "]"
+}
+
+// sideBySide is P2-13's comparison, for a report with harnesses: each
+// lane's checks, tokens, cache and time, its checks by test, and each
+// turn's prompt tokens and seconds.
+func (rep *Report) sideBySide(b *strings.Builder) {
+	if len(rep.Harnesses) == 0 {
+		return
+	}
+	lanes := rep.lanes()
+	b.WriteString("\n## Side by side\n\n| Model · harness | Checks passed | Prompt tokens per turn | First request per turn | Peak prompt | Requests per run | Cache read (runs) | Seconds per turn | Memory / notes at the end |\n|---|---|---|---|---|---|---|---|---|\n")
+	for _, m := range lanes {
+		s, _ := rep.summary(m)
+		var all Rate
+		for _, c := range s.Checks {
+			all.Pass, all.Fail = all.Pass+c.Pass, all.Fail+c.Fail
+		}
+		fmt.Fprintf(b, "| %s | %s | %d | %d | %d | %.1f | %.0f %% (%s) | %.1f | %d / %d |\n", m, all, s.TurnPrompt, s.TurnFirst, s.PeakPrompt,
+			s.Requests, s.CacheRead*100, s.CacheRange, s.TurnSeconds, s.Memory, s.Notes)
+	}
+	b.WriteString("\nPer turn: averages over every turn of every run. Prompt tokens add up a turn's requests, cached or not; the first request is the context the turn starts with. Subagents' requests are left out. Cache read is the share of all prompt tokens, with the least and the most of a run in brackets. Memory and notes are the largest at a run's end, in tokens as the caps count them.\n")
+	var tests []string
+	for _, m := range lanes {
+		s, _ := rep.summary(m)
+		for t := range s.Tests {
+			if !slices.Contains(tests, t) {
+				tests = append(tests, t)
+			}
+		}
+	}
+	slices.Sort(tests)
+	if len(tests) > 0 {
+		b.WriteString("\n### Checks by test\n\n| Test |")
+		for _, m := range lanes {
+			b.WriteString(" " + m + " |")
+		}
+		b.WriteString("\n|---|" + strings.Repeat("---|", len(lanes)) + "\n")
+		for _, t := range tests {
+			b.WriteString("| " + t + " |")
+			for _, m := range lanes {
+				s, _ := rep.summary(m)
+				b.WriteString(" " + s.Tests[t].String() + " |")
+			}
+			b.WriteString("\n")
+		}
+	}
+	type sum struct {
+		n                  int
+		prompt, first, est int
+		secs               float64
+	}
+	turns := map[string]map[int]*sum{}
+	last := 0
+	for _, r := range rep.Runs {
+		for _, t := range r.TurnStats {
+			if turns[r.Lane()] == nil {
+				turns[r.Lane()] = map[int]*sum{}
+			}
+			x := turns[r.Lane()][t.Turn]
+			if x == nil {
+				x = &sum{}
+				turns[r.Lane()][t.Turn] = x
+			}
+			x.n++
+			x.prompt, x.first, x.est, x.secs = x.prompt+t.Prompt, x.first+t.First, x.est+t.Estimate, x.secs+t.Seconds
+			last = max(last, t.Turn)
+		}
+	}
+	if last == 0 {
+		return
+	}
+	b.WriteString("\n### Per turn\n\nAverages over the runs: prompt tokens of the turn's requests added up / of its first request (in brackets: the app's estimate of the first request, 4 bytes a token), and seconds.\n\n| Turn |")
+	for _, m := range lanes {
+		b.WriteString(" " + m + " |")
+	}
+	b.WriteString("\n|---|" + strings.Repeat("---|", len(lanes)) + "\n")
+	for n := 1; n <= last; n++ {
+		fmt.Fprintf(b, "| %d |", n)
+		for _, m := range lanes {
+			if x := turns[m][n]; x != nil {
+				fmt.Fprintf(b, " %d / %d (%d), %.1f s |", x.prompt/x.n, x.first/x.n, x.est/x.n, x.secs/float64(x.n))
+			} else {
+				b.WriteString(" |")
+			}
+		}
+		b.WriteString("\n")
+	}
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
@@ -435,6 +628,9 @@ func (rep *Report) Write(dir string, prev *Report) (string, error) {
 			continue
 		}
 		d := filepath.Join(base, unsafeName.ReplaceAllString(r.Model, "_"))
+		if r.Harness != "" {
+			d = filepath.Join(d, r.Harness)
+		}
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return "", err
 		}

@@ -65,7 +65,15 @@ func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
 // check runs a scenario's assertions on its record.
 func check(rec *record, sc *Scenario) []Result {
 	out := make([]Result, 0, len(sc.Asserts))
+	harness := rec.harness
+	if harness == "" {
+		harness = HarnessJenab
+	}
 	for _, a := range sc.Asserts {
+		if a.Harness != "" && a.Harness != harness {
+			out = append(out, Result{Type: a.Type, Test: a.Test, Status: Skip, Why: "for the " + a.Harness + " harness"})
+			continue
+		}
 		st, why, v := rec.check(a)
 		out = append(out, Result{Type: a.Type, Test: a.Test, Status: st, Why: why, Value: v})
 	}

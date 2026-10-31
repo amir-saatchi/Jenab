@@ -92,6 +92,14 @@ func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result,
 		}
 		return Result{}, &Error{Msg: "could not fetch " + a.URL + ": " + strings.TrimPrefix(err.Error(), "web: "), Err: err}
 	}
+	return StorePage(ctx, env, p)
+}
+
+// StorePage stores a fetched page in the bucket and returns its result:
+// a preview with the ref, as fetch_page gives it (3.7). The scenario
+// runner's fake pages use it too, so they become stubs at a cut as real
+// pages do.
+func StorePage(ctx context.Context, env *Env, p web.Page) (Result, error) {
 	final, err := url.Parse(p.URL)
 	if err != nil {
 		return Result{}, err

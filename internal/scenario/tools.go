@@ -15,6 +15,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/web"
 )
 
 // realOff are the real tools a run leaves out: fetch_page calls the
@@ -49,6 +50,15 @@ func (r *run) tools() *tool.Registry {
 	for _, t := range r.sc.set.Tools {
 		reg.Add(r.fake(t))
 	}
+	if r.plain() {
+		only := tool.NewRegistry()
+		for _, n := range plainTools {
+			if t, ok := reg.Get(n); ok {
+				only.Add(t)
+			}
+		}
+		return only
+	}
 	return reg
 }
 
@@ -76,6 +86,8 @@ func (r *run) fake(t *ToolSpec) tool.Tool {
 			res, err = r.describe(ctx, argText(args, t.Arg))
 		case KindConfig:
 			res, err = r.config(argText(args, t.Arg))
+		case KindPage:
+			res, err = r.page(ctx, env, argText(args, "url"), raw)
 		default:
 			rule = r.sc.rule(t.Name, raw)
 			switch {
@@ -92,6 +104,25 @@ func (r *run) fake(t *ToolSpec) tool.Tool {
 		}
 		return res, err
 	})
+}
+
+// page is a fake fetch_page's result: the first matching rule's text,
+// stored as the real tool stores a page. No rule is a page not found;
+// an error rule is the error.
+func (r *run) page(ctx context.Context, env *tool.Env, url, args string) (tool.Result, error) {
+	rule := r.sc.rule("fetch_page", args)
+	switch {
+	case rule == nil:
+		return tool.Result{}, &tool.Error{Msg: "could not fetch " + url + ": " + url + " returned 404 Not Found"}
+	case rule.Error:
+		return tool.Result{}, &tool.Error{Msg: strings.TrimSpace(rule.Result)}
+	}
+	text := strings.TrimSpace(rule.Result)
+	title := ""
+	if line, _, _ := strings.Cut(text, "\n"); strings.HasPrefix(line, "# ") {
+		title = strings.TrimSpace(line[2:])
+	}
+	return tool.StorePage(ctx, env, web.Page{URL: url, Title: title, Text: text, MIME: "text/html"})
 }
 
 // sleep waits d, scaled, or until ctx ends.
