@@ -1,0 +1,15 @@
+== start 23:34:06
+models: local/lfm3:1.7b
+
+scenarios/memory (Reading list)
+  local/lfm3:1.7b              M1_persian                           r1  pass in 2m27.7s, 3 requests
+  local/lfm3:1.7b              M1_persian                           r2  pass in 1m58.8s, 3 requests
+  local/lfm3:1.7b              M1_persian                           r3  pass in 1m35.5s, 3 requests
+  local/lfm3:1.7b              M2_tldr                              r1  fail in 4m38.2s, 6 requests: tool_not_called, tool_not_called
+  local/lfm3:1.7b              M2_tldr                              r2  pass in 5m17.7s, 5 requests
+  local/lfm3:1.7b              M2_tldr                              r3  fail in 2m43.9s, 4 requests: tool_not_called
+  local/lfm3:1.7b: 4/6 runs passed, 0 broke, 0 skipped
+  report: results\lfm3-memory\run\20261031-200407.md
+== memory done 23:52:49
+== unloaded 23:52:52: {"models":[]}
+== all done 23:53:08

@@ -1,0 +1,799 @@
+{
+  "set": "Reading list",
+  "started": "2026-10-31T20:04:07.0902998Z",
+  "took_seconds": 1122.0745674,
+  "scale": 1,
+  "reps": 3,
+  "models": [
+    "local/lfm3:1.7b"
+  ],
+  "summary": [
+    {
+      "model": "local/lfm3:1.7b",
+      "runs": 6,
+      "passed": 4,
+      "errors": 0,
+      "skipped": 0,
+      "checks": {
+        "answer_contains": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        },
+        "answer_lacks": {
+          "pass": 3,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_called": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        },
+        "tool_not_called": {
+          "pass": 15,
+          "fail": 3,
+          "skip": 0
+        }
+      },
+      "avg_prompt_tokens": 13843,
+      "avg_output_tokens": 1734,
+      "avg_seconds": 187.0118323833333,
+      "cache_read_share": 0,
+      "spread": {
+        "answer_contains": {
+          "min": 1,
+          "max": 1
+        },
+        "answer_lacks": {
+          "min": 1,
+          "max": 1
+        },
+        "runs": {
+          "min": 0.5,
+          "max": 1
+        },
+        "tool_called": {
+          "min": 1,
+          "max": 1
+        },
+        "tool_not_called": {
+          "min": 0.6666666666666666,
+          "max": 1
+        }
+      },
+      "tests": {
+        "follows": {
+          "pass": 24,
+          "fail": 3,
+          "skip": 0
+        },
+        "saved": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        }
+      },
+      "avg_turn_prompt_tokens": 6921,
+      "avg_turn_first_prompt_tokens": 3046,
+      "avg_turn_seconds": 93.41490134166666,
+      "avg_requests": 4,
+      "avg_peak_prompt_tokens": 3948,
+      "cache_read_range": {
+        "min": 0,
+        "max": 0
+      },
+      "max_memory_tokens": 26
+    }
+  ],
+  "runs": [
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M1_persian",
+      "rep": 1,
+      "seconds": 147.7145444,
+      "turns": 2,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 9408,
+      "input_tokens": 9408,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3314,
+      "output_tokens": 1138,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"The user always wants answers in Persian (Farsi),…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"The user always wants answers in Persian (Farsi),…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "چهار تا پاسخ؟ خیر، این سوال یک موضوع عمومی است و هیچ ابزار خاصی نیاز به اجرا دارد. بیایید …"
+        },
+        {
+          "type": "answer_lacks",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6348,
+          "first_prompt_tokens": 3034,
+          "first_estimate_tokens": 3205,
+          "cache_read_tokens": 0,
+          "output_tokens": 378,
+          "seconds": 62.2252835,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 25
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 1,
+          "prompt_tokens": 3060,
+          "first_prompt_tokens": 3060,
+          "first_estimate_tokens": 3233,
+          "cache_read_tokens": 0,
+          "output_tokens": 760,
+          "seconds": 85.2753031,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 40
+            },
+            {
+              "name": "This turn",
+              "tokens": 13
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 26
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M1_persian",
+      "rep": 2,
+      "seconds": 118.8648344,
+      "turns": 2,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 9396,
+      "input_tokens": 9396,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3304,
+      "output_tokens": 1007,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"The user always wants answers in Persian, regardl…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"The user always wants answers in Persian, regardl…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "برای نگهداری یک لیست خوانش‌ها، این سه عادت خوب پیشنهاد می‌کنم:\n\n1. **استفاده از یک فایل یا…"
+        },
+        {
+          "type": "answer_lacks",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6338,
+          "first_prompt_tokens": 3034,
+          "first_estimate_tokens": 3205,
+          "cache_read_tokens": 0,
+          "output_tokens": 326,
+          "seconds": 48.0504901,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 25
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 1,
+          "prompt_tokens": 3058,
+          "first_prompt_tokens": 3058,
+          "first_estimate_tokens": 3233,
+          "cache_read_tokens": 0,
+          "output_tokens": 681,
+          "seconds": 70.6500916,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 40
+            },
+            {
+              "name": "This turn",
+              "tokens": 13
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 25
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M1_persian",
+      "rep": 3,
+      "seconds": 95.5709857,
+      "turns": 2,
+      "requests": 3,
+      "provider_requests": 3,
+      "prompt_tokens": 9331,
+      "input_tokens": 9331,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3242,
+      "output_tokens": 794,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always answer in Persian, regardless of the langu…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always answer in Persian, regardless of the langu…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "در اینجا سه عادت خوب برای نگهداری یک لیست خوانش را پیشنهاد می‌کنم:\n\n1. **استفاده از یک فایل…"
+        },
+        {
+          "type": "answer_lacks",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6276,
+          "first_prompt_tokens": 3034,
+          "first_estimate_tokens": 3205,
+          "cache_read_tokens": 0,
+          "output_tokens": 338,
+          "seconds": 37.4755306,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 25
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 1,
+          "prompt_tokens": 3055,
+          "first_prompt_tokens": 3055,
+          "first_estimate_tokens": 3229,
+          "cache_read_tokens": 0,
+          "output_tokens": 456,
+          "seconds": 57.9502807,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 36
+            },
+            {
+              "name": "This turn",
+              "tokens": 13
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 21
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M2_tldr",
+      "rep": 1,
+      "seconds": 278.2005304,
+      "turns": 2,
+      "requests": 6,
+      "provider_requests": 6,
+      "prompt_tokens": 22328,
+      "input_tokens": 22328,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 4894,
+      "output_tokens": 2953,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always begin every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always begin every answer with a one-line summary…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "**TL;DR:** Pick your next book by matching it to your current mood/genre, checking ratings and recent buzz, and reviewing a few synopses—then commit to whatev…"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "fail",
+          "why": "called read_messages {\"chat_id\":\"01M69SC3QGNP337GYHVYYEGTJK\",\"from\":0,\"to\":1}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "fail",
+          "why": "called search_history {\"query\":\"book\",\"scope\":\"project\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6357,
+          "first_prompt_tokens": 3037,
+          "first_estimate_tokens": 3207,
+          "cache_read_tokens": 0,
+          "output_tokens": 327,
+          "seconds": 38.0502239,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 27
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 4,
+          "prompt_tokens": 15971,
+          "first_prompt_tokens": 3057,
+          "first_estimate_tokens": 3226,
+          "cache_read_tokens": 0,
+          "output_tokens": 2626,
+          "seconds": 240.0005766,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 36
+            },
+            {
+              "name": "This turn",
+              "tokens": 10
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 21
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M2_tldr",
+      "rep": 2,
+      "seconds": 317.7814146,
+      "turns": 2,
+      "requests": 5,
+      "provider_requests": 5,
+      "prompt_tokens": 19486,
+      "input_tokens": 19486,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 5240,
+      "output_tokens": 3024,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "**TL;DR:** You want a **new fiction book**, so pick a fresh title rather than continuing a series. Start by narrowing down sub-genres or themes you enjoy, then …"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6318,
+          "first_prompt_tokens": 3037,
+          "first_estimate_tokens": 3207,
+          "cache_read_tokens": 0,
+          "output_tokens": 320,
+          "seconds": 43.5752914,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 27
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 3,
+          "prompt_tokens": 13168,
+          "first_prompt_tokens": 3057,
+          "first_estimate_tokens": 3226,
+          "cache_read_tokens": 0,
+          "output_tokens": 2704,
+          "seconds": 273.9750634,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 36
+            },
+            {
+              "name": "This turn",
+              "tokens": 10
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 22
+    },
+    {
+      "model": "local/lfm3:1.7b",
+      "scenario": "M2_tldr",
+      "rep": 3,
+      "seconds": 163.9386848,
+      "turns": 2,
+      "requests": 4,
+      "provider_requests": 4,
+      "prompt_tokens": 13113,
+      "input_tokens": 13113,
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "peak_prompt_tokens": 3697,
+      "output_tokens": 1492,
+      "asserts": [
+        {
+          "type": "tool_called",
+          "test": "saved",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "tool_called",
+          "test": "info",
+          "status": "pass",
+          "why": "update_memory {\"scope\":\"user\",\"section\":\"preferences\",\"content\":\"Always start every answer with a one-line summary…"
+        },
+        {
+          "type": "answer_contains",
+          "test": "follows",
+          "status": "pass",
+          "why": "**TL;DR:** Pick a book by matching it to your current mood, genre, and rating signals—start with a quick scan of recent picks, read a few reviews, and choose …"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "pass"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "follows",
+          "status": "fail",
+          "why": "called search_history {\"query\":\"book\"}"
+        },
+        {
+          "type": "tool_not_called",
+          "test": "info",
+          "status": "pass"
+        },
+        {
+          "type": "no_turn_failed",
+          "test": "info",
+          "status": "pass"
+        }
+      ],
+      "turn_stats": [
+        {
+          "turn": 1,
+          "requests": 2,
+          "prompt_tokens": 6358,
+          "first_prompt_tokens": 3037,
+          "first_estimate_tokens": 3207,
+          "cache_read_tokens": 0,
+          "output_tokens": 327,
+          "seconds": 36.1502368,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "This turn",
+              "tokens": 27
+            }
+          ]
+        },
+        {
+          "turn": 2,
+          "requests": 2,
+          "prompt_tokens": 6755,
+          "first_prompt_tokens": 3058,
+          "first_estimate_tokens": 3227,
+          "cache_read_tokens": 0,
+          "output_tokens": 1165,
+          "seconds": 127.6004444,
+          "blocks": [
+            {
+              "name": "Tools",
+              "tokens": 2773
+            },
+            {
+              "name": "System prompt, role and skills",
+              "tokens": 407
+            },
+            {
+              "name": "User memory",
+              "tokens": 37
+            },
+            {
+              "name": "This turn",
+              "tokens": 10
+            }
+          ]
+        }
+      ],
+      "memory_tokens": 22
+    }
+  ]
+}
