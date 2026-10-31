@@ -43,6 +43,7 @@
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
+| [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Open | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -67,10 +68,11 @@
 | [TASK-024](TASK-024-spike-037-part-b-out.md) | Move SPIKE-037's Part B out of the app | Task | Done | 3 |
 | [TASK-025](TASK-025-live-answer.md) | A live answer | Task | Open (needs finish turns) | 3 |
 | [TASK-026](TASK-026-memory-edit-after-untrusted.md) | Ask before a memory edit after untrusted content | Task | Done | 3 |
-| [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Open | 3 |
+| [TASK-027](TASK-027-history-cards.md) | History cards after a cut | Task | Done | 3 |
 | [TASK-028](TASK-028-memory-mark-in-window.md) | Keep the untrusted mark for memory edits while the content is in the window | Task | Done | 3 |
 | [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Done | 3 |
-| [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Open | 3 |
+| [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Done | 3 |
+| [TASK-031](TASK-031-history-cards-paraphrases.md) | History cards for paraphrased follow-ups | Task | Open (later) | 3 |
 
 ## Phase 1
 
