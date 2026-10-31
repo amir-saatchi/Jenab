@@ -43,7 +43,7 @@
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
-| [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Open | 3 |
+| [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Done | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -73,6 +73,7 @@
 | [TASK-029](TASK-029-provider-json-mode.md) | Each provider's JSON mode for schema answers | Task | Done | 3 |
 | [TASK-030](TASK-030-memory-saves-without-asking.md) | Memory saves without asking | Task | Done | 3 |
 | [TASK-031](TASK-031-history-cards-paraphrases.md) | History cards for paraphrased follow-ups | Task | Open (later) | 3 |
+| [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Open | 3 |
 
 ## Phase 1
 
