@@ -9,6 +9,9 @@ import * as agent$0 from "../agent/models.js";
 import * as chat$0 from "../chat/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as chatexport$0 from "../chatexport/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as config$0 from "../config/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -34,6 +37,15 @@ export interface BlockView {
      */
     "point": boolean;
     "cache": string;
+}
+
+/**
+ * ChatExportRequest is the place the user chose in the save dialog, and
+ * the format.
+ */
+export interface ChatExportRequest {
+    "target": string;
+    "format": chatexport$0.Format;
 }
 
 /**

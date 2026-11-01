@@ -12,6 +12,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/chatexport"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -65,6 +66,8 @@ var known = []struct {
 	{project.ErrExportExists, KindInvalid, "Something is already there. Choose another name, or an empty folder."},
 	{project.ErrExportInside, KindInvalid, "An export can't go inside the project's own folder."},
 	{project.ErrNoSpace, KindInvalid, "There isn't enough free disk space there for the export."},
+	{chatexport.ErrFormat, KindInvalid, "Choose Markdown or JSON."},
+	{chatexport.ErrWrite, KindInvalid, "The file can't be written there. Choose another place."},
 	{store.ErrMother, KindInvalid, "The " + appinfo.Mother + " chat can't be archived or deleted, or get a role."},
 	{store.ErrTitleTaken, KindInvalid, "Another chat has this title."},
 	{store.ErrBadTitle, KindInvalid, "A title needs 1 to 100 characters on one line."},

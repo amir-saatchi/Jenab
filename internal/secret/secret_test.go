@@ -145,6 +145,28 @@ func TestStoreRedact(t *testing.T) {
 	}
 }
 
+// Redactor reads the names it is given, so a key the app hasn't used yet
+// is hidden too, and finds a value inside JSON strings, with and without
+// HTML escaping.
+func TestRedactor(t *testing.T) {
+	const odd = `k<&>"\1`
+	s := New(memKeyring{"provider:a": odd, "provider:b": "plainkey"})
+	if r := s.Redactor(); r("plainkey") != "plainkey" {
+		t.Error("redacted a name it was never given")
+	}
+	r := s.Redactor("provider:a", "provider:b", "provider:missing")
+	html, _ := json.Marshal(odd)
+	in := odd + " " + string(html) + ` "k<&>\"\\1" plainkey`
+	want := `[secret:provider:a] "[secret:provider:a]" "[secret:provider:a]" [secret:provider:b]`
+	if got := r(in); got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	// Redact now covers them, since Redactor read them.
+	if got := s.Redact(string(html)); got != `"[secret:provider:a]"` {
+		t.Errorf("Redact: %s", got)
+	}
+}
+
 // TestOSKeyring writes, reads and deletes one entry in the real keychain,
 // under the service "jenab-test". It runs only with JENAB_KEYCHAIN_TEST=1,
 // so CI machines without a keychain skip it.

@@ -18,6 +18,7 @@ import { useProjects } from "@/state/projects"
 import { useThreads } from "@/state/thread"
 import { useUI } from "@/state/ui"
 import { subline } from "@/shell/chat-sidebar"
+import { ChatHeaderMenu } from "@/shell/chat-menu"
 
 // ChatView is the main area with one chat: its messages, the bars for a
 // long tool call, a retry or a waiting card, and the composer.
@@ -31,16 +32,18 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
   }, [project, chat])
   React.useEffect(open, [open])
   const mother = (item?.chat ?? thread?.chat)?.kind === ChatKind.KindMother
+  const title = item?.chat.title || thread?.chat.title || "New chat"
   return (
     <div className="flex h-full min-h-0 flex-col">
       <ChatHeader
-        title={item?.chat.title || thread?.chat.title || "New chat"}
+        title={title}
         sub={item ? subline(item) : ""}
         mother={mother}
         actions={
           <>
             {thread && <RefreshButton project={project} chat={chat} />}
             <NotesButton project={project} chat={chat} />
+            <ChatHeaderMenu project={project} chat={chat} title={title} />
           </>
         }
       />

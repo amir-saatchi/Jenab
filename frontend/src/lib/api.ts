@@ -9,6 +9,7 @@ export {
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/app"
 export type {
   BlockView,
+  ChatExportRequest,
   ChatItem,
   ChatSnapshot,
   ConnectRequest,
@@ -77,6 +78,8 @@ export type {
   ToolResult,
   Waiting,
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/chat/models"
+export { Format as ChatExportFormat } from "../../bindings/github.com/amir-saatchi/jenab/internal/chatexport/models"
+export type { Result as ChatExportResult } from "../../bindings/github.com/amir-saatchi/jenab/internal/chatexport/models"
 export type { ModelSettings, ProviderSettings, Settings } from "../../bindings/github.com/amir-saatchi/jenab/internal/config/models"
 export type {
   ExportEstimate,

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronDownIcon, CircleAlertIcon, DiamondIcon, FolderCogIcon, MessageSquareIcon, PackageIcon, PinIcon, PlusIcon } from "lucide-react"
+import { ChevronDownIcon, CircleAlertIcon, DiamondIcon, EllipsisIcon, FolderCogIcon, MessageSquareIcon, PackageIcon, PinIcon, PlusIcon } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -28,6 +29,8 @@ import { useChats, visible } from "@/state/chats"
 import { current, useNav } from "@/state/nav"
 import { useProjects } from "@/state/projects"
 import { useUI } from "@/state/ui"
+import { ChatMenuItems } from "@/shell/chat-menu"
+import { ExportChat } from "@/shell/export-chat"
 import { ExportProject } from "@/shell/export-project"
 import { newChat, openChat } from "@/shell/open"
 
@@ -100,7 +103,13 @@ export function ChatSidebar({ project, className }: { project: string; className
                   </SidebarMenuItem>
                 ))}
               {list.map((it) => (
-                <ChatRow key={it.chat.id} item={it} active={it.chat.id === active} onOpen={() => openChat(project, it.chat.id)} />
+                <ChatRow
+                  key={it.chat.id}
+                  project={project}
+                  item={it}
+                  active={it.chat.id === active}
+                  onOpen={() => openChat(project, it.chat.id)}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -111,9 +120,11 @@ export function ChatSidebar({ project, className }: { project: string; className
   )
 }
 
-function ChatRow({ item, active, onOpen }: { item: ChatItem; active: boolean; onOpen: () => void }) {
+// ChatRow is a chat in the list, with its menu (SPEC 5.12).
+function ChatRow({ project, item, active, onOpen }: { project: string; item: ChatItem; active: boolean; onOpen: () => void }) {
   const { chat, state } = item
   const mother = chat.kind === ChatKind.KindMother
+  const [exporting, setExporting] = React.useState(false)
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -134,6 +145,17 @@ function ChatRow({ item, active, onOpen }: { item: ChatItem; active: boolean; on
         </div>
       </SidebarMenuButton>
       <StatusBadge item={item} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuAction showOnHover aria-label="Chat menu">
+            <EllipsisIcon />
+          </SidebarMenuAction>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="start" className="w-48">
+          <ChatMenuItems onExport={() => setExporting(true)} />
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ExportChat project={project} chat={chat.id} title={chat.title} open={exporting} onOpenChange={setExporting} />
     </SidebarMenuItem>
   )
 }
@@ -152,24 +174,30 @@ export function subline({ chat, state, last_activity }: ChatItem, now = new Date
   return "Last active " + (today ? t.toLocaleTimeString([], { timeStyle: "short" }) : t.toLocaleDateString([], { dateStyle: "medium" }))
 }
 
+// badgeClass makes a status badge give way to the row's menu button, which
+// takes its place on hover and focus. On narrow screens the button always
+// shows, so the badge is hidden; the second line still says the status.
+const badgeClass =
+  "max-md:hidden md:group-focus-within/menu-item:opacity-0 md:group-hover/menu-item:opacity-0 md:group-has-aria-expanded/menu-item:opacity-0"
+
 function StatusBadge({ item }: { item: ChatItem }) {
   if (item.state === ChatState.StateWorking) {
     return (
-      <SidebarMenuBadge>
+      <SidebarMenuBadge className={badgeClass}>
         <Spinner className="size-3.5 text-muted-foreground" />
       </SidebarMenuBadge>
     )
   }
   if (item.state === ChatState.StateWaiting) {
     return (
-      <SidebarMenuBadge>
+      <SidebarMenuBadge className={badgeClass}>
         <CircleAlertIcon className="size-4 text-tone-amber" />
       </SidebarMenuBadge>
     )
   }
   if (item.chat.kind === ChatKind.KindMother) {
     return (
-      <SidebarMenuBadge>
+      <SidebarMenuBadge className={badgeClass}>
         <PinIcon className="size-3.5 text-muted-foreground" />
       </SidebarMenuBadge>
     )

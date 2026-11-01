@@ -3,6 +3,7 @@
 package secret
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -121,28 +122,76 @@ func (s *Store) Delete(name string) error {
 }
 
 // Redact replaces every secret this store has read or written with
-// [secret:NAME]. It reads them again from the keychain (about 0.1 ms each),
-// so no value is kept in memory. Use it on text that leaves the app or is
-// logged, such as provider error bodies.
+// [secret:NAME], raw or JSON-escaped. It reads them again from the
+// keychain (about 0.1 ms each), so no value is kept in memory. Use it on
+// text that leaves the app or is logged, such as provider error bodies.
 func (s *Store) Redact(text string) string {
+	return s.Redactor()(text)
+}
+
+// Redactor reads names (a missing one is skipped) and every secret this
+// store has seen, once, and returns a function that replaces each with
+// [secret:NAME], raw or JSON-escaped. Redact uses it for one text; a long
+// job, such as a chat export (SPEC 2.3), keeps one instead of reading the
+// keychain for every string. The values live in it until it is dropped, so
+// drop it with the job. There is no minimum length: every stored value is
+// replaced, since the keychain holds only secrets.
+func (s *Store) Redactor(names ...string) func(string) string {
+	for _, n := range names {
+		_, _ = s.Get(n) // Get remembers the name; a missing one has nothing to hide
+	}
 	s.mu.Lock()
-	names := make([]string, 0, len(s.names))
+	all := make([]string, 0, len(s.names))
 	for n := range s.names {
-		names = append(names, n)
+		all = append(all, n)
 	}
 	s.mu.Unlock()
-	vals := make([]Value, 0, len(names))
-	for _, n := range names {
-		if v, err := s.Get(n); err == nil {
-			vals = append(vals, v)
+	type pair struct{ old, new string }
+	var pairs []pair
+	for _, n := range all {
+		v, err := s.Get(n)
+		if err != nil || v.Reveal() == "" {
+			continue
+		}
+		for _, form := range forms(v.Reveal()) {
+			pairs = append(pairs, pair{form, v.String()})
 		}
 	}
-	// Longest first, so a key that contains another is replaced whole.
-	slices.SortFunc(vals, func(a, b Value) int { return len(b.Reveal()) - len(a.Reveal()) })
-	for _, v := range vals {
-		text = v.Redact(text)
+	if len(pairs) == 0 {
+		return func(t string) string { return t }
 	}
-	return text
+	// Longest first: at one position, the replacer takes the first match
+	// in argument order, so a key that contains another is replaced whole.
+	slices.SortStableFunc(pairs, func(a, b pair) int { return len(b.old) - len(a.old) })
+	args := make([]string, 0, 2*len(pairs))
+	for _, p := range pairs {
+		args = append(args, p.old, p.new)
+	}
+	return strings.NewReplacer(args...).Replace
+}
+
+// forms is a value as text may hold it: raw, and inside a JSON string with
+// and without HTML escaping.
+func forms(v string) []string {
+	out := []string{v}
+	add := func(b []byte) {
+		b = bytes.TrimSuffix(b, []byte("\n")) // Encode ends with a newline
+		if len(b) >= 2 {
+			if f := string(b[1 : len(b)-1]); !slices.Contains(out, f) {
+				out = append(out, f)
+			}
+		}
+	}
+	if b, err := json.Marshal(v); err == nil {
+		add(b)
+	}
+	var buf bytes.Buffer
+	e := json.NewEncoder(&buf)
+	e.SetEscapeHTML(false)
+	if e.Encode(v) == nil {
+		add(buf.Bytes())
+	}
+	return out
 }
 
 func (s *Store) remember(name string) {

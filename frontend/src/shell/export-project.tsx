@@ -264,8 +264,14 @@ const stoppedText = "The export was stopped. Nothing was left behind."
 // fileName is the save dialog's suggested name: the project's name
 // without characters a file name can't hold.
 export function fileName(project: string, format: ExportFormat) {
-  const base = project.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/^[\s.-]+|[\s.-]+$/g, "") || "project"
+  const base = safeName(project, "project")
   return format === ExportFormat.ExportZip ? `${base}.zip` : base
+}
+
+// safeName is name without characters a file name can't hold, or fallback
+// when nothing is left.
+export function safeName(name: string, fallback: string) {
+  return name.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "-").replace(/^[\s.-]+|[\s.-]+$/g, "") || fallback
 }
 
 // exportPath is the path the export writes: a zip file gets .zip when the

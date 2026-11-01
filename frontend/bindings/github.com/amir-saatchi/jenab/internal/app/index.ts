@@ -18,6 +18,7 @@ export {
 
 export type {
     BlockView,
+    ChatExportRequest,
     ChatItem,
     ChatSnapshot,
     ConnectRequest,

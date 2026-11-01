@@ -6,8 +6,11 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/chatexport"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/provider"
+	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
@@ -20,6 +23,8 @@ type ChatService struct {
 	base
 	orch     *agent.Orchestrator
 	projects *project.Manager
+	secrets  *secret.Store // for Export's redaction; nil redacts nothing
+	settings *Settings     // the providers whose keys Export hides, and the model aliases; may be nil
 }
 
 // ChatItem is a row of the chat list.
@@ -288,4 +293,78 @@ func (s *ChatService) Search(ctx context.Context, p id.Project, q SearchRequest)
 		r.Hits = []store.Hit{}
 	}
 	return r, err
+}
+
+// ChatExportRequest is the place the user chose in the save dialog, and
+// the format.
+type ChatExportRequest struct {
+	Target string            `json:"target"`
+	Format chatexport.Format `json:"format"`
+}
+
+// Export saves the chat as a Markdown or JSON file (SPEC 2.3). It reads
+// only what is stored; a part still streaming is left out. Every
+// provider's key and field, and every secret the app has read, is
+// replaced with [secret:NAME] (6.7).
+func (s *ChatService) Export(ctx context.Context, p id.Project, c id.Chat, r ChatExportRequest) (res chatexport.Result, err error) {
+	defer s.guard("chat.export", &err)
+	redact := s.exportRedactor()
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		ch, err := proj.Chats.Chat(ctx, c)
+		if err != nil {
+			return err
+		}
+		notes, err := proj.Chats.Notes(ctx, c)
+		if err != nil {
+			return err
+		}
+		last, err := proj.Chats.LastTurn(ctx, c)
+		if err != nil {
+			return err
+		}
+		res, err = chatexport.WriteFile(ctx, r.Target, r.Format, chatexport.Source{
+			Project: proj.ID, ProjectName: proj.Name, Chat: ch, Model: s.modelName(ch.Model), Notes: notes, LastTurn: last,
+			Turns: func(ctx context.Context, from, to int) ([]chat.Message, error) {
+				ms, _, err := proj.Chats.Messages(ctx, c, from, to)
+				return ms, err
+			},
+			Redact: redact,
+		})
+		return err
+	})
+	return res, err
+}
+
+// exportRedactor reads every connected provider's key and fields once, for
+// one export.
+func (s *ChatService) exportRedactor() func(string) string {
+	if s.secrets == nil {
+		return nil
+	}
+	var names []string
+	if s.settings != nil {
+		for name, ps := range s.settings.Get().LLM.Providers {
+			names = append(names, provider.KeyName(name))
+			base := ps.BaseURL
+			if base == "" {
+				base = provider.DefaultBaseURL(provider.Kind(ps.Kind))
+			}
+			for _, f := range provider.Placeholders(base) {
+				names = append(names, provider.FieldName(name, f))
+			}
+		}
+	}
+	return s.secrets.Redactor(names...)
+}
+
+// modelName is the chat's model for an export's header: an alias with the
+// model it stands for now, e.g. "default (gemini/gemini-2.5-flash)".
+func (s *ChatService) modelName(model string) string {
+	if s.settings == nil {
+		return model
+	}
+	if ref := s.settings.Get().LLM.Models[model]; ref != "" && ref != model {
+		return model + " (" + ref + ")"
+	}
+	return model
 }

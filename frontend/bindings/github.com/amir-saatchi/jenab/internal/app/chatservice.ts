@@ -18,6 +18,9 @@ import * as agent$0 from "../agent/models.js";
 import * as chat$0 from "../chat/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as chatexport$0 from "../chatexport/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as id$0 from "../id/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -60,6 +63,16 @@ export function Create(p: id$0.Project, title: string, role: string): $Cancellab
  */
 export function Delete(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
     return $Call.ByID(1333517942, p, c);
+}
+
+/**
+ * Export saves the chat as a Markdown or JSON file (SPEC 2.3). It reads
+ * only what is stored; a part still streaming is left out. Every
+ * provider's key and field, and every secret the app has read, is
+ * replaced with [secret:NAME] (6.7).
+ */
+export function Export(p: id$0.Project, c: id$0.Chat, r: $models.ChatExportRequest): $CancellablePromise<chatexport$0.Result> {
+    return $Call.ByID(2087649847, p, c, r);
 }
 
 /**
