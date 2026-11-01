@@ -230,6 +230,7 @@ func bucketList() Tool {
 			"additionalProperties": false
 		}`),
 		Effects: ReadsDB,
+		When:    WhenBucket,
 	}, func(ctx context.Context, env *Env, a bucketListArgs) (Result, error) {
 		l, err := env.Project.DB.ListObjects(ctx, a.Prefix, a.After, maxList)
 		if err != nil {
@@ -284,6 +285,7 @@ func bucketRead() Tool {
 			"additionalProperties": false
 		}`),
 		Effects: ReadsDB | Untrusted,
+		When:    WhenBucket,
 	}, func(ctx context.Context, env *Env, a keyArgs) (Result, error) {
 		o, err := env.Project.DB.HeadObject(ctx, a.Key)
 		if err != nil {
@@ -361,6 +363,7 @@ func bucketDelete() Tool {
 			"additionalProperties": false
 		}`),
 		Effects: Bucket,
+		When:    WhenBucket,
 	}, func(ctx context.Context, env *Env, a keyArgs) (Result, error) {
 		if err := env.Project.DB.DeleteObject(ctx, env.Priority, env.Source, a.Key); err != nil {
 			return Result{}, objectError(err, a.Key)

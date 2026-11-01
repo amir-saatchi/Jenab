@@ -63,6 +63,7 @@ func queryTool() Tool {
 		}`),
 		Effects: ReadsDB,
 		Areas:   Tables,
+		When:    WhenTables,
 		// The query's own 10 s, and up to 30 s for a worker to start (2.2).
 		Timeout: 45 * time.Second,
 	}, runQuery)
@@ -387,6 +388,7 @@ func describeTable() Tool {
 		}`),
 		Effects: ReadsDB,
 		Areas:   Tables,
+		When:    WhenTables,
 	}, func(ctx context.Context, env *Env, a describeArgs) (Result, error) {
 		t, err := env.Project.DB.DescribeTable(ctx, a.Name)
 		if err != nil {
@@ -517,6 +519,7 @@ func insertTool() Tool {
 		}`),
 		Effects: WritesDB,
 		Areas:   Tables,
+		Answers: true,
 	}, runInsert)
 }
 

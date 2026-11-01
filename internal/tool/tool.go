@@ -47,7 +47,27 @@ type Spec struct {
 	// Areas are the parts of a project the tool works on. Block 1 names a
 	// part only when a tool for it is registered (TASK-014).
 	Areas Areas
+	// Answers: the call can end the turn (TASK-033). The agent adds an
+	// answer argument to the schema the model sees and takes it out
+	// before Run; when every call of the message succeeds, the answer is
+	// the turn's, without another request.
+	Answers bool
+	// When: the tool is in a chat's requests only while the project or
+	// the chat has what it works on (TASK-033); 0 is always. The agent
+	// decides at a cut, and for WhenTables at a schema change too, so
+	// the tool list changes only where block 2-5 may (3.1).
+	When When
 }
+
+// When is what a tool needs before it is offered.
+type When uint
+
+const (
+	WhenTables  When = 1 << iota // the project has a table
+	WhenChats                    // the project has another chat, besides the Mother chat
+	WhenHistory                  // the chat has turns before its window, or the project another chat
+	WhenBucket                   // the bucket has an object outside cache/
+)
 
 // Areas are parts of a project (1): its tables, pipelines and views.
 type Areas uint

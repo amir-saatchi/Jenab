@@ -42,6 +42,7 @@ func searchHistory() Tool {
 			"additionalProperties": false
 		}`),
 		Effects: ReadsDB,
+		When:    WhenHistory,
 	}, func(ctx context.Context, env *Env, a searchHistoryArgs) (Result, error) {
 		req := store.SearchReq{Query: a.Query, Substring: a.Substring, Limit: a.Limit}
 		if a.Scope != "project" {
@@ -131,6 +132,7 @@ func readMessages() Tool {
 		}`),
 		// Tool results in old turns can hold page text.
 		Effects: ReadsDB | Untrusted,
+		When:    WhenHistory,
 	}, func(ctx context.Context, env *Env, a readMessagesArgs) (Result, error) {
 		ch := id.Chat(a.Chat)
 		if ch == "" {
@@ -233,6 +235,7 @@ func listChats() Tool {
 		Description: "List the project's chats: ID, title, role and status. The " + appinfo.Mother + " chat is first.",
 		Schema:      json.RawMessage(`{"type": "object", "properties": {}, "additionalProperties": false}`),
 		Effects:     ReadsDB,
+		When:        WhenChats,
 	}, func(ctx context.Context, env *Env, _ struct{}) (Result, error) {
 		cs, err := env.Project.Chats.Chats(ctx)
 		if err != nil {

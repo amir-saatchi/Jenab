@@ -1,0 +1,144 @@
+id: L1_three_weeks
+title: 'Three weeks of the Bitcoin project'
+tests: [q1_change, q2_high, q3_drop_headline, q4_first_close, q5_eth_start, q6_week_avgs, q7_eth_high, q8_day_count, q9_etf_source, usual, q10_eth_low, q11_week_avgs, q12_sol_start, q13_best_gain, standing]
+context: main
+why: >
+  bench-bitcoin's two weeks, turn for turn (turns 1-20), then a third
+  week. On Monday 19 October the user catches up on the weekend again and
+  adds Solana to what is tracked, without naming "the usual". Later days
+  must keep Solana in the usual after that turn has left the window
+  (turns 26 and 27, two and three cuts later), and the follow-up
+  questions reach back to the first week.
+
+# Expected answers, from pages/ (BTC, ETH and SOL closes in USD). Days
+# 5-16 October are bench-bitcoin's; see its b1_two_weeks.yaml for them
+# and for q1-q9.
+#   day      BTC     ETH     SOL   top headline (source)
+#   10-17  64,530  2,561  146.20  Weekend trading thins (Block Times)
+#   10-18  64,975  2,579  148.05  Mining pool adds capacity in Texas (The Hash Daily)
+#   10-19  66,210  2,622  151.30  Bitcoin climbs to a two-month high (Coin Street Journal)
+#   10-20  65,880  2,640  153.85  Solana fees fall (Ledger Wire)
+#   10-21  67,045  2,618  152.60  Pension fund discloses a stake (Asia Coin Report)
+#   10-22  66,390  2,597  155.10  Ether staking deposits slow (The Hash Daily)
+#   10-23  67,420  2,655  157.45  Bitcoin ends the week at its highest close of October (Coin Street Journal)
+# q10 (turn 24): Ethereum's lowest close since it is tracked (12-20
+#   October): 2,455 on 12 October.
+# q11 (turn 28): this week (19-23 October) 66,589 (332,945 / 5), last week
+#   (12-16 October) 64,212.
+# q12 (turn 29): Solana since Monday 19 October, first close 151.30.
+# q13 (turn 30): Bitcoin's largest one-day gain since 5 October: +1,785 on
+#   7 October (the next is +1,235 on 19 October).
+# standing (turns 26 and 27): the usual adds Solana's close, 155.10 and
+#   157.45, with turn 22 out of the window.
+# usual (turn 23): the day's page is fetched without being told how.
+messages:
+  - day: 2026-10-05
+    text: >
+      I want to follow Bitcoin for the next weeks: its close in USD each
+      day, and the day's headlines with their sources. The data comes from
+      one page a day, https://markets.example/daily/YYYY-MM-DD (today is
+      https://markets.example/daily/2026-10-05). Set up what you need to
+      keep this, and add today's data.
+  - day: 2026-10-06
+    text: Daily update for Tuesday 6 October, please.
+  - text: How much did Bitcoin's close change since yesterday, in dollars and in percent?
+  - day: 2026-10-07
+    text: >
+      From now on, when I say "the usual", I mean the daily update: fetch
+      the day's page and add its data. The usual for Wednesday 7 October,
+      please.
+  - day: 2026-10-08
+    text: The usual, Thursday 8 October.
+  - day: 2026-10-09
+    text: The usual for Friday 9 October.
+  - text: Which day this week had the highest Bitcoin close, and what was it?
+  - day: 2026-10-12
+    text: >
+      Monday 12 October. We missed the weekend, so add Saturday 10 and
+      Sunday 11 October too, then today.
+  - text: >
+      Change of plan: from today on, also track Ethereum's close, from the
+      same page, so I can compare the two coins. The days before today
+      don't need it. Add today's Ethereum close too.
+  - day: 2026-10-13
+    text: The usual, Tuesday 13 October.
+  - text: What was the top headline on the day Bitcoin fell the most since we started?
+  - day: 2026-10-14
+    text: The usual for Wednesday 14 October.
+  - text: What was Bitcoin's close on the first day we tracked it?
+  - day: 2026-10-15
+    text: The usual, Thursday 15 October.
+  - text: Remind me, since when do we track Ethereum, and why did we add it?
+  - day: 2026-10-16
+    text: The usual for Friday 16 October.
+  - text: >
+      Compare Bitcoin's average close in our first week (5 to 9 October)
+      with this week (12 to 16 October).
+  - text: On which day did Ethereum close highest since we track it, and at what price?
+  - text: How many days of Bitcoin closes do we have now?
+  - text: Which outlet reported the ETF inflows, and on which day?
+  - day: 2026-10-19
+    text: >
+      Monday 19 October. We missed the weekend again, so add Saturday 17
+      and Sunday 18 October too, then today.
+  - text: >
+      Also follow Solana's close from today on, from the same page; the
+      earlier days don't need it. Add today's Solana close too.
+  - day: 2026-10-20
+    text: The usual, Tuesday 20 October.
+  - text: What was Ethereum's lowest close since we track it, and on which day?
+  - day: 2026-10-21
+    text: The usual for Wednesday 21 October.
+  - day: 2026-10-22
+    text: The usual, Thursday 22 October.
+  - day: 2026-10-23
+    text: The usual for Friday 23 October.
+  - text: >
+      Compare Bitcoin's average close this week (19 to 23 October) with
+      last week (12 to 16 October).
+  - text: Since when do we follow Solana, and what was its first close?
+  - text: What was Bitcoin's biggest one-day gain in dollars since we started, and on which day?
+asserts:
+  # The follow-up questions: the final answer of the turn.
+  - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '\b687\b'}
+  - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '1\.10?\s*%'}
+  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '65,?377'}
+  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '(?i)friday|\b9(th)?\s+(of\s+)?oct|oct\w*\.?\s+9(th)?\b|10-09'}
+  - {type: answer_contains, test: q3_drop_headline, turn: "11", final: true, match: '(?i)outage'}
+  - {type: answer_contains, test: q4_first_close, turn: "13", final: true, match: '62,?418'}
+  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)\b12(th)?\s+(of\s+)?oct|oct\w*\.?\s+12(th)?\b|10-12|monday'}
+  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)compar'}
+  - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?000\b'}
+  - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?212\b'}
+  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '2,?603\b'}
+  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '(?i)\b15(th)?\s+(of\s+)?oct|oct\w*\.?\s+15(th)?\b|10-15|thursday'}
+  - {type: answer_contains, test: q8_day_count, turn: "19", final: true, match: '(?i)\b(12|twelve)\**\s+(days|daily|closes|entries|rows|records|data points|prices)'}
+  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)ledger wire'}
+  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)wednesday|\b7(th)?\s+(of\s+)?oct|oct\w*\.?\s+7(th)?\b|10-07'}
+  # "The usual" a day and ten turns after it was defined.
+  - {type: tool_called, test: usual, tool: fetch_page, turn: "5", args_match: '2026-10-08'}
+  - {type: tool_called, test: usual, tool: fetch_page, turn: "14", args_match: '2026-10-15'}
+  # The work, recorded: tables, rows and what the app's chat used.
+  - {type: tool_called, test: info, harness: jenab, tool: request_schema_change, turn: "1"}
+  - {type: tool_called, test: info, harness: jenab, tool: insert, turn: "1", args_match: '2026-10-05'}
+  - {type: tool_called, test: info, harness: jenab, tool: insert, turn: "16"}
+  - {type: tool_called, test: info, harness: jenab, tool: query, turn: "17"}
+  - {type: no_turn_failed, test: info}
+
+  # The third week's questions.
+  - {type: answer_contains, test: q10_eth_low, turn: "24", final: true, match: '2,?455\b'}
+  - {type: answer_contains, test: q10_eth_low, turn: "24", final: true, match: '(?i)\b12(th)?\s+(of\s+)?oct|oct\w*\.?\s+12(th)?\b|10-12|monday'}
+  - {type: answer_contains, test: q11_week_avgs, turn: "28", final: true, match: '66,?589\b'}
+  - {type: answer_contains, test: q11_week_avgs, turn: "28", final: true, match: '64,?212\b'}
+  - {type: answer_contains, test: q12_sol_start, turn: "29", final: true, match: '(?i)\b19(th)?\s+(of\s+)?oct|oct\w*\.?\s+19(th)?\b|10-19|monday'}
+  - {type: answer_contains, test: q12_sol_start, turn: "29", final: true, match: '151\.30?\b'}
+  - {type: answer_contains, test: q13_best_gain, turn: "30", final: true, match: '1,?785\b'}
+  - {type: answer_contains, test: q13_best_gain, turn: "30", final: true, match: '(?i)wednesday|\b7(th)?\s+(of\s+)?oct|oct\w*\.?\s+7(th)?\b|10-07'}
+  # The usual keeps Solana after the turn that added it left the window:
+  # in Jenab the insert has its close, in plain the answer does.
+  - {type: tool_called, test: standing, harness: jenab, tool: insert, turn: "26", args_match: '155\.10?\b'}
+  - {type: tool_called, test: standing, harness: jenab, tool: insert, turn: "27", args_match: '157\.45\b'}
+  - {type: answer_contains, test: standing, harness: plain, turn: "26", final: true, match: '155\.10?\b'}
+  - {type: answer_contains, test: standing, harness: plain, turn: "27", final: true, match: '157\.45\b'}
+  - {type: tool_called, test: usual, tool: fetch_page, turn: "23", args_match: '2026-10-20'}
+  - {type: max_turns, test: info, n: 30}

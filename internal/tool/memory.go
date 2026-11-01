@@ -20,7 +20,7 @@ const memoryDescription = `Edit user memory or project memory, one section at a 
 - scope "user" is for what applies to all of the user's work, such as how they like answers. scope "project" is for what every chat in this project needs.
 - Where things go: would a new chat in this project need it? Then project memory. Only this conversation? Then session notes (update_session_notes).
 - Memory holds intent: goals, preferences, decisions with their reasons, and conventions. Never write values that live in tables, such as prices, counts or lists of tracked items.
-- Save what the user asks you to remember, and lasting goals, preferences and decisions they state.
+- Save what the user asks you to remember, and lasting goals, preferences and decisions they state. When they add to or change one, such as what to track or how to answer, update its section in the same turn.
 - content replaces the whole section, so keep what should stay. Empty content deletes the section.
 - Sections: goals, preferences, decisions, conventions; you may add others.
 - expected_revision is the section's revision as memory shows it, 0 for a section that isn't there. If the section changed since, the edit is refused with its current content: merge your edit into it and call again with its revision.

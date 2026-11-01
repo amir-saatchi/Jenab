@@ -153,3 +153,60 @@ func names(ss []skill.Skill) string {
 	}
 	return strings.Join(ns, ", ")
 }
+
+// dropSkills unloads, at a cut, the skills the chat no longer uses
+// (TASK-033): one whose loading turn is before the window, when no turn
+// in the window loaded it again or called a tool of its load_with. Its
+// text leaves block 1 with the cut, so the request stays append-only
+// (3.1). A skill no turn loaded, such as one a role gave the chat (8.6),
+// stays. A tool of its load_with brings it back at its next call, and
+// load_skill always can. Like the notes, this is best effort: a failure
+// is logged and keeps the skills.
+func (r *runner) dropSkills(ctx context.Context, t *turn) {
+	if len(t.ch.Skills) == 0 {
+		return
+	}
+	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, 1, t.n-1)
+	if err != nil {
+		r.o.d.Log.Error("agent: reading the chat for its skills", "chat", t.ch.ID, "err", err)
+		return
+	}
+	set := r.o.skills()
+	loaded := map[string]bool{} // loaded by some turn
+	used := map[string]bool{}   // loaded or called by a turn in the window
+	for _, m := range ms {
+		in := m.Turn >= r.cs.win.start
+		for _, p := range m.Parts {
+			switch {
+			case p.Notice != nil && p.Notice.Kind == chat.NoticeSkillLoaded:
+				loaded[p.Notice.Skill] = true
+				used[p.Notice.Skill] = used[p.Notice.Skill] || in
+			case p.ToolCall != nil && in:
+				for _, s := range set.With(t.ch.Kind, p.ToolCall.Name) {
+					used[s.Name] = true
+				}
+			}
+		}
+	}
+	keep := slices.DeleteFunc(slices.Clone(t.ch.Skills), func(n string) bool { return loaded[n] && !used[n] })
+	if len(keep) == len(t.ch.Skills) {
+		return
+	}
+	wctx, cancel := writing(ctx)
+	defer cancel()
+	r.cs.pub.Lock()
+	seq, err := r.p.Chats.SetSkills(wctx, t.ch.ID, keep)
+	if err == nil {
+		r.cs.bumpSeq(seq)
+	}
+	r.cs.pub.Unlock()
+	if err != nil {
+		r.o.d.Log.Error("agent: unloading skills", "chat", t.ch.ID, "err", err)
+		return
+	}
+	t.ch.Skills = keep
+	// A status with the new seq makes the frontend read the chat again.
+	r.cs.mu.Lock()
+	r.o.publishStatus(r.cs)
+	r.cs.mu.Unlock()
+}

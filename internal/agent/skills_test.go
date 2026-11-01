@@ -383,3 +383,46 @@ func TestSkillTextAfterTheCut(t *testing.T) {
 		}
 	})
 }
+
+// At a cut, a skill whose loading turn is before the window and that no
+// turn in the window used leaves the chat and block 1 (TASK-033). A
+// skill a turn in the window used through its load_with tool stays, and
+// so does one no turn loaded, such as a role's.
+func TestUnusedSkillLeavesAtTheCut(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		set := testSettings()
+		set.Context.HistoryMinTurns = 1
+		h := newHarness(t, t.TempDir(), "", set, loadSkill(), saveThing())
+		defer h.stop()
+		role := skill.Skill{Name: "role", Description: "The role's.", Body: "Role rules."}
+		h.o.d.Skills = skillSet(t, sqlSkill, viewsSkill, role)
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		h.setSkills(c.ID, "role")
+		h.fp.Push(fake.ToolCall("c1", "load_skill", map[string]string{"name": "sql"}),
+			fake.ToolCall("c2", "save_thing", map[string]string{}), fake.Text("one"))
+		h.turn(c.ID, "one") // loads sql, and views with save_thing
+		h.fp.Push(fake.ToolCall("c3", "save_thing", map[string]string{}), fake.Text("two"))
+		time.Sleep(cacheIdle + time.Second)
+		h.turn(c.ID, "two") // a cut; turn 1 is still in the window
+		if got := h.chat(c.ID).Skills; !slices.Equal(got, []string{"role", "sql", "views"}) {
+			t.Fatalf("after turn 2: %q", got)
+		}
+		h.fp.Push(fake.Text("three"))
+		time.Sleep(cacheIdle + time.Second)
+		h.turn(c.ID, "three") // a cut that keeps turn 2 only: views was used there
+		if got := h.chat(c.ID).Skills; !slices.Equal(got, []string{"role", "views"}) {
+			t.Errorf("after turn 3: %q", got)
+		}
+		calls := h.fp.Calls()
+		sys := calls[len(calls)-1].System[0].Text
+		if strings.Contains(sys, "Use named parameters.") || !strings.Contains(sys, "Views have columns.") || !strings.Contains(sys, "Role rules.") {
+			t.Errorf("block 1 after the cut:\n%s", sys)
+		}
+		// load_skill brings it back.
+		h.fp.Push(fake.ToolCall("c4", "load_skill", map[string]string{"name": "sql"}), fake.Text("four"))
+		h.turn(c.ID, "four")
+		if got := h.chat(c.ID).Skills; !slices.Equal(got, []string{"role", "views", "sql"}) {
+			t.Errorf("after turn 4: %q", got)
+		}
+	})
+}

@@ -49,6 +49,8 @@ type window struct {
 	schema    int                // the schema version the project card was built at
 	cardFail  int                // the turn whose card failed: it is tried again in the next turn
 	skills    map[string]bool    // the skills in block 1, from the last cut
+	tools     []tool.Tool        // the tools in the requests, set at cuts (TASK-033); nil for all
+	toolsAt   int                // the schema version tools was set at, while a tool waits for a table; -1 for none
 	last      time.Time          // the last request
 	fired     map[int]bool       // turns whose number check fired (SPIKE-032)
 	tainted   []taint            // numbers the chat's write calls saved without a source, and where (SPIKE-032)
@@ -82,6 +84,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	}
 	w.start, w.stubBelow, w.stubbed = max(1, t.n-c.HistoryMinTurns), t.n, map[string]bool{}
 	w.dropCards()
+	r.dropSkills(ctx, t)
 	if t.ch.Kind == chat.KindMother {
 		list, err := r.chatList(ctx)
 		if err != nil {
@@ -94,6 +97,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		return err
 	}
 	w.system, w.schema = sys, schema
+	r.offerTools(ctx, t)
 	w.skills = map[string]bool{}
 	for _, name := range t.ch.Skills {
 		if _, ok := r.o.skills().Get(t.ch.Kind, name); ok {
@@ -111,6 +115,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 	plain := r.o.d.Plain
 	if !plain {
 		r.refreshCard(ctx, t)
+		r.refreshTools(ctx, t)
 		r.memoryNotices(ctx, t)
 	}
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
@@ -131,9 +136,12 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		msgs = shape(ms, w)
 	}
 	req := provider.Request{Model: t.model, System: w.system, Messages: msgs, Thinking: true, Image: r.image}
-	for _, tl := range r.o.d.Tools.For(t.ch.Kind) {
-		s := tl.Spec()
-		req.Tools = append(req.Tools, provider.ToolDef{Name: s.Name, Description: s.Description, Schema: s.Schema})
+	tools := w.tools
+	if plain || tools == nil {
+		tools = r.o.d.Tools.For(t.ch.Kind)
+	}
+	for _, tl := range tools {
+		req.Tools = append(req.Tools, toolDef(tl))
 	}
 	if last {
 		req.ToolChoice = provider.ToolsNone
@@ -504,7 +512,11 @@ func base(tools []tool.Tool) string {
 	if len(missing) > 0 {
 		lacks = "This version has no " + list(missing, "or") + " yet. "
 	}
-	return strings.NewReplacer("{areas}", areas, "{missing}", lacks).Replace(promptNames.Replace(strings.TrimSpace(basePrompt)))
+	answer := ""
+	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Answers }) {
+		answer = "\n" + answerLine
+	}
+	return strings.NewReplacer("{areas}", areas, "{missing}", lacks, "{answer}", answer).Replace(promptNames.Replace(strings.TrimSpace(basePrompt)))
 }
 
 // list joins words as a sentence does: "a", "a and b", "a, b, and c".

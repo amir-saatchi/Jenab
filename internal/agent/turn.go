@@ -169,13 +169,19 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 		}
 	}
 	if len(calls) > 0 {
-		if err := r.runTools(ctx, t, resp, calls, last); err != nil {
+		ok, err := r.runTools(ctx, t, resp, calls, last)
+		if err != nil {
 			return false, err
 		}
 		if ctx.Err() != nil {
 			return false, context.Cause(ctx)
 		}
 		if !last {
+			// A write that carried the answer ends the turn when every
+			// call succeeded and no message came meanwhile (TASK-033).
+			if a := r.callAnswer(calls); ok && a != "" && !r.newMessages(t) {
+				return false, r.answerWith(ctx, t, req, a)
+			}
 			return true, nil
 		}
 	}
@@ -450,10 +456,11 @@ func (r *runner) setRetry(rt *chat.Retry, now func()) {
 // runTools runs the calls in order and writes each result as it is done,
 // in one tool message. After Stop the remaining calls get "cancelled by
 // user" (8.3). Calls in the answer to the last request, which had no
-// tools, are closed without running.
-func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) error {
+// tools, are closed without running. It reports whether every call
+// succeeded.
+func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) (bool, error) {
 	tm := &toolMsg{r: r, t: t, id: resp.toolID}
-	allBad := !last
+	allBad, allOK := !last, !last
 	for i, c := range calls {
 		parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: "not run: the turn reached its request limit", IsError: true}}}
 		if !last {
@@ -462,19 +469,22 @@ func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []
 			allBad = allBad && bad
 		}
 		for _, part := range parts {
+			if res := part.ToolResult; res != nil && res.IsError {
+				allOK = false
+			}
 			if _, err := tm.add(ctx, part); err != nil {
-				return err
+				return false, err
 			}
 		}
 	}
 	if !allBad {
 		t.bad = 0
-		return nil
+		return allOK, nil
 	}
 	if t.bad++; t.bad >= maxBadRequests {
-		return errBadCalls
+		return false, errBadCalls
 	}
-	return nil
+	return false, nil
 }
 
 // maxBadRequests is how many requests in a row may have only tool calls
@@ -601,7 +611,11 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	env.Subagent = func(ctx context.Context, s tool.Subagent) (tool.SubagentResult, error) {
 		return r.subagent(ctx, t, env, s)
 	}
-	call := tool.Call{ID: c.ID, Args: c.Args, Env: env}
+	args := c.Args
+	if tl.Spec().Answers {
+		args, _ = splitAnswer(args) // the agent's, not the tool's (TASK-033)
+	}
+	call := tool.Call{ID: c.ID, Args: args, Env: env}
 	needs := tool.Needs{Effects: tl.Spec().Effects}
 	if pf, ok := tl.(tool.Preflighter); ok {
 		var err error

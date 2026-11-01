@@ -1,0 +1,44 @@
+# TASK-033: the longer benchmark. Three weeks of the Bitcoin project in
+# one chat: bench-bitcoin's two weeks, turn for turn, then a third week
+# (17-23 October): another weekend caught up on a Monday, a new standing
+# instruction (also Solana) that later days must keep after it has left
+# the window, and more follow-up questions, each checked against the
+# pages. It finds the turn where the plain harness gets dearer than
+# Jenab. Run it in both harnesses, side by side:
+#
+#   jenab-scenarios run -harness jenab,plain -reps 3 -model <m> scenarios/bench-bitcoin-long
+#
+# The harnesses, the fake fetch_page and the day clock are bench-bitcoin's
+# (see its _set.yaml). The pages of 5-16 October are its pages; those of
+# 17-23 October are new. Any URL with the day's date gets that day's
+# page; others get a 404.
+title: Crypto tracker
+project_card: true
+today: 2026-10-05
+settings:
+  # Both harnesses: a turn that loops stops sooner than the app's 25, so a
+  # weak model can't use up a free tier's day.
+  llm: {turn_max_requests: 12}
+tools:
+  - {name: fetch_page, kind: page}
+rules:
+  fetch_page:
+    - {match: '2026-10-05', file: pages/2026-10-05.md}
+    - {match: '2026-10-06', file: pages/2026-10-06.md}
+    - {match: '2026-10-07', file: pages/2026-10-07.md}
+    - {match: '2026-10-08', file: pages/2026-10-08.md}
+    - {match: '2026-10-09', file: pages/2026-10-09.md}
+    - {match: '2026-10-10', file: pages/2026-10-10.md}
+    - {match: '2026-10-11', file: pages/2026-10-11.md}
+    - {match: '2026-10-12', file: pages/2026-10-12.md}
+    - {match: '2026-10-13', file: pages/2026-10-13.md}
+    - {match: '2026-10-14', file: pages/2026-10-14.md}
+    - {match: '2026-10-15', file: pages/2026-10-15.md}
+    - {match: '2026-10-16', file: pages/2026-10-16.md}
+    - {match: '2026-10-17', file: pages/2026-10-17.md}
+    - {match: '2026-10-18', file: pages/2026-10-18.md}
+    - {match: '2026-10-19', file: pages/2026-10-19.md}
+    - {match: '2026-10-20', file: pages/2026-10-20.md}
+    - {match: '2026-10-21', file: pages/2026-10-21.md}
+    - {match: '2026-10-22', file: pages/2026-10-22.md}
+    - {match: '2026-10-23', file: pages/2026-10-23.md}

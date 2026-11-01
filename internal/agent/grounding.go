@@ -148,8 +148,9 @@ func (r *runner) noted(t *turn, req provider.Request, resp *response, last bool)
 			t.said = append(t.said, p.Text.Text)
 		case p.ToolCall != nil && !last:
 			if tl, ok := r.o.d.Tools.Get(p.ToolCall.Name); ok && writes(tl.Spec().Effects) {
-				a := argsOf(p.ToolCall.Args)
-				s := saved{key: a.Key, texts: argStrings(p.ToolCall.Args)}
+				args, _ := splitAnswer(p.ToolCall.Args) // the answer is checked as one (TASK-033)
+				a := argsOf(args)
+				s := saved{key: a.Key, texts: argStrings(args)}
 				t.saved = append(t.saved, s)
 				if a.Key == "" && a.Table == "" {
 					continue // nowhere a read can be tied to

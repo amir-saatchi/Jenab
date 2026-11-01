@@ -85,23 +85,24 @@ asserts:
   - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '\b687\b'}
   - {type: answer_contains, test: q1_change, turn: "3", final: true, match: '1\.10?\s*%'}
   - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '65,?377'}
-  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '(?i)friday|\b9(th)?\s+oct|oct\w*\.?\s+9\b|10-09'}
+  - {type: answer_contains, test: q2_high, turn: "7", final: true, match: '(?i)friday|\b9(th)?\s+(of\s+)?oct|oct\w*\.?\s+9(th)?\b|10-09'}
   - {type: answer_contains, test: q3_drop_headline, turn: "11", final: true, match: '(?i)outage'}
   - {type: answer_contains, test: q4_first_close, turn: "13", final: true, match: '62,?418'}
-  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)\b12(th)?\s+oct|oct\w*\.?\s+12\b|10-12|monday'}
+  - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)\b12(th)?\s+(of\s+)?oct|oct\w*\.?\s+12(th)?\b|10-12|monday'}
   - {type: answer_contains, test: q5_eth_start, turn: "15", final: true, match: '(?i)compar'}
   - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?000\b'}
   - {type: answer_contains, test: q6_week_avgs, turn: "17", final: true, match: '64,?212\b'}
   - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '2,?603\b'}
-  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '(?i)\b15(th)?\s+oct|oct\w*\.?\s+15\b|10-15|thursday'}
+  - {type: answer_contains, test: q7_eth_high, turn: "18", final: true, match: '(?i)\b15(th)?\s+(of\s+)?oct|oct\w*\.?\s+15(th)?\b|10-15|thursday'}
   - {type: answer_contains, test: q8_day_count, turn: "19", final: true, match: '(?i)\b(12|twelve)\**\s+(days|daily|closes|entries|rows|records|data points|prices)'}
   - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)ledger wire'}
-  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)wednesday|\b7(th)?\s+oct|oct\w*\.?\s+7\b|10-07'}
+  - {type: answer_contains, test: q9_etf_source, turn: "20", final: true, match: '(?i)wednesday|\b7(th)?\s+(of\s+)?oct|oct\w*\.?\s+7(th)?\b|10-07'}
   # "The usual" a day and ten turns after it was defined.
   - {type: tool_called, test: usual, tool: fetch_page, turn: "5", args_match: '2026-10-08'}
   - {type: tool_called, test: usual, tool: fetch_page, turn: "14", args_match: '2026-10-15'}
   # The work, recorded: tables, rows and what the app's chat used.
   - {type: tool_called, test: info, harness: jenab, tool: request_schema_change, turn: "1"}
+  - {type: tool_called, test: info, harness: jenab, tool: insert, turn: "1", args_match: '2026-10-05'}
   - {type: tool_called, test: info, harness: jenab, tool: insert, turn: "16"}
   - {type: tool_called, test: info, harness: jenab, tool: query, turn: "17"}
   - {type: no_turn_failed, test: info}
