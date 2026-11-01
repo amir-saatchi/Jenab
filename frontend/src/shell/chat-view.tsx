@@ -19,6 +19,7 @@ import { useThreads } from "@/state/thread"
 import { useUI } from "@/state/ui"
 import { subline } from "@/shell/chat-sidebar"
 import { ChatHeaderMenu } from "@/shell/chat-menu"
+import { useListHidden } from "@/shell/dock"
 
 // ChatView is the main area with one chat: its messages, the bars for a
 // long tool call, a retry or a waiting card, and the composer.
@@ -99,11 +100,10 @@ export function ChatView({ project, chat }: { project: string; chat: string }) {
 // session notes' button (SPEC 3.5, 3.4).
 export function ChatHeader({ title, sub, mother, actions }: { title: string; sub: string; mother?: boolean; actions?: React.ReactNode }) {
   const narrow = useIsMobile()
-  const hidden = useNav((s) => s.sidebarHidden)
-  const setHidden = useNav((s) => s.setSidebarHidden)
+  const [hidden, setHidden] = useListHidden()
   const ui = useUI((s) => s.set)
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+    <header className="@container/header flex h-14 shrink-0 items-center gap-2 border-b px-3">
       {narrow ? (
         <Button variant="ghost" size="icon-sm" aria-label="Open the sidebar" onClick={() => ui({ leftOverlay: true })}>
           <MenuIcon />

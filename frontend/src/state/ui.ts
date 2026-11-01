@@ -1,5 +1,8 @@
 import { create } from "zustand"
 
+// RightTab is the right sidebar's tab (SPEC 5.9).
+export type RightTab = "pages" | "pipelines" | "files" | "links"
+
 // What is open in the shell besides the main area.
 interface UIState {
   newProject: boolean
@@ -11,6 +14,7 @@ interface UIState {
   // chat's chip (SPEC 3.3): its project and target, memory:<scope>/<section>.
   // The settings page that shows it clears it.
   memoryFocus: { project: string; target: string } | null
+  rightTab: RightTab
   set(p: Partial<Omit<UIState, "set">>): void
 }
 
@@ -19,5 +23,6 @@ export const useUI = create<UIState>((set) => ({
   leftOverlay: false,
   rightOverlay: false,
   memoryFocus: null,
+  rightTab: "pages",
   set: (p) => set(p),
 }))

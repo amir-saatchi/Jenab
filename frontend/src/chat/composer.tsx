@@ -82,7 +82,7 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 pb-4">
-      <InputGroup className={cn(mother && "mother-ring")} data-working={mother && running}>
+      <InputGroup className={cn("@container/composer", mother && "mother-ring")} data-working={mother && running}>
         <InputGroupTextarea
           ref={ref}
           dir="auto"
@@ -153,7 +153,7 @@ function ModelPicker({ project, chat, model }: { project: string; chat: string; 
         <DropdownMenuTrigger asChild>
           <InputGroupButton variant="ghost">
             <SparklesIcon />
-            <span className="max-w-40 truncate">{modelName(groups ?? [], model)}</span>
+            <span className="max-w-40 truncate @max-sm/composer:max-w-24">{modelName(groups ?? [], model)}</span>
             <ChevronDownIcon />
           </InputGroupButton>
         </DropdownMenuTrigger>
@@ -209,7 +209,8 @@ function LevelPicker({ project, chat }: { project: string; chat: string }) {
       <DropdownMenuTrigger asChild>
         <InputGroupButton variant="ghost" aria-label={`Approvals: ${name}`}>
           <ShieldCheckIcon />
-          Approvals: {name}
+          {/* In a narrow chat, such as one docked next to a file, the button is its icon. */}
+          <span className="@max-sm/composer:sr-only">Approvals: {name}</span>
           <ChevronDownIcon />
         </InputGroupButton>
       </DropdownMenuTrigger>

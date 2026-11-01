@@ -8,11 +8,14 @@ import { InspectorView } from "@/dev/inspector"
 import { RuntimeView } from "@/dev/runtime"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { APP_NAME } from "@/lib/names"
+import { chatKey, useDock } from "@/state/dock"
 import { current, useNav, type Place } from "@/state/nav"
 import { useUI } from "@/state/ui"
 import { BottomBar } from "@/shell/bottom-bar"
 import { ChatSidebar } from "@/shell/chat-sidebar"
 import { ChatView } from "@/shell/chat-view"
+import { Dock, useListHidden } from "@/shell/dock"
+import { FileView } from "@/shell/file-view"
 import { NewProject } from "@/shell/new-project"
 import { ProjectSettings } from "@/shell/project-settings"
 import { Rail } from "@/shell/rail"
@@ -26,7 +29,7 @@ import { Welcome } from "@/shell/welcome"
 // bottom bar is hidden.
 export function AppShell() {
   const place = useNav(current)
-  const sidebarHidden = useNav((s) => s.sidebarHidden)
+  const [sidebarHidden] = useListHidden()
   const narrow = useIsMobile()
   const project = place && "project" in place ? place.project : undefined
   const chat = place?.view === "chat" ? place : undefined
@@ -41,7 +44,7 @@ export function AppShell() {
           {narrow && !chat && <PageHeader title={pageTitle(place)} />}
           <div className="min-h-0 flex-1">
             {!place && <Welcome />}
-            {chat && <ChatView key={chat.chat} project={chat.project} chat={chat.chat} />}
+            {chat && <ChatArea key={chat.chat} project={chat.project} chat={chat.chat} />}
             {place?.view === "settings" && <SettingsView section={place.section} />}
             {place?.view === "project-settings" && <ProjectSettings project={place.project} section={place.section} />}
             {place?.view === "inspector" && (
@@ -56,6 +59,18 @@ export function AppShell() {
       {narrow && <Overlays project={chat?.project} />}
       <NewProject />
     </SidebarProvider>
+  )
+}
+
+// ChatArea is a chat, with what it has open next to it in the dock
+// (SPEC 5.9): a file for now, pages and pipelines later.
+function ChatArea({ project, chat }: { project: string; chat: string }) {
+  const docked = useDock((s) => s.open[chatKey(project, chat)])
+  const main = docked?.kind === "file" ? <FileView key={docked.key} project={project} chat={chat} fileKey={docked.key} /> : null
+  return (
+    <Dock project={project} chat={chat} main={main}>
+      <ChatView project={project} chat={chat} />
+    </Dock>
   )
 }
 

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -10,15 +11,19 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
-// BucketService lists a project's files (SPEC 4). The files themselves
-// load from /objects/<project_id>/<key>, never through a binding (Q31).
+// BucketService lists a project's files for the Files panel (SPEC 4,
+// 5.12). The files themselves load from /objects/<project_id>/<key>, never
+// through a binding (Q31).
 type BucketService struct {
 	base
 	projects *project.Manager
+	openFile func(path string) error // opens a file with the system app; nil opens nothing, as in tests
+	tempDir  string                  // where opened copies go; "" is the OS temp folder
 }
 
 // Object is a file in the bucket.
@@ -33,16 +38,43 @@ type Object struct {
 	CreatedBy id.Source  `json:"created_by"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	Expires   *time.Time `json:"expires,omitempty"`
+	// Title is the file's original name or a page's title from its
+	// metadata; "" if it has none. Unlike the key, it may be in any script.
+	Title string `json:"title,omitempty"`
+	// Opens says whether *Open with the system app* opens it (4.7).
+	Opens bool `json:"opens"`
 }
 
 func object(o store.Object) Object {
 	out := Object{Key: o.Key, SHA256: o.SHA256, MIME: o.MIME, Size: o.Size, Version: o.Version,
-		Source: o.Source, SourceURL: o.SourceURL, CreatedBy: o.CreatedBy, UpdatedAt: o.UpdatedAt}
+		Source: o.Source, SourceURL: o.SourceURL, CreatedBy: o.CreatedBy, UpdatedAt: o.UpdatedAt,
+		Title: metaTitle(o.Metadata), Opens: systemExt(o.MIME, o.Key) != ""}
 	if !o.Expires.IsZero() {
 		t := o.Expires
 		out.Expires = &t
 	}
 	return out
+}
+
+// metaTitle is the name or title in an object's metadata, on one line.
+func metaTitle(m json.RawMessage) string {
+	var meta struct {
+		Name  any `json:"name"`
+		Title any `json:"title"`
+	}
+	if len(m) == 0 || json.Unmarshal(m, &meta) != nil {
+		return ""
+	}
+	for _, v := range []any{meta.Name, meta.Title} {
+		if t, ok := v.(string); ok && strings.TrimSpace(t) != "" {
+			t = strings.Join(strings.Fields(t), " ")
+			if r := []rune(t); len(r) > 200 {
+				t = string(r[:200]) + "…"
+			}
+			return t
+		}
+	}
+	return ""
 }
 
 // ObjectPage is one page of a folder.
@@ -98,6 +130,50 @@ func (s *BucketService) Versions(ctx context.Context, p id.Project, key string) 
 		vs = []ObjectVersion{}
 	}
 	return vs, err
+}
+
+// Head returns a file's current version, for the panel's file view.
+func (s *BucketService) Head(ctx context.Context, p id.Project, key string) (o Object, err error) {
+	defer s.guard("bucket.head", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		so, err := proj.DB.HeadObject(ctx, key)
+		o = object(so)
+		return err
+	})
+	return o, err
+}
+
+// Deleted is a delete from the Files panel: Change undoes it.
+type Deleted struct {
+	Change id.Change `json:"change"`
+}
+
+// Delete removes a file as the user. Its versions and bytes stay, so
+// UndoDelete can put it back while the change is in the undo window
+// (SPEC 2.6, 4.4).
+func (s *BucketService) Delete(ctx context.Context, p id.Project, key string) (d Deleted, err error) {
+	defer s.guard("bucket.delete", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		d.Change, err = proj.DB.DeleteObjectChange(ctx, limit.Interactive, id.SourceUser, key)
+		return err
+	})
+	return d, err
+}
+
+// UndoDelete puts back a file that Delete removed. A file saved again
+// under the same key since then stops it.
+func (s *BucketService) UndoDelete(ctx context.Context, p id.Project, change id.Change) (err error) {
+	defer s.guard("bucket.undo_delete", &err)
+	return open(ctx, s.projects, p, func(proj *project.Project) error {
+		_, err := proj.DB.UndoChange(ctx, change, store.UndoOptions{})
+		switch {
+		case errors.Is(err, store.ErrUndoConflict):
+			return &UIError{Kind: KindBusy, Message: "A file was saved under this name since, so the delete can't be undone.", Details: err.Error()}
+		case errors.Is(err, store.ErrNothingToUndo):
+			return &UIError{Kind: KindBusy, Message: "The delete is undone already, or past the undo window.", Details: err.Error()}
+		}
+		return err
+	})
 }
 
 // objectHandler serves /objects/<project_id>/<key> with bucket.Handler's

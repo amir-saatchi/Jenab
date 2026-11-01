@@ -65,7 +65,8 @@ export function RefreshButton({ project, chat }: { project: string; chat: string
       <ButtonGroup>
         <Button variant="outline" size="sm" disabled={off} onClick={() => void start(false)}>
           {busy ? <Spinner data-icon="inline-start" /> : <BrainIcon data-icon="inline-start" />}
-          Refresh memory
+          {/* In a narrow header, such as the chat docked next to a file, the button is its icon. */}
+          <span className="@max-md/header:sr-only">Refresh memory</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -75,6 +75,8 @@ func (a *App) Bind(s Services) {
 	})
 	b := NewServices(s)
 	b.System.notify = a.notifier()
+	b.Bucket.openFile = a.w.Browser.OpenFile
+	go b.Bucket.cleanOpened()
 	b.Project.emit = a.pub.emit
 	a.w.RegisterService(application.NewService(b.Project))
 	a.w.RegisterService(application.NewService(b.Chat))

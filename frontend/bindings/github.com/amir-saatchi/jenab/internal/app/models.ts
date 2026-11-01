@@ -125,6 +125,13 @@ export interface ConnectResult {
 }
 
 /**
+ * Deleted is a delete from the Files panel: Change undoes it.
+ */
+export interface Deleted {
+    "change": id$0.Change;
+}
+
+/**
  * ExportRequest is the place the user chose in the save dialog.
  */
 export interface ExportRequest {
@@ -292,6 +299,17 @@ export interface $Object {
     "created_by": id$0.Source;
     "updated_at": string;
     "expires"?: string | null;
+
+    /**
+     * Title is the file's original name or a page's title from its
+     * metadata; "" if it has none. Unlike the key, it may be in any script.
+     */
+    "title"?: string;
+
+    /**
+     * Opens says whether *Open with the system app* opens it (4.7).
+     */
+    "opens": boolean;
 }
 
 /**

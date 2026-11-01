@@ -23,6 +23,7 @@ export type {
     ChatSnapshot,
     ConnectRequest,
     ConnectResult,
+    Deleted,
     ExportRequest,
     MemoryEdit,
     MemorySaved,

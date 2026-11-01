@@ -356,26 +356,32 @@ func (p *ProjectDB) ObjectVersions(ctx context.Context, key string) ([]ObjectVer
 // lifecycle rules and the sweep remove them (SPEC 4.3, 4.4), so the delete
 // can be undone. The change entry keeps the object as it was.
 func (p *ProjectDB) DeleteObject(ctx context.Context, pr limit.Priority, src id.Source, key string) error {
+	_, err := p.DeleteObjectChange(ctx, pr, src, key)
+	return err
+}
+
+// DeleteObjectChange is DeleteObject that returns the change's ID, so the
+// Files panel can undo this one delete (SPEC 5.12).
+func (p *ProjectDB) DeleteObjectChange(ctx context.Context, pr limit.Priority, src id.Source, key string) (id.Change, error) {
 	if err := bucket.CheckKey(key); err != nil {
-		return err
+		return "", err
 	}
 	if err := checkSource(src); err != nil {
-		return err
+		return "", err
 	}
-	_, err := Do(ctx, p.DB, pr, func(tx *sql.Tx) (struct{}, error) {
+	return Do(ctx, p.DB, pr, func(tx *sql.Tx) (id.Change, error) {
 		prev, err := objectIn(tx, key)
 		if err != nil {
-			return struct{}{}, err
+			return "", err
 		}
 		if prev == nil {
-			return struct{}{}, &noObject{key}
+			return "", &noObject{key}
 		}
 		if _, err := tx.Exec(`DELETE FROM _jenab_objects WHERE key = ?`, key); err != nil {
-			return struct{}{}, err
+			return "", err
 		}
-		return struct{}{}, logObject(tx, src, "delete", key, prev, nil)
+		return objectChange(tx, src, "delete", key, prev, nil)
 	})
-	return err
 }
 
 // MoveObject renames from to to, with its versions. It fails with
@@ -550,6 +556,12 @@ func objectRevision(o *Object) sql.NullString {
 // logObject writes the change entry of a put or delete of key: the object
 // before and after, and key's row entry with its before-image.
 func logObject(tx *sql.Tx, src id.Source, op, key string, before, after *Object) error {
+	_, err := objectChange(tx, src, op, key, before, after)
+	return err
+}
+
+// objectChange is logObject that returns the change's ID.
+func objectChange(tx *sql.Tx, src id.Source, op, key string, before, after *Object) (id.Change, error) {
 	c := newChange(src, objectTarget(key), op)
 	c.before, c.after = objectRevision(before), objectRevision(after)
 	kind := rowUpdated
@@ -559,7 +571,7 @@ func logObject(tx *sql.Tx, src id.Source, op, key string, before, after *Object)
 	case after == nil:
 		kind = rowDeleted
 	}
-	return writeChange(tx, c, []rowEntry{{table: "_jenab_objects", key: c.target, kind: kind, before: c.before}})
+	return c.id, writeChange(tx, c, []rowEntry{{table: "_jenab_objects", key: c.target, kind: kind, before: c.before}})
 }
 
 // SweepReport says what a sweep removed.

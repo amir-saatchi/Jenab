@@ -13,6 +13,7 @@ import { showError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { Markdown } from "@/chat/markdown"
 import { openMemory } from "@/shell/open"
+import { openHere } from "@/shell/open-file"
 
 export function AgentText({ text, stopped }: { text: string; stopped?: boolean }) {
   return (
@@ -107,7 +108,15 @@ export function ToolChip({ call, result, running }: { call: ToolCall; result?: T
               <pre dir="auto" className="text-start whitespace-pre-wrap">
                 {result.text}
               </pre>
-              {result.ref && <span className="text-muted-foreground">The full output is stored as {result.ref}.</span>}
+              {result.ref && (
+                <span className="text-muted-foreground">
+                  The full output is stored as{" "}
+                  <Button variant="link" size="xs" className="h-auto p-0 font-mono text-xs" onClick={() => openHere(result.ref ?? "")}>
+                    {result.ref}
+                  </Button>
+                  .
+                </span>
+              )}
             </ToolDetail>
           )}
         </div>
