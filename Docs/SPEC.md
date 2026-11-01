@@ -194,6 +194,11 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
   - **No score cutoff:** a vector search always returns something. In the spike, a no-answer query's best score (0.72 to 0.78) was above 7% to 52% of the real hits, and scores differ by model and width. Instead, each hit has `matched`: `words`, `meaning` or `both`. When no hit matched by words, the result starts with one line saying the hits are only the closest by meaning. The text is the same for every model (1).
   - The message FTS stays in `chats.db`, so `search_history` never depends on `index.db`.
 - **Message before change:** message IDs are ULIDs made in Go. Before a tool call writes to `project.db`, the assistant message and its `tool_call` part are written to `chats.db`. A crash can then leave a message without a change, which is harmless, but never a change pointing to a missing message, which would break *Undo turn*. In SPIKE-008, the reverse order left a dangling entry in 11 of 20 crashes.
+- **Export a chat** (TASK-016): *Export chat…* in the chat menu saves one chat as a file. It reads only what is stored, never calls a model, and leaves out a part still streaming.
+  - **Markdown**, for reading: a header with the title, project, model and dates, then the messages under *You* and *Assistant · model* headings. A tool call is one line: the tool, its arguments cut to 80 characters, and the result's size, error or `jenab://` link. Notices, approvals and questions are short lines. Thinking and the notices the chat doesn't show are left out; images are `jenab://` links. Right-to-left text goes in `<div dir="rtl">`, or `<bdi>` on a short line, so Markdown viewers show it right to left (5.8).
+  - **JSON**, for keeping everything: `{"format": "jenab.chat", "version": 1, …}` with the chat row, the session notes and every message part as stored, thinking included. The version goes up when the shape changes.
+  - **Safe:** every key and field Jenab stores is replaced with `[secret:NAME]` (6.7), raw or JSON-escaped, before anything is cut or written. A key the user never gave Jenab can't be known.
+  - **Large chats** are read and written 50 turns at a time. The file is written next to the target and renamed when complete, so a failed export leaves nothing behind.
 
 ### 2.4 registry.db
 
@@ -687,7 +692,7 @@ cache_max_size: 500MB      # cache/ is trimmed least-recently-read first
 
 ### 4.5 Links and references
 
-- Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". Clicking one opens the object in the Files panel.
+- Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". In chat, a link written as a link, bare, or alone in inline code opens the object in the Files panel (5.12). A link to another project or to a missing object says so and opens nothing.
 - **In tables, object-reference columns store the key only**, not the full link, so data stays valid when a project is imported under a new ID. The schema agent marks such columns in `_jenab_columns` with `kind: object_ref`. A write with a key that does not exist fails.
 - The frontend loads objects through a Wails asset handler route, `/objects/<project_id>/<key>`, never through `file://` paths.
 
@@ -710,6 +715,9 @@ Shown next to the bucket in the **Resources** panel. The agent saves sources wit
   - Images, audio, video, PDF and plain text types are shown. Any other type is a download (`Content-Disposition: attachment`).
   - Everything except PDF gets a sandboxing `Content-Security-Policy`, so nothing in it runs or loads.
 - Files are never executed. Opening one in an external app requires an explicit user click.
+  - *Open with the system app* (TASK-015) never opens the stored file. It copies the current version to a temporary folder, read-only, with the extension of the type detected when it was stored, never the key's, and marks the copy as downloaded (the Mark of the Web on Windows, quarantine on macOS), so Office opens it in Protected View.
+  - Only images, audio, video, PDF, plain text and data files, and Office or OpenDocument documents open. HTML, SVG, XML and scripts open as `.txt`. Programs, shortcuts, archives, macro-enabled documents and unknown types are refused.
+  - Copies older than a day are removed when the app starts.
 - Size limits: 100 MB per upload, 50 MB per `http.download` by default.
 
 ### 4.8 Backend
@@ -1022,7 +1030,8 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
   - At the top, one tile per project with its initial, then *New project*. A bar on the start edge marks the open project. Switching is one click.
   - *Search*, and *Waiting*: the approvals and questions from every project (8.8), with a count. Clicking one opens its chat.
   - At the bottom, the schedules (which keep running in the tray) and Settings.
-- **Left sidebar:** the project's name, a menu with *Project settings*, then *New chat* and the chat list with Mother pinned at the top (8.6).
+- **Left sidebar:** the project's name, a menu with *Project settings*, then *New chat* and the chat list with Mother pinned at the top (8.6). Each chat row has a ⋯ menu, shown on hover or focus in place of its status badge, with *Export chat…* (2.3).
+- **Chat header:** a ⋯ chat menu after *Notes* (3.4), with *Export chat…*: a dialog picks Markdown or JSON, then the save dialog picks the file (2.3).
 - **Page open:** while a page or pipeline is open, the left sidebar hides and its chats move into the rail, below a divider: one tile per chat, then *New chat*. The user can show the sidebar again; the choice is saved in `chats.ui_state`.
   - A chat's tile shows its initials; Mother's tile is filled with its gradient (8.6).
   - A bar on the start edge marks the open chat, a spinner means working, and an amber dot means waiting. Every tile has a tooltip with the title and status.
@@ -1034,7 +1043,10 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
   - *Ctrl+Tab* goes to the last chat used, with its page; pressing *Tab* again while holding *Ctrl* goes further back.
   - *Alt+←* and *Alt+→* (*⌘[* and *⌘]* on macOS) go back and forward through the chats and pages opened.
   - Two pages side by side is a later option (a split view, R-122).
-- **Dock:** the dock can be resized. It starts at about a third of the main area, is at least 320 px wide, and its width is saved with the dock side.
+- **Dock:** one dock for everything opened in the main area: files now, pages and pipelines later (5.9). The dock can be resized. It starts at about a third of the main area, is at least 320 px wide, and its width is saved with the dock side. While something is docked, the chat list moves to the rail until the user shows it.
+- **Files tab:** one folder of the bucket at a time, with a path bar back to the top. A folder opens in place; a long one loads 100 entries at a time as the list scrolls. `cache/` isn't listed with the user's folders: it is last, as *App cache* (fetched pages and long tool results, 4.4). Rows show a file's original name or page title from its metadata, in any script, under its key.
+  - A file opens in the main area with the chat in the dock. Text and Markdown show as in the chat, and images, audio and video play; other types show their name, type and size. Below, its versions (4.3): size, who and when. Old versions are listed, not opened.
+  - Each file has *Copy link*, *Open with the system app* (4.7) when its type allows, and *Delete*. A delete is a change by `user` and can be undone from its notice while the change is in the undo window (2.6, 4.4).
 - **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page.
 - **Project settings:** one scrolling page with the cloud-sync warning (2.1) when it applies, the workspace folder (8.5), storage ("Kept for undo" with *Free now*, the cache and lifecycle rules, 4.4), the approval level (8.8), allowed hosts and private-network exceptions (6.7), and *Export* (2.1).
 - **Window size:** at least 640 × 480 px.

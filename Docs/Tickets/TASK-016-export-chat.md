@@ -1,6 +1,6 @@
 # TASK-016 — Export a chat
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** P1-15
 
@@ -32,3 +32,11 @@ First write it into the SPEC (2.3 and 5.12), then build it:
 - The SPEC describes it.
 - Both formats work from the app on Windows, and a long chat with tool calls and Persian text exports correctly.
 - Go tests cover both formats and the redaction.
+
+## Result
+Done on 2026-11-01. SPEC 2.3 and 5.12 describe it.
+
+- **Built:** `internal/chatexport` writes Markdown or JSON from batches of 50 turns, to a temporary file renamed when complete. `ChatService.Export` names every provider's key and URL fields for the redactor and writes the model as "default (provider/model)" when the chat follows the default. In the UI, a ⋯ menu in the chat header and on each sidebar row opens a dialog with a Markdown/JSON toggle, then the save dialog.
+- **Redaction:** `secret.Store.Redactor` reads the keys once per export and replaces each one, raw and in both JSON-escaped forms, longest first. `Store.Redact` now goes through it, so provider error bodies are also caught when JSON-escaped. It has no minimum length, as before: the keychain holds only secrets. Only keys Jenab stores are known.
+- **Tests:** a fixture with a key in every field (title, text, thinking, tool arguments across the 80-character cut, results, errors, approvals, questions, image alt, notices, notes), checked raw, JSON-escaped and by its first 14 characters in both files; exact Markdown lines and right-to-left blocks; a JSON round trip; 1,200 turns read 50 at a time; a failed write keeps the old file.
+- **On Windows:** a 300-turn Persian chat with tool calls exported in about 26 ms per format (Markdown 119 KB, JSON 894 KB, 1,200 messages). The native save dialog is the one project export uses and wasn't driven in the test.
