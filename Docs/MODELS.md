@@ -1,5 +1,5 @@
 # Models we can use in development
-**Status:** checked 2026-10-26
+**Status:** checked 2026-11-01
 
 The models the development keys can reach, for spikes, scenarios and tests. Keys are in `.env` at the repository root ([DEVELOPMENT](DEVELOPMENT.md#keys-for-development)). This file names only the variables, never the values. Spikes list the models they run in their own `models.yaml`; `scenarios/models.example.yaml` shows the format.
 
@@ -8,7 +8,7 @@ When a check here changes (a quota runs out, a new key, a model that stops answe
 ## Rules
 
 - **Reference models** are the ones spikes are decided on ([DEVELOPMENT](DEVELOPMENT.md#reference-models)). Failures on other models are recorded, not worked around.
-- **Reserve keys** (`OLLAMA_API_KEY_II`, `Z_API_KEY_II`) are used only when the user says so.
+- **Reserve keys** (`OLLAMA_API_KEY_II`, `OLLAMA_API_KEY_III`, `Z_API_KEY_II`, `GEMINI_API_KEY_III`, `GEMINI_API_KEY_IV`) are used only when the user says so.
 - **Paid use** (adding credit, a card check, a purchase) is the user's job.
 - Only synthetic prompts go to cloud models.
 
@@ -16,8 +16,8 @@ When a check here changes (a quota runs out, a new key, a model that stops answe
 
 | Provider | Kind | Base URL | Key | Models that answer | Limits |
 |---|---|---|---|---|---|
-| Gemini | `gemini` | (native) | `GEMINI_API_KEY` | `gemini-3.5-flash-lite` (reference), `gemma-4-31b-it`, `gemma-4-26b-a4b-it` | Free tier, about 1,500 requests a day, reset at midnight Pacific. Google may use free-tier prompts. Used up on 2026-10-26. |
-| Ollama Cloud | `ollama` | `https://ollama.com/` | `OLLAMA_API_KEY` | `gemma4:31b` (reference), `gpt-oss:120b`; the account lists more (below) | Monthly credits; the free plan runs 1 request at a time. |
+| Gemini | `gemini` | (native) | `GEMINI_API_KEY`; reserve `GEMINI_API_KEY_III`, `GEMINI_API_KEY_IV` | `gemini-3.5-flash-lite` (reference), `gemma-4-26b-a4b-it`; `gemma-4-31b-it` without tools only: it gives HTTP 500 whenever tools are sent, in both API formats (2026-11-01) | Free tier; we keep each key under 400 requests a day. The day resets at midnight Pacific (08:00 UTC in winter). Google may use free-tier prompts. |
+| Ollama Cloud | `ollama` | `https://ollama.com/` | `OLLAMA_API_KEY` | `gemma4:31b` (reference), `gpt-oss:120b`; the account lists more (below) | Monthly free usage on older accounts, from the sign-up date; the free plan runs 1 request at a time. New accounts pay per token. The first key and `_II` reached their monthly limit on 2026-11-01; the first resets about 2026-11-22. `_III` needs credit (402). |
 | Groq | `openai_compatible` | `https://api.groq.com/openai/v1/` | `GROQ_API_KEY` | `openai/gpt-oss-120b`; also lists `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` | Free tier; rate limits per model. |
 | Mistral | `openai_compatible` | `https://api.mistral.ai/v1/` | `MISTRAL_API_KEY` | `ministral-14b-latest`, `ministral-8b-latest`, `ministral-3b-latest`, `codestral-latest` | Limited tier. Requests a minute: 3b 750, 8b 188, 14b 30, codestral 125. `mistral-small/medium` and `magistral` get 429 (0 a minute); `mistral-large` gets 403. |
 | OpenRouter | `openai_compatible` | `https://openrouter.ai/api/v1/` | `OPEN_ROUTER_API_KEY` | Free models (`:free`): `nvidia/nemotron-3-ultra-550b-a55b:free` answered | Free tier, no credits: 50 free-model requests a day. See below. |
@@ -38,3 +38,4 @@ When a check here changes (a quota runs out, a new key, a model that stops answe
 | GMI Cloud | `GMI_API_KEY` | `https://api.gmi-serving.com/v1/`. 402 until the account has a $10 balance (2026-10-09). |
 | Experiential Labs | `XPL_API_KEY` | `https://api.experientiallabs.ai/v1/`. The free tier needs a $1 card check; `claude-fable-5.1` needs a purchase (2026-10-09). |
 | Gemini, paid | `GOOGLE_GENERATIVE_AI_API_KEY` | Commented out in `.env`. |
+| Gemini | `GEMINI_API_KEY_II` | 402: its project's prepaid credit is used up, so it has no free tier (2026-11-01). |

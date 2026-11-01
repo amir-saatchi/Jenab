@@ -353,6 +353,14 @@ Block 1 (TASK-011):
 - **Date:** today's date and the user's time zone, as a UTC offset, since Windows has no IANA name for it. It has no time, so it changes only on a new day, and it is built at each cut. A cut comes after 5 minutes idle (3.6), so a new day almost always starts with one.
 - **Only what the tools can do:** lines about a kind of work come only with the tools that do it. The prompt rule for requests with several parts (8.3) comes with a tool that starts background work, and Mother's delegation guidance (8.6) with `create_chat`. The first line names a project's tables, pipelines and views only when a tool for each is registered, and says the others aren't in this version yet, so the model doesn't build them from files. A tool says which of them it works on (TASK-014).
 - **When no tool fits:** one line, the same for every model: tell the user so and offer what the tools can do; a saved file doesn't run or update itself; don't make up data no tool gave; don't describe screens, menus or steps the model can't see (TASK-014).
+- **Fewer rounds** (TASK-033): one line asks for calls that don't need each other's results in the same message. The line on answering with a write (8.3) comes with a tool that can carry an answer.
+
+**Tool list** (TASK-033): a tool is in the requests only once the project or the chat has what it works on, decided at a cut, so the list changes only where blocks 2–5 may:
+- `query` and `describe_table` once the project has a table. They also join at the migration that makes the first one, like the project card.
+- `search_history` and `read_messages` once the chat has turns before its window or the project has another chat; `list_chats` once there is another chat besides Mother.
+- `bucket_list`, `bucket_read` and `bucket_delete` once the bucket holds something outside `cache/`. `read_ref` and `search_ref` (3.7) are always there.
+- `insert` is always offered: gating it lost day 1's insert in 4 of 6 runs.
+- A tool left out still runs if the model calls it. When the project can't be read, every tool is offered.
 
 ### 3.2 Project card
 
@@ -380,6 +388,8 @@ Counts and run status are shown "as of" the time the card was built, since the c
 Both are organized in named sections. Default sections: `goals`, `preferences`, `decisions`, `conventions`. The agent may add sections.
 
 **Content rule:** memory holds intent: goals, preferences, decisions with their reasons, conventions. It never holds values that live in tables, such as prices, counts or lists of tracked items.
+
+**Standing changes** (TASK-033): when the user adds to or changes one ("add Ethereum to the usual"), `update_memory`'s description asks for its section to be updated in the same turn, and block 1 asks to leave a write's answer (8.3) empty until that is saved. gemma4:31b still missed it in 2 of about 20 runs.
 
 **Editing** uses `update_memory(scope, section, content, expected_revision)`:
 
@@ -1508,7 +1518,7 @@ This design assumes one machine and one folder per project. Multi-machine or tea
 
 Large results follow the preview-and-ref rules in 3.7.
 
-Every tool here is a native tool with its full schema. SPIKE-028 tried a short index with the details on request for the rarer ones: tasks stayed level, tokens were mixed, and argument mistakes went up. Only MCP tools use an index (8.7).
+Every tool here is a native tool with its full schema. SPIKE-028 tried a short index with the details on request for the rarer ones: tasks stayed level, tokens were mixed, and argument mistakes went up. Only MCP tools use an index (8.7). Some tools are offered only once the project has what they work on (3.1).
 
 **Data**
 
@@ -1654,6 +1664,7 @@ Decided in SPIKE-023.
   - The error card is a `turn_failed` notice. *Retry* continues the same turn, after a restart too, with a new `turn_max_requests`.
   - **Subagents** try up to 3 times within 2 minutes, then fail. The parent agent gets the error with its kind and wait, e.g. `rate_limited, retry after 60 s`, and decides whether to wait, try again or do the work itself.
   - `quota` and `request` errors are never retried. The chat says what the user can do, e.g. add credit or pick another model.
+- **Answer with a write** (TASK-033): `insert` has a required `answer` argument that may be empty. When the model's message carries one and every call in it succeeds, the answer is stored as the turn's reply and the turn ends, without a request whose only work is to say "done". The tool never sees the argument, and the answer gets the number check like any answer (SPIKE-032). A failed call or a message the user sent meanwhile drops it, and the turn goes on as usual. Only `insert` carries it: on `update_memory` it once ended a turn before the day's insert.
 - **Answers that end early:** when an answer without tool calls stops at the output limit, is refused, or has no text, an `answer_cut` notice says so. A tool call cut off at the output limit is dropped first.
 - **Tool calls that can't run:** a call with arguments that are not a JSON object (3.8), an unknown tool, or arguments that don't match the schema gets an error result, and the model can fix the call on its next request. After 3 requests in a row whose calls all failed this way, the turn stops with a `turn_failed` notice. A call that runs resets the count. Nothing is repaired or guessed.
 - **Finish notice:**
@@ -1982,6 +1993,7 @@ Each bad field gives its own error, naming the file and the field.
   - The chat's loaded skills are stored in `chats.skills`.
   - At the next cut of the history window (3.6), they move into block 1, after the role, so they survive cuts. Block 1 changes only at cuts, which keeps the cache valid in between.
   - The skill's text is stored as a `skill_text` notice after its chip, not in the tool result, and is joined to the result when the request is built. After the cut, the results kept in the window have a stub instead, `[skill sql: moved into the system prompt]`, so the text isn't sent twice; a `load_with` result keeps the tool's own output. In-turn trimming (3.7) stubs a `load_with` result like any other and keeps the skill's text (TASK-009).
+  - **Unloading** (TASK-033): at a cut, a skill whose loading turn has left the window leaves block 1 when no turn in the window loaded it again or called a tool of its `load_with`. A skill no turn loaded, such as one from a role, stays. `load_skill` or a `load_with` tool brings it back.
   - Starting limit: 6 skills or 10,000 tokens per chat. Beyond that, `load_skill` returns an error that lists what is loaded.
   - *Clear* (8.6) keeps the loaded skills, like the role.
 - **Subagents:** `subagent(task, inputs, background, skills)` starts with those skills loaded. The schema agent (8.2) is a subagent with `database-design` and `migrations`.
