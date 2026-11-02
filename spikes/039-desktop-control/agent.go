@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,12 +21,20 @@ type agentFlags struct {
 	model    string
 	maxSteps int
 	full     bool
+	api      string
+	baseURL  string
+	keyName  string
+	gap      time.Duration
 }
 
 func (a *agentFlags) register(fs *flag.FlagSet) {
 	fs.StringVar(&a.tasks, "tasks", "editor,calculator", "tasks to run")
 	fs.IntVar(&a.reps, "reps", 3, "runs per task")
-	fs.StringVar(&a.model, "model", "gemini-3.5-flash-lite", "Gemini model")
+	fs.StringVar(&a.model, "model", "gemini-3.5-flash-lite", "model")
+	fs.StringVar(&a.api, "api", "gemini", "gemini (native API) or openai (an OpenAI-compatible API at -base-url)")
+	fs.StringVar(&a.baseURL, "base-url", "", "for -api openai")
+	fs.StringVar(&a.keyName, "key-name", "", "for -api openai: the .env name of its key")
+	fs.DurationVar(&a.gap, "gap", 3*time.Second, "for -api openai: least time between requests")
 	fs.IntVar(&a.maxSteps, "max-steps", 30, "model turns per run")
 	fs.BoolVar(&a.full, "full", false, "snapshots with static text (default: interactive elements only)")
 }
@@ -66,6 +75,8 @@ type Task struct {
 	Goal   string
 	Launch func(cfg *Config) (*App, error)
 	Check  func(s *Session, answer string) (bool, string)
+	// Browser: snapshots show the address bar and the page, and the browser notes are kept.
+	Browser bool
 }
 
 const editorSentence = "Meet me at the north gate at 7:30, and bring the blue folder."
@@ -99,23 +110,88 @@ var tasks = map[string]Task{
 			return ok, "display: " + display
 		},
 	},
+	"chrome": {
+		Name:    "chrome",
+		Goal:    `In the open Chrome window, go to google.com, search for "Wails v3 Go desktop framework", and tell me the first five results (title and URL), in order. Reading them is enough; don't open them.`,
+		Browser: true,
+		Launch: func(cfg *Config) (*App, error) {
+			return launchChrome(cfg.CLI, filepath.Join(cfg.Scratch, "chrome-"+time.Now().Format("150405")))
+		},
+		// Pass: the five titles of the page's own first five organic results, in order.
+		Check: func(s *Session, answer string) (bool, string) {
+			snap, _, _, err := s.cli.snapshot(s.Win.ID, false, browserSnapArgs...)
+			if err != nil {
+				return false, "final snapshot: " + err.Error()
+			}
+			doc := pageNode(snap.Tree)
+			if doc == nil || !strings.Contains(doc.Value, "google.") || !strings.Contains(doc.Value, "/search") {
+				page := ""
+				if doc != nil {
+					page = origin(doc.Value)
+				}
+				return false, "no Google results page at the end (" + page + ")"
+			}
+			ref := googleResults(*doc)
+			if len(ref) > 5 {
+				ref = ref[:5]
+			}
+			s.br.Reference = ref
+			writeJSON(s.refPath, ref)
+			s.br.Matched, s.br.HostsGiven = gradeResults(ref, answer)
+			return len(ref) == 5 && s.br.Matched == 5, fmt.Sprintf("titles %d/5 in order, hosts %d/5, page %s", s.br.Matched, s.br.HostsGiven, origin(doc.Value))
+		},
+	},
 }
 
 // Session is one locked run: the window, and every id this run's snapshots gave out.
 type Session struct {
-	cli    *CLI
-	Win    Window
-	snapN  int
-	ids    map[string]string
-	nodes  map[string]SnapNode
-	full   bool
-	counts map[string]int
-	errors []string
-	chars  int // tool output characters returned to the model
-	owner  uint32
+	cli     *CLI
+	Win     Window
+	snapN   int
+	ids     map[string]string
+	nodes   map[string]SnapNode
+	full    bool
+	counts  map[string]int
+	errors  []string
+	chars   int // tool output characters returned to the model
+	owner   uint32
+	br      *BrowserNotes // set for a browser window
+	stop    string        // set when the run must end (a CAPTCHA)
+	refPath string        // where a browser check saves its reference list
 }
 
 var rePasswordName = regexp.MustCompile(`(?i)pass(word|code|wort)|\bpin\b|kennwort|verification code`)
+
+// isConsent: a button or link that accepts cookies, terms or other consent. Clicking one is refused
+// for every model; declining is allowed.
+func isConsent(n SnapNode) bool {
+	return (n.Role == "button" || n.Role == "link") && len([]rune(n.Name)) < 60 && reAccept.MatchString(n.Name)
+}
+
+// focused reads the window again and returns the element with the keyboard focus.
+func (s *Session) focused() *SnapNode {
+	snap, _, _, err := s.cli.snapshot(s.Win.ID, true, browserSnapArgs...)
+	if err != nil {
+		return nil
+	}
+	// The last focused node in tree order: a page's document can say focused next to the
+	// element inside it that has the focus.
+	var last *SnapNode
+	var walk func(n SnapNode)
+	walk = func(n SnapNode) {
+		for _, st := range n.States {
+			if st == "focused" {
+				m := n
+				last = &m
+			}
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+	walk(snap.Tree)
+	return last
+}
 
 func (s *Session) call(name string, args json.RawMessage) string {
 	s.counts[name]++
@@ -135,6 +211,9 @@ func (s *Session) dispatch(name string, args json.RawMessage) string {
 	case "list_windows":
 		return fmt.Sprintf("%q (%s) — chosen", s.Win.Title, s.Win.AppName)
 	case "snapshot":
+		if s.br != nil {
+			return s.browserSnapshot()
+		}
 		snap, _, _, err := s.cli.snapshot(s.Win.ID, !s.full, "--timeout-ms", "10000")
 		if err != nil {
 			s.errors = append(s.errors, "snapshot: "+err.Error())
@@ -161,6 +240,19 @@ func (s *Session) dispatch(name string, args json.RawMessage) string {
 			return "refused: " + a.ID + " is not an id from your snapshots. Take a snapshot and use an id from it."
 		}
 		n := s.nodes[a.ID]
+		var target *SnapNode
+		if a.Action == "press" {
+			// A key goes to whatever element has the keyboard focus, so the guards look at that one.
+			if target = s.focused(); target != nil {
+				n = *target
+			}
+		}
+		if a.Action != "set_value" && isConsent(n) {
+			if s.br != nil {
+				s.br.AcceptRefused++
+			}
+			return "refused: the user doesn't allow accepting cookies, terms or other consent. Decline instead, or stop and tell the user."
+		}
 		if a.Action == "set_value" || a.Action == "press" {
 			for _, st := range n.States {
 				if st == "secure" {
@@ -189,6 +281,7 @@ func (s *Session) dispatch(name string, args json.RawMessage) string {
 		default:
 			return "refused: unknown action " + a.Action
 		}
+		fg := foregroundWindow()
 		env, _, _, err := s.cli.Run(15*time.Second, cmd...)
 		if err != nil {
 			s.errors = append(s.errors, a.Action+": "+err.Error())
@@ -198,7 +291,25 @@ func (s *Session) dispatch(name string, args json.RawMessage) string {
 			}
 			return msg
 		}
-		return actSummary(env)
+		out := actSummary(env)
+		if s.br != nil {
+			if a.Action == "click" && reRejectBtn.MatchString(n.Name) {
+				s.br.RejectClicked = true
+			}
+			if a.Action == "press" {
+				s.br.Presses++
+				if foregroundWindow() != fg {
+					s.br.Foreground++
+				}
+				if named := s.nodes[a.ID]; target == nil || target.Role != named.Role || target.Name != named.Name {
+					s.br.PressMissed++
+				}
+			}
+		}
+		if target != nil {
+			out += fmt.Sprintf("; the key went to the focused element: %s %q", n.Role, clip(n.Name, 60))
+		}
+		return out
 	case "wait":
 		var w struct {
 			Text    string
@@ -267,24 +378,83 @@ type RunRecord struct {
 	ToolSeconds    float64 // running agent-desktop
 	Errors         []string
 	Stopped        string
+	Browser        *BrowserNotes `json:",omitempty"`
+}
+
+// Conv is one model conversation: the same tools, prompt and loop for every API.
+type Conv interface {
+	Next() (*GenResult, error)
+	Reply(calls []FunctionCall, outs []string)
+}
+
+// geminiConv keeps the model's parts as they came, so thought signatures go back unchanged.
+type geminiConv struct {
+	g        *Gemini
+	contents []Content
+}
+
+func (c *geminiConv) Next() (*GenResult, error) {
+	res, err := c.g.Generate(systemPrompt, c.contents, agentTools)
+	if err == nil {
+		c.contents = append(c.contents, res.Content)
+	}
+	return res, err
+}
+
+func (c *geminiConv) Reply(calls []FunctionCall, outs []string) {
+	var parts []json.RawMessage
+	for i, call := range calls {
+		parts = append(parts, responsePart(call, outs[i]))
+	}
+	c.contents = append(c.contents, Content{Role: "user", Parts: parts})
 }
 
 func runAgent(cfg *Config, f agentFlags) error {
-	if err := loadKey(cfg.Env); err != nil {
-		return err
+	var newConv func(goal string) Conv
+	var used func() int
+	switch f.api {
+	case "gemini":
+		if err := loadKey(cfg.Env); err != nil {
+			return err
+		}
+		g := &Gemini{Model: f.model, OutDir: cfg.Out}
+		newConv = func(goal string) Conv {
+			return &geminiConv{g: g, contents: []Content{{Role: "user", Parts: []json.RawMessage{textPart(goal)}}}}
+		}
+		used = g.used
+	case "openai":
+		if f.baseURL == "" || f.keyName == "" {
+			return fmt.Errorf("-api openai needs -base-url and -key-name")
+		}
+		key, err := readEnvKey(cfg.Env, f.keyName)
+		if err != nil {
+			return err
+		}
+		u, err := url.Parse(f.baseURL)
+		if err != nil {
+			return err
+		}
+		o := &OpenAI{BaseURL: f.baseURL, Key: key, Model: f.model, Name: u.Hostname(), Gap: f.gap, OutDir: cfg.Out}
+		newConv = func(goal string) Conv { return newOpenAIConv(o, systemPrompt, goal, agentTools) }
+		used = o.used
+	default:
+		return fmt.Errorf("unknown -api %q", f.api)
 	}
-	g := &Gemini{Model: f.model, OutDir: cfg.Out}
 	stamp := time.Now().Format("20060102-150405")
 	dir := filepath.Join(cfg.Out, "agent", stamp)
 	os.MkdirAll(dir, 0o755)
 	var all []RunRecord
+	captchas := 0
 	for _, name := range strings.Split(f.tasks, ",") {
 		t, ok := tasks[name]
 		if !ok {
 			return fmt.Errorf("unknown task %q", name)
 		}
 		for rep := 1; rep <= f.reps; rep++ {
-			r, err := runOne(cfg, g, t, rep, f, filepath.Join(dir, fmt.Sprintf("%s-%d.jsonl", name, rep)))
+			if captchas >= 2 {
+				break
+			}
+			r, err := runOne(cfg, newConv(t.Goal), t, rep, f, filepath.Join(dir, fmt.Sprintf("%s-%d.jsonl", name, rep)))
 			if err != nil {
 				return err
 			}
@@ -292,13 +462,19 @@ func runAgent(cfg *Config, f agentFlags) error {
 			fmt.Printf("%-10s rep %d  ok=%-5v steps=%2d calls=%v prompt=%d out=%d thoughts=%d tool=%dch %.0fs (model %.0f, tools %.0f)  %s | %s\n",
 				r.Task, r.Rep, r.Success, r.Steps, r.ToolCalls, r.Prompt, r.Output, r.Thoughts, r.ToolChars, r.Seconds, r.ModelSeconds, r.ToolSeconds, r.Check, clip(r.Answer, 100))
 			writeJSON(filepath.Join(dir, "runs.json"), all)
+			if r.Browser != nil && r.Browser.Captcha {
+				if captchas++; captchas >= 2 {
+					fmt.Println("second CAPTCHA: batch stopped")
+					break
+				}
+			}
 		}
 	}
-	fmt.Println("results in", dir, "- requests today:", g.used())
+	fmt.Println("results in", dir, "- requests today:", used())
 	return nil
 }
 
-func runOne(cfg *Config, g *Gemini, t Task, rep int, f agentFlags, logPath string) (RunRecord, error) {
+func runOne(cfg *Config, conv Conv, t Task, rep int, f agentFlags, logPath string) (RunRecord, error) {
 	rec := RunRecord{Task: t.Name, Model: f.model, Rep: rep}
 	app, err := t.Launch(cfg)
 	if err != nil {
@@ -307,11 +483,14 @@ func runOne(cfg *Config, g *Gemini, t Task, rep int, f agentFlags, logPath strin
 	defer app.Close()
 	time.Sleep(1500 * time.Millisecond)
 	s := &Session{cli: cfg.CLI, Win: app.Win, ids: map[string]string{}, nodes: map[string]SnapNode{}, full: f.full, counts: map[string]int{}, owner: windowPID(hwndOf(app.Win.ID))}
+	if t.Browser {
+		s.br = &BrowserNotes{}
+		s.refPath = strings.TrimSuffix(logPath, ".jsonl") + "-reference.json"
+	}
 	logf, _ := os.Create(logPath)
 	defer logf.Close()
 	logLine := func(v any) { b, _ := json.Marshal(v); logf.Write(append(b, '\n')) }
 
-	contents := []Content{{Role: "user", Parts: []json.RawMessage{textPart(t.Goal)}}}
 	start := time.Now()
 	for step := 1; ; step++ {
 		if step > f.maxSteps {
@@ -319,7 +498,7 @@ func runOne(cfg *Config, g *Gemini, t Task, rep int, f agentFlags, logPath strin
 			break
 		}
 		tm := time.Now()
-		res, err := g.Generate(systemPrompt, contents, agentTools)
+		res, err := conv.Next()
 		rec.ModelSeconds += time.Since(tm).Seconds()
 		if err != nil {
 			rec.Stopped = "model error: " + err.Error()
@@ -329,29 +508,33 @@ func runOne(cfg *Config, g *Gemini, t Task, rep int, f agentFlags, logPath strin
 		rec.Prompt += res.Usage.Prompt
 		rec.Output += res.Usage.Output
 		rec.Thoughts += res.Usage.Thoughts
-		contents = append(contents, res.Content)
 		if len(res.Calls) == 0 {
 			rec.Answer = res.Text
 			logLine(map[string]any{"step": step, "usage": res.Usage, "answer": res.Text, "finish": res.Finish})
 			break
 		}
-		var parts []json.RawMessage
+		var outs []string
 		var logged []map[string]string
 		for _, c := range res.Calls {
 			tt := time.Now()
 			out := s.call(c.Name, c.Args)
 			rec.ToolSeconds += time.Since(tt).Seconds()
-			parts = append(parts, responsePart(c, out))
+			outs = append(outs, out)
 			logged = append(logged, map[string]string{"call": c.Name, "args": string(c.Args), "result": out})
 		}
 		logLine(map[string]any{"step": step, "usage": res.Usage, "calls": logged, "text": res.Text})
-		contents = append(contents, Content{Role: "user", Parts: parts})
+		conv.Reply(res.Calls, outs)
+		if s.stop != "" {
+			rec.Stopped = s.stop
+			break
+		}
 	}
 	rec.Seconds = time.Since(start).Seconds()
 	rec.ToolCalls = s.counts
 	rec.ToolChars = s.chars
 	rec.Errors = s.errors
 	rec.Success, rec.Check = t.Check(s, rec.Answer)
+	rec.Browser = s.br
 	logLine(rec)
 	return rec, nil
 }

@@ -13,6 +13,9 @@ out/spike039.exe bench  -scratch <dir>                    # CLI vs DLL times, wh
 out/spike039.exe sizes  -scratch <dir> -env ../../.env    # snapshot sizes and tokens, 4 apps
 out/spike039.exe hang   -scratch <dir>                    # a frozen window; Edge at a cold start
 out/spike039.exe agent  -scratch <dir> -env ../../.env -tasks editor,calculator -reps 3
+out/spike039.exe agent  -scratch <dir> -env ../../.env -api openai -base-url https://api.mistral.ai/v1/ \
+                        -key-name MISTRAL_API_KEY -model ministral-14b-latest   # any OpenAI-compatible API
+out/spike039.exe agent  -scratch <dir> -env ../../.env -tasks chrome -reps 3   # a live Google search
 ```
 
 `-scratch` holds agent-desktop's state, the Edge profile and the test folder. `out/` (run output)
@@ -50,10 +53,19 @@ from the archives runs except `agent-desktop.exe`, by its full path, and the DLL
 - **State folder:** agent-desktop refuses a state folder (`AGENT_DESKTOP_HOME`) that inherits
   access for other principals ("private file DACL grants an untrusted principal"). It sets a
   private DACL when it creates the folder itself, so point it at one that does not exist yet.
-- **Keys:** only `GEMINI_API_KEY`, read into memory from `-env`, never printed. Requests are
-  counted per Pacific day in `out/requests-<date>.txt`; the spike stops at 380.
+- **Keys:** `GEMINI_API_KEY`, or the one `-key-name` names for `-api openai`, read into memory
+  from `-env`, never printed. Gemini requests are counted per Pacific day in
+  `out/requests-<date>.txt` (the spike stops at 380); others per UTC day in
+  `out/requests-<host>-<date>.txt`, spaced by `-gap` (3 s).
 - **DLL:** `dll.go` mirrors the structs of `agent_desktop.h` (ABI 6, x64) and checks their sizes
   against the library's `ad_*_size` at load. Every call runs on one locked OS thread.
 
-`out/spike039.exe calcprobe -scratch <dir>` starts Calculator twice, clicks Four and watches the
-window, its owner and list-windows for 65 s (no model calls).
+`out/spike039.exe calcprobe -scratch <dir> [-button "Keep on top"] [-reps 2]` starts Calculator,
+clicks one button (Four by default) and watches the window, its owner and list-windows for 65 s
+(no model calls).
+
+`out/spike039.exe chromeprobe -scratch <dir>` starts Chrome with a fresh profile in the scratch
+dir, searches Google once from the address bar, clicks "Reject all" if asked and saves full
+snapshots to `out/chrome-probe` (no model calls). The `chrome` task searches live on google.com:
+run it only when that is allowed. It never clicks accept (a guard refuses it for every model)
+and stops at a CAPTCHA.

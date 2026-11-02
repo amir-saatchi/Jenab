@@ -113,6 +113,101 @@ request with 503 retries); the tools took 1–9 s per run.
 - No run pressed a key, so nothing took the foreground. 117 Gemini requests were used today in
   all (sizes, both agent batches).
 
+### Mistral `ministral-14b-latest`
+
+Same harness, prompt, tools and goals, through Mistral's OpenAI-compatible API
+(`-api openai -base-url https://api.mistral.ai/v1/ -key-name MISTRAL_API_KEY`), 3 s between
+requests (the tier allows 30 a minute). 88 requests (3 for a smoke run of the editor that passed,
+85 for the batch); no 429s. Requests take ~2–3 s, so runs take seconds, not minutes.
+
+| Task | Run | Result | Turns | Prompt / output tokens | Time |
+|---|---|---|---|---|---|
+| Test editor | 1 | text right, but the box read "aMeet me…" (see below) | 3 | 2,360 / 80 | 7 s |
+| | 2, 3 | done, text exact | 3 each | 2,360 / 80 each | 8, 7 s |
+| Calculator | 1 | stopped: it closed the window itself | 16 | 47,227 / 842 | 62 s |
+| | 2 | gave up: lost the window after "Keep on top" | 30 | 136,694 / 1,013 | 95 s |
+| | 3 | step limit, display 0, no answer | 30 | 105,611 / 900 | 99 s |
+
+- **Editor:** snapshot, one `set_value` with the exact sentence, answer. It trusted the action's
+  `delivered_verified` and didn't take a second snapshot. In run 1 the box held an "a" before the
+  sentence that the model never sent (its call was the same as in runs 2 and 3, and
+  `set_value` replaces the whole text). Most likely a key typed while the newly opened editor was
+  in front: the harness opens the window, so it takes the foreground. Not reproduced. Counted as a
+  model success, a check failure.
+- **Calculator, all three:** it first tried `set_value` on the display (refused: not editable),
+  then clicked the number pad. It sends many clicks in one turn (up to 10 parallel calls) and
+  maps ids to digits by position, not by name: it entered 4567 (e31–e34 in order), 7410, "-75.",
+  and in run 2 repeated the same wrong 7410 four times, each time saying it was wrong. It also
+  hit "Positive negative", "Decimal separator" and "Keep on top".
+  - Run 1 noticed 45,588 was wrong, said the sum was 14183 in passing, kept clicking, hit "Keep
+    on top", then clicked "Close Calculator" and ended with "the window was closed".
+  - Run 2 clicked "Keep on top"; from then on every snapshot failed and it gave up.
+  - Run 3 never got 4827 on the display in 30 turns.
+- **"Keep on top" loses the window.** It switches Calculator to its compact overlay. The window
+  (same HWND, same owner) still exists, but agent-desktop's `list-windows` no longer lists it and
+  `snapshot --window-id` fails with `WINDOW_NOT_FOUND`; clicks by old refs still land
+  (`calcprobe -button "Keep on top"`). For Jenab that ends the session (the lock rule), which is
+  safe, but a model can end its own session with one click.
+- Prompt tokens per Calculator run (47k–137k) are higher than Gemini's for the same reason: every
+  snapshot stays in the history.
+
+**Next to Gemini:** editor 3/3 for both (Mistral in 3 turns, 2.4k tokens, ~7 s; Gemini in 5,
+4.3k, ~110 s on the free tier). Calculator: Gemini 1/3, Mistral 0/3. Neither model reliably
+does a ten-click task with these tools; the smaller ministral models weren't tried.
+
+### Chrome: a Google search
+
+The user allowed one live google.com search for this test. Goal (the model gets only this):
+*go to google.com, search for "Wails v3 Go desktop framework", and tell me the first five
+results (title and URL), in order, without opening them.* Chrome runs with a fresh profile in the
+scratch dir (`--user-data-dir`, `--no-first-run`, `--no-default-browser-check`) on `about:blank`
+and is closed by its pid. Task `-tasks chrome`.
+
+- **What the model sees:** the address bar (its value cut to the origin) and the page's
+  document, nothing else of Chrome's frame. Google's results sit below agent-desktop's default
+  depth of 10, so browser snapshots use `--max-depth 40 --compact`.
+- **Consent guard (same for every model):** an action on a button or link whose name reads as
+  accepting (`accept`, `agree`, `akzeptier`, `zustimm`, …) is refused with "the user doesn't
+  allow accepting cookies, terms or other consent. Decline instead, or stop and tell the user."
+- **CAPTCHA:** a page with `/sorry/` or "unusual traffic" text stops the run; two stop the batch.
+- **Grading:** the first five organic results of the page in the run's last snapshot (no ads, video
+  cards, "People also ask" or sub-links), saved per run in `out/agent/<run>/chrome-N-reference.json`.
+  Pass = all five titles in the answer, in that order.
+
+| Model | Run | Result | Turns | Prompt / output tokens | Time |
+|---|---|---|---|---|---|
+| gemini-3.5-flash-lite | 1 | pass | 19 | 36,024 / 581 | 86 s |
+| | 2 | fail, 4/5: a YouTube video card as #5 | 22 | 44,489 / 687 | 107 s |
+| | 3 | pass | 16 | 21,790 / 482 | 93 s |
+| ministral-14b-latest | 1 | fail, 4/5: #5 from further down the page | 11 | 15,294 / 443 | 77 s |
+| | 2 | pass | 14 | 24,296 / 472 | 90 s |
+| | 3 | pass | 14 | 24,489 / 481 | 100 s |
+
+Both 2/3. Requests: 57 Gemini (19 + 22 + 16; the day's count went from 117 to 174) and 39
+Mistral (3 s apart, no 429s), plus ~12 searches by `chromeprobe` without a model. No CAPTCHA.
+
+- **Consent:** every run got Google's German consent dialog ("Alle ablehnen" / "Alle
+  akzeptieren") as a dialog on `www.google.com`, and every run ended up clicking "Alle ablehnen".
+  In 5 of 6 the model clicked "Alle akzeptieren" first, was refused, and then rejected; only
+  Gemini run 3 went straight to reject.
+- **Typing:** no run typed. `type` needs `--headed` (real keystrokes), so the model got
+  `set_value` and `press`. All six did `set_value` on the address bar (or on Google's "Suche"
+  box) and then `press return`. Without `--headed`, agent-desktop sends the key to the process,
+  where it reaches whatever element has focus; after `set_value` on the address bar that is the
+  "Omnibox Popup", and Return navigated. The foreground window never changed (0 of 15 presses).
+  The harness tells the model which element got the key, since it is not always the one named.
+- **Origins:** `about:blank` (or no page), then only `https://www.google.com`. No redirect to
+  `google.de` or `consent.google.com` happened: consent is a dialog on the same origin.
+- **The answers:** the result order changed between runs (and so did the results), so each run is
+  graded against its own page. The two failures:
+  - Gemini 2 put a YouTube video card in fifth place (the organic #5 came after the videos) and
+    folded Reddit's sub-links into #3.
+  - Mistral 1 gave "Wails v3.0.0 Released" from further down instead of "What's New in Wails v3".
+- **URLs:** Google's links point to `google.com/goto?url=…` redirects, so the model gets the
+  address only from the result's cite text, which Google shortens with "›" and "...". Gemini kept
+  it as shown; Mistral made up full URLs from it (e.g. a `…/wails-v3-1-0` path) and added emoji.
+  Reddit's result shows no address at all, so 4/5 hosts was the most any run could give.
+
 ## 4. Safety
 
 The SPEC draft (8.10) is in the report to Main-Session. What the spike showed for it:
@@ -125,6 +220,29 @@ The SPEC draft (8.10) is in the report to Main-Session. What the spike showed fo
   `countTokens` once; the page is now served from `127.0.0.1`. Jenab's page-only form should
   keep the origin, not the full URL, in what it shows the model.
 - agent-desktop refuses a state folder that others can read; Jenab should let it create its own.
+- A window can drop out of agent-desktop's list while it still exists (Calculator's "Keep on
+  top"). Ending the session then is right; the guidance or the card should tell the user why.
+- A window that comes to the front takes whatever the user is typing (the stray "a" in Mistral's
+  editor run 1). The first-key-press card covers Jenab's own key presses; Jenab should never
+  bring the window to the front for anything else.
+- From the Chrome runs:
+  - **A site lock has to allow the first navigation.** The window starts on `about:blank` and
+    the task is to go to a site, so a lock on the starting origin would stop it at once. Either
+    the card names the site ("google.com") and the lock allows that origin from the start, or
+    the lock follows the user's first navigation. Google never left `www.google.com` (no
+    `google.de`, no `consent.google.com`), but a lock by origin should still allow a list of
+    known consent and country hosts per site, or ask.
+  - **A key goes to the focused element of the app's process, not to the element named.**
+    Without `--headed` that needs no foreground (0 of 15 presses changed it), but in an app with
+    several windows in one process a key could land in another of its windows. Jenab should check
+    the focused element is inside the locked window before a press, and tell the model where the
+    key went.
+  - **The consent rule works as a harness guard.** Both models tried "accept" first in 5 of 6
+    runs; the refusal message was enough for all of them to reject instead. It must match labels
+    in other languages (the page was German).
+  - **A CAPTCHA stops the run** for the user to handle; none came up in ~18 searches.
+  - **Browser snapshots need a deeper tree** (`--max-depth 40`) and only the page plus the
+    address bar as an origin; the frame (tabs, profile, bookmarks) is the user's and stays out.
 
 ## 5. Go or no-go
 

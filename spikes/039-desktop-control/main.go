@@ -35,6 +35,12 @@ func main() {
 	vendor := fs.String("vendor", "vendor/v1.0.2", "extracted agent-desktop release")
 	env := fs.String("env", "../../.env", "env file with GEMINI_API_KEY")
 	var agentArgs agentFlags
+	var button *string
+	var reps *int
+	if cmd == "calcprobe" {
+		button = fs.String("button", "Four", "the button to click")
+		reps = fs.Int("reps", 2, "Calculator starts")
+	}
 	if cmd == "agent" {
 		agentArgs.register(fs)
 	}
@@ -63,8 +69,10 @@ func main() {
 		err = runSizes(cfg)
 	case "hang":
 		err = runHang(cfg)
+	case "chromeprobe":
+		err = runChromeProbe(cfg, os.Getenv("PROBE_FOCUS") != "")
 	case "calcprobe":
-		err = runCalcProbe(cfg)
+		err = runCalcProbe(cfg, *button, *reps)
 	case "agent":
 		err = runAgent(cfg, agentArgs)
 	default:

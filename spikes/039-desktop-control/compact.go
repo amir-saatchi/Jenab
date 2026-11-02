@@ -48,9 +48,20 @@ type Compact struct {
 const maxCompactLines = 400
 
 func compact(s *SnapData, snapN int) Compact {
+	c := compactFrom([]SnapNode{s.Tree}, s.Window.Title, snapN)
+	c.Text = fmt.Sprintf("window %q (snapshot %d)\n", s.Window.Title, snapN) + c.Text
+	if !s.Complete {
+		c.Text += "[the tree is incomplete: the app did not answer in time]\n"
+	}
+	return c
+}
+
+// compactNodes prints the given subtrees (a browser's address bar and page) in the same form.
+func compactNodes(roots []SnapNode, snapN int) Compact { return compactFrom(roots, "", snapN) }
+
+func compactFrom(roots []SnapNode, rootName string, snapN int) Compact {
 	c := Compact{IDs: map[string]string{}, Nodes: map[string]SnapNode{}}
 	var b strings.Builder
-	fmt.Fprintf(&b, "window %q (snapshot %d)\n", s.Window.Title, snapN)
 	cut := 0
 	var walk func(n SnapNode, depth int, parentName string)
 	walk = func(n SnapNode, depth int, parentName string) {
@@ -87,12 +98,11 @@ func compact(s *SnapData, snapN int) Compact {
 			walk(ch, childDepth, childParent)
 		}
 	}
-	walk(s.Tree, 0, s.Window.Title)
+	for _, r := range roots {
+		walk(r, 0, rootName)
+	}
 	if cut > 0 {
 		fmt.Fprintf(&b, "[%d more elements left out]\n", cut)
-	}
-	if !s.Complete {
-		b.WriteString("[the tree is incomplete: the app did not answer in time]\n")
 	}
 	c.Text = b.String()
 	return c

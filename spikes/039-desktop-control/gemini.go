@@ -15,43 +15,56 @@ import (
 	"time"
 )
 
-// Only GEMINI_API_KEY is read from the repo-root .env, into memory. It is never printed, logged,
-// written or put on a command line; errors are redacted. Requests are counted per Pacific day in
-// out/requests-<date>.txt, and the spike refuses to pass 380 (the rule is under 400 a day).
+// Keys are read from the repo-root .env by name, into memory. They are never printed, logged,
+// written or put on a command line; errors are redacted. Gemini requests are counted per Pacific
+// day in out/requests-<date>.txt, and the spike refuses to pass 380 (the rule is under 400 a day).
 
 const keyName = "GEMINI_API_KEY"
 const dailyCap = 380
 
 var geminiKey string
 
+// loaded holds every key read, so redact can hide all of them.
+var loaded []string
+
 func loadKey(envPath string) error {
+	v, err := readEnvKey(envPath, keyName)
+	geminiKey = v
+	return err
+}
+
+func readEnvKey(envPath, name string) (string, error) {
 	f, err := os.Open(envPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
+	val := ""
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := strings.TrimPrefix(strings.TrimSpace(sc.Text()), "export ")
 		k, v, ok := strings.Cut(line, "=")
-		if !ok || strings.TrimSpace(k) != keyName {
+		if !ok || strings.TrimSpace(k) != name {
 			continue
 		}
 		v = strings.TrimSpace(v)
 		if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
 			v = v[1 : len(v)-1]
 		}
-		geminiKey = v
+		val = v
 	}
-	if geminiKey == "" {
-		return fmt.Errorf("%s not found in %s", keyName, envPath)
+	if val == "" {
+		return "", fmt.Errorf("%s not found in %s", name, envPath)
 	}
-	return sc.Err()
+	loaded = append(loaded, val)
+	return val, sc.Err()
 }
 
 func redact(s string) string {
-	if len(geminiKey) >= 8 {
-		s = strings.ReplaceAll(s, geminiKey, "[REDACTED]")
+	for _, k := range loaded {
+		if len(k) >= 8 {
+			s = strings.ReplaceAll(s, k, "[REDACTED]")
+		}
 	}
 	return s
 }
