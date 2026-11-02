@@ -222,6 +222,8 @@ func TestDetectMIME(t *testing.T) {
 		{"# Title\n", "x.md", "text/markdown; charset=utf-8"},
 		{"plain words", "x", "text/plain; charset=utf-8"},
 		{"\x00\x01\x02\x03", "x.csv", "application/octet-stream"},
+		{"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1\x00\x00", "old.doc", "application/x-ole-storage"},
+		{"PK\x03\x04\x14\x00\x06\x00", "a.docx", "application/zip"}, // store looks inside
 	}
 	for _, c := range cases {
 		if got := DetectMIME([]byte(c.head), c.key); got != c.want {

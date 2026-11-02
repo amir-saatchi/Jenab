@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/docx"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/store"
@@ -34,7 +35,7 @@ func TestSystemExt(t *testing.T) {
 		{"notes/a.txt", "hello", ".txt"},
 		{"notes/a.md", "# Hello", ".md"},
 		{"data/a.csv", "a,b\n1,2\n", ".csv"},
-		{"docs/letter.docx", zip, ".docx"},
+		{"docs/letter.docx", zip, ""}, // a zip that store didn't find Word in
 		{"docs/sheet.XLSX", zip, ".xlsx"},
 		{"docs/macro.docm", zip, ""},
 		{"docs/macro.xlsm", zip, ""},
@@ -59,6 +60,19 @@ func TestSystemExt(t *testing.T) {
 		mt := bucket.DetectMIME([]byte(c.head), c.key)
 		if got := systemExt(mt, c.key); got != c.want {
 			t.Errorf("%s (%s): %q, want %q", c.key, mt, got, c.want)
+		}
+	}
+	// Word documents, as store detects them from their parts.
+	for _, c := range []struct{ mime, key, want string }{
+		{docx.MIME, "uploads/letter.docx", ".docx"},
+		{docx.MIME, "uploads/letter", ".docx"},     // the type decides
+		{docx.MIME, "uploads/letter.exe", ".docx"}, // never the key
+		{docx.MIMEMacro, "uploads/macro.docm", ""},
+		{docx.MIMEMacro, "uploads/macro.docx", ""},
+		{docx.MIMEOLE, "uploads/old.doc", ""},
+	} {
+		if got := systemExt(c.mime, c.key); got != c.want {
+			t.Errorf("%s (%s): %q, want %q", c.key, c.mime, got, c.want)
 		}
 	}
 	if got := systemExt("not a type", "a.png"); got != "" {

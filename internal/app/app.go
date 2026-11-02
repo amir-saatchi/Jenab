@@ -63,7 +63,7 @@ func New(d Deps) *App {
 // Publisher sends events to the frontend; agent and project get it.
 func (a *App) Publisher() *Publisher { return a.pub }
 
-// Bind registers the services and the objects route. DevService is bound
+// Bind registers the services and the objects and upload routes. DevService is bound
 // only when the developer tools are on at the start (8.4).
 func (a *App) Bind(s Services) {
 	a.ui = s.Settings
@@ -87,6 +87,7 @@ func (a *App) Bind(s Services) {
 		a.w.RegisterService(application.NewService(b.Dev))
 	}
 	a.w.RegisterService(application.NewServiceWithOptions(&objects{objectHandler(s.Projects)}, application.ServiceOptions{Route: bucket.Route}))
+	a.w.RegisterService(application.NewServiceWithOptions(&objects{uploadHandler(s.Projects)}, application.ServiceOptions{Route: UploadRoute}))
 }
 
 // The keys of a notification's data, read back when it is clicked.

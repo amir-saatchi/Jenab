@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/docx"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
 )
@@ -32,10 +33,13 @@ const openKeep = 24 * time.Hour
 //     since a browser would open it and run its scripts.
 //   - Text opens in the text editor: CSV, TSV, Markdown and JSON keep their
 //     extension, any other text (HTML, XML, scripts) becomes .txt.
-//   - Office and OpenDocument files are ZIPs to the detector, so a ZIP
-//     opens only when its key ends in one of their macro-free extensions.
-//     This is a stopgap until TASK-021 detects Office files properly;
-//     macro-enabled types (.docm, .xlsm, .pptm, …) stay refused.
+//   - A Word document, found by its parts when it was stored (TASK-021),
+//     opens as .docx; a macro-enabled one is refused.
+//   - Other Office and OpenDocument files are ZIPs to the detector, so a
+//     ZIP opens only when its key ends in one of their macro-free
+//     extensions. This is a stopgap until their types are detected too;
+//     macro-enabled types (.xlsm, .pptm, …) stay refused. A ZIP named
+//     .docx is not a Word document, so it doesn't open.
 //   - Everything else is refused: programs, libraries, installers and
 //     shortcuts (all application/octet-stream to the detector), archives,
 //     fonts and unknown types.
@@ -66,12 +70,12 @@ var systemTypes = map[string]string{
 	"image/bmp": ".bmp", "image/avif": ".avif", "image/x-icon": ".ico", "image/vnd.microsoft.icon": ".ico",
 	"audio/mpeg": ".mp3", "audio/wave": ".wav", "audio/aiff": ".aiff", "audio/basic": ".au", "audio/midi": ".mid",
 	"application/ogg": ".ogg", "video/mp4": ".mp4", "video/webm": ".webm", "video/avi": ".avi",
-	"application/pdf": ".pdf", "text/plain": ".txt", "text/csv": ".csv", "text/tab-separated-values": ".tsv",
+	"application/pdf": ".pdf", docx.MIME: ".docx", "text/plain": ".txt", "text/csv": ".csv", "text/tab-separated-values": ".tsv",
 	"text/markdown": ".md", "application/json": ".json",
 }
 
 var officeExts = map[string]bool{
-	".docx": true, ".xlsx": true, ".pptx": true, ".odt": true, ".ods": true, ".odp": true,
+	".xlsx": true, ".pptx": true, ".odt": true, ".ods": true, ".odp": true,
 }
 
 // errRefusedType is a file the system app may not open.

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/docx"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
@@ -156,7 +157,11 @@ func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Sou
 	if err != nil {
 		return Object{}, err
 	}
-	obj := Object{Key: key, SHA256: b.Hash, MIME: bucket.DetectMIME(b.Head, key), Size: b.Size, Metadata: meta,
+	mt := bucket.DetectMIME(b.Head, key)
+	if strings.HasPrefix(mt, "application/zip") {
+		mt = p.zipMIME(ctx, b.Hash, b.Size, mt)
+	}
+	obj := Object{Key: key, SHA256: b.Hash, MIME: mt, Size: b.Size, Metadata: meta,
 		Source: o.Source, SourceURL: o.SourceURL, CreatedBy: src, UpdatedAt: time.Now().UTC().Truncate(time.Millisecond)}
 	obj.Expires = life.expires(key, obj.UpdatedAt)
 	return Do(ctx, p.DB, pr, func(tx *sql.Tx) (Object, error) {
@@ -186,6 +191,20 @@ func (p *ProjectDB) PutObject(ctx context.Context, pr limit.Priority, src id.Sou
 		}
 		return obj, logObject(tx, src, "save", key, prev, &obj)
 	})
+}
+
+// zipMIME looks inside a stored zip: a Word document gets its own type
+// (TASK-021). Any other zip, and one that can't be read, stays mt.
+func (p *ProjectDB) zipMIME(ctx context.Context, hash string, size int64, mt string) string {
+	f, err := p.objects.Open(ctx, hash)
+	if err != nil {
+		return mt
+	}
+	defer f.Close()
+	if w := docx.Detect(docx.ReaderAt(f), size); w != "" {
+		return w
+	}
+	return mt
 }
 
 func checkMetadata(m json.RawMessage) (json.RawMessage, error) {

@@ -12,9 +12,18 @@ import (
 // stored, never from what its source claimed (SPEC 4.7). The key's
 // extension only refines plain text into another text type that is safe to
 // show, such as CSV or JSON.
+//
+// A zip is looked at again once it is stored: store finds Word documents
+// by their parts (TASK-021). An OLE compound file, which
+// http.DetectContentType doesn't know, is an old .doc, .xls or .ppt or an
+// Office file encrypted with a password; it gets its own type, so reading
+// it can say which.
 func DetectMIME(head []byte, key string) string {
 	if isSVG(head) {
 		return "image/svg+xml"
+	}
+	if bytes.HasPrefix(head, []byte("\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")) {
+		return "application/x-ole-storage"
 	}
 	t := http.DetectContentType(head)
 	if base, params, err := mime.ParseMediaType(t); err == nil && base == "text/plain" {

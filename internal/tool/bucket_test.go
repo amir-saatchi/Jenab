@@ -122,7 +122,7 @@ func TestBucketRead(t *testing.T) {
 	contains(t, r.Text, "[image images/a.png — image/png — ")
 
 	put(t, env, "files/a.pdf", "%PDF-1.7 binary", store.PutOptions{})
-	contains(t, toolError(t, env, "bucket_read", `{"key": "files/a.pdf"}`), "files/a.pdf is application/pdf", "only text and images")
+	contains(t, toolError(t, env, "bucket_read", `{"key": "files/a.pdf"}`), "files/a.pdf is application/pdf", "only text, Word documents and images")
 	contains(t, toolError(t, env, "bucket_read", `{"key": "files/none.txt"}`), "no object at files/none.txt")
 }
 

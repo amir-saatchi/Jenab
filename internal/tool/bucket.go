@@ -58,26 +58,53 @@ func isImage(m string) bool {
 
 func expired(o store.Object) bool { return !o.Expires.IsZero() && time.Now().After(o.Expires) }
 
-// readText reads a text object from offset as a preview under a header
-// with label, so a stub can be made from it later.
-func readText(ctx context.Context, env *Env, key string, offset int, label func(store.Object) string) (Result, error) {
-	o, rc, err := env.Project.DB.OpenObject(ctx, key)
+// openText opens a text object, or the text of a document, for reading,
+// with the size of what it reads. A ref that expired returns no reader
+// but the text that says so.
+func openText(ctx context.Context, env *Env, ref string) (o store.Object, rc io.ReadSeekCloser, size int64, gone string, err error) {
+	key, err := refKey(env, ref)
 	if err != nil {
-		return Result{}, objectError(err, key)
+		return o, nil, 0, "", err
 	}
-	defer rc.Close()
+	o, rc, err = env.Project.DB.OpenObject(ctx, key)
+	if err != nil {
+		return o, nil, 0, "", objectError(err, key)
+	}
 	if expired(o) {
+		rc.Close()
 		from := o.SourceURL
 		if from == "" {
 			from = "an unknown source"
 		}
-		return Result{Text: fmt.Sprintf("expired: %s came from %s and has expired; fetch it again.", key, from)}, nil
+		return o, nil, 0, fmt.Sprintf("expired: %s came from %s and has expired; fetch it again.", key, from), nil
+	}
+	if isDocument(o.MIME) {
+		t, trc, err := documentText(ctx, env, o, rc)
+		rc.Close()
+		if err != nil {
+			return o, nil, 0, "", err
+		}
+		return o, trc, t.Size, "", nil
 	}
 	if !isText(o.MIME) {
-		return Result{}, Errorf("%s is %s, not text", key, baseType(o.MIME))
+		rc.Close()
+		return o, nil, 0, "", Errorf("%s is %s, not text", key, baseType(o.MIME))
 	}
-	if offset < 0 || int64(offset) > o.Size {
-		return Result{}, Errorf("offset %d is outside %s, which has %s bytes", offset, key, count(int(o.Size)))
+	return o, rc, o.Size, "", nil
+}
+
+// readText reads a text object, or a document's text, from offset as a
+// preview under a header with label, so a stub can be made from it
+// later. The ref is always the object's own key.
+func readText(ctx context.Context, env *Env, ref string, offset int, label func(store.Object) string) (Result, error) {
+	o, rc, size, gone, err := openText(ctx, env, ref)
+	if err != nil || gone != "" {
+		return Result{Text: gone}, err
+	}
+	defer rc.Close()
+	key := o.Key
+	if offset < 0 || int64(offset) > size {
+		return Result{}, Errorf("offset %d is outside %s, which has %s bytes", offset, key, count(int(size)))
 	}
 	if _, err := rc.Seek(int64(offset), io.SeekStart); err != nil {
 		return Result{}, err
@@ -95,20 +122,20 @@ func readText(ctx context.Context, env *Env, key string, offset int, label func(
 	if len(shown) > max { // buf holds more than max when there is more
 		shown = cut(shown, max)
 	}
-	total := count(int((o.Size + 3) / 4))
+	total := count(int((size + 3) / 4))
 	end := offset + len(shown)
-	var size string
+	var shows string
 	switch {
-	case offset == 0 && int64(end) >= o.Size:
-		size = total + " tokens"
+	case offset == 0 && int64(end) >= size:
+		shows = total + " tokens"
 	case offset == 0:
-		size = fmt.Sprintf("%s tokens, showing first %s", total, count(tokens(shown)))
+		shows = fmt.Sprintf("%s tokens, showing first %s", total, count(tokens(shown)))
 	default:
-		size = fmt.Sprintf("%s tokens, showing %s from offset %d", total, count(tokens(shown)), offset)
+		shows = fmt.Sprintf("%s tokens, showing %s from offset %d", total, count(tokens(shown)), offset)
 	}
 	text := strings.ToValidUTF8(strings.TrimRight(shown, "\n"), string(utf8.RuneError))
-	out := fmt.Sprintf("[%s — %s — ref: %s]\n%s", label(o), size, key, text)
-	if int64(end) < o.Size {
+	out := fmt.Sprintf("[%s — %s — ref: %s]\n%s", label(o), shows, key, text)
+	if int64(end) < size {
 		out += "\n" + more(end)
 	}
 	return Result{Text: out, Ref: key}, nil
@@ -122,7 +149,7 @@ type readRefArgs struct {
 func readRef() Tool {
 	return Func(Spec{
 		Name: "read_ref",
-		Description: "Read a stored page or tool output (its ref) from a byte offset. " +
+		Description: "Read a stored page, tool output or document (its ref) from a byte offset. " +
 			"A preview ends with the next offset to read from.",
 		Schema: json.RawMessage(`{
 			"type": "object",
@@ -153,7 +180,7 @@ const (
 func searchRef() Tool {
 	return Func(Spec{
 		Name: "search_ref",
-		Description: "Find the lines of a stored page or tool output (its ref) that have every word of the query, " +
+		Description: "Find the lines of a stored page, tool output or document (its ref) that have every word of the query, " +
 			"at the start of words. Returns each line's offset for read_ref.",
 		Schema: json.RawMessage(`{
 			"type": "object",
@@ -166,17 +193,12 @@ func searchRef() Tool {
 		}`),
 		Effects: ReadsDB | Untrusted,
 	}, func(ctx context.Context, env *Env, a searchRefArgs) (Result, error) {
-		o, rc, err := env.Project.DB.OpenObject(ctx, a.Ref)
-		if err != nil {
-			return Result{}, objectError(err, a.Ref)
+		o, rc, size, gone, err := openText(ctx, env, a.Ref)
+		if err != nil || gone != "" {
+			return Result{Text: gone}, err
 		}
 		defer rc.Close()
-		if expired(o) {
-			return readText(ctx, env, a.Ref, 0, nil) // says it expired
-		}
-		if !isText(o.MIME) {
-			return Result{}, Errorf("%s is %s, not text", a.Ref, baseType(o.MIME))
-		}
+		ref := o.Key
 		b, err := io.ReadAll(io.LimitReader(rc, maxRefSearch))
 		if err != nil {
 			return Result{}, err
@@ -190,9 +212,9 @@ func searchRef() Tool {
 		}
 		var out strings.Builder
 		if total == 0 {
-			fmt.Fprintf(&out, "No lines of %s match.", a.Ref)
+			fmt.Fprintf(&out, "No lines of %s match.", ref)
 		} else {
-			fmt.Fprintf(&out, "%d lines of %s match", total, a.Ref)
+			fmt.Fprintf(&out, "%d lines of %s match", total, ref)
 			if total > len(hits) {
 				fmt.Fprintf(&out, "; the first %d", len(hits))
 			}
@@ -201,7 +223,7 @@ func searchRef() Tool {
 		for _, h := range hits {
 			fmt.Fprintf(&out, "\n- offset %d · line %d: %s", h.Offset, h.Line, h.Snippet)
 		}
-		if o.Size > maxRefSearch {
+		if size > maxRefSearch {
 			fmt.Fprintf(&out, "\n[only the first %s MB were searched]", count(maxRefSearch>>20))
 		}
 		return Result{Text: out.String()}, nil
@@ -276,8 +298,8 @@ type keyArgs struct {
 func bucketRead() Tool {
 	return Func(Spec{
 		Name: "bucket_read",
-		Description: "Read an object from the bucket: text as a preview with its ref, " +
-			"images for models that can see them.",
+		Description: "Read an object from the bucket by key or jenab:// link: text and Word documents " +
+			"as a preview with its ref, images for models that can see them.",
 		Schema: json.RawMessage(`{
 			"type": "object",
 			"properties": {"key": {"type": "string", "minLength": 1}},
@@ -287,9 +309,13 @@ func bucketRead() Tool {
 		Effects: ReadsDB | Untrusted,
 		When:    WhenBucket,
 	}, func(ctx context.Context, env *Env, a keyArgs) (Result, error) {
-		o, err := env.Project.DB.HeadObject(ctx, a.Key)
+		key, err := refKey(env, a.Key)
 		if err != nil {
-			return Result{}, objectError(err, a.Key)
+			return Result{}, err
+		}
+		o, err := env.Project.DB.HeadObject(ctx, key)
+		if err != nil {
+			return Result{}, objectError(err, key)
 		}
 		if isImage(o.MIME) {
 			return Result{
@@ -297,10 +323,10 @@ func bucketRead() Tool {
 				Images: []chat.Image{{Ref: o.Key, MIME: o.MIME}},
 			}, nil
 		}
-		if !isText(o.MIME) {
-			return Result{}, Errorf("%s is %s (%s); only text and images can be read", o.Key, baseType(o.MIME), bytesize(o.Size))
+		if !isText(o.MIME) && !isDocument(o.MIME) {
+			return Result{}, Errorf("%s is %s (%s); only text, Word documents and images can be read", o.Key, baseType(o.MIME), bytesize(o.Size))
 		}
-		return readText(ctx, env, a.Key, 0, func(o store.Object) string { return "object " + o.Key + " — " + baseType(o.MIME) })
+		return readText(ctx, env, key, 0, func(o store.Object) string { return "object " + o.Key + " — " + typeName(o.MIME) })
 	})
 }
 

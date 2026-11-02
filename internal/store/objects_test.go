@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/docx"
+	"github.com/amir-saatchi/jenab/internal/docx/docxtest"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 )
@@ -407,5 +409,22 @@ func TestLifecycleExpires(t *testing.T) {
 	}
 	if got := l.expires("cache/x", now); !got.Equal(now.AddDate(0, 0, 30)) {
 		t.Errorf("cache/x: %v", got)
+	}
+}
+
+// A zip is looked at once stored: a Word document gets its own type, any
+// other zip stays one (TASK-021).
+func TestObjectWordDetected(t *testing.T) {
+	p, _ := openTestProject(t)
+	for _, c := range []struct{ key, content, want string }{
+		{"uploads/a.docx", string(docxtest.Doc("Hello")), docx.MIME},
+		{"uploads/renamed.zip", string(docxtest.Doc("Hello")), docx.MIME}, // the bytes decide, not the name
+		{"uploads/fake.docx", string(docxtest.Zip(map[string]string{"word/document.xml": "<x/>"})), "application/zip"},
+		{"uploads/broken.docx", "PK\x03\x04 not really", "application/zip"},
+		{"uploads/old.doc", "\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + strings.Repeat("\x00", 600), "application/x-ole-storage"},
+	} {
+		if o := put(t, p, c.key, c.content); o.MIME != c.want {
+			t.Errorf("%s: %q, want %q", c.key, o.MIME, c.want)
+		}
 	}
 }
