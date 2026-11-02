@@ -44,6 +44,7 @@
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
 | [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Done | 3 |
+| [SPIKE-039](SPIKE-039-desktop-control.md) | Desktop control with agent-desktop | Spike | Done (go, narrow v1) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -60,9 +61,9 @@
 | [TASK-016](TASK-016-export-chat.md) | Export a chat | Task | Done | 3 |
 | [TASK-017](TASK-017-installer.md) | Install the app | Task | Open | 3 |
 | [TASK-018](TASK-018-rewind-chat.md) | Rewind a chat to an earlier message | Task | Open | 3 |
-| [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Open | 3 |
+| [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Done | 3 |
 | [TASK-020](TASK-020-tool-call-errors.md) | Tool-call errors: measure them, then check more | Task | Open (later) | 3 |
-| [TASK-021](TASK-021-word-files.md) | Read Word files: text from .docx | Task | Open | 3 |
+| [TASK-021](TASK-021-word-files.md) | Read Word files: text from .docx | Task | Done | 3 |
 | [TASK-022](TASK-022-retry-skipped-undo.md) | Undo the skipped items later | Task | Done | 3 |
 | [TASK-023](TASK-023-wails-3-stable.md) | Move to Wails v3.0.0 and Go 1.26.10 | Task | Done | 3 |
 | [TASK-024](TASK-024-spike-037-part-b-out.md) | Move SPIKE-037's Part B out of the app | Task | Done | 3 |
@@ -75,6 +76,9 @@
 | [TASK-031](TASK-031-history-cards-paraphrases.md) | History cards for paraphrased follow-ups | Task | Open (later) | 3 |
 | [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Done | 3 |
 | [TASK-033](TASK-033-less-fixed-context.md) | Less fixed context per request | Task | Done | 3 |
+| [TASK-034](TASK-034-fake-price-server.md) | A fake price site for manual runs | Task | Done | 3 |
+| [TASK-035](TASK-035-desktop-control.md) | Desktop control v1 (Windows) | Task | Open | 3 |
+| [TASK-036](TASK-036-private-network-exceptions.md) | Private-network exceptions in project settings | Task | Open | 3 |
 
 ## Phase 1
 

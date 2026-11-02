@@ -78,6 +78,19 @@ It uses your real data folder. For a scratch one, point `LOCALAPPDATA` and `USER
 
 `wails3 task bench` measures the built app: start-up, idle memory, opening a chat of 200 messages, streaming while you type, and memory with ten answers at once. It uses its own user folder and a local fake model, so no keys are needed, and writes a report to `bin/bench`. A build with the `bench` tag opens WebView2's DevTools port when `JENAB_DEVTOOLS_PORT` is set; shipped builds don't. Keep the app's window visible and leave the machine alone during a run (about 3 minutes).
 
+### A fake price site for manual runs
+
+Manual runs that fetch daily crypto pages, such as P2-14's, can use fixed pages served on this machine instead of the internet. From the repository root:
+
+```bash
+go run ./cmd/jenab-fakesite
+```
+
+- It serves `bench-bitcoin`'s pages, 19 days from 5 to 23 October 2026, at `http://127.0.0.1:8099/`: an index at `/` and one day at `/crypto/YYYY-MM-DD`, e.g. `http://127.0.0.1:8099/crypto/2026-10-05`. Give the agent that pattern. Other days and paths are 404.
+- Each request is logged with its time, path and status, so the terminal shows what the agent fetched. Stop it with Ctrl+C.
+- The pages are the scenario files in `scenarios/bench-bitcoin/pages` and `scenarios/bench-bitcoin-long/pages`, read at start. A day in both must have the same text, or it names the files and exits. `-pages <folder>` (repeatable) serves other folders; `-addr` must stay on a loopback address.
+- The app blocks loopback addresses (SPEC 6.7), so the project must list `127.0.0.1` as a private-network exception, and the first fetch asks to allow the host. The project settings have no control for the exceptions yet.
+
 ## CI
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request, on Windows, macOS and Linux:

@@ -153,7 +153,7 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 |---|---|
 | `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
 | `messages` | ID, chat_id, turn number, role (`user`, `assistant`, `tool`), model, token counts, created_at |
-| `message_parts` | message_id, seq, type (`text`, `thinking`, `tool_call`, `tool_result`, `image`, `notice`, `approval`, `question` (8.8)), content, `ref` to a bucket object for large outputs, preview |
+| `message_parts` | message_id, seq, type (`text`, `thinking`, `tool_call`, `tool_result`, `image`, `notice`, `approval`, `question` (8.8), `quote`), content, `ref` to a bucket object for large outputs, preview |
 | `session_notes` | chat_id, content (the agent's notes), summary (written by *Refresh memory*), revision, updated_at (3.4) |
 | `review_chunks` | Results of *Refresh memory* per message range (3.5) |
 | `role_changes` | Each role change: before, after, source and time (8.6) |
@@ -194,6 +194,12 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
   - **No score cutoff:** a vector search always returns something. In the spike, a no-answer query's best score (0.72 to 0.78) was above 7% to 52% of the real hits, and scores differ by model and width. Instead, each hit has `matched`: `words`, `meaning` or `both`. When no hit matched by words, the result starts with one line saying the hits are only the closest by meaning. The text is the same for every model (1).
   - The message FTS stays in `chats.db`, so `search_history` never depends on `index.db`.
 - **Message before change:** message IDs are ULIDs made in Go. Before a tool call writes to `project.db`, the assistant message and its `tool_call` part are written to `chats.db`. A crash can then leave a message without a change, which is harmless, but never a change pointing to a missing message, which would break *Undo turn*. In SPIKE-008, the reverse order left a dangling entry in 11 of 20 crashes.
+- **Reply to part of a message** (TASK-019): a user message may start with one `quote` part: the quoted text, the source message's ID, its turn and role, and whether it was cut.
+  - Only a user or assistant message of the same chat can be quoted. A quote alone isn't a message: it needs text or an image.
+  - The text is cut at 4,000 bytes, at a character, in the frontend and in Go alike.
+  - Quote text is indexed like text, so history search finds the reply.
+  - The model reads it as plain text before the message, the same for every model: `[Quote from your answer in turn N]` (or `my message`), then the passage as `> ` lines. A cut quote ends with a line naming `read_messages(chat_id, from: N)`.
+  - `read_messages`, history cards (3.6), *Refresh memory* and the Markdown export show it.
 - **Export a chat** (TASK-016): *Export chat…* in the chat menu saves one chat as a file. It reads only what is stored, never calls a model, and leaves out a part still streaming.
   - **Markdown**, for reading: a header with the title, project, model and dates, then the messages under *You* and *Assistant · model* headings. A tool call is one line: the tool, its arguments cut to 80 characters, and the result's size, error or `jenab://` link. Notices, approvals and questions are short lines. Thinking and the notices the chat doesn't show are left out; images are `jenab://` links. Right-to-left text goes in `<div dir="rtl">`, or `<bdi>` on a short line, so Markdown viewers show it right to left (5.8).
   - **JSON**, for keeping everything: `{"format": "jenab.chat", "version": 1, …}` with the chat row, the session notes and every message part as stored, thinking included. The version goes up when the shape changes.
@@ -478,6 +484,14 @@ These sizes were checked with the benchmark (P2-13) and kept: other values chang
 
 - A tool result larger than `tool_preview_tokens` is stored in the bucket under `cache/tool/<chat_id>/<message_id>-<seq>`.
 - Web pages are fetched, converted to readable text in Go (HTML, menus and ads removed) and stored under `cache/pages/<host>/<hash>.txt`.
+- **Word documents** (TASK-021) are read through their text: Markdown made in Go and stored under `cache/text/<sha256>-v<n>.md`, where `n` is the extractor's version. The text is made when the file is uploaded, and again when it has expired or the version changed. `bucket_read`, `read_ref` and `search_ref` read and search it; the ref stays the document's own key, and the cache key is never shown to the agent. The header names the type: `[object uploads/report.docx — Word document — 2,400 tokens, showing first 1,500 — ref: uploads/report.docx]`.
+- **Word to Markdown:**
+  - Headings come from the paragraph's outline level, then its style and the styles it is `basedOn`. A style counts by its name ("heading 2", "Title") or its outline level, never by its ID, which Word translates.
+  - Lists come from the numbering definitions: `-` for bullets, the item's number for numbered lists, nested by level.
+  - Tables follow the bounds below.
+  - Links are kept. Footnotes and endnotes become `[^n]` with their text at the end. Tracked changes are accepted. Text boxes follow their paragraph. Pictures and charts become `[image: alt text]` and equations `[equation]`. Hidden text is left out.
+  - The text is normalized to NFC with the ZWNJ kept.
+- **A Word file is untrusted input:** it is never unpacked to disk; reading stops at 2,000 parts, 50 MB unpacked, or a part that unpacks to more than 100 times its packed size (at least 1 MB). A password-protected, old (.doc), damaged or fake file gets an error that says which.
 - **Readable text** (SPIKE-015), used by `fetch_page` and `html.extract`:
   1. **Charset:** Go decodes the page to UTF-8 first, taking the charset from the BOM, then the HTTP header, then `<meta>` (`x/net/html/charset`), as browsers do. Bytes that aren't valid become U+FFFD. The libraries guess charsets and turned every raw windows-1256 page into garbage.
   2. **Size:** the body is capped at 5 MB before parsing (6.6).
@@ -492,6 +506,7 @@ These sizes were checked with the benchmark (P2-13) and kept: other values chang
   [use read_ref(ref, offset) or search_ref(ref, query) for more; the next offset is 6,000]
   ```
 - Offsets are in bytes of the stored text; an offset inside a character starts at the next one. A result that fits whole has no "showing" part and no footer.
+- Keys and refs may also be given as the object's `jenab://` link to this project.
 - At a cut, previews of previous turns become **stubs**: the header without its size. A result without a ref stays as it is.
   ```
   [page "Laptop X review" — example.com — ref: cache/pages/example.com/ab12f9.txt]
@@ -658,6 +673,8 @@ _jenab_object_versions(key, version, sha256, size, created_by, created_at)
 
 - Every `put` adds a version row, so `_jenab_object_versions` holds the current version too. A `put` with the same bytes as the current version adds none.
 - The MIME type is detected from the first bytes. The key's extension only turns plain text into another text type, such as CSV or JSON.
+- A zip is looked at once it is stored (TASK-021). If `[Content_Types].xml` gives its main part the Word document type, it is stored as a Word document (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, or `application/vnd.ms-word.document.macroEnabled.12` with macros). An OLE compound file is `application/x-ole-storage`: an old Office file, or one saved with a password.
+- The composer's attach button stores a file under `uploads/<name>`, with `source` `upload` and the original name in `metadata.name`. The name keeps the key's characters, each run of others becomes `-`, and a name with none left is `file`. A taken key gets `-2`, `-3`, … before the extension; an upload never replaces a file. The user's message carries the file's `jenab://` link.
 
 ### 4.3 Operations
 
@@ -729,6 +746,8 @@ Shown next to the bucket in the **Resources** panel. The agent saves sources wit
   - Only images, audio, video, PDF, plain text and data files, and Office or OpenDocument documents open. HTML, SVG, XML and scripts open as `.txt`. Programs, shortcuts, archives, macro-enabled documents and unknown types are refused.
   - Copies older than a day are removed when the app starts.
 - Size limits: 100 MB per upload, 50 MB per `http.download` by default.
+- Uploads go to `POST /upload/<project_id>` with the file as the body. The route needs the `X-Jenab-Upload-Name` header, which a form or another origin can't send, and refuses other sites (`Sec-Fetch-Site`).
+- A `.docx` opens with the system app only when it was detected as a Word document; a zip that only has the name doesn't.
 
 ### 4.8 Backend
 
@@ -934,6 +953,7 @@ Measured in WebView2 on a mid-range laptop.
 - **Right-to-left text:**
   - Every message, Markdown block, input, table cell and page text block gets `dir="auto"`, so Persian, Arabic or Hebrew text runs right to left, also next to English.
   - Text inside these elements aligns with `text-align: start`, so right-to-left text starts on the right.
+  - A quote, in the composer's chip and above a sent message, has `dir="auto"` with its bar on the start side, so a right-to-left quote keeps its direction (TASK-019).
   - Markdown lists, list items and tables get an explicit `dir` from their first strong character, so an item that differs from its list keeps its bullet. `dir="auto"` can't do this, and CSS `:dir()` is rewritten by the build (Lightning CSS).
   - **Font:** Geist has no Arabic-script glyphs, so Vazirmatn (OFL) is bundled right after it. Persian then looks the same on every OS; Latin text stays Geist.
   - The UI itself stays English and left to right. Only the text is handled.
@@ -1041,6 +1061,7 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
   - *Search*, and *Waiting*: the approvals and questions from every project (8.8), with a count. Clicking one opens its chat.
   - At the bottom, the schedules (which keep running in the tray) and Settings.
 - **Left sidebar:** the project's name, a menu with *Project settings*, then *New chat* and the chat list with Mother pinned at the top (8.6). Each chat row has a ⋯ menu, shown on hover or focus in place of its status badge, with *Export chat…* (2.3).
+- **Reply** (TASK-019): selecting text inside one message shows *Reply*; a user message has *Reply* on hover or focus, and the last answer in its footer, for the whole message. It puts a quote chip above the composer's input, which X or Escape removes; one quote per message. The chip is kept per chat and comes back if the send fails. Clicking a sent quote scrolls to its source, loading older turns if needed, and marks it.
 - **Chat header:** a ⋯ chat menu after *Notes* (3.4), with *Export chat…*: a dialog picks Markdown or JSON, then the save dialog picks the file (2.3).
 - **Page open:** while a page or pipeline is open, the left sidebar hides and its chats move into the rail, below a divider: one tile per chat, then *New chat*. The user can show the sidebar again; the choice is saved in `chats.ui_state`.
   - A chat's tile shows its initials; Mother's tile is filled with its gradient (8.6).
@@ -1549,7 +1570,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | `update_session_notes(content, expected_revision)` | Edit this chat's session notes (3.4) |
 | `search_history(query, scope, substring?, limit?)` | Full-text search over this chat or all chats in the project; returns snippets with message IDs. `substring: true` also finds words inside words, more slowly (2.3). Later, with an embedding model, it also finds by meaning, and each hit says how it matched (2.3) |
 | `read_messages(chat_id, from, to)` | Read the messages of turns `from` to `to`, at most 20 turns a call; `chat_id` defaults to this chat. Thinking is left out |
-| `read_ref(ref, offset)`, `search_ref(ref, query)` | Read or search a stored tool output or page; `search_ref` returns matching lines with their offsets |
+| `read_ref(ref, offset)`, `search_ref(ref, query)` | Read or search a stored tool output, page or Word document; `search_ref` returns matching lines with their offsets. A ref may be a key or a `jenab://` link |
 
 **Web**
 
@@ -1586,7 +1607,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | Tool | Purpose |
 |---|---|
 | `bucket_list(prefix, after)` | List objects and folders, 100 a call; `after` continues a list |
-| `bucket_read(key)` | Text as preview and ref; images to vision-capable models |
+| `bucket_read(key)` | Text and Word documents as preview and ref; images to vision-capable models. The key may be a `jenab://` link |
 | `bucket_put(key, content or from_ref)` | Store content, or keep a cached object under a permanent key |
 | `bucket_delete(key)` | Delete a key (bytes kept until the sweep) |
 | `bucket_search(query, prefix, limit)` | **Later** (4.9): search the project's files; returns passages with key, byte offset, heading path, snippet and `matched`, so `read_ref(key, offset)` continues there |
@@ -1885,6 +1906,8 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A connection (6.9) | Save, Cancel | Title, host, where the key goes, and the key field |
 | An MCP tool (8.7) | Once, Always in this project, Deny | Server, tool and arguments |
 | A command (Phase 6, 8.5) | Once, Always for this pattern, Deny | The command and the folder |
+| A window to control (8.10) | The window picked, Deny | The agent's reason and the windows that can be picked |
+| A desktop action at Strict, or the first key press (8.10) | Once, Deny | The window, the element and the action |
 | A memory edit at Strict (3.3) | Save, Deny | The section, before and after |
 | A *Refresh memory* batch at Strict (3.5) | Save, Deny | Each section, before and after |
 
@@ -2020,6 +2043,59 @@ Each bad field gives its own error, naming the file and the field.
 - Mother picked the right skills for single-purpose roles (12/12) but missed one skill for combined roles (e.g. `pipelines` for "watch gold news daily"). The descriptions above were reworded for this; the scenario runner rechecks them.
 
 **Phases:** the skill format, the skill list, `load_skill`, `load_with` and `config-guide` in Phase 1; the schema agent on skills in Phase 2; skills in `create_chat` and `subagent`, and user and project skills, in Phase 5.
+
+---
+
+### 8.10 Desktop control (SPIKE-039, Windows)
+
+An agent can read and use one window of another app, through [agent-desktop](https://github.com/vercel-labs/agent-desktop) (Apache-2.0), which reads the accessibility tree and acts on elements by reference. v1 is narrow: one window the user picks, in a turn the user started and is watching.
+
+**When it is there:**
+- Off by default. A Settings switch turns it on: "Let agents use other apps' windows". While it is off, the tools are not offered.
+- Only in turns the user started in a chat. Never in pipelines, scheduled runs, subagents or turns the app started.
+- Windows only in v1.
+
+**Tools:** `desktop_start {why}`, `desktop_snapshot {full?}`, `desktop_act {id, action, text?, key?}`, `desktop_wait {text | gone, seconds ≤ 20}` and `desktop_end`.
+
+**Picking the window:**
+- `desktop_start` shows an approval card (8.8) where the user picks one window, at every level, with no *Always*. The model sees only the picked window, never the list.
+- These can't be picked: Jenab itself; terminals and shells (Windows Terminal, cmd, PowerShell, conhost, the Run box); Registry Editor, Task Scheduler and Settings; password managers; the sign-in and UAC screens. Windows of programs running as administrator can't be reached anyway (UIPI).
+- **Lock:** the session is locked to the window's id and agent-desktop's process instance, not the window owner's process (a UWP app's frame belongs to ApplicationFrameHost). Every command names the window. When the window closes or the app restarts, the session ends and the agent must ask again.
+- In a browser, the lock includes the site's origin, taken from the page's document value and checked before each action.
+
+**What the agent can do:**
+- Element ids are Jenab's own (`3:e12`: snapshot 3, element 12) and only from this session's snapshots.
+- Actions run without taking the pointer or focus: click, set value, toggle, expand, collapse, select.
+- Keys: Return, Escape, Tab and Backspace, without combinations. A key press needs the window in front, so the first one asks in a card, at every level.
+- No clipboard in v1.
+- **Password fields** are refused: an element with the `secure` state (in the snapshot, or read again just before the action), or with a name such as password, PIN, passcode or verification code, in English, German and Persian (such as "رمز" and "گذرواژه"). A secure field found after an action ends the session.
+
+**Approvals** (8.8):
+
+| Step | Strict | Standard | Auto |
+|---|---|---|---|
+| Picking the window | Ask | Ask | Ask |
+| Snapshots and waits | — | — | — |
+| An action | Ask each time | — | — |
+| The first key press in a session | Ask | Ask | Ask |
+
+**Screen text is untrusted,** like a web page (3.7): it marks the turn for the Auto rule (8.8) and the memory chip (3.3), and block 1's line on untrusted content covers it.
+
+**What goes to the model:**
+- A compact snapshot, one line per element: `- button "Send" [3:e14] (disabled)`. Interactive elements by default (`full` for all), at most 400 lines.
+- In a browser, only the page, with its origin and not its full URL: a `file://` URL carries the Windows user name. Jenab waits until the page has children; a cold browser can report an empty page as complete.
+- After each action, one line on what changed, e.g. `Display is "4,827"`.
+- Older snapshots become stubs: `[snapshot 3 of "Calculator" — replaced by snapshot 5]`.
+- No screenshots in v1.
+
+**Limits:** a session ends after 10 minutes, at `desktop_end`, at *Stop* or when the turn ends. The chat log shows each step as a tool part with the lengths of the text, not the text.
+
+**How Jenab runs it:**
+- agent-desktop's command-line program as a child process, not its library: it pins refs to a window, has `find` and `wait`, and a hung call can be killed. The library reads the app's focused window and blocks one shared thread when a call hangs (SPIKE-039).
+- The program ships in Jenab's installer, pinned to a version and checked against its SHA-256 before each start, with its Apache-2.0 NOTICE. Nothing is downloaded at run time.
+- No console window. A call is killed after 15 s, or 30 s for a session's first snapshot.
+- Its state folder is `agent-desktop` under Jenab's data folder, with a private ACL; Jenab refuses to start it if the folder inherits other access.
+- The same tools and rules for every model (1).
 
 ---
 

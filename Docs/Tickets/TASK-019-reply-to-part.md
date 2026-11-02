@@ -1,6 +1,6 @@
 # TASK-019 — Reply to part of a message
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** P1-15
 
@@ -27,3 +27,12 @@ First write it into the SPEC (2.3, 5.8), then build it:
 - The SPEC describes it.
 - A quote round-trips: stored, shown, sent and found by history search.
 - Go and frontend tests cover the part and the text sent to the model.
+
+## Result
+Done on 2026-11-02. SPEC 2.3, 5.8 and 5.12 describe it.
+
+- **Built:** a `quote` part, stored first; Go checks the source and fills in its turn and role. The model gets it as a text part when the request is shaped, so providers never see a new kind and requests stay append-only. A `chats.db` format step widens the index's delete trigger to quotes.
+- **UI:** *Reply* on a selection, on a user message and in the answer's footer; the chip above the input; a sent quote above the text that jumps to its source and rings it for 1.6 s, or says the message is gone.
+- **Decided here:** one 4,000-byte limit for the chip, storage and the model. A whole-message *Reply* quotes the stored text, so an answer's Markdown shows as written; a selection quotes the rendered text.
+- **Checked:** Go tests for storage, Persian search (index and substring), the format step, the exact text the model gets, the cut line, refused sources, history cards, `read_messages` and the export; frontend tests for the cut, the store and the chip. By hand in a server-mode build with a fake model at 1280 and 760 px: a Persian selection, the chip, the text sent, the jump, both whole-message replies and a restart. Search has no UI yet, so search was checked in Go only.
+- **Seen, not fixed:** an answer bubble is only as wide as its longest line, so a Persian paragraph in a mixed answer aligns right within that width.

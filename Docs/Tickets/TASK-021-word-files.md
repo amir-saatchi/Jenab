@@ -1,6 +1,6 @@
 # TASK-021 — Read Word files: text from .docx
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** P1-05, P1-09
 
@@ -44,3 +44,11 @@ First write it into SPEC 3.7, 4.2, 4.7 and 8.1, then build it.
 A Word file attached in the composer is in the bucket as a Word document, and the agent reads it with `bucket_read`, continues with `read_ref` and finds a line with `search_ref`. This holds for Persian and German files from Word, LibreOffice and Google Docs. The bad files above fail with a clear error, and none of them takes more than a second or 100 MB of memory.
 
 ## Result
+Done on 2026-11-02. SPEC 3.7, 4.2, 4.7 and 8.1 describe it.
+
+- **Built:** the composer's attach button (any number of files, each stored at once through `POST /upload/<project_id>`, shown as an `Attachment` with its state; Send adds each file's `jenab://` link). Word detected when stored, OLE files as `application/x-ole-storage`. `internal/docx`, pure Go with only `golang.org/x/text`: headings by style name or outline level, lists, tables with SPIKE-015's bounds, links, notes, accepted changes, text boxes, images, equations. The text cache, and `bucket_read`, `read_ref` and `search_ref` reading through it, also by `jenab://` link.
+- **Limits:** declared sizes checked first, 2,000 parts, 50 MB, a 100× ratio with a 1 MB floor, content types and `.rels` at 4 MB, XML depth 256, an 8 MB span budget a document. Each bad file (bomb, encrypted, old .doc, damaged, fake, cut short, random bytes) fails in under 1 s and 100 MB.
+- **Tested:** real files saved by Word 16 in English, German and Persian, and a password-protected one, against golden Markdown; built documents for German style IDs and nested lists; 20k mutated inputs (the slowest about 38 ms); upload, key and tool tests; `lib/upload.test.ts`. Checked by hand in the server build at 1280 and 760 px.
+- **Decided:** a `.docm` is read but never opened with the system app; a `.docx` that isn't Word no longer opens with it either. Non-decimal list numbers are written as numbers. A bug where a style without `w:default` became the default paragraph style is fixed.
+- **Not done:** files from LibreOffice and Google Docs, and a Word file saved with a German or Persian UI (only built tests cover translated style IDs); a real Word file with a nested list (Word refused to set the level from a script). `go test -fuzz` stalls on this machine, so the fuzzer ran only seconds. No drag-and-drop or paste. `.dotx` isn't detected.
+- **Follow-up:** `jenab://` links in the user's own message bubble show as plain text, not as file links.
