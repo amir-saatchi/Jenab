@@ -48,11 +48,22 @@ Done on 2026-11-02 with agent-desktop 1.0.2. Code and numbers in `spikes/039-des
   - Writing a sentence into a test editor (Notepad would reopen the user's saved tabs): 3/3, 5 turns, 4.3k prompt tokens, about 110 s.
   - Calculator, 4827 + 9356: 1/3. One right in 23 turns and 98k tokens, each snapshot staying in the history; one typed 7854 without looking and reported 17,210; one stopped when its lock check failed once (not reproduced).
   - So v1 is for short tasks, with older snapshots as stubs and a line saying what changed after each action.
-- **Found for the build:**
+- **ministral-14b-latest,** the same tasks and tools (added on the user's request):
+  - Test editor: 3/3, 3 turns, 2.4k prompt tokens, about 7 s. One run's box held a stray leading "a", most likely a key the user typed while the new editor was in front.
+  - Calculator: 0/3. It picked digit buttons by their place in the list, not their names, sent up to 10 clicks at once, and twice lost the window through *Keep on top* (once it clicked *Close*). 47k–137k tokens a run.
+- **A Google search in Chrome** (a fresh profile; live google.com on the user's request): search, then report the first five results. Both models 2/3, 11–22 turns, 15k–44k tokens, 77–107 s. The misses took a video card or a result further down as the fifth.
+  - Google's consent dialog came in German on the same origin. Both models clicked accept first in 5 of 6 runs; a harness guard refused it and they declined.
+  - Links are Google redirects, so models only see the shortened address; Mistral made up full URLs from it.
+  - The search box was filled with set-value and Return; keys reach the app's focused element without the foreground (0 of 15 presses took it).
+  - No CAPTCHA in about 18 searches.
+- **Found for the build** (all in SPEC 8.10):
   - A UWP app's frame window belongs to ApplicationFrameHost, so the lock uses agent-desktop's process instance, not the window owner's process.
   - Edge's first snapshot at a cold start said complete with an empty page; wait until the page has children.
   - A `file://` page puts the local path, with the Windows user name, into every snapshot. Snapshots should show only the origin. One such path went to Gemini's token counter once, during a size measurement.
+  - Calculator's *Keep on top* makes its window an overlay that agent-desktop no longer lists, so one click ends the session.
+  - A key goes to the app's focused element, not the one named, and a window in front can take the user's own keys.
+  - Browser snapshots need a depth of about 40, and a blank-page window needs the lock to take its first site.
 - **Safety rules:** written as SPEC 8.10, from VISO's design (USR-026): off by default; only in turns the user starts; the window picked in a card at every level, never terminals, Jenab or system tools; a lock on window and site; IDs only from Jenab's own snapshots; headless actions plus a short key list, the first key press asking; password fields refused; screen text untrusted; compact page-only snapshots; 10 minutes, *Stop* and a log that shows lengths, not text.
 - **Decided:** the program ships in Jenab's installer, pinned to a version and SHA-256. TASK-035 builds v1.
 - **Open:** gemma4:31b, when Ollama Cloud's quota resets.
-- **Requests:** 117 Gemini (`GEMINI_API_KEY`).
+- **Requests:** Gemini 174 (`GEMINI_API_KEY`), Mistral 127 (`MISTRAL_API_KEY`).

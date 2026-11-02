@@ -2060,14 +2060,16 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 **Picking the window:**
 - `desktop_start` shows an approval card (8.8) where the user picks one window, at every level, with no *Always*. The model sees only the picked window, never the list.
 - These can't be picked: Jenab itself; terminals and shells (Windows Terminal, cmd, PowerShell, conhost, the Run box); Registry Editor, Task Scheduler and Settings; password managers; the sign-in and UAC screens. Windows of programs running as administrator can't be reached anyway (UIPI).
-- **Lock:** the session is locked to the window's id and agent-desktop's process instance, not the window owner's process (a UWP app's frame belongs to ApplicationFrameHost). Every command names the window. When the window closes or the app restarts, the session ends and the agent must ask again.
-- In a browser, the lock includes the site's origin, taken from the page's document value and checked before each action.
+- **Lock:** the session is locked to the window's id and agent-desktop's process instance, not the window owner's process (a UWP app's frame belongs to ApplicationFrameHost). Every command names the window. When the window closes, the app restarts or agent-desktop no longer lists the window, the session ends and the agent must ask again. An action can do this: Calculator's *Keep on top* turns it into an overlay that agent-desktop doesn't list.
+- In a browser, the lock includes the site's origin, taken from the page's document value and checked before each action. A window on a blank page takes the origin of the first site it opens.
 
 **What the agent can do:**
 - Element ids are Jenab's own (`3:e12`: snapshot 3, element 12) and only from this session's snapshots.
 - Actions run without taking the pointer or focus: click, set value, toggle, expand, collapse, select.
-- Keys: Return, Escape, Tab and Backspace, without combinations. A key press needs the window in front, so the first one asks in a card, at every level.
+- Keys: Return, Escape, Tab and Backspace, without combinations, sent to the app without taking the foreground; no real typing in v1. A key goes to the element that has focus in the app, so before a press Jenab checks that it is inside the locked window, and the result says where the key went. The first key press in a session asks in a card, at every level.
 - No clipboard in v1.
+- **Consent is never accepted:** a click on a button that accepts cookies, terms or other consent ("Accept all", "Alle akzeptieren", "پذیرش همه") is refused, with a message to decline or to stop and tell the user. Declining is allowed. In SPIKE-039 both models clicked accept first in 5 of 6 Google searches, then declined.
+- **CAPTCHAs:** a CAPTCHA or "unusual traffic" page ends the session and tells the user. Jenab never solves or avoids one.
 - **Password fields** are refused: an element with the `secure` state (in the snapshot, or read again just before the action), or with a name such as password, PIN, passcode or verification code, in English, German and Persian (such as "رمز" and "گذرواژه"). A secure field found after an action ends the session.
 
 **Approvals** (8.8):
@@ -2083,7 +2085,7 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 
 **What goes to the model:**
 - A compact snapshot, one line per element: `- button "Send" [3:e14] (disabled)`. Interactive elements by default (`full` for all), at most 400 lines.
-- In a browser, only the page, with its origin and not its full URL: a `file://` URL carries the Windows user name. Jenab waits until the page has children; a cold browser can report an empty page as complete.
+- In a browser, only the page, read to a depth of 40 (agent-desktop's default of 10 hid Google's results), plus the address bar as its origin, not the full URL: a `file://` URL carries the Windows user name. Tabs, profile and bookmarks stay out. Jenab waits until the page has children; a cold browser can report an empty page as complete.
 - After each action, one line on what changed, e.g. `Display is "4,827"`.
 - Older snapshots become stubs: `[snapshot 3 of "Calculator" — replaced by snapshot 5]`.
 - No screenshots in v1.
