@@ -496,6 +496,8 @@ func reviewLines(m chat.Message) []string {
 				who = "user"
 			}
 			out = append(out, who+": "+p.Text.Text)
+		case p.Quote != nil:
+			out = append(out, fmt.Sprintf("user, quoting turn %d: %s", p.Quote.Turn, p.Quote.Text))
 		case p.Image != nil:
 			s := "user: [image]"
 			if p.Image.Alt != "" {

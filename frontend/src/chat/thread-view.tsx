@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ReplyIcon } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
@@ -24,17 +25,20 @@ import {
   type Waiting,
 } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { cn } from "@/lib/utils"
 import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
 import { RefreshChip } from "@/chat/refresh"
+import { QuoteView, SelectionReply, flash, reply } from "@/chat/quote"
 import { copyText, firstRows, lastNotice, results, rows, splitJoining, toolTurn, type Row } from "@/chat/rows"
 import { UndoTurn } from "@/chat/undo"
 import { useNav } from "@/state/nav"
 import { useSettings } from "@/state/settings"
 import { useStream } from "@/state/stream"
+import { messageText } from "@/state/quote"
 import { useThreads, type Thread } from "@/state/thread"
 
 function clock(at: string) {
@@ -59,6 +63,7 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
   const streaming = thread.streaming !== "" && !thread.messages.some((m) => m.id === thread.streaming)
   const [shown, joined] = splitJoining(full ? all : all.slice(-first), thread.joining)
   const lastRow = shown[shown.length - 1]
+  const root = React.useRef<HTMLDivElement>(null)
   const row = (r: Row) => {
     const last = r === lastRow
     // Rows get only the turn state they show, so a new try re-renders the
@@ -85,7 +90,8 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       <Finished running={running} />
-      <MessageScroller className="flex-1">
+      <SelectionReply chat={thread.chat.id} root={root} />
+      <MessageScroller ref={root} className="flex-1">
         <MessageScrollerViewport preserveScrollOnPrepend>
           <MessageScrollerContent className="mx-auto w-full max-w-3xl gap-5 px-6 py-6">
             {full && thread.from > 1 && (
@@ -174,7 +180,7 @@ const hello = (title: string) =>
 
 function Empty({ thread, mother }: { thread: Thread; mother: boolean }) {
   if (!mother) return <p className="m-auto text-sm text-muted-foreground">Write the first message below.</p>
-  const send = (text: string) => ChatService.Send(thread.project, thread.chat.id, text).catch(showError)
+  const send = (text: string) => ChatService.Send(thread.project, thread.chat.id, text, null).catch(showError)
   return (
     <MessageRow align="start">
       <MessageContent className="gap-2">
@@ -206,7 +212,7 @@ interface RowProps {
 
 const RowView = React.memo(
   function RowView({ row, thread, stream, running, busy, waiting, joining, failed }: RowProps) {
-    if (row.kind === "user") return <UserRow message={row.message} project={thread.project} joining={joining} />
+    if (row.kind === "user") return <UserRow message={row.message} thread={thread} joining={joining} />
     if (row.kind === "notice") {
       const n = row.part.notice
       if (!n) return null
@@ -254,24 +260,47 @@ function Failed({ thread, text }: { thread: Thread; text: string }) {
   return <FailedCard project={thread.project} chat={thread.chat.id} text={text} />
 }
 
-function UserRow({ message, project, joining }: { message: Message; project: string; joining: boolean }) {
+function UserRow({ message, thread, joining }: { message: Message; thread: Thread; joining: boolean }) {
+  const chat = thread.chat.id
+  const text = messageText(message)
   return (
     <MessageRow align="end">
       <MessageContent>
         {(message.parts ?? []).map((p, i) =>
           p.image ? (
-            <ImagePart key={i} project={project} part={p} />
+            <ImagePart key={i} project={thread.project} part={p} />
+          ) : p.quote ? (
+            <QuoteView key={i} chat={chat} quote={p.quote} />
           ) : p.text ? (
-            <Bubble key={i} variant={joining ? "outline" : "secondary"} align="end">
-              <BubbleContent dir="auto" className={joining ? "border-dashed text-start whitespace-pre-wrap" : "text-start whitespace-pre-wrap"}>
+            <Bubble key={i} variant={joining ? "outline" : "secondary"} align="end" data-quote-source={message.id} className={flash}>
+              <BubbleContent dir="auto" className={cn("text-start whitespace-pre-wrap", joining && "border-dashed")}>
                 {p.text.text}
               </BubbleContent>
             </Bubble>
           ) : null,
         )}
-        {joining && <MessageFooter>Joins at the next step</MessageFooter>}
+        {joining ? (
+          <MessageFooter>Joins at the next step</MessageFooter>
+        ) : (
+          text && (
+            // Shown on hover and on focus, so the row stays quiet.
+            <MessageFooter className="opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
+              <ReplyButton onClick={() => reply(chat, message, text)} />
+            </MessageFooter>
+          )
+        )}
       </MessageContent>
     </MessageRow>
+  )
+}
+
+// ReplyButton quotes a whole message, up to the quote's size limit.
+function ReplyButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button variant="ghost" size="xs" onClick={onClick}>
+      <ReplyIcon data-icon="inline-start" />
+      Reply
+    </Button>
   )
 }
 
@@ -297,6 +326,7 @@ function AgentRow({
   const devTools = useSettings((s) => s.started?.dev_tools ?? false)
   const answer = messages.findLast((m) => m.role === Role.RoleAssistant)
   const footer = last && !running && answer
+  const quoted = messages.findLast((m) => m.role === Role.RoleAssistant && messageText(m))
   // Only tools change the project, so only a turn with tool calls has
   // anything to undo; a joined message may have split the turn's calls.
   const undo = footer && toolTurn(thread.messages, answer.turn)
@@ -322,6 +352,7 @@ function AgentRow({
         {footer && (
           <MessageFooter className="gap-1 px-0">
             <CopyButton text={copyText(messages)} />
+            {quoted && <ReplyButton onClick={() => reply(thread.chat.id, quoted, messageText(quoted))} />}
             <span className="ps-1">{clock(answer.created_at)}</span>
             {answer.model && <span>· {modelName(groups ?? [], answer.model)}</span>}
             <span className="ms-auto flex gap-1">
@@ -364,7 +395,9 @@ function PartView({
 }) {
   switch (p.kind) {
     case PartKind.PartText:
-      return p.text ? <AgentText text={p.text.text} stopped={p.text.stopped} /> : null
+      return p.text ? (
+        <AgentText text={p.text.text} stopped={p.text.stopped} source={message.role === Role.RoleAssistant ? message.id : undefined} />
+      ) : null
     case PartKind.PartThinking:
       return p.thinking ? <Thinking text={p.thinking.text} /> : null
     case PartKind.PartToolCall:

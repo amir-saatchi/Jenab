@@ -55,6 +55,7 @@ var known = []struct {
 	{agent.ErrRefused, KindClosing, appinfo.Name + " is shutting down."},
 	{project.ErrClosed, KindClosing, appinfo.Name + " is shutting down."},
 	{agent.ErrEmpty, KindInvalid, "The message is empty."},
+	{agent.ErrQuote, KindInvalid, "The quote is not from a message of this chat."},
 	{agent.ErrInTurn, KindBusy, "The chat is in a turn. Wait for it to end, or stop it."},
 	{agent.ErrNoRetry, KindBusy, "There is nothing to retry."},
 	{agent.ErrRefreshing, KindBusy, "Memory is being refreshed. Wait for it to end, or stop it."},

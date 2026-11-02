@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -21,6 +22,7 @@ const (
 	PartNotice     PartKind = "notice"
 	PartApproval   PartKind = "approval"
 	PartQuestion   PartKind = "question"
+	PartQuote      PartKind = "quote"
 )
 
 // Part is one part of a message: Kind plus exactly one matching field (Q7).
@@ -35,12 +37,28 @@ type Part struct {
 	Notice     *Notice     `json:"notice,omitempty"`
 	Approval   *Approval   `json:"approval,omitempty"`
 	Question   *Question   `json:"question,omitempty"`
+	Quote      *Quote      `json:"quote,omitempty"`
 }
 
 // Text is text the model or the user wrote.
 type Text struct {
 	Text    string `json:"text"`
 	Stopped bool   `json:"stopped,omitempty"` // cut off by Stop and kept (8.3)
+}
+
+// QuoteMax is the most a quote holds, in bytes: a longer passage is cut
+// at a character before it (TASK-019).
+const QuoteMax = 4000
+
+// Quote is the passage of an earlier message a user message replies to
+// (TASK-019): one per message, before its text. Text comes first in the
+// JSON, as in Text, so the history search reads both the same way (2.3).
+type Quote struct {
+	Text    string     `json:"text"`
+	Message id.Message `json:"message"` // the quoted message, in the same chat
+	Turn    int        `json:"turn"`    // its turn
+	Role    Role       `json:"role"`    // who wrote it: user or assistant
+	Cut     bool       `json:"cut,omitempty"`
 }
 
 // Thinking is the model's thinking. It is sent back to the provider
@@ -256,6 +274,7 @@ func (p Part) Validate() error {
 		PartNotice:     p.Notice != nil,
 		PartApproval:   p.Approval != nil,
 		PartQuestion:   p.Question != nil,
+		PartQuote:      p.Quote != nil,
 	}
 	if _, ok := set[p.Kind]; !ok {
 		return invalid("unknown kind %q", p.Kind)
@@ -302,6 +321,18 @@ func (p Part) Validate() error {
 		return a.validate()
 	case PartQuestion:
 		return p.Question.validate()
+	case PartQuote:
+		q := p.Quote
+		switch {
+		case strings.TrimSpace(q.Text) == "":
+			return invalid("quote without text")
+		case len(q.Text) > QuoteMax:
+			return invalid("quote of %d bytes, at most %d", len(q.Text), QuoteMax)
+		case q.Message == "" || q.Turn < 1:
+			return invalid("quote without its message and turn")
+		case q.Role != RoleUser && q.Role != RoleAssistant:
+			return invalid("quote of a %q message, want user or assistant", q.Role)
+		}
 	}
 	return nil
 }

@@ -17,7 +17,9 @@ import { ChatService, ChatState, type ModelGroup } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { ConnectForm } from "@/chat/provider-card"
+import { QuoteChip } from "@/chat/quote"
 import { useProjects } from "@/state/projects"
+import { useQuotes } from "@/state/quote"
 import { useSettings } from "@/state/settings"
 import { drafts, useThreads, type Thread } from "@/state/thread"
 
@@ -46,6 +48,9 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
   const ref = React.useRef<HTMLTextAreaElement>(null)
   const running = thread.state !== ChatState.StateIdle
   const title = thread.chat.title || "the chat"
+  // The passage the message replies to, from *Reply* (TASK-019).
+  const quote = useQuotes((s) => s.quotes[chat])
+  const setQuote = useQuotes((s) => s.set)
 
   React.useEffect(() => {
     setText(drafts.get(chat) ?? "")
@@ -62,13 +67,15 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
     const t = text.trim()
     if (!t || readOnly) return
     change("")
+    setQuote(chat, null)
     try {
-      const id = await ChatService.Send(project, chat, t)
+      const id = await ChatService.Send(project, chat, t, quote ?? null)
       // joined checks the turn as it is now: it may have ended, or a new
       // try taken the message, while Send ran.
       if (running) useThreads.getState().joined(chat, id)
     } catch (err) {
       change(text)
+      if (quote) setQuote(chat, quote)
       showError(err)
     }
   }
@@ -77,14 +84,29 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       void send()
+    } else if (e.key === "Escape" && quote) {
+      e.preventDefault()
+      setQuote(chat, null)
     }
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 pb-4">
       <InputGroup className={cn("@container/composer", mother && "mother-ring")} data-working={mother && running}>
+        {quote && (
+          <InputGroupAddon align="block-start">
+            <QuoteChip
+              quote={quote}
+              onRemove={() => {
+                setQuote(chat, null)
+                ref.current?.focus()
+              }}
+            />
+          </InputGroupAddon>
+        )}
         <InputGroupTextarea
           ref={ref}
+          data-composer={chat}
           dir="auto"
           rows={2}
           value={text}

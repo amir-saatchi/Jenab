@@ -424,11 +424,15 @@ func historyCard(ch id.Chat, n int, ms []chat.Message, room int) string {
 	return b.String()
 }
 
-// messageText is m's text parts, joined.
+// messageText is m's text parts, joined, after its quote with each line
+// marked "> " (TASK-019).
 func messageText(m chat.Message) string {
 	var parts []string
 	for _, p := range m.Parts {
-		if p.Text != nil && strings.TrimSpace(p.Text.Text) != "" {
+		switch {
+		case p.Quote != nil:
+			parts = append(parts, "> "+strings.ReplaceAll(strings.TrimSpace(p.Quote.Text), "\n", "\n> "))
+		case p.Text != nil && strings.TrimSpace(p.Text.Text) != "":
 			parts = append(parts, strings.TrimSpace(p.Text.Text))
 		}
 	}

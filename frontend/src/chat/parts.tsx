@@ -12,12 +12,15 @@ import { ChatService, NoticeKind, type ChatNotice, type Part, type ToolCall, typ
 import { showError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { Markdown } from "@/chat/markdown"
+import { flash } from "@/chat/quote"
 import { openMemory } from "@/shell/open"
 import { openHere } from "@/shell/open-file"
 
-export function AgentText({ text, stopped }: { text: string; stopped?: boolean }) {
+// AgentText is the agent's text. source is its message, for *Reply* on a
+// selection (TASK-019); text still streaming has none.
+export function AgentText({ text, stopped, source }: { text: string; stopped?: boolean; source?: string }) {
   return (
-    <Bubble variant="ghost">
+    <Bubble variant="ghost" data-quote-source={source} className={source && flash}>
       <BubbleContent>
         <Markdown>{text}</Markdown>
         {stopped && <span className="text-xs text-muted-foreground">Stopped</span>}

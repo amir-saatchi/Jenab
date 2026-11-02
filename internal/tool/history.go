@@ -191,6 +191,13 @@ func writeMessage(b *strings.Builder, m chat.Message) {
 			if p.Text.Stopped {
 				b.WriteString(" [stopped by the user]")
 			}
+		case chat.PartQuote:
+			q := p.Quote
+			fmt.Fprintf(b, "[quote of turn %d, message %s", q.Turn, q.Message)
+			if q.Cut {
+				b.WriteString(", cut")
+			}
+			b.WriteString("]\n> " + strings.ReplaceAll(q.Text, "\n", "\n> "))
 		case chat.PartToolCall:
 			fmt.Fprintf(b, "[tool call %s: %s %s]", p.ToolCall.ID, p.ToolCall.Name, p.ToolCall.Args)
 		case chat.PartToolResult:

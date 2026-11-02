@@ -267,6 +267,11 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 					continue
 				}
 			}
+			// A quote is plain text to the model (TASK-019).
+			if i := slices.IndexFunc(m.Parts, func(p chat.Part) bool { return p.Quote != nil }); i >= 0 {
+				m.Parts = slices.Clone(m.Parts)
+				m.Parts[i] = quotePart(m.Chat, m.Parts[i].Quote)
+			}
 		}
 		out = append(out, m)
 	}

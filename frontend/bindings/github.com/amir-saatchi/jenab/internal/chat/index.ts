@@ -24,6 +24,7 @@ export type {
     PartDone,
     Question,
     QuestionItem,
+    Quote,
     Retry,
     SessionNote,
     Status,

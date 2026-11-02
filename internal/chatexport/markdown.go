@@ -127,6 +127,15 @@ func (m *md) part(p chat.Part, results map[string]*chat.ToolResult) {
 		if t != "" {
 			m.block(t)
 		}
+	case chat.PartQuote:
+		// A quote is a blockquote before the text (TASK-019).
+		t := strings.TrimSpace(m.s.Redact(p.Quote.Text))
+		if p.Quote.Cut {
+			t += " …"
+		}
+		if t != "" {
+			m.block("> " + strings.ReplaceAll(t, "\n", "\n> "))
+		}
 	case chat.PartToolCall:
 		m.line(m.toolLine(p.ToolCall, results[p.ToolCall.ID]))
 	case chat.PartToolResult:

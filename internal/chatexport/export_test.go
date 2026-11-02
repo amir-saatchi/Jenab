@@ -192,7 +192,8 @@ func TestMarkdownRTL(t *testing.T) {
 		msg(1, chat.RoleAssistant, "m1", call("t1", "fetch_page", map[string]string{"url": "https://api.example.com/btc"}),
 			notice(chat.NoticeTaskFinished, "کار تمام شد."), text("**۶۸٬۰۰۰** دلار.\n\n- یک\n- دو")),
 		msg(1, chat.RoleTool, "", result("t1", "{\"usd\":68000}", false)),
-		msg(2, chat.RoleUser, "", text("Thanks, in English please")),
+		msg(2, chat.RoleUser, "", chat.Part{Kind: chat.PartQuote, Quote: &chat.Quote{Text: "**۶۸٬۰۰۰** دلار.", Message: "m", Turn: 1, Role: chat.RoleAssistant, Cut: true}},
+			text("Thanks, in English please")),
 		msg(2, chat.RoleAssistant, "m1", text("123 Bitcoin is about $68,000.")),
 	}
 	s, _ := source(t, c, ms)
@@ -203,15 +204,15 @@ func TestMarkdownRTL(t *testing.T) {
 		"- Notice: <bdi>کار تمام شد.</bdi>\n",
 		"<div dir=\"rtl\">\n\n**۶۸٬۰۰۰** دلار.\n\n- یک\n- دو\n\n</div>\n",
 		"- Tool `fetch_page` `{\"url\":\"https://api.example.com/btc\"}` → 13 B\n",
-		"\nThanks, in English please\n",
+		"<div dir=\"rtl\">\n\n> **۶۸٬۰۰۰** دلار. …\n\n</div>\n\nThanks, in English please\n",
 		"\n123 Bitcoin is about $68,000.\n",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
 	}
-	if strings.Count(out, "<div") != 3 {
-		t.Errorf("want 3 wrapped blocks:\n%s", out)
+	if strings.Count(out, "<div") != 4 {
+		t.Errorf("want 4 wrapped blocks:\n%s", out)
 	}
 }
 

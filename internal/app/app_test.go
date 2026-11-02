@@ -217,7 +217,7 @@ func TestShutdownDuringTurn(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.fp.Push(fake.Reply{Events: []provider.Event{{Kind: provider.EventDelta, PartKind: chat.PartText, Text: "Thinking"}}, Hang: true})
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Work hard"); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Work hard", nil); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(5 * time.Second)
@@ -241,7 +241,7 @@ func TestShutdownDuringTurn(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "jenab.lock")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("the lock file is still there: %v", err)
 	}
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "More"); err == nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "More", nil); err == nil {
 		t.Fatal("a message after shutdown")
 	} else {
 		uiErr(t, err, KindClosing)

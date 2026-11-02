@@ -258,6 +258,7 @@ func allParts() []chat.Part {
 		{Kind: chat.PartQuestion, Question: &chat.Question{
 			Questions: []chat.QuestionItem{{Header: "Coin", Question: "Which coin?", Options: []chat.Option{{Label: "BTC", Recommended: true}, {Label: "ETH"}}}},
 			Answers:   map[string][]string{"Coin": {"BTC"}}, AnsweredAt: &at}},
+		{Kind: chat.PartQuote, Quote: &chat.Quote{Text: "قیمت امروز\n> not a mark", Message: "01JQUOTED", Turn: 1, Role: chat.RoleAssistant, Cut: true}},
 	}
 }
 

@@ -152,10 +152,13 @@ export function Search(p: id$0.Project, q: $models.SearchRequest): $CancellableP
 
 /**
  * Send adds the user's message; the turn's progress comes as events.
- * Pictures come with the composer's attachments (P1-15).
+ * quote, if not nil, is the passage of an earlier message of the chat it
+ * replies to: its text and message, and cut when the frontend cut it; the
+ * turn and role are read from the source (TASK-019). Pictures come with
+ * the composer's attachments (P1-15).
  */
-export function Send(p: id$0.Project, c: id$0.Chat, text: string): $CancellablePromise<id$0.Message> {
-    return $Call.ByID(1560175187, p, c, text);
+export function Send(p: id$0.Project, c: id$0.Chat, text: string, quote: chat$0.Quote | null): $CancellablePromise<id$0.Message> {
+    return $Call.ByID(1560175187, p, c, text, quote);
 }
 
 /**

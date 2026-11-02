@@ -43,12 +43,12 @@ func TestServices(t *testing.T) {
 
 	// A message to the Mother chat runs a turn; the snapshot has it.
 	e.fp.Push(fake.Text("Hello."))
-	if _, err := cs.Send(ctx, op.ID, op.Mother, "  "); err == nil {
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "  ", nil); err == nil {
 		t.Fatal("sent an empty message")
 	} else {
 		uiErr(t, err, KindInvalid)
 	}
-	if _, err := cs.Send(ctx, op.ID, op.Mother, "Hi"); err != nil {
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "Hi", nil); err != nil {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)

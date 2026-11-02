@@ -313,7 +313,7 @@ func (c *ChatsDB) scanParts(ctx context.Context, s SearchReq, terms []queryTerm)
 	}
 	defer conn.Close()
 	rows, err := conn.QueryContext(ctx, `SELECT message_id, content FROM message_parts
-		WHERE type = 'text' AND (?1 = '' OR message_id IN (SELECT id FROM messages WHERE chat_id = ?1))
+		WHERE type IN ('text', 'quote') AND (?1 = '' OR message_id IN (SELECT id FROM messages WHERE chat_id = ?1))
 		ORDER BY rowid DESC`, s.Chat)
 	if err != nil {
 		return hits, err
@@ -421,6 +421,7 @@ func containsAll(text []byte, want [][][]byte) bool {
 	return true
 }
 
+// textOf is a text or a quote part's text: both have it first.
 func textOf(content string) (string, error) {
 	// Most text has nothing escaped: then the JSON is the text in quotes.
 	const prefix = `{"text":"`
@@ -694,9 +695,10 @@ func (c *ChatsDB) TurnsWith(ctx context.Context, ch id.Chat, word string, before
 		})
 }
 
-// TextParts is the number of text parts in the project's chats.
+// TextParts is the number of indexed parts in the project's chats: text
+// and quotes.
 func (c *ChatsDB) TextParts(ctx context.Context) (int, error) {
-	return count(ctx, c.DB, `SELECT COUNT(*) FROM message_parts WHERE type = 'text'`)
+	return count(ctx, c.DB, `SELECT COUNT(*) FROM message_parts WHERE type IN ('text', 'quote')`)
 }
 
 // PartsWith is the number of text parts in the project's chats with a

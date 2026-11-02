@@ -22,7 +22,7 @@ func TestSnapshotWindow(t *testing.T) {
 	}
 	for i := range SnapshotTurns + 1 {
 		e.fp.Push(fake.Text("ok"))
-		if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, fmt.Sprint("turn ", i+1)); err != nil {
+		if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, fmt.Sprint("turn ", i+1), nil); err != nil {
 			t.Fatal(err)
 		}
 		e.idle(op.Mother)
@@ -53,7 +53,7 @@ func TestWriteDuringTurn(t *testing.T) {
 		return provider.Event{Kind: provider.EventDelta, PartKind: chat.PartText, Text: text}
 	}
 	e.fp.Push(fake.Reply{Wait: 400 * time.Millisecond, Events: []provider.Event{delta("a"), delta("b")}, Hang: true})
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Go"); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Go", nil); err != nil {
 		t.Fatal(err)
 	}
 	deltas := func() []chat.Delta {
@@ -111,7 +111,7 @@ func TestWaiting(t *testing.T) {
 		{"header": "Currency", "question": "Which currency?", "options": []map[string]any{{"label": "EUR"}, {"label": "USD"}}},
 	}}
 	e.fp.Push(fake.ToolCall("c1", "ask_user", form), fake.Text("ok"))
-	if _, err := cs.Send(ctx, op.ID, op.Mother, "set up prices"); err != nil {
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "set up prices", nil); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(10 * time.Second)

@@ -94,7 +94,7 @@ func TestChatExportAfterTurn(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.fp.Push(fake.Text("The key you sent was " + testKey))
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Hi"); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "Hi", nil); err != nil {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)

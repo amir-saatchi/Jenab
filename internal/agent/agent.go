@@ -93,9 +93,12 @@ type Deps struct {
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.
+// Quote is the passage the message replies to, if any: its Text and
+// Message, and Cut when the frontend cut it; Send fills in the rest.
 type UserMessage struct {
 	Text   string
 	Images []chat.Image
+	Quote  *chat.Quote
 }
 
 var (
@@ -105,6 +108,9 @@ var (
 	// on a provider error and no request is waiting to be retried.
 	ErrNoRetry = errors.New("agent: there is nothing to retry")
 	ErrInTurn  = errors.New("agent: the chat is in a turn")
+	// ErrQuote: the quoted message isn't a user or assistant message of
+	// the chat, or the quote has no text.
+	ErrQuote = errors.New("agent: the quote is not of a message in this chat")
 )
 
 // Orchestrator runs the turns of every open chat.
@@ -277,6 +283,13 @@ func (o *Orchestrator) Send(ctx context.Context, p id.Project, c id.Chat, m User
 			proj.Release()
 		}
 	}()
+	if m.Quote != nil {
+		q, err := quoteOf(ctx, proj, c, *m.Quote)
+		if err != nil {
+			return "", err
+		}
+		parts = append([]chat.Part{{Kind: chat.PartQuote, Quote: &q}}, parts...)
+	}
 	cs := o.state(p, c)
 	cs.mu.Lock()
 	defer cs.mu.Unlock()

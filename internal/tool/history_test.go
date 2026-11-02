@@ -85,6 +85,10 @@ func TestReadMessages(t *testing.T) {
 	// History cards' mark of outside data is for the app only.
 	addMessage(t, env, env.Chat, 2, chat.RoleUser,
 		chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeCardOutside, Text: "[turn 2's history cards show turns that read outside data]"}})
+	addMessage(t, env, env.Chat, 3, chat.RoleUser,
+		chat.Part{Kind: chat.PartQuote, Quote: &chat.Quote{Text: "Fetching.\nmore", Message: "01JQ", Turn: 1, Role: chat.RoleAssistant, Cut: true}},
+		text("Why?"))
+	contains(t, mustText(t, env, "read_messages", `{"from": 3, "to": 3}`), "[quote of turn 1, message 01JQ, cut]\n> Fetching.\n> more\nWhy?")
 	for turn := 3; turn <= 30; turn++ {
 		addMessage(t, env, env.Chat, turn, chat.RoleUser, text(fmt.Sprintf("message %d", turn)))
 	}

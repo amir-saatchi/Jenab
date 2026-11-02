@@ -70,7 +70,7 @@ func TestConnectSendsKeptMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := cs.Send(ctx, op.ID, op.Mother, "track a price every day"); err != nil {
+	if _, err := cs.Send(ctx, op.ID, op.Mother, "track a price every day", nil); err != nil {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)

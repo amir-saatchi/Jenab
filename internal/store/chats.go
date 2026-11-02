@@ -101,6 +101,14 @@ var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 	execAll(`CREATE INDEX messages_activity ON messages (chat_id, created_at)`),
 	// The notes' summary section, written only by Refresh memory (P2-10).
 	execAll(`ALTER TABLE session_notes ADD COLUMN summary TEXT NOT NULL DEFAULT ''`),
+	// Quotes are indexed too (TASK-019), so their tokens go with them.
+	execAll(
+		`DROP TRIGGER message_parts_unindex`,
+		`CREATE TRIGGER message_parts_unindex AFTER DELETE ON message_parts WHEN old.type IN ('text', 'quote')
+		BEGIN
+			DELETE FROM messages_fts WHERE rowid = old.rowid;
+		END`,
+	),
 }}
 
 // Limits from SPEC 3.4 and 8.6. Tokens are estimated at 4 bytes each, as
@@ -668,6 +676,8 @@ func encodeParts(ps []chat.Part) ([]partRow, error) {
 			v = p.Approval
 		case chat.PartQuestion:
 			v = p.Question
+		case chat.PartQuote:
+			v, r.index = p.Quote, Normalize(p.Quote.Text)
 		}
 		b, err := json.Marshal(v)
 		if err != nil {
@@ -679,7 +689,7 @@ func encodeParts(ps []chat.Part) ([]partRow, error) {
 	return out, nil
 }
 
-// insertPart writes a part, and indexes a text part in the same
+// insertPart writes a part, and indexes a text or quote part in the same
 // transaction.
 func insertPart(tx *sql.Tx, m id.Message, i int, r partRow) error {
 	var rowid int64
@@ -722,6 +732,9 @@ func decodePart(kind chat.PartKind, content string) (chat.Part, error) {
 	case chat.PartQuestion:
 		p.Question = &chat.Question{}
 		v = p.Question
+	case chat.PartQuote:
+		p.Quote = &chat.Quote{}
+		v = p.Quote
 	default:
 		return p, fmt.Errorf("store: unknown part type %q", kind)
 	}
@@ -1171,6 +1184,29 @@ func (c *ChatsDB) TurnMessages(ctx context.Context, ch id.Chat, turn int) ([]id.
 			var m id.Message
 			return m, r.Scan(&m)
 		})
+}
+
+// MessageHead returns a message without its parts: its chat, turn and
+// role, such as for a quote's source (TASK-019).
+func (c *ChatsDB) MessageHead(ctx context.Context, m id.Message) (chat.Message, error) {
+	rows, err := Query(ctx, c.DB, `SELECT chat_id, turn, role, model, created_at FROM messages WHERE id = ?`, []any{m},
+		func(r *sql.Rows) (chat.Message, error) {
+			x := chat.Message{ID: m}
+			var created string
+			if err := r.Scan(&x.Chat, &x.Turn, &x.Role, &x.Model, &created); err != nil {
+				return x, err
+			}
+			var err error
+			x.CreatedAt, err = parseTime(created)
+			return x, err
+		})
+	if err != nil {
+		return chat.Message{}, err
+	}
+	if len(rows) == 0 {
+		return chat.Message{}, fmt.Errorf("store: message %s: %w", m, ErrNotFound)
+	}
+	return rows[0], nil
 }
 
 // MessageChats returns the chat of each of ms that exists, for naming who

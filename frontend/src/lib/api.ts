@@ -75,6 +75,7 @@ export type {
   Part,
   PartDone,
   Question,
+  Quote,
   Retry,
   SessionNote,
   Status as ChatStatus,

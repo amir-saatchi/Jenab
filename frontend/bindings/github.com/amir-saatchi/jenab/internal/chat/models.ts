@@ -385,6 +385,7 @@ export interface Part {
     "notice"?: Notice | null;
     "approval"?: Approval | null;
     "question"?: Question | null;
+    "quote"?: Quote | null;
 }
 
 /**
@@ -421,6 +422,7 @@ export enum PartKind {
     PartNotice = "notice",
     PartApproval = "approval",
     PartQuestion = "question",
+    PartQuote = "quote",
 };
 
 /**
@@ -451,6 +453,31 @@ export interface QuestionItem {
     "question": string;
     "options": Option[] | null;
     "multi"?: boolean;
+}
+
+/**
+ * Quote is the passage of an earlier message a user message replies to
+ * (TASK-019): one per message, before its text. Text comes first in the
+ * JSON, as in Text, so the history search reads both the same way (2.3).
+ */
+export interface Quote {
+    "text": string;
+
+    /**
+     * the quoted message, in the same chat
+     */
+    "message": id$0.Message;
+
+    /**
+     * its turn
+     */
+    "turn": number;
+
+    /**
+     * who wrote it: user or assistant
+     */
+    "role": Role;
+    "cut"?: boolean;
 }
 
 /**

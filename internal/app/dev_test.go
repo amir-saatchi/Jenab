@@ -28,13 +28,13 @@ func TestDevScreensShowWhatWasSentWithoutSecrets(t *testing.T) {
 	}
 	// Turn 1 fails with the key in the provider's error.
 	e.fp.Push(fake.Fail(&provider.Error{Provider: "p", Kind: provider.BadRequest, Message: "bad key " + testKey}))
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "my key is "+testKey); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "my key is "+testKey, nil); err != nil {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)
 	// Turn 2 hangs while it streams the key back.
 	e.fp.Push(fake.Reply{Events: []provider.Event{{Kind: provider.EventDelta, PartKind: chat.PartText, Text: "it is " + testKey}}, Hang: true})
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "again"); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "again", nil); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(5 * time.Second)
@@ -133,7 +133,7 @@ func TestDevCardBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "hello"); err != nil {
+	if _, err := e.svc.Chat.Send(ctx, op.ID, op.Mother, "hello", nil); err != nil {
 		t.Fatal(err)
 	}
 	e.idle(op.Mother)

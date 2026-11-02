@@ -246,6 +246,8 @@ func partText(p chat.Part) string {
 			head += " · full output at " + p.ToolResult.Ref
 		}
 		return head + "]\n" + p.ToolResult.Text
+	case p.Quote != nil:
+		return fmt.Sprintf("[quote · turn %d · %s]\n%s", p.Quote.Turn, p.Quote.Message, p.Quote.Text)
 	case p.Image != nil:
 		return "[image " + p.Image.Ref + "]"
 	case p.Notice != nil:
