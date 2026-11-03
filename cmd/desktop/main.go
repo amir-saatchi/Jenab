@@ -26,6 +26,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/sqlworker"
 	"github.com/amir-saatchi/jenab/internal/store"
 	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/version"
 	"github.com/amir-saatchi/jenab/internal/web"
 )
 
@@ -75,6 +76,9 @@ func run(_ []string) (err error) {
 	// defers don't close them again.
 	closeLog := sync.OnceValue(logClose)
 	defer closeLog()
+	// The first line of each start says which build wrote the rest.
+	v := version.Get()
+	log.Info("app: start", "version", v.Version, "commit", v.Commit, "modified", v.Modified, "go", v.Go, "os", v.OS)
 	defer func() {
 		if err != nil {
 			log.Error("app: start", "err", err) // main shows it too

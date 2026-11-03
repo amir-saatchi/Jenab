@@ -5,10 +5,12 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/sysmem"
+	"github.com/amir-saatchi/jenab/internal/version"
 )
 
 // SystemService is what the app asks of the computer: the memory for the
-// bottom bar and desktop notifications (SPEC 5.12, 8.8).
+// bottom bar, desktop notifications (SPEC 5.12, 8.8) and the app's own
+// version.
 type SystemService struct {
 	base
 	notify func(Notification) error // nil sends nothing, as in tests
@@ -38,4 +40,10 @@ func (s *SystemService) Notify(ctx context.Context, n Notification) (err error) 
 		return nil
 	}
 	return s.notify(n)
+}
+
+// Version returns the app's version and build, for the About line in
+// Settings → General (TASK-037).
+func (s *SystemService) Version(ctx context.Context) (version.Info, error) {
+	return version.Get(), nil
 }

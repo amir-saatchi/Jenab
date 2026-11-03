@@ -1,4 +1,5 @@
-import type { UsageLine } from "@/lib/api"
+import type { UsageLine, VersionInfo } from "@/lib/api"
+import { APP_NAME } from "@/lib/names"
 
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 })
 
@@ -54,4 +55,16 @@ export function readNumber(text: string, shown: string, min: number, optional?: 
   if (t === "") return optional ? { value: null } : "bad"
   const n = Number(t)
   return Number.isInteger(n) && n >= min ? { value: n } : "bad"
+}
+
+// versionLine is the About line: "Jenab 0.1.0-dev (d449b7e)", with
+// ", modified" when the build had uncommitted changes.
+export function versionLine(v: VersionInfo) {
+  const commit = v.commit ? ` (${v.commit}${v.modified ? ", modified" : ""})` : ""
+  return `${APP_NAME} ${v.version}${commit}`
+}
+
+// buildLine is the rest of the build, for bug reports.
+export function buildLine(v: VersionInfo) {
+  return [`Go ${v.go.replace(/^go/, "")}`, v.wails && `Wails ${v.wails}`, v.os].filter(Boolean).join(", ")
 }

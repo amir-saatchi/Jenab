@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 
-import type { UsageLine } from "@/lib/api"
-import { cost, limitDefault, placeholders, readNumber, tokens } from "@/settings/format"
+import type { UsageLine, VersionInfo } from "@/lib/api"
+import { buildLine, cost, limitDefault, placeholders, readNumber, tokens, versionLine } from "@/settings/format"
 
 const line = (c: number, unpriced = 0): UsageLine =>
   ({ input: 0, output: 0, cache_read: 0, cache_write: 0, cost: c, unpriced }) as UsageLine
@@ -34,4 +34,13 @@ test("readNumber: the same, bad, or the value to save", () => {
   expect(readNumber("", "4", 0)).toBe("bad") // empty is no zero
   expect(readNumber("", "4", 1, true)).toEqual({ value: null })
   expect(readNumber("", "", 1, true)).toBe("same")
+})
+
+test("the About line names the version and the commit", () => {
+  const v: VersionInfo = { version: "0.1.0-dev", commit: "d449b7e", modified: false, go: "go1.26.10", wails: "v3.0.0", os: "windows/amd64" }
+  expect(versionLine(v)).toBe("Jenab 0.1.0-dev (d449b7e)")
+  expect(versionLine({ ...v, modified: true })).toBe("Jenab 0.1.0-dev (d449b7e, modified)")
+  expect(versionLine({ ...v, version: "dev", commit: "" })).toBe("Jenab dev")
+  expect(buildLine(v)).toBe("Go 1.26.10, Wails v3.0.0, windows/amd64")
+  expect(buildLine({ ...v, wails: "" })).toBe("Go 1.26.10, windows/amd64")
 })

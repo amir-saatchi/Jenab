@@ -12,3 +12,11 @@ func TestMemory(t *testing.T) {
 		t.Fatalf("Memory = %+v, %v", r, err)
 	}
 }
+
+func TestVersion(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	v, err := e.svc.System.Version(context.Background())
+	if err != nil || v.Version == "" || v.Go == "" {
+		t.Fatalf("Version = %+v, %v", v, err)
+	}
+}

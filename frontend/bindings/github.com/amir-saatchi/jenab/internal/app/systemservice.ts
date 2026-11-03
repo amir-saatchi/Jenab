@@ -3,7 +3,8 @@
 
 /**
  * SystemService is what the app asks of the computer: the memory for the
- * bottom bar and desktop notifications (SPEC 5.12, 8.8).
+ * bottom bar, desktop notifications (SPEC 5.12, 8.8) and the app's own
+ * version.
  * @module
  */
 
@@ -14,6 +15,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as sysmem$0 from "../sysmem/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as version$0 from "../version/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -33,4 +37,12 @@ export function Memory(): $CancellablePromise<sysmem$0.Reading> {
  */
 export function Notify(n: $models.Notification): $CancellablePromise<void> {
     return $Call.ByID(3678736191, n);
+}
+
+/**
+ * Version returns the app's version and build, for the About line in
+ * Settings → General (TASK-037).
+ */
+export function Version(): $CancellablePromise<version$0.Info> {
+    return $Call.ByID(1986535614);
 }

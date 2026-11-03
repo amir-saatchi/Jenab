@@ -12,13 +12,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SettingsService, type FolderWarning as Warning, type MoveResult } from "@/lib/api"
 import { showError, toUIError } from "@/lib/errors"
 import { APP_NAME } from "@/lib/names"
+import { About } from "@/settings/about"
 import { useSettings } from "@/state/settings"
 import { FolderWarning } from "@/shell/folder-warning"
 import { levels } from "@/shell/project-settings"
 import { FactRow, SettingsSection } from "@/shell/settings-layout"
 
-// GeneralSection is *Settings → General* (SPEC 3.9): the data folder and
-// the approval level for new projects.
+// GeneralSection is *Settings → General* (SPEC 3.9): the data folder, the
+// approval level for new projects and the app's version.
 export function GeneralSection() {
   const view = useSettings((s) => s.view)
   const started = useSettings((s) => s.started)
@@ -82,6 +83,7 @@ export function GeneralSection() {
       <p className="text-xs text-muted-foreground">
         The approval level for new projects. Each project can change its own in its settings.
       </p>
+      <About />
       {started && (
         <ChooseFolder
           open={choosing}

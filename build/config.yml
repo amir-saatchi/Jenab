@@ -8,7 +8,7 @@ info:
   productIdentifier: "io.github.amir-saatchi.jenab"
   description: "Jenab, a desktop AI agent"
   copyright: "Apache-2.0"
-  version: "0.0.0"
+  version: "0.1.0-dev" # the same as VERSION; internal/version tests it
 
 dev_mode:
   root_path: .
