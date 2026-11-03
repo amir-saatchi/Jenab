@@ -7,6 +7,7 @@ import { useProjects } from "@/state/projects"
 import { FolderWarning } from "@/shell/folder-warning"
 import { backToChats } from "@/shell/open"
 import { ProjectMemorySection } from "@/settings/memory"
+import { PrivateHostsSection } from "@/shell/private-hosts"
 import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
 export const levels = [
@@ -16,8 +17,8 @@ export const levels = [
 ]
 
 // ProjectSettings is one scrolling page, opened from the project's menu
-// (SPEC 5.12). The workspace, storage, hosts and Export come with their
-// tickets.
+// (SPEC 5.12). The workspace, storage, allowed hosts and Export come with
+// their tickets.
 export function ProjectSettings({ project, section }: { project: string; section?: string }) {
   const item = useProjects((s) => s.list.find((p) => p.id === project))
   const opened = useProjects((s) => s.opened[project])
@@ -49,7 +50,7 @@ export function ProjectSettings({ project, section }: { project: string; section
     <SettingsLayout
       key={section}
       label={item ? `Project: ${item.name}` : "Project"}
-      items={["General", "Memory", "Approvals"]}
+      items={["General", "Memory", "Approvals", "Private-network exceptions"]}
       active={section}
       onBack={backToChats}
     >
@@ -89,6 +90,8 @@ export function ProjectSettings({ project, section }: { project: string; section
           </ToggleGroup>
         </FactRow>
       </SettingsSection>
+      <SettingsDivider />
+      <PrivateHostsSection project={project} />
     </SettingsLayout>
   )
 }

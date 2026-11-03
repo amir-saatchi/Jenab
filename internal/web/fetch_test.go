@@ -432,3 +432,134 @@ func TestCheckURLNumericHosts(t *testing.T) {
 		t.Error("a host of dots passed")
 	}
 }
+
+// A private address the exceptions don't allow is asked about, with what
+// it is; allowed, this fetch connects to it, denied, it is blocked with
+// the answer. Without a PrivateAsk it is blocked (6.7, 8.8).
+func TestFetchAsksPrivate(t *testing.T) {
+	srv, c, port := server(t)
+	mux := srv.Config.Handler.(*http.ServeMux)
+	mux.HandleFunc("/to-local", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://local.test:"+port+"/text", http.StatusFound)
+	})
+	var asked []PrivateRequest
+	answer := error(nil)
+	r := Rules{Private: onlySite, AskPrivate: func(_ context.Context, r PrivateRequest) error {
+		asked = append(asked, r)
+		return answer
+	}}
+	loop := netip.MustParseAddr("127.0.0.1")
+
+	p, err := c.Fetch(t.Context(), "http://local.test:"+port+"/text", r)
+	if err != nil || p.Text != "plain words" {
+		t.Fatalf("allowed: %+v, %v", p, err)
+	}
+	want := PrivateRequest{Host: "local.test", Addrs: []netip.Addr{loop}, Name: true, Local: true}
+	if len(asked) != 1 || fmt.Sprint(asked[0]) != fmt.Sprint(want) {
+		t.Errorf("asked %+v, want %+v", asked, want)
+	}
+
+	// An address, not a name; and the exception isn't asked about.
+	asked = nil
+	if _, err := c.Fetch(t.Context(), "http://127.0.0.1:"+port+"/text", r); err != nil || len(asked) != 1 || asked[0].Name || asked[0].Host != "127.0.0.1" {
+		t.Errorf("address: %v, asked %+v", err, asked)
+	}
+	asked = nil
+	if _, err := c.Fetch(t.Context(), "http://site.test:"+port+"/text", r); err != nil || len(asked) != 0 {
+		t.Errorf("exception: %v, asked %+v", err, asked)
+	}
+
+	// A redirect names the host before it.
+	asked = nil
+	p, err = c.Fetch(t.Context(), "http://site.test:"+port+"/to-local", r)
+	if err != nil || p.Text != "plain words" || len(asked) != 1 || asked[0].From != "site.test" || asked[0].Host != "local.test" {
+		t.Errorf("redirect: %+v, %v, asked %+v", p.URL, err, asked)
+	}
+
+	// The local network, not this computer; denied, it is blocked with
+	// the answer, and nothing is connected.
+	asked, answer = nil, errors.New("the user denied it")
+	_, err = c.Fetch(t.Context(), "http://private.test:"+port+"/text", r)
+	var b *BlockedError
+	if !errors.As(err, &b) || !b.Private || !strings.Contains(err.Error(), "a private address (10.1.2.3): the user denied it") {
+		t.Errorf("denied: %v", err)
+	}
+	if len(asked) != 1 || asked[0].Local || asked[0].Addrs[0] != netip.MustParseAddr("10.1.2.3") {
+		t.Errorf("local network: asked %+v", asked)
+	}
+
+	// No one to ask: blocked as before.
+	if _, err := c.Fetch(t.Context(), "http://local.test:"+port+"/text", Rules{Private: onlySite}); !errors.As(err, &b) || !b.Private {
+		t.Errorf("no ask: %v", err)
+	}
+
+	// Stop while it asks ends the fetch with the cancellation.
+	ctx, cancel := context.WithCancel(t.Context())
+	stop := Rules{AskPrivate: func(ctx context.Context, _ PrivateRequest) error {
+		cancel()
+		return context.Cause(ctx)
+	}}
+	if _, err := c.Fetch(ctx, "http://local.test:"+port+"/text", stop); !errors.Is(err, context.Canceled) || errors.As(err, &b) {
+		t.Errorf("stopped: %v", err)
+	}
+}
+
+// flipResolver gives a name a new address on each lookup, as a DNS
+// rebinding attack does.
+type flipResolver struct{ addrs []netip.Addr }
+
+func (f *flipResolver) LookupNetIP(context.Context, string, string) ([]netip.Addr, error) {
+	a := f.addrs[0]
+	f.addrs = f.addrs[1:]
+	return []netip.Addr{a}, nil
+}
+
+// An answer holds for the addresses it was asked about: a name that
+// resolves to another one asks again.
+func TestPrivateAnswerHoldsForItsAddress(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	c := NewClient(Options{Resolver: &flipResolver{addrs: []netip.Addr{netip.MustParseAddr("127.0.0.1"), netip.MustParseAddr("192.168.1.1")}}})
+	var asked []PrivateRequest
+	f := &fetchState{ctx: t.Context(), from: map[string]string{}, allowed: map[string][]netip.Addr{},
+		ask: func(_ context.Context, r PrivateRequest) error {
+			asked = append(asked, r)
+			if len(asked) > 1 {
+				return errors.New("no")
+			}
+			return nil
+		}}
+	dial := c.dialer(nil, f)
+	conn, err := dial(t.Context(), "tcp", "flip.test:"+port)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.Close()
+	if _, err := dial(t.Context(), "tcp", "flip.test:"+port); err == nil || len(asked) != 2 || asked[1].Addrs[0] != netip.MustParseAddr("192.168.1.1") {
+		t.Errorf("second address: %v, asked %+v", err, asked)
+	}
+}
+
+func TestParseHost(t *testing.T) {
+	for in, want := range map[string]string{
+		" NAS.local ":     "nas.local",
+		"localhost.":      "localhost",
+		"127.0.0.1":       "127.0.0.1",
+		"::1":             "::1",
+		"[0:0::1]":        "::1",
+		"::ffff:10.0.0.1": "10.0.0.1",
+		"رایانه.local":    "xn--mgba2a5ff90f.local",
+		"my_box":          "my_box",
+	} {
+		if got, err := ParseHost(in); err != nil || got != want {
+			t.Errorf("ParseHost(%q) = %q, %v; want %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"", "  ", "http://nas.local", "nas.local/x", "nas.local:8080", "127.0.0.1:8099", "[::1]:80",
+		"user@nas.local", "a b", "1.1", "16843009", "*.example.com", "a..b", "fe80::1%eth0", "[nas.local]", "nas.local?x"} {
+		if got, err := ParseHost(in); err == nil {
+			t.Errorf("ParseHost(%q) = %q, want an error", in, got)
+		}
+	}
+}

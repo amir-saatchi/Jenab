@@ -122,6 +122,10 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	if errors.As(err, &le) {
 		return &UIError{Kind: KindInvalid, Message: le.Error(), Details: details}
 	}
+	var he *project.HostError
+	if errors.As(err, &he) {
+		return &UIError{Kind: KindInvalid, Message: fmt.Sprintf("%q isn't a host. Give a name or an address alone, such as nas.local or 127.0.0.1, without http://, a path or a port.", strings.TrimSpace(he.Host)), Details: details}
+	}
 	// A call cancelled by its caller or by quitting is no failure to log.
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return &UIError{Kind: KindClosing, Message: "The call was cancelled.", Details: details}

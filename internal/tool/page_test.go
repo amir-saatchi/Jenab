@@ -13,6 +13,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"golang.org/x/net/idna"
 
@@ -242,4 +244,149 @@ func TestHostKey(t *testing.T) {
 	if !strings.HasPrefix(got, "xn--") || err != nil || back != "خبر.ایران" {
 		t.Errorf("hostKey(%s) = %q, back %q, %v", u, got, back, err)
 	}
+}
+
+// A request to a private address the exceptions don't allow asks through
+// env.Approve: once fetches, in this project adds the host to the
+// exceptions, deny blocks with the note. Where no one can ask, the error
+// names the setting (6.7, 8.8).
+func TestFetchPagePrivate(t *testing.T) {
+	env := testEnv(t)
+	d, base := pageServer(t, env)
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(base, "http://"))
+	ctx := context.Background()
+	env.PrivateHosts = func(h string) bool { return h == "site.test" }
+	var cards []chat.Approval
+	answer := chat.Approval{Answer: chat.GrantOnce}
+	env.Approve = func(_ context.Context, a chat.Approval) (chat.Approval, error) {
+		cards = append(cards, a)
+		a.Answer, a.Note = answer.Answer, answer.Note
+		return a, nil
+	}
+	hosts := func() []string {
+		hs, err := env.Project.PrivateHosts(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return hs
+	}
+
+	// Once: fetched, and nothing kept.
+	url := "http://127.0.0.1:" + port + "/review"
+	if r, err := callWith(t, d, env, "fetch_page", `{"url": "`+url+`"}`); err != nil || r.Ref == "" {
+		t.Fatalf("once: %+v, %v", r, err)
+	}
+	if len(cards) != 1 || len(hosts()) != 0 {
+		t.Fatalf("cards %+v, hosts %q", cards, hosts())
+	}
+	c := cards[0]
+	if c.Kind != "private" || c.Target != "127.0.0.1" || c.Ask != "Allow requests to 127.0.0.1 on this computer?" ||
+		!strings.Contains(c.Details, "127.0.0.1 is an address on this computer") || !strings.Contains(c.Details, "Tool: fetch_page") {
+		t.Errorf("card %+v", c)
+	}
+	if err := (chat.Part{Kind: chat.PartApproval, Approval: &c}).Validate(); err != nil {
+		t.Errorf("card part: %v", err)
+	}
+	var grants []chat.Grant
+	for _, o := range c.Options {
+		grants = append(grants, o.Grant)
+	}
+	if fmt.Sprint(grants) != fmt.Sprint([]chat.Grant{chat.GrantOnce, chat.GrantAlways, chat.GrantDeny}) {
+		t.Errorf("options %+v", c.Options)
+	}
+
+	// In this project: the host joins the exceptions.
+	answer.Answer = chat.GrantAlways
+	if _, err := callWith(t, d, env, "fetch_page", `{"url": "`+url+`"}`); err != nil {
+		t.Fatalf("always: %v", err)
+	}
+	if hs := hosts(); fmt.Sprint(hs) != "[127.0.0.1]" {
+		t.Errorf("hosts after always: %q", hs)
+	}
+
+	// Deny: the blocked error, with the note.
+	answer = chat.Approval{Answer: chat.GrantDeny, Note: "not that one"}
+	_, err := callWith(t, d, env, "fetch_page", `{"url": "http://intranet.test:`+port+`/"}`)
+	var te *Error
+	if !errors.As(err, &te) || !strings.Contains(te.Msg, "is blocked: a private address (192.168.0.10): the user denied it; their note: not that one") ||
+		strings.Contains(te.Msg, "project settings") {
+		t.Errorf("deny: %v", err)
+	}
+	c = cards[len(cards)-1]
+	if c.Ask != "Allow requests to intranet.test on your local network?" || !strings.Contains(c.Details, "intranet.test resolves to 192.168.0.10: your local network") ||
+		!strings.Contains(c.Risk, "intranet.test is a public name, but it points to your local network.") {
+		t.Errorf("name card %+v", c)
+	}
+
+	// A redirect names both hosts.
+	answer = chat.Approval{Answer: chat.GrantOnce}
+	if _, err := callWith(t, d, env, "fetch_page", `{"url": "`+base+`/away"}`); err == nil {
+		t.Fatal("the redirect to a host not approved was followed")
+	}
+	a := store.Approval{ID: id.Approval(id.New()), Kind: "host", Target: "other.test", Answer: chat.GrantAlways, Source: id.SourceUser}
+	if err := env.Project.DB.RecordApproval(ctx, a); err != nil {
+		t.Fatal(err)
+	}
+	n := len(cards)
+	if _, err := callWith(t, d, env, "fetch_page", `{"url": "`+base+`/away"}`); err != nil {
+		t.Fatalf("redirect: %v", err)
+	}
+	if c := cards[len(cards)-1]; len(cards) != n+1 || c.Ask != "Allow the redirect from site.test to other.test on this computer?" ||
+		!strings.Contains(c.Details, "Redirected from: site.test") {
+		t.Errorf("redirect card %+v", c)
+	}
+
+	// No one to ask, as in a pipeline: blocked, naming the setting.
+	env.Approve = nil
+	_, err = callWith(t, d, env, "fetch_page", `{"url": "http://other.test:`+port+`/review"}`)
+	if !errors.As(err, &te) || !strings.Contains(te.Msg, "is blocked: a loopback address (127.0.0.1); it can't be asked for here: to allow it, add other.test to the private-network exceptions in the project settings") {
+		t.Errorf("no card: %v", err)
+	}
+}
+
+// A card's answer may take longer than the call's timeout: the timeout
+// stops while the call waits, and goes on with the time it had left.
+func TestPauseStopsTheTimeout(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		wait := func(ctx context.Context, ms int) error {
+			select {
+			case <-ctx.Done():
+				return context.Cause(ctx)
+			case <-time.After(time.Duration(ms) * time.Millisecond):
+				return nil
+			}
+		}
+		type args struct {
+			Before int `json:"before"`
+			After  int `json:"after"`
+		}
+		slow := Func(Spec{Name: "slow", Description: "Works, asks, works.", Timeout: time.Second, Schema: json.RawMessage(`{"type": "object"}`)},
+			func(ctx context.Context, _ *Env, a args) (Result, error) {
+				if err := wait(ctx, a.Before); err != nil {
+					return Result{}, err
+				}
+				resume := Pause(ctx)
+				err := wait(ctx, 3600_000) // the user answers after an hour
+				resume()
+				if err != nil {
+					return Result{}, err
+				}
+				if err := wait(ctx, a.After); err != nil {
+					return Result{}, err
+				}
+				return Result{Text: "done"}, nil
+			})
+		run := func(a string) (Result, error) {
+			return Run(context.Background(), slow, Call{Args: json.RawMessage(a)})
+		}
+		if r, err := run(`{"before": 400, "after": 400}`); err != nil || r.Text != "done" {
+			t.Errorf("800 ms of work around an hour's wait: %+v, %v", r, err)
+		}
+		var te *Error
+		if _, err := run(`{"before": 600, "after": 600}`); !errors.As(err, &te) || te.Msg != "slow timed out after 1s" {
+			t.Errorf("1.2 s of work: %v", err)
+		}
+		// Outside a call, Pause does nothing.
+		Pause(context.Background())()
+	})
 }

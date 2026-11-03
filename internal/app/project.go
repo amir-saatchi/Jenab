@@ -113,6 +113,29 @@ func (s *ProjectService) Activity(ctx context.Context, p id.Project) (a project.
 	return a, err
 }
 
+// PrivateHosts are the project's private-network exceptions (SPEC 6.7):
+// hosts whose requests may reach this computer or the local network.
+func (s *ProjectService) PrivateHosts(ctx context.Context, p id.Project) (hosts []string, err error) {
+	defer s.guard("project.private_hosts", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		hosts, err = proj.PrivateHosts(ctx)
+		return err
+	})
+	return hosts, err
+}
+
+// SetPrivateHosts replaces the exceptions and returns them as stored, in
+// one spelling. A host is a name or an address without a scheme, path or
+// port; another value is KindInvalid. The next request uses them.
+func (s *ProjectService) SetPrivateHosts(ctx context.Context, p id.Project, hosts []string) (stored []string, err error) {
+	defer s.guard("project.set_private_hosts", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		stored, err = proj.SetPrivateHosts(ctx, hosts)
+		return err
+	})
+	return stored, err
+}
+
 // FolderWarning says whether the data folder is a bad place for the
 // projects, for the banner in 2.1; nil when it is fine.
 func (s *ProjectService) FolderWarning(ctx context.Context) (w *project.FolderWarning, err error) {

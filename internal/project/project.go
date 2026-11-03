@@ -50,6 +50,8 @@ type Project struct {
 	reporters  map[int]Reporter
 	onClose    map[int]func()
 	exportDone chan struct{} // the running export's; closed when it has stopped
+
+	hostsMu sync.Mutex // orders changes to the private-network exceptions
 }
 
 // Context is cancelled when the project closes. Background tasks and

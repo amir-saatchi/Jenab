@@ -62,6 +62,7 @@ const kinds: Record<string, string> = {
   mcp: "MCP server",
   command: "Command",
   memory: "Memory edit",
+  private: "Private network",
 }
 
 function time(at?: string | null) {

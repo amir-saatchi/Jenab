@@ -724,7 +724,7 @@ func TestExportApprovals(t *testing.T) {
 	if err := p.SetLevel(ctx, Auto); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.SetPrivateHosts(ctx, []string{"nas.local"}); err != nil {
+	if _, err := p.SetPrivateHosts(ctx, []string{"nas.local"}); err != nil {
 		t.Fatal(err)
 	}
 	e.m.d.Level = func() Level { return Strict } // approvals.default_level now

@@ -80,7 +80,8 @@ func HostApproval(host, by string) chat.Approval {
 }
 
 func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result, error) {
-	p, err := t.web.Fetch(ctx, a.URL, web.Rules{Private: env.PrivateHosts, Redirect: approvedRedirect(env, a.URL)})
+	ask := AskPrivate(env, "fetch_page")
+	p, err := t.web.Fetch(ctx, a.URL, web.Rules{Private: env.PrivateHosts, AskPrivate: ask, Redirect: approvedRedirect(env, a.URL)})
 	if err != nil {
 		if ctx.Err() != nil {
 			return Result{}, err
@@ -90,9 +91,112 @@ func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result,
 			return Result{}, &Error{Msg: "could not fetch " + a.URL + ": it redirects to " + re.URL +
 				", on a host not approved for this project; call fetch_page with that URL to ask for it", Err: err}
 		}
-		return Result{}, &Error{Msg: "could not fetch " + a.URL + ": " + strings.TrimPrefix(err.Error(), "web: "), Err: err}
+		msg := "could not fetch " + a.URL + ": " + strings.TrimPrefix(err.Error(), "web: ")
+		var be *web.BlockedError
+		if errors.As(err, &be) && be.Private && ask == nil {
+			msg += PrivateHint(be.URL)
+		}
+		return Result{}, &Error{Msg: msg, Err: err}
 	}
 	return StorePage(ctx, env, p)
+}
+
+// PrivateHint ends the error of a request blocked where no one can be
+// asked, such as a pipeline's or a scheduled run's: it names the setting
+// that allows the host (6.7).
+func PrivateHint(host string) string {
+	return "; it can't be asked for here: to allow it, add " + host + " to the private-network exceptions in the project settings"
+}
+
+// AskPrivate asks the user about a request to private addresses the
+// project's exceptions don't allow, in an approval card at every level
+// (6.7, 8.8). Allow in this project adds the host to the exceptions. Nil
+// where no one can answer, such as in a pipeline: the request is then
+// blocked.
+func AskPrivate(env *Env, by string) web.PrivateAsk {
+	if env == nil || env.Approve == nil {
+		return nil
+	}
+	return func(ctx context.Context, r web.PrivateRequest) error {
+		got, err := env.Approve(ctx, PrivateApproval(r, by))
+		switch {
+		case err != nil:
+			return err
+		case got.Answer == chat.GrantDeny:
+			msg := "the user denied it"
+			if got.Note != "" {
+				msg += "; their note: " + got.Note
+			}
+			return errors.New(msg)
+		case got.Answer == chat.GrantAlways && env.Project != nil:
+			return env.Project.AddPrivateHost(context.WithoutCancel(ctx), r.Host)
+		}
+		return nil
+	}
+}
+
+// PrivateApproval is the card for a request to private addresses (6.7,
+// 8.8): the host, the addresses and what they are, and where it came
+// from.
+func PrivateApproval(r web.PrivateRequest, by string) chat.Approval {
+	where, risk := "your local network", "Devices on your local network, such as a router or a printer, can be reached this way"
+	if r.Local {
+		where, risk = "this computer", "Programs on this computer can be reached this way"
+	}
+	addrs := make([]string, len(r.Addrs))
+	for i, a := range r.Addrs {
+		addrs[i] = a.String()
+	}
+	ask := "Allow requests to " + r.Host + " on " + where + "?"
+	if r.From != "" {
+		ask = "Allow the redirect from " + r.From + " to " + r.Host + " on " + where + "?"
+	}
+	risk += ", and requests can carry text from this chat to them."
+	if r.Name && publicName(r.Host) {
+		risk = r.Host + " is a public name, but it points to " + where + ". " + risk
+	}
+	d := []string{"Host: " + r.Host}
+	if r.Name {
+		d = append(d, r.Host+" resolves to "+strings.Join(addrs, ", ")+": "+where)
+	} else {
+		d = append(d, r.Host+" is an address on "+where)
+	}
+	if r.From != "" {
+		d = append(d, "Redirected from: "+r.From)
+	}
+	d = append(d, "Tool: "+by)
+	return chat.Approval{
+		ID:      id.Approval(id.New()),
+		Kind:    "private",
+		Target:  r.Host,
+		Ask:     ask,
+		Risk:    risk,
+		Details: strings.Join(d, "\n"),
+		Options: []chat.ApprovalOption{
+			{Label: "Allow once", Grant: chat.GrantOnce},
+			{Label: "Allow in this project", Grant: chat.GrantAlways},
+			{Label: "Deny", Grant: chat.GrantDeny},
+		},
+	}
+}
+
+// localSuffixes end names kept for local networks and this computer
+// (RFC 6761, 6762, 8375) and the ones routers and companies commonly use.
+var localSuffixes = []string{"localhost", "local", "lan", "home", "home.arpa", "internal", "intranet", "corp", "private"}
+
+// publicName reports whether host looks like a name on the internet: it
+// has a dot and isn't under a local suffix. Such a name that points to a
+// private address may be a page's trick, so the card says so.
+func publicName(host string) bool {
+	if !strings.Contains(host, ".") {
+		return false
+	}
+	for _, s := range localSuffixes {
+		if strings.HasSuffix(host, "."+s) {
+			return false
+		}
+	}
+	return true
 }
 
 // StorePage stores a fetched page in the bucket and returns its result:

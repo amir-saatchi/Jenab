@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -242,7 +243,7 @@ func Errorf(format string, a ...any) *Error {
 // Run runs t with its timeout. A timeout of the tool's own becomes an
 // *Error the model sees; a cancelled ctx stays as it is. A tool that asks
 // the user has no timeout: the form stays until the user answers or
-// stops (8.8).
+// stops (8.8). Another's timeout stops while it waits for the user (Pause).
 func Run(ctx context.Context, t Tool, call Call) (Result, error) {
 	if t.Spec().Effects&AsksUser != 0 {
 		return t.Run(ctx, call)
@@ -251,13 +252,65 @@ func Run(ctx context.Context, t Tool, call Call) (Result, error) {
 	if d <= 0 {
 		d = DefaultTimeout
 	}
-	tctx, cancel := context.WithTimeout(ctx, d)
-	defer cancel()
-	r, err := t.Run(tctx, call)
-	if err != nil && ctx.Err() == nil && errors.Is(tctx.Err(), context.DeadlineExceeded) {
+	tctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	c := &clock{left: d, since: time.Now()}
+	c.outer, _ = ctx.Value(clockKey{}).(*clock)
+	c.timer = time.AfterFunc(d, func() { cancel(errTimedOut) })
+	defer c.timer.Stop()
+	r, err := t.Run(context.WithValue(tctx, clockKey{}, c), call)
+	if err != nil && ctx.Err() == nil && errors.Is(context.Cause(tctx), errTimedOut) {
 		return Result{}, Errorf("%s timed out after %s", t.Spec().Name, d)
 	}
 	return r, err
+}
+
+var errTimedOut = fmt.Errorf("tool: timed out: %w", context.DeadlineExceeded)
+
+// clock is a call's timeout, which stops while the call waits for the
+// user.
+type clock struct {
+	outer *clock // the call this one runs in, such as a subagent's parent
+
+	mu     sync.Mutex
+	timer  *time.Timer
+	left   time.Duration // before it fires, as of since
+	since  time.Time
+	pauses int
+	fired  bool
+}
+
+type clockKey struct{}
+
+// Pause stops the timeout of the tool call ctx belongs to, and of the
+// calls it runs in, while it waits for the user, such as for an approval
+// card a fetch asks for while it connects (8.8). The returned func starts
+// them again. Outside a call it does nothing.
+func Pause(ctx context.Context) (resume func()) {
+	var cs []*clock
+	for c, _ := ctx.Value(clockKey{}).(*clock); c != nil; c = c.outer {
+		c.mu.Lock()
+		if c.pauses == 0 && !c.fired {
+			if c.timer.Stop() {
+				c.left -= time.Since(c.since)
+			} else {
+				c.fired = true
+			}
+		}
+		c.pauses++
+		c.mu.Unlock()
+		cs = append(cs, c)
+	}
+	return sync.OnceFunc(func() {
+		for _, c := range cs {
+			c.mu.Lock()
+			if c.pauses--; c.pauses == 0 && !c.fired {
+				c.since = time.Now()
+				c.timer.Reset(c.left)
+			}
+			c.mu.Unlock()
+		}
+	})
 }
 
 // Func makes a tool from a function (Q27). The arguments are checked

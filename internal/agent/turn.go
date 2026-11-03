@@ -453,13 +453,27 @@ func (r *runner) setRetry(rt *chat.Retry, now func()) {
 	r.o.publishStatus(cs)
 }
 
+// why is the agent's text before its tool calls, in one line, for a card
+// asked while a call runs (8.8); "" if it wrote none.
+func (resp *response) why() string {
+	resp.mu.Lock()
+	defer resp.mu.Unlock()
+	var b strings.Builder
+	for _, p := range resp.parts {
+		if p.Text != nil {
+			b.WriteString(p.Text.Text + " ")
+		}
+	}
+	return clip(strings.Join(strings.Fields(b.String()), " "), 300)
+}
+
 // runTools runs the calls in order and writes each result as it is done,
 // in one tool message. After Stop the remaining calls get "cancelled by
 // user" (8.3). Calls in the answer to the last request, which had no
 // tools, are closed without running. It reports whether every call
 // succeeded.
 func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) (bool, error) {
-	tm := &toolMsg{r: r, t: t, id: resp.toolID}
+	tm := &toolMsg{r: r, t: t, id: resp.toolID, why: resp.why()}
 	allBad, allOK := !last, !last
 	for i, c := range calls {
 		parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: "not run: the turn reached its request limit", IsError: true}}}
@@ -501,6 +515,7 @@ type toolMsg struct {
 	t     *turn
 	id    id.Message
 	wrote bool
+	why   string // the agent's text before the calls (response.why)
 }
 
 // add writes a part, publishes it and returns its index. It writes after

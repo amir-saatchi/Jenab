@@ -94,10 +94,27 @@ export function Open(p: id$0.Project): $CancellablePromise<$models.OpenedProject
 }
 
 /**
+ * PrivateHosts are the project's private-network exceptions (SPEC 6.7):
+ * hosts whose requests may reach this computer or the local network.
+ */
+export function PrivateHosts(p: id$0.Project): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2908470836, p);
+}
+
+/**
  * SaveMemory saves the user's edit of a project memory section.
  */
 export function SaveMemory(p: id$0.Project, e: $models.MemoryEdit): $CancellablePromise<$models.MemorySaved> {
     return $Call.ByID(143649660, p, e);
+}
+
+/**
+ * SetPrivateHosts replaces the exceptions and returns them as stored, in
+ * one spelling. A host is a name or an address without a scheme, path or
+ * port; another value is KindInvalid. The next request uses them.
+ */
+export function SetPrivateHosts(p: id$0.Project, hosts: string[] | null): $CancellablePromise<string[] | null> {
+    return $Call.ByID(455428604, p, hosts);
 }
 
 /**

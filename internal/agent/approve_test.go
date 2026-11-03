@@ -508,7 +508,7 @@ func TestPrivateHostsReachTheTool(t *testing.T) {
 	h := newHarness(t, t.TempDir(), "", testSettings(), report("net", tool.Network), report("local", tool.ReadsDB))
 	defer h.stop()
 	h.open(func(p *project.Project) {
-		if err := p.SetPrivateHosts(context.Background(), []string{"nas.local"}); err != nil {
+		if _, err := p.SetPrivateHosts(context.Background(), []string{"nas.local"}); err != nil {
 			t.Fatal(err)
 		}
 	})

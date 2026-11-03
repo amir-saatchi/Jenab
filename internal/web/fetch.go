@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -38,10 +40,32 @@ type HostCheck func(host string) bool
 // the fetch with a *RedirectError.
 type RedirectCheck func(ctx context.Context, to *url.URL) error
 
+// PrivateRequest is a connection to private addresses that the
+// exceptions don't allow, for a PrivateAsk.
+type PrivateRequest struct {
+	Host  string       // as Host spells it
+	Addrs []netip.Addr // the private addresses it resolved to
+	// Name: the host is a name, so a lookup gave the addresses.
+	Name bool
+	// Local: every address is on this computer, such as loopback; else
+	// they are on the local network.
+	Local bool
+	From  string // the host that redirected here; "" for the URL's own
+}
+
+// PrivateAsk is asked before a fetch connects to private addresses that
+// the exceptions don't allow (SPEC 6.7, 8.8). nil lets this fetch connect
+// to those addresses; an error refuses them, and the fetch returns it in
+// a *BlockedError.
+type PrivateAsk func(ctx context.Context, r PrivateRequest) error
+
 // Rules are one fetch's project rules.
 type Rules struct {
-	Private  HostCheck     // hosts that may reach private addresses; nil allows none
-	Redirect RedirectCheck // nil follows redirects to any host
+	Private HostCheck // hosts that may reach private addresses; nil allows none
+	// AskPrivate is asked about the other hosts that resolve to private
+	// addresses; nil blocks them.
+	AskPrivate PrivateAsk
+	Redirect   RedirectCheck // nil follows redirects to any host
 }
 
 // Resolver finds a host's addresses. net.DefaultResolver is one; tests use
@@ -78,14 +102,14 @@ func NewClient(o Options) *Client {
 	if c.agent == "" {
 		c.agent = DefaultUserAgent
 	}
-	c.hc = &http.Client{Transport: c.transport(nil)}
+	c.hc = &http.Client{Transport: c.transport(nil, nil)}
 	return c
 }
 
-func (c *Client) transport(allow HostCheck) *http.Transport {
+func (c *Client) transport(allow HostCheck, f *fetchState) *http.Transport {
 	return &http.Transport{
 		Proxy:                 nil, // a proxy would make the address checks meaningless
-		DialContext:           c.dialer(allow),
+		DialContext:           c.dialer(allow, f),
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          20,
 		IdleConnTimeout:       90 * time.Second,
@@ -95,23 +119,105 @@ func (c *Client) transport(allow HostCheck) *http.Transport {
 }
 
 // client returns the HTTP client for a fetch with these rules. With
-// exceptions, its transport is a new one, closed after the fetch, so a
-// connection opened under one project's exception is never reused without
-// it.
-func (c *Client) client(r Rules) (*http.Client, func()) {
-	hc := &http.Client{Transport: c.hc.Transport, CheckRedirect: checkRedirect(r.Redirect)}
-	if r.Private == nil {
-		return hc, func() {}
+// exceptions or a PrivateAsk, its transport is a new one, closed after
+// the fetch, so a connection opened under one project's exception or one
+// fetch's answer is never reused without it.
+func (c *Client) client(ctx context.Context, r Rules) (*http.Client, func()) {
+	if r.Private == nil && r.AskPrivate == nil {
+		return &http.Client{Transport: c.hc.Transport, CheckRedirect: checkRedirect(r.Redirect, nil)}, func() {}
 	}
-	t := c.transport(r.Private)
-	hc.Transport = t
-	return hc, t.CloseIdleConnections
+	fctx, cancel := context.WithCancel(ctx)
+	f := &fetchState{ctx: fctx, ask: r.AskPrivate, from: map[string]string{}, allowed: map[string][]netip.Addr{}}
+	t := c.transport(r.Private, f)
+	return &http.Client{Transport: t, CheckRedirect: checkRedirect(r.Redirect, f)}, func() {
+		cancel()
+		f.end()
+		t.CloseIdleConnections()
+	}
+}
+
+// fetchState is one fetch's answers about private addresses.
+type fetchState struct {
+	// ctx is the fetch's, cancelled when it returns: a dial's own is
+	// detached from the request, so Stop wouldn't end the question.
+	ctx context.Context
+	ask PrivateAsk
+
+	mu      sync.Mutex
+	from    map[string]string       // a host the fetch was redirected to → the host before it
+	allowed map[string][]netip.Addr // private addresses this fetch may connect to, by host
+	ended   bool
+	asking  sync.WaitGroup
+}
+
+// begin starts a question; false once the fetch has returned. The HTTP
+// client returns on Stop without waiting for its dial, so end waits for
+// the question: its card is closed before the fetch returns.
+func (f *fetchState) begin() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.ended {
+		return false
+	}
+	f.asking.Add(1)
+	return true
+}
+
+func (f *fetchState) end() {
+	f.mu.Lock()
+	f.ended = true
+	f.mu.Unlock()
+	f.asking.Wait()
+}
+
+// question asks f.ask about r, if the fetch is still running.
+func (f *fetchState) question(r PrivateRequest) error {
+	if !f.begin() {
+		return context.Canceled
+	}
+	defer f.asking.Done()
+	return f.ask(f.ctx, r)
+}
+
+func (f *fetchState) redirected(to, from string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.from[to]; !ok {
+		f.from[to] = from
+	}
+}
+
+func (f *fetchState) cameFrom(host string) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.from[host]
+}
+
+// mayConnect reports whether this fetch's answer allowed host to reach a.
+// The answer holds for the addresses it named, so a name that resolves
+// to another one later asks again.
+func (f *fetchState) mayConnect(host string, a netip.Addr) bool {
+	if f == nil {
+		return false
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Contains(f.allowed[host], a.Unmap())
+}
+
+func (f *fetchState) allow(host string, as []netip.Addr) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.allowed[host] = append(f.allowed[host], as...)
 }
 
 // BlockedError is a request the network rules refused.
 type BlockedError struct {
 	URL    string
 	Reason string
+	// Private: it went to a private address that the host's exceptions
+	// don't allow (6.7).
+	Private bool
 }
 
 func (e *BlockedError) Error() string { return "web: " + e.URL + " is blocked: " + e.Reason }
@@ -196,8 +302,8 @@ func numeric(h string) bool {
 }
 
 // checkRedirect checks each redirect as a new URL, and asks check about
-// one to another host.
-func checkRedirect(check RedirectCheck) func(req *http.Request, via []*http.Request) error {
+// one to another host. f, if set, learns where each host came from.
+func checkRedirect(check RedirectCheck, f *fetchState) func(req *http.Request, via []*http.Request) error {
 	return func(req *http.Request, via []*http.Request) error {
 		if len(via) > maxRedirects { // this request is redirect number len(via)
 			return fmt.Errorf("web: more than %d redirects", maxRedirects)
@@ -205,10 +311,17 @@ func checkRedirect(check RedirectCheck) func(req *http.Request, via []*http.Requ
 		if _, err := CheckURL(req.URL.String()); err != nil {
 			return err
 		}
-		if check != nil && Host(req.URL) != Host(via[len(via)-1].URL) {
+		to, from := Host(req.URL), Host(via[len(via)-1].URL)
+		if to == from {
+			return nil
+		}
+		if check != nil {
 			if err := check(req.Context(), req.URL); err != nil {
 				return &RedirectError{URL: req.URL.String(), Err: err}
 			}
+		}
+		if f != nil {
+			f.redirected(to, from)
 		}
 		return nil
 	}
@@ -216,15 +329,20 @@ func checkRedirect(check RedirectCheck) func(req *http.Request, via []*http.Requ
 
 // dialer connects to one of the host's addresses that the rules allow.
 // The check is on the address itself, so a name that resolves to a private
-// address is caught, and so is a redirect to one.
-func (c *Client) dialer(allow HostCheck) func(ctx context.Context, network, addr string) (net.Conn, error) {
+// address is caught, and so is a redirect to one. A private address the
+// exceptions don't allow is asked about (f.ask), after the others are
+// tried; the answer holds for the addresses asked about, which are the
+// ones it connects to.
+func (c *Client) dialer(allow HostCheck, f *fetchState) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, err
 		}
 		var addrs []netip.Addr
-		if a, err := netip.ParseAddr(host); err == nil {
+		a, err := netip.ParseAddr(host)
+		name := err != nil
+		if !name {
 			addrs = []netip.Addr{a}
 		} else {
 			addrs, err = c.resolver.LookupNetIP(ctx, "ip", host)
@@ -232,25 +350,127 @@ func (c *Client) dialer(allow HostCheck) func(ctx context.Context, network, addr
 				return nil, err
 			}
 		}
-		exception := allow != nil && allow(canonical(host))
+		h := canonical(host)
+		exception := allow != nil && allow(h)
 		var d net.Dialer
 		var lastErr error
+		var held []netip.Addr // private, and not allowed yet
+		dial := func(a netip.Addr) (net.Conn, error) {
+			return d.DialContext(ctx, network, net.JoinHostPort(a.Unmap().String(), port))
+		}
 		for _, a := range addrs {
-			if why := blocked(a); why != "" && !exception {
-				lastErr = &BlockedError{URL: host, Reason: why + " (" + a.Unmap().String() + ")"}
+			if why := blocked(a); why != "" && !exception && !f.mayConnect(h, a) {
+				held = append(held, a.Unmap())
+				lastErr = &BlockedError{URL: host, Reason: why + " (" + a.Unmap().String() + ")", Private: true}
 				continue
 			}
-			conn, err := d.DialContext(ctx, network, net.JoinHostPort(a.Unmap().String(), port))
+			conn, err := dial(a)
 			if err == nil {
 				return conn, nil
 			}
 			lastErr = err
+		}
+		if len(held) > 0 && f != nil && f.ask != nil {
+			r := PrivateRequest{Host: h, Addrs: held, Name: name, Local: true, From: f.cameFrom(h)}
+			for _, a := range held {
+				r.Local = r.Local && onThisComputer(a)
+			}
+			if err := f.question(r); err != nil {
+				if f.ctx.Err() != nil {
+					return nil, err
+				}
+				return nil, &BlockedError{URL: host, Reason: blocked(held[0]) + " (" + held[0].String() + "): " + err.Error(), Private: true}
+			}
+			f.allow(h, held)
+			for _, a := range held {
+				conn, err := dial(a)
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
+			}
 		}
 		if lastErr == nil {
 			lastErr = fmt.Errorf("web: %s has no addresses", host)
 		}
 		return nil, lastErr
 	}
+}
+
+// ParseHost checks a host for the exceptions (6.7): a name or an address,
+// without a scheme, path or port. It returns the host as Host spells it.
+// An IPv6 address may be in brackets.
+func ParseHost(s string) (string, error) {
+	s = strings.TrimSpace(s)
+	bad := func(why string) (string, error) { return "", fmt.Errorf("web: %q is not a host: %s", s, why) }
+	if s == "" {
+		return bad("it is empty")
+	}
+	if strings.ContainsAny(s, "/\\?#@ \t") {
+		return bad("give the name or address alone, without a scheme or path")
+	}
+	inner := s
+	if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") {
+		inner = s[1 : len(s)-1]
+		if a, err := netip.ParseAddr(inner); err != nil || !a.Is6() {
+			return bad("brackets hold an IPv6 address")
+		}
+	}
+	if a, err := netip.ParseAddr(inner); err == nil {
+		if a.Zone() != "" {
+			return bad("an address with a zone isn't allowed")
+		}
+		return a.Unmap().String(), nil
+	}
+	if strings.Contains(s, ":") {
+		return bad("give it without a port")
+	}
+	// As canonical spells it; an ASCII name that IDNA refuses, such as
+	// one with "_", stays as it is, and the label check decides.
+	h := strings.TrimRight(strings.ToLower(s), ".")
+	if a, err := idna.Lookup.ToASCII(h); err == nil {
+		h = a
+	} else if strings.ContainsFunc(h, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		return bad("it isn't a valid name")
+	}
+	if h == "" || len(h) > 253 {
+		return bad("it isn't a valid name")
+	}
+	if numeric(h) {
+		return bad("a numeric host must be an IPv4 address in four dotted parts")
+	}
+	for _, l := range strings.Split(h, ".") {
+		if l == "" || len(l) > 63 || strings.Trim(l, "abcdefghijklmnopqrstuvwxyz0123456789-_") != "" {
+			return bad("it isn't a valid name")
+		}
+	}
+	return h, nil
+}
+
+// onThisComputer reports whether a reaches this computer: a loopback or
+// unspecified address, or one carried in an IPv6 address.
+func onThisComputer(a netip.Addr) bool {
+	a = a.Unmap()
+	if v4 := carried(a); v4.IsValid() && onThisComputer(v4) {
+		return true
+	}
+	return a.IsLoopback() || a.IsUnspecified() || thisNet.Contains(a)
+}
+
+// carried is the IPv4 address that an IPv6 address carries, as NAT64,
+// 6to4 and IPv4-compatible addresses do; not valid if none.
+func carried(a netip.Addr) netip.Addr {
+	if !a.Is6() {
+		return netip.Addr{}
+	}
+	b := a.As16()
+	switch {
+	case nat64.Contains(a), compat.Contains(a) && !a.IsLoopback() && !a.IsUnspecified():
+		return netip.AddrFrom4([4]byte(b[12:16]))
+	case sixTo4.Contains(a):
+		return netip.AddrFrom4([4]byte(b[2:6]))
+	}
+	return netip.Addr{}
 }
 
 var (
@@ -267,19 +487,9 @@ var (
 // also checked by that one.
 func blocked(a netip.Addr) string {
 	a = a.Unmap()
-	if a.Is6() {
-		b := a.As16()
-		var v4 netip.Addr
-		switch {
-		case nat64.Contains(a), compat.Contains(a) && !a.IsLoopback() && !a.IsUnspecified():
-			v4 = netip.AddrFrom4([4]byte(b[12:16]))
-		case sixTo4.Contains(a):
-			v4 = netip.AddrFrom4([4]byte(b[2:6]))
-		}
-		if v4.IsValid() {
-			if why := blocked(v4); why != "" {
-				return why + " inside an IPv6 address"
-			}
+	if v4 := carried(a); v4.IsValid() {
+		if why := blocked(v4); why != "" {
+			return why + " inside an IPv6 address"
 		}
 	}
 	switch {
@@ -331,7 +541,7 @@ func (c *Client) Fetch(ctx context.Context, rawURL string, r Rules) (Page, error
 	}
 	req.Header.Set("User-Agent", c.agent)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5")
-	hc, done := c.client(r)
+	hc, done := c.client(ctx, r)
 	defer done()
 	resp, err := hc.Do(req)
 	if err != nil {

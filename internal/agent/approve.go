@@ -55,8 +55,12 @@ const (
 // that deletes nothing is "schema"; a destructive one is "migration", which
 // always asks. An agent's memory edit is "memory": it asks only at Strict;
 // its chip says when it came from a chat that read untrusted content
-// (3.3). Schedules, MCP tools and commands come with their phases.
+// (3.3). A request to a private network address is "private": it asks at
+// every level, and its record isn't what counts later: the exceptions in
+// the project settings are (6.7). Schedules, MCP tools and commands come
+// with their phases.
 var rules = map[string][3]decision{
+	"private":   {ask, ask, ask},
 	"host":      {ask, ask, autoIfTrusted},
 	"starlark":  {ask, ask, autoApprove},
 	"schema":    {ask, noAsk, noAsk},
@@ -94,9 +98,11 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 	untrusted := r.cs.untrusted
 	r.cs.mu.Unlock()
 	for _, a := range n.Approvals {
-		ok, err := r.p.DB.Approved(ctx, a.Kind, a.Target)
-		if err != nil {
-			return nil, nil, err
+		ok := false
+		if a.Kind != "private" {
+			if ok, err = r.p.DB.Approved(ctx, a.Kind, a.Target); err != nil {
+				return nil, nil, err
+			}
 		}
 		switch d := levelDecision(level, a.Kind, untrusted); {
 		case ok, d == noAsk:
@@ -131,6 +137,9 @@ func (r *runner) readOutside(n int) {
 // comes back answered, with Answer GrantOnce and no By when nothing was
 // asked or recorded.
 func (r *runner) approveNow(ctx context.Context, tm *toolMsg, a chat.Approval) (chat.Approval, error) {
+	if a.Kind == "private" && a.Why == "" {
+		a.Why = tm.why // the request comes from the page, not the agent: say what the agent was doing
+	}
 	asks, autos, err := r.approve(ctx, tool.Needs{Approvals: []chat.Approval{a}})
 	switch {
 	case err != nil:
@@ -187,8 +196,11 @@ type pending struct {
 
 // await writes a card or form to the tool message and waits for its
 // answer, which it writes into the part. Stop and the project's close end
-// the wait; the part is then marked as stopped.
+// the wait; the part is then marked as stopped. A tool call that asks
+// while it runs doesn't time out while it waits.
 func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part, error) {
+	resume := tool.Pause(ctx)
+	defer resume()
 	cs := r.cs
 	// cs.mu is held from the write until the wait is set, so an answer to
 	// the card's PartDone finds it.
@@ -218,6 +230,11 @@ func (r *runner) await(ctx context.Context, tm *toolMsg, p chat.Part) (chat.Part
 		}
 		return p, context.Cause(ctx)
 	}
+	// The wait isn't the call's: its activity starts again, so a call
+	// that asked while it ran doesn't look stuck (Q19a).
+	cs.mu.Lock()
+	cs.active = time.Now()
+	cs.mu.Unlock()
 	p = answered(p, a)
 	if p.Approval != nil {
 		if err := r.record(ctx, *p.Approval); err != nil {

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
@@ -147,5 +148,43 @@ func TestServices(t *testing.T) {
 	}
 	if _, err := ps.FolderWarning(ctx); err != nil {
 		t.Error(err)
+	}
+}
+
+// The private-network exceptions are read and set from the project
+// settings (SPEC 6.7, 5.12): stored in one spelling, and an invalid host
+// is KindInvalid and changes nothing.
+func TestPrivateHostsBinding(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	ps := e.svc.Project
+	op, err := ps.Create(ctx, "Coins")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hs, err := ps.PrivateHosts(ctx, op.ID); err != nil || hs == nil || len(hs) != 0 {
+		t.Fatalf("PrivateHosts = %#v, %v", hs, err)
+	}
+	got, err := ps.SetPrivateHosts(ctx, op.ID, []string{" NAS.local", "127.0.0.1", "[::1]", "nas.local"})
+	if want := []string{"127.0.0.1", "::1", "nas.local"}; err != nil || !slices.Equal(got, want) {
+		t.Fatalf("SetPrivateHosts = %q, %v; want %q", got, err, want)
+	}
+	for _, bad := range []string{"http://127.0.0.1:8099/", "127.0.0.1:8099", "nas.local/x"} {
+		if _, err := ps.SetPrivateHosts(ctx, op.ID, []string{bad}); err == nil {
+			t.Errorf("%q was stored", bad)
+		} else {
+			uiErr(t, err, KindInvalid)
+			if ue := err.(*UIError); !strings.Contains(ue.Message, bad) || !strings.Contains(ue.Message, "without http://, a path or a port") {
+				t.Errorf("%q: message %q", bad, ue.Message)
+			}
+		}
+	}
+	if hs, err := ps.PrivateHosts(ctx, op.ID); err != nil || len(hs) != 3 {
+		t.Errorf("after refused lists: %q, %v", hs, err)
+	}
+	if _, err := ps.SetPrivateHosts(ctx, id.Project(id.New()), nil); err == nil {
+		t.Error("set the hosts of a project that doesn't exist")
+	} else {
+		uiErr(t, err, KindNotFound)
 	}
 }
