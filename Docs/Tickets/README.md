@@ -45,6 +45,7 @@
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
 | [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Done | 3 |
 | [SPIKE-039](SPIKE-039-desktop-control.md) | Desktop control with agent-desktop | Spike | Done (go, narrow v1) | 3 |
+| [SPIKE-040](SPIKE-040-desktop-macros.md) | Desktop macros and recipes | Spike | Open | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |

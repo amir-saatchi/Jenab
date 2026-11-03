@@ -15,6 +15,12 @@ Build SPEC 8.10: an agent reads and uses one window of another app the user pick
 5. **Snapshots:** the compact one-line form, interactive by default, at most 400 lines; for browsers the page to a depth of 40 plus the address bar as an origin; wait until the page has children; older snapshots as stubs; a change line after each action.
 6. **Safety:** password fields refused; accepting consent refused (English, German, Persian); a CAPTCHA ends the session; before a key press, the focused element checked to be in the locked window; screen text marked untrusted; the 10-minute limit, *Stop*, and a log with lengths only.
 7. **Settings:** the switch "Let agents use other apps' windows", off by default.
+8. **Help:** a `desktop` skill that comes with the desktop tools (`load_with`, 8.9), the same for every model:
+   - use the other tools first; desktop control is for what no tool can do;
+   - when no search provider is set up or search fails, ask for a browser window and search there, saying why in `desktop_start`;
+   - look before acting, and pick elements by their names, not their place in the list;
+   - decline consent; stop and tell the user at a CAPTCHA.
+   Macros and recipes come after SPIKE-040.
 
 ## Not in scope
 - macOS and Linux, the library (DLL), screenshots, the clipboard, key combinations.
