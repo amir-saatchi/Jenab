@@ -78,7 +78,8 @@
 | [TASK-033](TASK-033-less-fixed-context.md) | Less fixed context per request | Task | Done | 3 |
 | [TASK-034](TASK-034-fake-price-server.md) | A fake price site for manual runs | Task | Done | 3 |
 | [TASK-035](TASK-035-desktop-control.md) | Desktop control v1 (Windows) | Task | Open | 3 |
-| [TASK-036](TASK-036-private-network-exceptions.md) | Private-network exceptions in project settings | Task | Open | 3 |
+| [TASK-036](TASK-036-private-network-exceptions.md) | Ask before reaching this computer or the local network | Task | Done | 3 |
+| [TASK-037](TASK-037-app-version.md) | One version number for the app | Task | Done | 3 |
 
 ## Phase 1
 

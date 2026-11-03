@@ -47,6 +47,7 @@ It has [Task](https://taskfile.dev) built in, so `wails3 task <name>` runs the t
 - The frontend uses `@wailsio/runtime`, pinned to the same version as the Wails library. Upgrade both together.
 - `wails3 task dev` serves Vite on port 9245; set `WAILS_VITE_PORT` to change it.
 - On Windows, the build adds the icon and manifest from `build/windows` through a `.syso` file in `cmd/desktop` (git-ignored).
+- **Version:** set in `VERSION` at the repository root (semantic versioning, e.g. `0.1.0-dev`). `wails3 task build`, `dev` and `bench` stamp it into `internal/version` with the git short commit, and with "modified" when tracked files had changes. A build without the Taskfile, such as `go run ./cmd/desktop`, says `dev`. `build/config.yml`, `build/windows/info.json` (four numbers for Windows' fixed versions, e.g. `0.1.0.0`) and `frontend/package.json` carry the same number; `go test ./internal/version` fails when one differs. To bump it, edit `VERSION` and those three files, then tag the release commit `vX.Y.Z`.
 
 Without the CLI, `go run ./cmd/desktop` still works after `bun run build` in `frontend`.
 
@@ -76,6 +77,8 @@ WAILS_SERVER_HOST=127.0.0.1 WAILS_SERVER_PORT=9310 bin/jenab-server.exe
 
 It uses your real data folder. For a scratch one, point `LOCALAPPDATA` and `USERPROFILE` (Windows) or `HOME` somewhere else.
 
+Windows reserves blocks of ports for Hyper-V, WSL and Docker, and they can move after a restart. If the server says "An attempt was made to access a socket in a way forbidden by its access permissions", the port is in one: list them with `netsh interface ipv4 show excludedportrange protocol=tcp` and pick another.
+
 `wails3 task bench` measures the built app: start-up, idle memory, opening a chat of 200 messages, streaming while you type, and memory with ten answers at once. It uses its own user folder and a local fake model, so no keys are needed, and writes a report to `bin/bench`. A build with the `bench` tag opens WebView2's DevTools port when `JENAB_DEVTOOLS_PORT` is set; shipped builds don't. Keep the app's window visible and leave the machine alone during a run (about 3 minutes).
 
 ### A fake price site for manual runs
@@ -89,7 +92,7 @@ go run ./cmd/jenab-fakesite
 - It serves `bench-bitcoin`'s pages, 19 days from 5 to 23 October 2026, at `http://127.0.0.1:8099/`: an index at `/` and one day at `/crypto/YYYY-MM-DD`, e.g. `http://127.0.0.1:8099/crypto/2026-10-05`. Give the agent that pattern. Other days and paths are 404.
 - Each request is logged with its time, path and status, so the terminal shows what the agent fetched. Stop it with Ctrl+C.
 - The pages are the scenario files in `scenarios/bench-bitcoin/pages` and `scenarios/bench-bitcoin-long/pages`, read at start. A day in both must have the same text, or it names the files and exits. `-pages <folder>` (repeatable) serves other folders; `-addr` must stay on a loopback address.
-- The app blocks loopback addresses (SPEC 6.7), so the project must list `127.0.0.1` as a private-network exception, and the first fetch asks to allow the host. The project settings have no control for the exceptions yet.
+- The app asks before reaching loopback addresses (SPEC 6.7): the first fetch shows a card; choose *Allow in this project*, or add `127.0.0.1` under *Private-network exceptions* in the project settings first.
 
 ## CI
 

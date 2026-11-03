@@ -278,6 +278,7 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 
 ### 2.8 App updates (SPIKE-019)
 
+- **Version** (TASK-037): one version, in semantic versioning, set in `VERSION` at the repository root and stamped into the build with the git commit. Settings → General shows it on an *About* line, `Jenab 0.1.0-dev (d449b7e)`, with the Go and Wails versions under it and a copy button for bug reports. The first log line of each start names the version and the commit. The updater compares this version with the latest release's. `0.1.0` comes when Phase 1 and Phase 2 acceptance pass.
 - **Updater:** Wails `pkg/updater` with the endpoint provider, reading Jenab's own manifest. The app is installed per user (`%LOCALAPPDATA%\Programs\Jenab`), so updating needs no admin rights.
 - **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. On Linux the webview is WebKitGTK.
 - **Fail closed:**
@@ -1078,8 +1079,9 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 - **Files tab:** one folder of the bucket at a time, with a path bar back to the top. A folder opens in place; a long one loads 100 entries at a time as the list scrolls. `cache/` isn't listed with the user's folders: it is last, as *App cache* (fetched pages and long tool results, 4.4). Rows show a file's original name or page title from its metadata, in any script, under its key.
   - A file opens in the main area with the chat in the dock. Text and Markdown show as in the chat, and images, audio and video play; other types show their name, type and size. Below, its versions (4.3): size, who and when. Old versions are listed, not opened.
   - Each file has *Copy link*, *Open with the system app* (4.7) when its type allows, and *Delete*. A delete is a change by `user` and can be undone from its notice while the change is in the undo window (2.6, 4.4).
-- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page.
+- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page. *General* ends with *About*: the version, the commit, and the Go and Wails versions, with a copy button (2.8).
 - **Project settings:** one scrolling page with the cloud-sync warning (2.1) when it applies, the workspace folder (8.5), storage ("Kept for undo" with *Free now*, the cache and lifecycle rules, 4.4), the approval level (8.8), allowed hosts and private-network exceptions (6.7), and *Export* (2.1).
+  - **Private-network exceptions** (TASK-036): the hosts whose requests may reach this computer or the local network without asking, each with *Remove*, and a field to add one ("A name or an address, without http://, a path or a port"). A card's *Allow in this project* adds to it. One line says what it allows.
 - **Window size:** at least 640 × 480 px.
 - **Narrow windows:** below about 900 px, page rows stack (5.9), the rail and both sidebars open as overlays from ☰, the chat opens as a drawer over the page, and the bottom bar is hidden. A dot on the chat button shows new activity.
 
@@ -1327,7 +1329,13 @@ The agent writes pipelines after reading untrusted web content, and pipelines ru
   - This is checked at validation and again at runtime, including on redirects.
 - LLM and search provider keys are used by the providers themselves and never appear in pipelines.
 - **Host approval:** every literal host in a pipeline must be approved for the project once, in an approval card (8.8), or by the Auto level when the turn hasn't read untrusted content. A connection's host is approved when the connection is made. Approvals are stored in `_jenab_approvals`. Requests whose host comes from an expression (e.g. URLs from search results) are allowed, but cannot carry secrets or custom headers. `fetch_page` doesn't follow a redirect to a host not approved for the project; it returns the target, and the model fetches that URL itself, which asks.
-- **Private network block:** requests to loopback, private (RFC 1918), link-local and unique-local addresses are blocked. This is checked after DNS resolution and on every redirect. Exceptions are set per host in project settings.
+- **Private network** (TASK-036): requests that would reach loopback, private (RFC 1918), link-local or unique-local addresses ask first. The check is on the resolved address, after DNS and on every redirect, and an answer holds only for the addresses it named, so a name that later resolves elsewhere asks again.
+  - **In a chat:** the turn waits on an approval card (8.8): *Allow once*, *Allow in this project* or *Deny*. *Allow in this project* adds the host to the project's private-network exceptions. It asks at every approval level; Auto never allows it by itself.
+  - **The card says** what is reached in plain words: "this computer" for loopback, "your local network" for the rest. When a public name resolves to a private address, it says so. A redirect names both hosts.
+  - **Exceptions:** hosts in project settings (5.12), as a name or an address without scheme, path or port; they cover every port of that host. Requests to them don't ask. The list is the only standing permission: an earlier *Allow in this project* doesn't outlive the host's removal. Changes apply to the next request. Exports leave them out.
+  - **Where no card can be shown** (pipelines, scheduled runs), the request is blocked unless the host is an exception, and the error names the project setting.
+  - *Deny* returns the usual blocked error, with the user's note. A waiting card pauses the tool's time limit.
+  - On Strict and Standard, a new private host asks twice for now: the host card, then this one.
 - Only `http` and `https` URLs are allowed.
 - **Redaction:** secret values are replaced with `[secret:NAME]` in previews, errors, logs and anything sent to an LLM.
 - **Keychain** (SPIKE-006, Windows):
@@ -1901,6 +1909,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | Asked for | Options | Details shown |
 |---|---|---|
 | A new host (6.7) | Allow for this project, Deny | The host, and the pipeline or tool that needs it |
+| A private network address (6.7) | Allow once, Allow in this project, Deny | The host, the resolved address and what it is (this computer or your local network), the redirecting host, the tool, and the agent's reason |
 | A destructive migration (7.5, 8.2) | Approve, Deny | The plan in plain language, destructive steps, affected dependents and row counts; the estimated time for long ones |
 | Starlark code (6.5) | Approve, Deny | The code and its hash |
 | A connection (6.9) | Save, Cancel | Title, host, where the key goes, and the key field |
@@ -1929,6 +1938,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | Asked for | Strict | Standard | Auto |
 |---|---|---|---|
 | A new host | Ask | Ask | Auto* |
+| A private network address | Ask | Ask | Ask |
 | A schema change that deletes nothing | Ask | No ask | No ask |
 | A destructive migration | Ask | Ask | Ask |
 | Saving a pipeline with a schedule | Ask | No ask | No ask |
@@ -1943,7 +1953,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 
 - **The same at every level:**
   - Connections: the user pastes the key in the card.
-  - Private network addresses stay blocked, unless the user adds an exception in project settings (6.7).
+  - Private network addresses ask every time, unless the host is an exception in project settings (6.7).
   - A snapshot before every destructive migration (7.5), and the migration always asks.
   - Scheduled runs never ask.
 - **Auto-approved** actions show a chip in the chat, e.g. `Auto-approved: api.coingecko.com · revoke`, and are recorded in `_jenab_approvals` like manual ones.
