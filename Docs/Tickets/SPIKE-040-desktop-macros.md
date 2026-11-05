@@ -1,6 +1,6 @@
 # SPIKE-040 — Desktop macros and recipes
 **Type:** Spike
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** SPIKE-039
 
@@ -44,3 +44,19 @@ Its own module in `spikes/040-desktop-macros/`, reusing SPIKE-039's harness code
 ## Done when
 - The numbers above are recorded, with the failures.
 - A go or no-go, and if go, the design for the build ticket.
+
+## Result
+Done on 2026-11-03 with agent-desktop 1.0.2. Code and numbers in `spikes/040-desktop-macros/` (`results.md`). **Go, with one change:** Jenab records the steps; the model only names the macro, its params and what to log. SPEC 8.11 has the design; TASK-038 builds it.
+
+- **A macro saves a lot.** With one, a task took 3–5 requests and 4.7k–10k prompt tokens; the replay itself 1–16 s. By hand: Calculator 20–30 requests and 73k–165k tokens, the stand-in search site 10–13 and 10k–15k, Google 15–18 and 46k–58k.
+- **Models write bad steps.** Of 8 macros the models wrote, 2 replayed. Faults: wrong digits, no params, useless log steps. One broken Calculator macro replayed "fine", and Gemini covered it with its own arithmetic.
+- **Recorded steps work.** All 5 macros Jenab recorded that were tried replayed right; 2 had a useless log. One was not tried; one was recorded from a wrong run (Mistral's 38-step Calculator "fix" with no params).
+- **Per model:**
+  - gemini-3.5-flash-lite: the recorded site macro 3/3 (3–4 requests, 4.7k–7.2k); its written editor macro failed once, was fixed, then 3–4 requests; its written Calculator macro 0/2.
+  - ministral-14b: its written Calculator macro 4/5 (3–5 requests, 5.4k–9.9k); the recorded site macro in 4 requests. It skipped old macros when the list showed their age.
+- **Age:** every run with a macro older than a day checked the window with a snapshot.
+- **Breaks:** no consent dialog, and Calculator in Scientific and Programmer modes, were fine. German pages: Gemini fixed the macro, but the fix then failed in English, so a fix should keep both names. German Chrome: Gemini fixed it; Mistral did the task by hand and saved nothing. Calculator's Date mode: Gemini's fix works in all modes; Mistral's was wrong and replaced its working macro. Handover from a failed replay to work by hand: 5 of 6.
+- **Recipes:** no gain on the site (Gemini 13 requests and about 15k with or without; Mistral 10–11 and 10k–12k). Calculator with a recipe: Gemini 1/1, Mistral 0/2. Hints, not a cost cut: ship Calculator and web search only.
+- **Google:** two CAPTCHAs (a fresh profile, consent declined only) stopped the Google runs, as the rules say; the browser part moved to a local stand-in search site (consent on or off, English or German). The model runs before that: 15–18 requests, 46k–58k tokens.
+- **Not tried:** Jenab checking the log steps, names kept as alternatives on a fix, and keeping params on a fix. They are in TASK-038.
+- **Requests:** Gemini 310 (`GEMINI_API_KEY`), Mistral 546 with 429 retries (`MISTRAL_API_KEY`).

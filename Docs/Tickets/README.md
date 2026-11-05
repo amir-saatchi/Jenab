@@ -45,7 +45,7 @@
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
 | [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Done | 3 |
 | [SPIKE-039](SPIKE-039-desktop-control.md) | Desktop control with agent-desktop | Spike | Done (go, narrow v1) | 3 |
-| [SPIKE-040](SPIKE-040-desktop-macros.md) | Desktop macros and recipes | Spike | Open | 3 |
+| [SPIKE-040](SPIKE-040-desktop-macros.md) | Desktop macros and recipes | Spike | Done (go, Jenab records) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -81,6 +81,7 @@
 | [TASK-035](TASK-035-desktop-control.md) | Desktop control v1 (Windows) | Task | Open | 3 |
 | [TASK-036](TASK-036-private-network-exceptions.md) | Ask before reaching this computer or the local network | Task | Done | 3 |
 | [TASK-037](TASK-037-app-version.md) | One version number for the app | Task | Done | 3 |
+| [TASK-038](TASK-038-desktop-macros.md) | Desktop macros and recipes | Task | Open | 3 |
 
 ## Phase 1
 

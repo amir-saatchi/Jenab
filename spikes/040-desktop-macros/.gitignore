@@ -1,0 +1,4 @@
+# agent-desktop release files: downloaded, never committed
+vendor/
+# run output
+out/

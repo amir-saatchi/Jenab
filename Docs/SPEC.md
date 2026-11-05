@@ -2109,6 +2109,25 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 - Its state folder is `agent-desktop` under Jenab's data folder, with a private ACL; Jenab refuses to start it if the folder inherits other access.
 - The same tools and rules for every model (1).
 
+### 8.11 Desktop macros and recipes (SPIKE-040)
+
+An agent can save what worked in a desktop session (8.10) and reuse it, so a task it has done before takes a few requests instead of many. TASK-038 builds it.
+
+- **Macro:** steps Jenab replays in the picked window without the model, which gets only the result and the log.
+  - **Jenab records the steps,** not the model: each action the guards allowed and the app received, each wait that found its text, and the steps of a replay before it failed, by role and exact name. In SPIKE-040 only 2 of 8 macros the models wrote replayed; all 5 recorded ones did.
+  - `desktop_save_macro` gives a name, a one-line description, the values that change as params with the value used this time (`query=…`), what to log, and the numbers of recorded steps to leave out. Jenab puts `{query}` where the value was, folds keypad clicks that spell a value into one step, makes a decline click optional, and refuses a param whose value is in no step.
+  - A step finds its element by role and name (a name can have alternatives, such as `["Search", "Suche"]`), then clicks, sets a value, toggles, expands, selects or presses a key from 8.10's list, or waits for a text. Optional steps cover a dialog that may not appear; log steps record what an element shows. 1–40 steps, no loops or branches.
+  - **A replay** keeps every 8.10 rule: the picked window and its lock, the deny list, consent, password and key rules, and the CAPTCHA stop. A replay that fails returns the failed step, the steps before it, the log and a snapshot, and the agent carries on by hand. Saving again keeps the old names as alternatives, and a new version of a macro that has worked must keep its params.
+  - **Age:** a macro that last worked more than a day ago says so in its replay result ("last worked 3 days ago: check the window"), and the agent checks with a snapshot. The list doesn't show the age: in SPIKE-040 a model skipped old macros when it did.
+- **Recipe:** two to five sentences on how to do a task in an app; the model follows it and still checks each step. They cost little but saved nothing measurable in SPIKE-040, so they are hints, not a shortcut. Jenab ships two: Calculator and a web search in a browser. The agent adds its own.
+- **Saved without asking:** the chat shows a notice with *Undo*, like memory saves (3.3). Once per session, an agent that acted and saved nothing gets one reminder before it answers.
+- `desktop_start`'s result lists the macros and recipes for the picked app (and site). Tools: `desktop_run_macro {name, params}`, `desktop_save_macro`, `desktop_save_recipe {name, text}`, only inside a desktop session.
+- **Approvals:** at Strict a replay asks once, in a card listing its steps with the params filled in; the first key press still asks (8.10). At Standard and Auto, no card.
+- **Stored** in `registry.db`, app-wide like user memory: `desktop_macros`, `desktop_recipes`, `desktop_saved_changes` (for *Undo*) and `desktop_macro_runs` (the last 20 replays, lengths only).
+- **Removal:** a macro after 3 failed replays in a row or 90 days unused; an agent's recipe after a year unused; shipped recipes and ones the user wrote or edited, never (a Jenab update replaces shipped ones by name); *Undo* rows after 30 days.
+- **Settings › Desktop** lists them per app, with steps, params and last runs, to edit or delete.
+- **Screen text stays untrusted:** a macro's element names come from the screen, so every macro is marked untrusted; params come only from the model's call.
+
 ---
 
 ## 9. Full example — Bitcoin project
