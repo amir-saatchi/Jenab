@@ -40,6 +40,16 @@ func ProgramPath() (string, error) {
 
 // Run runs one command with the time limit.
 func (c *CLI) Run(ctx context.Context, timeout time.Duration, args ...string) (json.RawMessage, error) {
+	return c.run(ctx, timeout, nil, args...)
+}
+
+// RunInput runs one command with input on its standard input, through a
+// pipe: agent-desktop's --stdin refuses a terminal.
+func (c *CLI) RunInput(ctx context.Context, timeout time.Duration, input string, args ...string) (json.RawMessage, error) {
+	return c.run(ctx, timeout, strings.NewReader(input), args...)
+}
+
+func (c *CLI) run(ctx context.Context, timeout time.Duration, stdin io.Reader, args ...string) (json.RawMessage, error) {
 	if err := prepareHome(c.Home); err != nil {
 		return nil, err
 	}
@@ -57,6 +67,7 @@ func (c *CLI) Run(ctx context.Context, timeout time.Duration, args ...string) (j
 	cmd := exec.CommandContext(cctx, c.Path, args...)
 	cmd.Env = append(cleanEnv(), "AGENT_DESKTOP_HOME="+c.Home)
 	configure(cmd)
+	cmd.Stdin = stdin // nil is the null device
 	cmd.WaitDelay = 2 * time.Second
 	var out, errOut bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &limited{w: &out, n: maxOutput}, &limited{w: &errOut, n: 4 << 10}

@@ -24,6 +24,9 @@ func (n Node) has(state string) bool { return slices.Contains(n.States, state) }
 // snapData is a snapshot envelope's data.
 type snapData struct {
 	Complete bool `json:"complete"`
+	// Unproven: the window wasn't read whole in time, so agent-desktop
+	// refuses its refs (AMBIGUOUS_TARGET) until a new snapshot (1.1.0).
+	Unproven bool `json:"identity_unproven"`
 	Window   struct {
 		ID    string `json:"id"`
 		Title string `json:"title"`

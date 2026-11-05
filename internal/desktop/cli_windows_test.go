@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -26,19 +28,30 @@ func TestMain(m *testing.M) {
 
 func fakeMain(args []string) {
 	out := func(ok bool, data, err string) {
-		fmt.Printf(`{"version":"2.5","ok":%v,"command":"x","data":%s,"error":%s}`, ok, data, err)
+		fmt.Printf(`{"version":"2.6","ok":%v,"command":"x","data":%s,"error":%s}`, ok, data, err)
 	}
 	switch args[0] {
 	case "version":
-		out(true, `{"version":"1.0.2"}`, "null")
+		out(true, `{"version":"1.2.0"}`, "null")
 	case "env":
 		b, _ := json.Marshal(map[string]string{"home": os.Getenv("AGENT_DESKTOP_HOME"), "session": os.Getenv("AGENT_DESKTOP_SESSION")})
 		out(true, string(b), "null")
+	case "stdin":
+		// What a --stdin command gets: its arguments and its input.
+		in, err := io.ReadAll(os.Stdin)
+		b, _ := json.Marshal(map[string]any{"args": args, "input": string(in), "err": fmt.Sprint(err)})
+		out(true, string(b), "null")
+	case "ambiguous":
+		out(false, "null", `{"code":"AMBIGUOUS_TARGET","message":"not proven unique","details":{"kind":"identity_not_unique","reason":"x"},"disposition":{"delivery":"not_delivered","retry":"safe"}}`)
+		os.Exit(1)
+	case "odd-details":
+		out(false, "null", `{"code":"ACTION_FAILED","message":"x","details":["not","an","object"],"disposition":{"delivery":"unknown","retry":"unsafe"}}`)
+		os.Exit(1)
 	case "fail":
 		out(false, "null", `{"code":"STALE_REF","message":"gone","suggestion":"snapshot again","disposition":{"delivery":"not_delivered","retry":"safe"}}`)
 		os.Exit(1)
 	case "old":
-		fmt.Print(`{"version":"2.4","ok":true,"data":{}}`)
+		fmt.Print(`{"version":"2.5","ok":true,"data":{}}`)
 	case "sleep":
 		time.Sleep(time.Minute)
 	case "crash":
@@ -70,7 +83,7 @@ func fakeCLI(t *testing.T) *CLI {
 func TestCLIEnvelope(t *testing.T) {
 	c := fakeCLI(t)
 	data, err := c.Run(t.Context(), callTimeout, "version")
-	if err != nil || !strings.Contains(string(data), `"1.0.2"`) {
+	if err != nil || !strings.Contains(string(data), `"1.2.0"`) {
 		t.Fatalf("version: %s, %v", data, err)
 	}
 	_, err = c.Run(t.Context(), callTimeout, "fail")
@@ -78,11 +91,48 @@ func TestCLIEnvelope(t *testing.T) {
 	if !errors.As(err, &de) || de.Code != CodeStaleRef || de.Delivery != "not_delivered" || de.Retry != "safe" {
 		t.Fatalf("fail: %#v", err)
 	}
-	if _, err = c.Run(t.Context(), callTimeout, "old"); err == nil || !strings.Contains(err.Error(), `version "2.4"`) {
+	_, err = c.Run(t.Context(), callTimeout, "ambiguous")
+	if !errors.As(err, &de) || de.Code != CodeAmbiguous || de.Kind != "identity_not_unique" || de.Delivery != "not_delivered" {
+		t.Fatalf("ambiguous: %#v", err)
+	}
+	_, err = c.Run(t.Context(), callTimeout, "odd-details")
+	if !errors.As(err, &de) || de.Code != "ACTION_FAILED" || de.Kind != "" || de.Retry != "unsafe" {
+		t.Fatalf("details that aren't an object: %#v", err)
+	}
+	if _, err = c.Run(t.Context(), callTimeout, "old"); err == nil || !strings.Contains(err.Error(), `version "2.5"`) {
 		t.Fatalf("an envelope of another version: %v", err)
 	}
 	if _, err = c.Run(t.Context(), callTimeout, "crash"); err == nil || !strings.Contains(err.Error(), "boom") {
 		t.Fatalf("crash: %v", err)
+	}
+}
+
+// RunInput gives the text on standard input, through a pipe, and nothing
+// of it in the arguments (TASK-039); Run gives an empty input.
+func TestCLIStdin(t *testing.T) {
+	c := fakeCLI(t)
+	const text = "Meet me at the north gate\r\nسلام\n"
+	data, err := c.RunInput(t.Context(), callTimeout, text, "stdin", "set-value", "@s1:e1", "--stdin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Args  []string
+		Input string
+		Err   string
+	}
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Input != text || got.Err != "<nil>" || !slices.Equal(got.Args, []string{"stdin", "set-value", "@s1:e1", "--stdin"}) {
+		t.Fatalf("got %+v", got)
+	}
+	if data, err = c.Run(t.Context(), callTimeout, "stdin"); err != nil {
+		t.Fatal(err)
+	}
+	got.Input = "x"
+	if err := json.Unmarshal(data, &got); err != nil || got.Input != "" {
+		t.Fatalf("Run's input: %+v %v", got, err)
 	}
 }
 

@@ -82,7 +82,7 @@
 | [TASK-036](TASK-036-private-network-exceptions.md) | Ask before reaching this computer or the local network | Task | Done | 3 |
 | [TASK-037](TASK-037-app-version.md) | One version number for the app | Task | Done | 3 |
 | [TASK-038](TASK-038-desktop-macros.md) | Desktop macros and recipes | Task | Open | 3 |
-| [TASK-039](TASK-039-agent-desktop-1-2.md) | agent-desktop 1.2.0 | Task | Open | 3 |
+| [TASK-039](TASK-039-agent-desktop-1-2.md) | agent-desktop 1.2.0 | Task | Done | 3 |
 
 ## Phase 1
 

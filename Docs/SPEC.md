@@ -1878,6 +1878,7 @@ env: { }                      # values may come from the keychain
   - Only the user adds servers, in *Settings → MCP servers*. The agent may suggest one in chat, but can't add it.
   - Jenab never downloads or installs a server. The full command is shown before the first start.
   - Servers are stored with the connections in `registry.db` and enabled per project. Keys go to the keychain as `jenab:mcp:<id>`, and the process gets only the `env` listed.
+  - **agent-desktop's own server** (`agent-desktop mcp`, 67 tools, one per command) would give the agent raw desktop tools without 8.10's rules: no window the user picks, no lock, no deny list, no consent, password or CAPTCHA guards, no approvals. When the command or an argument (such as `npx agent-desktop`) is agent-desktop, the server form warns: "This gives the agent control of every window on this computer, without the rules of Jenab's desktop control. Use *Settings → Let agents use other apps' windows* instead." Adding it stays possible after the warning.
 - **Tools in the context:**
   - The project card lists each enabled server with its tool names and one-line descriptions.
   - `mcp_describe(server, tool)` returns a tool's input schema, and `mcp_call(server, tool, arguments)` calls it. Jenab checks the arguments against the schema first, with errors as in 10. It refuses argument names the schema doesn't list, even if the server's schema allows them, and its errors name the arguments the tool takes, since models often call without describing first.
@@ -2073,7 +2074,7 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 - **The agent names an app,** by its process name without .exe (`chrome`, `notepad`, `calculatorapp`), never a window title, and says why. Jenab matches it to each window's process name, without case or ".exe". Each window is offered as `title — app`:
   - **One window of that app:** "Let the agent use *Search — chrome*?" with *Allow*, *Deny* (with an optional note) and *Show all windows*, which opens the full list in the same card.
   - **Several:** that app's windows first, the rest folded under *Other windows*.
-  - **None,** or an unknown or denied app: the card says no window of the app is open and lists the others, unfolded.
+  - **None,** or an unknown or denied app: "Pick a window for the agent to use", with all the windows unfolded. The card doesn't repeat the agent's app, which is then often a window title or a description ("text editor").
   - **No app named:** the full list.
   - The list scrolls inside the card. The answer is the window picked (a pick grant, `pick:<window id>`) or *Deny*.
 - **The card holds still:** while it waits, the chat doesn't follow new content by itself; the user can still scroll. A click on a window is ignored if the card moved or changed size in the last 500 ms. In TASK-035 an auto-scroll moved the list under a click and the wrong window was picked.
@@ -2085,6 +2086,8 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 **What the agent can do:**
 - Element ids are Jenab's own (`3:e12`: snapshot 3, element 12) and only from this session's snapshots.
 - Actions run without taking the pointer or focus: click, set value, toggle, expand, collapse, select.
+- The text of a set value goes to agent-desktop on standard input (`--stdin`), never in its arguments, which other programs can read in the process list; a text with a NUL character is refused. An option's name for select and the text of `desktop_wait` come from the screen and stay in the arguments: agent-desktop has no `--stdin` for them.
+- A ref acts only if agent-desktop proved it unique in the window when the snapshot was read, and exactly one live element matches it now. Otherwise nothing is sent (`AMBIGUOUS_TARGET`), and the model is told to take a new snapshot and, if the element is refused again, to use another one. A snapshot cut short says its ids may be refused.
 - Keys: Return, Escape, Tab and Backspace, without combinations, sent to the app without taking the foreground; no real typing in v1. A key goes to the element that has focus in the app, so before a press Jenab checks that it is inside the locked window, and the result says where the key went. The first key press in a session asks in a card, at every level; later ones ask at Strict, like any action.
 - No clipboard in v1.
 - **Consent is never accepted:** a click on a button that accepts cookies, terms or other consent ("Accept all", "Alle akzeptieren", "پذیرش همه") is refused, with a message to decline or to stop and tell the user. Declining is allowed, and so is a button whose name also declines ("Don't accept", "Nicht akzeptieren"); a name of 60 characters or more is text, not a button. In SPIKE-039 both models clicked accept first in 5 of 6 Google searches, then declined.
@@ -2114,6 +2117,7 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 **How Jenab runs it:**
 - agent-desktop's command-line program as a child process, not its library: it pins refs to a window, has `find` and `wait`, and a hung call can be killed. The library reads the app's focused window and blocks one shared thread when a call hangs (SPIKE-039).
 - The program ships in Jenab's installer, pinned to a version and checked against its SHA-256 before each start, with its Apache-2.0 NOTICE. Nothing is downloaded at run time.
+- Pinned to 1.2.0 (TASK-039), envelope version 2.6. Jenab never starts an agent-desktop session, so its cursor overlay (opt-in per session) never draws, and the runner drops every `AGENT_DESKTOP_*` variable, so one set outside can't turn it on. agent-desktop's own MCP server (`agent-desktop mcp`) is not used: its tools have none of these rules (8.7).
 - No console window. A call is killed after 15 s, or 30 s for a session's first snapshot.
 - Its state folder is `agent-desktop` under Jenab's fixed app folder (`%LOCALAPPDATA%\Jenab`, next to the settings and logs), not the data folder, which can be moved or synced. Jenab makes it with access for the user and SYSTEM only, and refuses to start agent-desktop if the folder inherits access or grants anyone else (Administrators allowed).
 - The program goes next to `jenab.exe` (`build/agent-desktop/` has its license, NOTICE and version); it is not in git.

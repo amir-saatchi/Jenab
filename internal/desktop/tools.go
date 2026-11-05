@@ -134,14 +134,14 @@ func (m *Manager) start(ctx context.Context, env *tool.Env, a startArgs) (tool.R
 	if len(card.Options) == 0 {
 		return tool.Result{}, tool.Errorf("no window can be picked: the user needs to open the app's window first")
 	}
+	// No app, or one that matches no window, keeps the plain ask: the
+	// agent's app is then often a title or a description ("text editor"),
+	// which the card doesn't repeat (TASK-039).
 	switch {
-	case app == "":
 	case len(match) == 1:
 		card.Ask = "Let the agent use " + match[0].Label + "?"
 	case len(match) > 1:
 		card.Ask = "Pick a window of " + app + " for the agent to use"
-	default:
-		card.Ask = "No window of " + app + " is open: pick another for the agent to use"
 	}
 	card.Options = append(card.Options, chat.ApprovalOption{Label: "Deny", Grant: chat.GrantDeny})
 	got, err := env.Approve(ctx, card)
@@ -205,7 +205,10 @@ func (m *Manager) snapshotTool(ctx context.Context, env *tool.Env, a snapshotArg
 		fmt.Fprintf(&b, "Window %q (snapshot %d)\n", title(s.win), n)
 	}
 	b.WriteString(v.text)
-	if !snap.Complete {
+	switch {
+	case snap.Unproven:
+		b.WriteString("[the tree is incomplete: the app didn't answer in time, and its ids may be refused. Take a new snapshot before you act]\n")
+	case !snap.Complete:
 		b.WriteString("[the tree is incomplete: the app didn't answer in time]\n")
 	}
 	m.d.Log.Info("desktop: snapshot", "app", s.win.App, "n", n, "full", a.Full, "lines", len(v.lines), "chars", b.Len(), "took", m.d.Now().Sub(start).Milliseconds())
@@ -241,16 +244,24 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 	}
 	n := s.nodes[a.ID]
 	var cmd []string
-	var target *Node // where a key goes
+	var input *string // standard input, for --stdin
+	var target *Node  // where a key goes
 	switch a.Action {
 	case "click", "toggle", "expand", "collapse":
 		cmd = []string{a.Action, ref}
 	case "set_value":
-		cmd = []string{"set-value", ref, a.Text}
+		// The text goes through standard input, never the arguments, which
+		// other programs can read in the process list (8.10).
+		if strings.ContainsRune(a.Text, 0) {
+			return tool.Result{}, tool.Errorf("the text has a NUL character, which can't be set; leave it out")
+		}
+		cmd, input = []string{"set-value", ref, "--stdin"}, &a.Text
 	case "select":
 		if a.Text == "" {
 			return tool.Result{}, tool.Errorf("select needs text: the option to pick")
 		}
+		// An option's name is on the screen already; agent-desktop's
+		// select has no --stdin.
 		cmd = []string{"select", ref, a.Text}
 	case "press":
 		if !slices.Contains([]string{"return", "escape", "tab", "backspace"}, a.Key) {
@@ -289,7 +300,12 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 	if err := s.approve(ctx, env, a, n); err != nil {
 		return tool.Result{}, err
 	}
-	data, err := m.d.Runner.Run(ctx, callTimeout, cmd...)
+	var data json.RawMessage
+	if input != nil {
+		data, err = m.d.Runner.RunInput(ctx, callTimeout, *input, cmd...)
+	} else {
+		data, err = m.d.Runner.Run(ctx, callTimeout, cmd...)
+	}
 	if err != nil {
 		m.d.Log.Info("desktop: act", "app", s.win.App, "action", a.Action, "text_len", len([]rune(a.Text)), "failed", true, "took", m.d.Now().Sub(start).Milliseconds())
 		return tool.Result{}, s.fail(err)

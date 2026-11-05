@@ -1,6 +1,6 @@
 # TASK-039 — agent-desktop 1.2.0
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-035
 
@@ -34,3 +34,15 @@ What changed that matters here:
 - Go tests pass with the new pin, including the stdin test.
 - Live: the editor task 3/3 on `gemini-3.5-flash-lite`, and Stop once.
 - The report says what the overlay does, the timing next to 1.0.2's, any new error codes, and the SPEC 8.10 and 8.7 text.
+
+## Result
+Done on 2026-11-05. SPEC 8.7 and 8.10 describe it.
+
+- **Pin:** agent-desktop 1.2.0; the archive matched the release's `checksums.txt`. Its envelope went from 2.5 to 2.6, so the pin alone would have broken every call; the answers Jenab reads have the same shape.
+- **Text by stdin:** `set_value` sends its text with `set-value <ref> --stdin` (a new `Runner.RunInput`); a text with NUL is refused. Select's option and `desktop_wait`'s text stay in the arguments: 1.2.0 has no `--stdin` for them.
+- **Errors:** the new `AMBIGUOUS_TARGET` and `ELEMENT_NOT_FOUND` tell the model to take a new snapshot; a snapshot with `identity_unproven` says its ids may be refused. Seen live on Calculator from a snapshot cut short; identical twins weren't produced.
+- **Cursor overlay:** opt-in per agent-desktop session, and Jenab starts none and drops `AGENT_DESKTOP_*`, so nothing draws. Measured: no new windows, no foreground change, no leftover processes.
+- **Faster than 1.0.2** (medians): editor snapshot 178 vs 319 ms, set value 176 vs 239 ms; Calculator snapshot 286 vs 421 ms, click 254 vs 292 ms.
+- **Card:** an app that matches no window gets "Pick a window for the agent to use".
+- **Live,** gemini-3.5-flash-lite: 3/3 and Stop, and 1/1 with "In Notepad" (the one-window card). A first attempt was 2/3: one run made 6 requests with no reply and no tool call until the 5-minute limit, while its desktop calls were fast. Most likely failed, retried or empty provider answers; the live test prints only the desktop log lines, not the provider's (`provider: call failed`), so it isn't proven. 57 requests.
+- **Not done:** the 8.7 warning (the server form is Phase 5); whether the exit-crash fix in 1.1.0 explains TASK-035's one failure.

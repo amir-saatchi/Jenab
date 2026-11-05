@@ -167,8 +167,13 @@ func (s *Session) fail(err error) error {
 		return tool.Errorf("the app is not responding. Wait and try again, or stop and tell the user.")
 	case CodeTimeout:
 		return tool.Errorf("the app didn't answer in time (%s). Try again, or take a new snapshot.", msg)
-	case CodeStaleRef, CodeSnapshotMissing:
+	case CodeStaleRef, CodeElementNotFound, CodeSnapshotMissing:
 		return tool.Errorf("that element changed or is gone (%s). Take a new snapshot and use an id from it.", msg)
+	case CodeAmbiguous:
+		// Nothing was sent. The ref wasn't proven unique (a snapshot cut
+		// short, or an identical element elsewhere in the window), or a
+		// second one like it appeared.
+		return tool.Errorf("not done: agent-desktop can't tell that element apart from another just like it (%s). Take a new snapshot and use an id from it; if the same element is refused again, use another one.", msg)
 	case CodePolicyDenied:
 		return tool.Errorf("not possible without taking the pointer or focus, which isn't allowed: %s. Try another element or action.", msg)
 	}

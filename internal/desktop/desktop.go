@@ -23,18 +23,18 @@ import (
 // executable, with its Apache-2.0 license (build/agent-desktop). A new
 // version changes these three lines and the license folder only.
 const (
-	Version = "1.0.2"
+	Version = "1.2.0"
 	// SHA256 is agent-desktop.exe's, from
-	// agent-desktop-v1.0.2-x86_64-pc-windows-msvc.tar.gz, whose SHA-256
-	// 2186c76e…e222 is in the release's checksums.txt.
-	SHA256 = "409e58cbdd6aed47e29771ffa60bc122a9843505a227af488cded85215943988"
+	// agent-desktop-v1.2.0-x86_64-pc-windows-msvc.tar.gz, whose SHA-256
+	// a4199f74…20c3e8 is in the release's checksums.txt.
+	SHA256 = "d274667031322e50b9c2b1ab81c2ca46835d52cc932769a5c34bd4d481fd94c3"
 	// Program is its file name, next to Jenab's executable.
 	Program = "agent-desktop.exe"
 )
 
 // envelopeVersion is the version of agent-desktop's JSON envelope that
 // this package reads.
-const envelopeVersion = "2.5"
+const envelopeVersion = "2.6"
 
 // Call limits (8.10): a call is killed after callTimeout, or firstTimeout
 // for a session's first snapshot, as an app's accessibility tree can take
@@ -49,6 +49,10 @@ const (
 // was killed and is ErrKilled.
 type Runner interface {
 	Run(ctx context.Context, timeout time.Duration, args ...string) (json.RawMessage, error)
+	// RunInput is Run with input on the command's standard input, for
+	// --stdin: text the agent writes never goes in the arguments, which
+	// other programs on the computer can read in the process list (8.10).
+	RunInput(ctx context.Context, timeout time.Duration, input string, args ...string) (json.RawMessage, error)
 }
 
 var (
@@ -68,8 +72,12 @@ const (
 	CodeAppUnresponsive = "APP_UNRESPONSIVE"
 	CodeTimeout         = "TIMEOUT"
 	CodeStaleRef        = "STALE_REF"
+	CodeElementNotFound = "ELEMENT_NOT_FOUND"
 	CodeSnapshotMissing = "SNAPSHOT_NOT_FOUND"
 	CodePolicyDenied    = "POLICY_DENIED"
+	// CodeAmbiguous (1.1.0): the ref wasn't proven unique when its snapshot
+	// was read, or two live elements match it now; nothing was sent.
+	CodeAmbiguous = "AMBIGUOUS_TARGET"
 )
 
 // Error is a command agent-desktop answered with ok: false.
@@ -77,6 +85,8 @@ type Error struct {
 	Code       string
 	Message    string
 	Suggestion string
+	// Kind is its details.kind, such as "identity_not_unique", when it has one.
+	Kind string
 	// Delivery and Retry are its disposition: whether the action reached
 	// the app ("not_delivered", …) and whether trying again is "safe".
 	Delivery string
@@ -91,9 +101,10 @@ type envelope struct {
 	Command string          `json:"command"`
 	Data    json.RawMessage `json:"data"`
 	Error   *struct {
-		Code        string `json:"code"`
-		Message     string `json:"message"`
-		Suggestion  string `json:"suggestion"`
+		Code        string          `json:"code"`
+		Message     string          `json:"message"`
+		Suggestion  string          `json:"suggestion"`
+		Details     json.RawMessage `json:"details"`
 		Disposition struct {
 			Delivery string `json:"delivery"`
 			Retry    string `json:"retry"`
@@ -115,7 +126,11 @@ func parseEnvelope(out []byte) (json.RawMessage, error) {
 			return nil, &Error{Code: "UNKNOWN", Message: "the command failed without an error"}
 		}
 		e := env.Error
-		return nil, &Error{Code: e.Code, Message: e.Message, Suggestion: e.Suggestion, Delivery: e.Disposition.Delivery, Retry: e.Disposition.Retry}
+		var d struct {
+			Kind string `json:"kind"`
+		}
+		_ = json.Unmarshal(e.Details, &d) // details differ by error; only kind is read
+		return nil, &Error{Code: e.Code, Message: e.Message, Suggestion: e.Suggestion, Kind: d.Kind, Delivery: e.Disposition.Delivery, Retry: e.Disposition.Retry}
 	}
 	return env.Data, nil
 }

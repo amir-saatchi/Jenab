@@ -26,13 +26,26 @@ type fake struct {
 	secure  map[string]bool   // refs read as secure by get
 	errs    map[string]error  // command → its error
 	calls   [][]string
+	inputs  []string          // what RunInput got on standard input, in order
+	partial bool              // snapshots are cut short: incomplete, refs unproven
 	snaps   []func(Node) Node // applied one per snapshot, then the last tree stays
 }
 
-func (f *fake) Run(_ context.Context, timeout time.Duration, args ...string) (json.RawMessage, error) {
+func (f *fake) Run(ctx context.Context, timeout time.Duration, args ...string) (json.RawMessage, error) {
+	return f.run(nil, args)
+}
+
+func (f *fake) RunInput(ctx context.Context, timeout time.Duration, input string, args ...string) (json.RawMessage, error) {
+	return f.run(&input, args)
+}
+
+func (f *fake) run(input *string, args []string) (json.RawMessage, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.calls = append(f.calls, args)
+	if input != nil {
+		f.inputs = append(f.inputs, *input)
+	}
 	if err := f.errs[args[0]]; err != nil {
 		return nil, err
 	}
@@ -58,7 +71,7 @@ func (f *fake) Run(_ context.Context, timeout time.Duration, args ...string) (js
 				title = win.Title
 			}
 		}
-		d := map[string]any{"complete": true, "window": map[string]string{"id": w, "title": title}, "tree": f.trees[w]}
+		d := map[string]any{"complete": !f.partial, "identity_unproven": f.partial, "window": map[string]string{"id": w, "title": title}, "tree": f.trees[w]}
 		return marshal(d)
 	case "find":
 		w := flag(args, "--window-id")
@@ -81,9 +94,14 @@ func (f *fake) Run(_ context.Context, timeout time.Duration, args ...string) (js
 		}
 		return marshal(map[string]any{"value": st})
 	case "set-value":
+		// agent-desktop 1.2.0: --stdin reads the value from standard input
+		// and refuses a value in the arguments as well.
+		if len(args) != 3 || args[2] != "--stdin" || input == nil {
+			return nil, &Error{Code: "INVALID_ARGS", Message: fmt.Sprintf("set-value %q", args[1:])}
+		}
 		for _, t := range f.trees {
 			if n := find(&t, func(n *Node) bool { return n.Ref == args[1] }); n != nil {
-				n.Value = args[2]
+				n.Value = *input
 			}
 		}
 		return marshal(map[string]any{"disposition": map[string]string{"delivery": "delivered_verified"}})

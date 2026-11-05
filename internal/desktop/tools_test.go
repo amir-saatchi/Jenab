@@ -73,11 +73,11 @@ func TestPickCardByApp(t *testing.T) {
 		// Several: they come first, in the order agent-desktop lists them.
 		{"chrome.exe", "Pick a window of chrome for the agent to use",
 			[]opt{{"pick:w-2", chat.OptionMatch}, {"pick:w-7", chat.OptionMatch}, {"pick:w-1", chat.OptionOther}, {chat.GrantDeny, ""}}},
-		// None: the card says so and lists the others.
-		{"calc", "No window of calc is open: pick another for the agent to use",
+		// None: the plain ask, and the others listed (unfolded by the UI).
+		{"calc", "Pick a window for the agent to use",
 			[]opt{{"pick:w-1", chat.OptionOther}, {"pick:w-2", chat.OptionOther}, {"pick:w-7", chat.OptionOther}, {chat.GrantDeny, ""}}},
 		// A denied app named is still never offered.
-		{"WindowsTerminal", "No window of windowsterminal is open: pick another for the agent to use",
+		{"WindowsTerminal", "Pick a window for the agent to use",
 			[]opt{{"pick:w-1", chat.OptionOther}, {"pick:w-2", chat.OptionOther}, {"pick:w-7", chat.OptionOther}, {chat.GrantDeny, ""}}},
 		// No app: the full list, as before.
 		{"", "Pick a window for the agent to use",
@@ -97,6 +97,27 @@ func TestPickCardByApp(t *testing.T) {
 		}
 		if err := (chat.Part{Kind: chat.PartApproval, Approval: &card}).Validate(); err != nil {
 			t.Errorf("app %q: %v", c.app, err)
+		}
+	}
+}
+
+// An app that matches no window is often a window title or a description
+// (TASK-039): the card doesn't repeat it.
+func TestPickCardDoesNotRepeatTheAgentsApp(t *testing.T) {
+	for _, app := range []string{"TASK035 Live Editor 2", "text editor", "Mail", "notepad"} {
+		h := newHarness(t)
+		h.ok("desktop_start", map[string]string{"app": app, "why": "to write the sentence"})
+		card := h.cards[0]
+		if card.Ask != "Pick a window for the agent to use" || strings.Contains(strings.ToLower(card.Ask), strings.ToLower(app)) {
+			t.Errorf("app %q: ask %q", app, card.Ask)
+		}
+		if len(card.Options) < 2 {
+			t.Fatalf("app %q: no windows listed", app)
+		}
+		for _, o := range card.Options {
+			if o.Grant != chat.GrantDeny && o.Group != chat.OptionOther {
+				t.Errorf("app %q: option %q in group %q, want %q", app, o.Label, o.Group, chat.OptionOther)
+			}
 		}
 	}
 }
@@ -289,6 +310,46 @@ func TestApprovalRows(t *testing.T) {
 	}
 }
 
+// set_value's text goes through standard input, never the arguments,
+// which other programs can read in the process list (TASK-039).
+func TestSetValueTextGoesByStdin(t *testing.T) {
+	h := newHarness(t)
+	h.ok("desktop_start", map[string]string{"why": "x"})
+	h.ok("desktop_snapshot", map[string]any{})
+	const text = "Meet me at the north gate at 7:30\nسلام --stdin"
+	out := h.ok("desktop_act", map[string]string{"id": "1:e1", "action": "set_value", "text": text})
+	if !strings.Contains(out, "Done, and the app confirmed it.") {
+		t.Fatalf("act: %s", out)
+	}
+	sv := h.f.ran("set-value")
+	if len(sv) != 1 || !slices.Equal(sv[0], []string{"set-value", "@s:e1", "--stdin"}) {
+		t.Fatalf("set-value: %q", sv)
+	}
+	if !slices.Equal(h.f.inputs, []string{text}) {
+		t.Fatalf("stdin: %q", h.f.inputs)
+	}
+	for _, c := range h.f.calls {
+		for _, a := range c {
+			if strings.Contains(a, "north gate") || strings.Contains(a, "سلام") {
+				t.Fatalf("the text is in the arguments of %q", c)
+			}
+		}
+	}
+	if got := h.f.trees["w-1"].Children[0].Value; got != text {
+		t.Fatalf("the field has %q", got)
+	}
+	// An empty text clears the field, through stdin too.
+	h.ok("desktop_act", map[string]string{"id": "1:e1", "action": "set_value", "text": ""})
+	if len(h.f.inputs) != 2 || h.f.inputs[1] != "" || h.f.trees["w-1"].Children[0].Value != "" {
+		t.Fatalf("empty: %q", h.f.inputs)
+	}
+	// agent-desktop refuses a NUL byte on stdin: Jenab says so first.
+	h.fails("desktop_act", map[string]string{"id": "1:e1", "action": "set_value", "text": "a\x00b"}, "NUL")
+	if len(h.f.ran("set-value")) != 2 {
+		t.Fatal("a text with NUL was sent")
+	}
+}
+
 func TestChangeLineAfterAction(t *testing.T) {
 	h := newHarness(t)
 	h.ok("desktop_start", map[string]string{"why": "x"})
@@ -443,9 +504,32 @@ func TestErrorsReachTheModel(t *testing.T) {
 	h.fails("desktop_act", map[string]string{"id": "1:e2", "action": "click"}, "didn't answer in time")
 	h.f.errs["click"] = &Error{Code: "ACTION_FAILED", Message: "not foreground", Delivery: "unknown"}
 	h.fails("desktop_act", map[string]string{"id": "1:e2", "action": "click"}, "it may have reached the app")
+	h.f.errs["click"] = &Error{Code: CodeAmbiguous, Kind: "identity_not_unique", Message: "not proven unique", Delivery: "not_delivered"}
+	msg := h.fails("desktop_act", map[string]string{"id": "1:e2", "action": "click"}, "Take a new snapshot")
+	if !strings.Contains(msg, "not done") || strings.Contains(msg, "may have reached") {
+		t.Fatalf("ambiguous: %s", msg)
+	}
+	h.f.errs["click"] = &Error{Code: CodeElementNotFound, Message: "no element"}
+	h.fails("desktop_act", map[string]string{"id": "1:e2", "action": "click"}, "Take a new snapshot")
 	h.f.errs["snapshot"] = &Error{Code: CodeWindowNotFound, Message: "no window"}
 	h.fails("desktop_snapshot", map[string]any{}, "is gone")
 	h.fails("desktop_snapshot", map[string]any{}, "the desktop session ended")
+}
+
+// A snapshot cut short (1.1.0+): agent-desktop refuses its refs until a
+// whole one, so the model is told to take a new snapshot.
+func TestUnprovenSnapshot(t *testing.T) {
+	h := newHarness(t)
+	h.ok("desktop_start", map[string]string{"why": "x"})
+	h.f.partial = true
+	out := h.ok("desktop_snapshot", map[string]any{})
+	if !strings.Contains(out, "its ids may be refused. Take a new snapshot") {
+		t.Fatalf("partial: %s", out)
+	}
+	h.f.partial = false
+	if out = h.ok("desktop_snapshot", map[string]any{}); strings.Contains(out, "incomplete") {
+		t.Fatalf("whole: %s", out)
+	}
 }
 
 func TestWait(t *testing.T) {
