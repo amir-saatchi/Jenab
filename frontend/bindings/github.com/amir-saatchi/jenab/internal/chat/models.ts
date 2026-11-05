@@ -78,6 +78,13 @@ export interface Approval {
 export interface ApprovalOption {
     "label": string;
     "grant": Grant;
+
+    /**
+     * Group sorts a pick card's options (SPEC 8.10): OptionMatch for the
+     * windows of the app the agent named, OptionOther for the rest; ""
+     * when the agent named none.
+     */
+    "group"?: string;
 }
 
 /**
@@ -651,6 +658,14 @@ export interface ToolResult {
      * also "cancelled by user" after Stop (8.3)
      */
     "is_error"?: boolean;
+
+    /**
+     * Series and Stub: once a newer result of the same series is in a
+     * request, this one is sent as Stub, such as an older desktop
+     * snapshot (8.10).
+     */
+    "series"?: string;
+    "stub"?: string;
 }
 
 /**

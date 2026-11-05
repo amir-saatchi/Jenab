@@ -78,7 +78,7 @@
 | [TASK-032](TASK-032-truncation-check-without-tools.md) | Truncation check without tool definitions | Task | Done | 3 |
 | [TASK-033](TASK-033-less-fixed-context.md) | Less fixed context per request | Task | Done | 3 |
 | [TASK-034](TASK-034-fake-price-server.md) | A fake price site for manual runs | Task | Done | 3 |
-| [TASK-035](TASK-035-desktop-control.md) | Desktop control v1 (Windows) | Task | Open | 3 |
+| [TASK-035](TASK-035-desktop-control.md) | Desktop control v1 (Windows) | Task | Done | 3 |
 | [TASK-036](TASK-036-private-network-exceptions.md) | Ask before reaching this computer or the local network | Task | Done | 3 |
 | [TASK-037](TASK-037-app-version.md) | One version number for the app | Task | Done | 3 |
 | [TASK-038](TASK-038-desktop-macros.md) | Desktop macros and recipes | Task | Open | 3 |

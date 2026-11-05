@@ -1,6 +1,6 @@
 # TASK-035 — Desktop control v1 (Windows)
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** SPIKE-039
 
@@ -34,3 +34,29 @@ Build SPEC 8.10: an agent reads and uses one window of another app the user pick
 - Go tests cover the runner (hash check, kill, envelope), the lock, the deny list, the approval rows, password and consent refusal, the focus check, stubs and the time limit.
 - Live on `gemini-3.5-flash-lite`: "write this sentence" in a test editor passes 3/3, with the pick card and *Stop* checked by hand.
 - `gemma4:31b` when Ollama Cloud's quota allows.
+
+## Result
+Done on 2026-11-05 with agent-desktop 1.0.2. SPEC 8.10 and 8.9 describe it.
+
+- **Built:** `internal/desktop`:
+  - a runner that checks the program's SHA-256 and holds the file open until it starts, with no console, a clean environment, a time limit and a private state folder;
+  - the five tools, offered only while the Settings switch is on and only in turns the user started;
+  - the window card (the agent names an app, the user picks), the deny list (password managers also by title), and the lock on window, process instance and site;
+  - compact snapshots, stubs for older ones, a change line after each action;
+  - password, consent, CAPTCHA and focus guards; approval rows; a log with lengths only.
+  - Also: the `desktop` help skill (`load_with` the tools), the switch in *Settings → General* (off by default, Windows only), tool chips that show lengths instead of text, and a window card that holds still while it waits.
+- **Tested:** the runner with a fake agent-desktop (envelope, hash, kill, cancel, state folder), the tools with a fake runner (deny list, card by app, lock, site lock, guards, approvals, stubs, session ends), the agent wiring, and frontend tests for the card, the chips and the move guard.
+- **Live** (the real orchestrator and agent-desktop, only windows the test opened):
+  - gemini-3.5-flash-lite, "write this sentence" in a test editor: 19/20 runs, mostly 5–6 requests and 20–80 s. The one failure (two pick cards, nothing written, 26 requests) wasn't saved and didn't come back.
+  - With the new card: 3/3 with the editor named by title. Then 3/3 "In Notepad" (a copy of the test editor named `notepad.exe`), where every run named `app: notepad` and got the one-window card (4–5 requests).
+  - ministral-14b: 3/3, but it skipped the skill and `desktop_end`, and once called a tool that doesn't exist.
+  - gemma-4-26b-a4b-it on the Gemini API, instead of gemma4:31b (no Ollama quota): 3/3, 63–113 s, never loaded the skill.
+  - Stop ended the session with the turn, nothing reached the editor.
+  - Prompts were 12–17k tokens a run, against 4.3k in SPIKE-039: Jenab's system prompt, tool list and skill. The snapshot itself was about 600 characters.
+- **By hand in the app** (a server build in a browser, scratch data folders): the switch, the card, a write and Stop all worked.
+  - Found and fixed: a Chrome tab on Google Password Manager was offered; it is now denied by its title.
+  - Found and fixed: the chat auto-scrolled under the card, so a click picked the user's own Chrome window, and about 9,800 characters of it went to Mistral. The model saw the wrong window and ended the session; the chat was deleted. The card now holds still, and a click right after it moves is ignored.
+  - Decided: apps that run commands (Claude, VS Code, Cursor) stay pickable.
+  - Recorded: ministral-14b claimed a write worked after a "session ended" error.
+- **Open:** in server mode the switch is hidden (no Windows check in a plain browser). Key presses fail in plain Win32 windows that aren't in front (SPIKE-039). Prompt cache breaks where a snapshot becomes a stub. Turns the app starts will need to leave the tools out (8.3).
+- **Requests:** Gemini (`GEMINI_API_KEY`) 87 on 2026-11-03 and about 138 on 2026-11-05; Mistral (`MISTRAL_API_KEY`) 17 in the live test, plus the check by hand.

@@ -211,3 +211,41 @@ func TestImportsOnlyID(t *testing.T) {
 		}
 	}
 }
+
+// A pick card's options carry what they pick, such as a window (8.10).
+func TestPickGrant(t *testing.T) {
+	card := func(grants ...Grant) Part {
+		a := &Approval{ID: "a1", Kind: "desktop_window", Target: "desktop", Ask: "Pick a window"}
+		for _, g := range grants {
+			a.Options = append(a.Options, ApprovalOption{Label: string(g), Grant: g})
+		}
+		return Part{Kind: PartApproval, Approval: a}
+	}
+	if err := card(GrantPick+"w-1", GrantPick+"w-2", GrantDeny).Validate(); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []Part{card(GrantPick, GrantDeny), card("window:w-1", GrantDeny), card(GrantPick+"w-1", GrantPick+"w-1", GrantDeny)} {
+		if p.Validate() == nil {
+			t.Errorf("%v is valid", p.Approval.Options)
+		}
+	}
+	grouped := card(GrantPick+"w-1", GrantPick+"w-2", GrantDeny)
+	grouped.Approval.Options[0].Group, grouped.Approval.Options[1].Group = OptionMatch, OptionOther
+	if err := grouped.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	grouped.Approval.Options[2].Group = OptionOther // Deny is in no group
+	if grouped.Validate() == nil {
+		t.Error("a grouped Deny is valid")
+	}
+	grouped.Approval.Options[2].Group, grouped.Approval.Options[0].Group = "", "first"
+	if grouped.Validate() == nil {
+		t.Error("an unknown group is valid")
+	}
+	if v, ok := Grant(GrantPick + "w-7").Picked(); !ok || v != "w-7" {
+		t.Errorf("Picked: %q %v", v, ok)
+	}
+	if _, ok := GrantOnce.Picked(); ok {
+		t.Error("once is not a pick")
+	}
+}

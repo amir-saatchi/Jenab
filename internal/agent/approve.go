@@ -66,7 +66,18 @@ var rules = map[string][3]decision{
 	"schema":    {ask, noAsk, noAsk},
 	"migration": {ask, ask, ask},
 	"memory":    {ask, noAsk, noAsk},
+
+	// Desktop control (8.10): picking the window and a session's first
+	// key press ask at every level, an action at Strict only. None has
+	// Always, and no record counts later.
+	"desktop_window": {ask, ask, ask},
+	"desktop_key":    {ask, ask, ask},
+	"desktop_action": {ask, noAsk, noAsk},
 }
+
+// fresh are the kinds whose earlier answers never count: each asks
+// anew (6.7, 8.10).
+var fresh = map[string]bool{"private": true, "desktop_window": true, "desktop_key": true, "desktop_action": true}
 
 // levelDecision is what level l does with an approval of kind.
 func levelDecision(l project.Level, kind string, untrusted bool) decision {
@@ -99,7 +110,7 @@ func (r *runner) approve(ctx context.Context, n tool.Needs) (asks, autos []chat.
 	r.cs.mu.Unlock()
 	for _, a := range n.Approvals {
 		ok := false
-		if a.Kind != "private" {
+		if !fresh[a.Kind] {
 			if ok, err = r.p.DB.Approved(ctx, a.Kind, a.Target); err != nil {
 				return nil, nil, err
 			}

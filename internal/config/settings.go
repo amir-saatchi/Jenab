@@ -31,6 +31,8 @@ type Settings struct {
 	UI         UISettings        `yaml:"ui" json:"ui"`
 	Updates    UpdateSettings    `yaml:"updates" json:"updates"`
 	DevTools   bool              `yaml:"dev_tools" json:"dev_tools"`
+	// DesktopControl is "Let agents use other apps' windows" (SPEC 8.10).
+	DesktopControl bool `yaml:"desktop_control" json:"desktop_control"`
 }
 
 // ContextSettings size the history window (SPEC 3.6).

@@ -113,8 +113,8 @@ func (sr *subRun) build() error {
 	sr.system = []provider.Block{{Text: text, Cache: true, Name: sr.s.Name}}
 	for _, tl := range sr.s.Tools {
 		spec := tl.Spec()
-		if spec.Effects&tool.Memory != 0 {
-			continue // subagents can't change memory (SPEC 8.1)
+		if spec.Effects&tool.Memory != 0 || spec.UserTurns {
+			continue // subagents can't change memory (SPEC 8.1) or use other apps' windows (8.10)
 		}
 		sr.tools[spec.Name] = tl
 		sr.defs = append(sr.defs, provider.ToolDef{Name: spec.Name, Description: spec.Description, Schema: spec.Schema})

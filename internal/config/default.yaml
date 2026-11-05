@@ -38,3 +38,4 @@ updates:
   channel: stable                     # stable or beta
 
 dev_tools: false                      # the turn inspector, runtime panel and debug logging
+desktop_control: false                # let agents use a window of another app you pick (Windows)

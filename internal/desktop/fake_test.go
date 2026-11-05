@@ -1,0 +1,250 @@
+package desktop
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/tool"
+)
+
+// fake is agent-desktop for the tests: a few windows and a tree per
+// window, changed by the actions it gets.
+type fake struct {
+	mu      sync.Mutex
+	windows []Window
+	trees   map[string]Node   // window id → tree
+	focus   map[string]string // window id → the focused element's ref
+	secure  map[string]bool   // refs read as secure by get
+	errs    map[string]error  // command → its error
+	calls   [][]string
+	snaps   []func(Node) Node // applied one per snapshot, then the last tree stays
+}
+
+func (f *fake) Run(_ context.Context, timeout time.Duration, args ...string) (json.RawMessage, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.calls = append(f.calls, args)
+	if err := f.errs[args[0]]; err != nil {
+		return nil, err
+	}
+	switch args[0] {
+	case "list-windows":
+		app := flag(args, "--app")
+		var ws []Window
+		for _, w := range f.windows {
+			if app == "" || strings.EqualFold(w.App, app) {
+				ws = append(ws, w)
+			}
+		}
+		return marshal(ws)
+	case "snapshot":
+		w := flag(args, "--window-id")
+		if len(f.snaps) > 0 {
+			f.trees[w] = f.snaps[0](f.trees[w])
+			f.snaps = f.snaps[1:]
+		}
+		title := w
+		for _, win := range f.windows {
+			if win.ID == w {
+				title = win.Title
+			}
+		}
+		d := map[string]any{"complete": true, "window": map[string]string{"id": w, "title": title}, "tree": f.trees[w]}
+		return marshal(d)
+	case "find":
+		w := flag(args, "--window-id")
+		if t := flag(args, "--text"); t != "" {
+			n := 0
+			if strings.Contains(allText(new(f.trees[w])), t) {
+				n = 1
+			}
+			return marshal(map[string]int{"count": n})
+		}
+		ref := f.focus[w]
+		if ref == "" {
+			return marshal(map[string]any{"match": nil})
+		}
+		return marshal(map[string]any{"match": find(new(f.trees[w]), func(n *Node) bool { return n.Ref == ref })})
+	case "get":
+		var st []string
+		if f.secure[args[1]] {
+			st = []string{"secure"}
+		}
+		return marshal(map[string]any{"value": st})
+	case "set-value":
+		for _, t := range f.trees {
+			if n := find(&t, func(n *Node) bool { return n.Ref == args[1] }); n != nil {
+				n.Value = args[2]
+			}
+		}
+		return marshal(map[string]any{"disposition": map[string]string{"delivery": "delivered_verified"}})
+	}
+	return marshal(map[string]any{})
+}
+
+func (f *fake) ran(cmd string) [][]string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out [][]string
+	for _, c := range f.calls {
+		if c[0] == cmd {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func flag(args []string, name string) string {
+	for i, a := range args {
+		if a == name && i+1 < len(args) {
+			return args[i+1]
+		}
+	}
+	return ""
+}
+
+func marshal(v any) (json.RawMessage, error) {
+	b, err := json.Marshal(v)
+	return b, err
+}
+
+const self = 4242
+
+func editorTree() Node {
+	return Node{Role: "window", Name: "Notes", Children: []Node{
+		{Role: "textfield", Name: "Text", Ref: "@s:e1"},
+		{Role: "button", Name: "Save", Ref: "@s:e2"},
+		{Role: "textfield", Name: "Password", Ref: "@s:e3"},
+		{Role: "button", Name: "Accept all cookies", Ref: "@s:e4"},
+		{Role: "button", Name: "Reject all", Ref: "@s:e5"},
+		{Role: "textfield", Name: "Code", Ref: "@s:e6"},
+		{Role: "button", Name: "Alle akzeptieren", Ref: "@s:e7"},
+		{Role: "button", Name: "پذیرش همه", Ref: "@s:e8"},
+		{Role: "textfield", Name: "رمز عبور", Ref: "@s:e9"},
+	}}
+}
+
+func browserTree(url string, page []Node) Node {
+	return Node{Role: "window", Name: "Chrome", Children: []Node{
+		{Role: "textfield", Name: "Address and search bar", Ref: "@b:e1", Value: url},
+		{Role: "document", Name: "Page", Value: url, Children: page},
+	}}
+}
+
+func newFake() *fake {
+	return &fake{
+		windows: []Window{
+			{ID: "w-1", Title: "Notes", App: "notes.exe", PID: 10, Instance: "i10", Visible: true},
+			{ID: "w-2", Title: "Search", App: "chrome.exe", PID: 20, Instance: "i20", Visible: true},
+			{ID: "w-3", Title: "PowerShell", App: "WindowsTerminal.exe", PID: 30, Instance: "i30", Visible: true},
+			{ID: "w-4", Title: "Jenab", App: "jenab.exe", PID: self, Instance: "i42", Visible: true},
+			{ID: "w-5", Title: "Run", App: "explorer.exe", PID: 50, Instance: "i50", Visible: true},
+			{ID: "w-6", Title: "Passwords", App: "KeePassXC.exe", PID: 60, Instance: "i60", Visible: true},
+		},
+		trees:  map[string]Node{"w-1": editorTree(), "w-2": browserTree("about:blank", nil)},
+		focus:  map[string]string{},
+		secure: map[string]bool{},
+		errs:   map[string]error{},
+	}
+}
+
+// harness is one chat turn with the tools: Approve answers with pick for
+// the window card and with answer for the others, and records the cards.
+type harness struct {
+	t      *testing.T
+	f      *fake
+	m      *Manager
+	tools  map[string]tool.Tool
+	env    *tool.Env
+	cards  []chat.Approval
+	pick   string                 // the window id to pick, "" to deny
+	answer chat.Grant             // for action and key cards
+	level  func(kind string) bool // whether a card asks; nil asks all
+	ends   []func()
+	now    time.Time
+}
+
+func newHarness(t *testing.T) *harness {
+	h := &harness{t: t, f: newFake(), pick: "w-1", answer: chat.GrantOnce, now: time.Date(2026, 11, 3, 10, 0, 0, 0, time.UTC)}
+	h.m = NewManager(Deps{Runner: h.f, On: func() bool { return true }, Self: self, Poll: time.Millisecond,
+		Now: func() time.Time { return h.now },
+		Class: func(w string) string {
+			if w == "w-5" {
+				return "#32770"
+			}
+			return ""
+		}})
+	h.tools = map[string]tool.Tool{}
+	for _, tl := range h.m.Tools() {
+		h.tools[tl.Spec().Name] = tl
+	}
+	h.env = &tool.Env{Project: &project.Project{ID: id.Project(id.New())}, Chat: id.Chat(id.New()), Turn: 1,
+		Approve: func(_ context.Context, a chat.Approval) (chat.Approval, error) {
+			if h.level != nil && !h.level(a.Kind) {
+				a.Answer = chat.GrantOnce
+				return a, nil
+			}
+			h.cards = append(h.cards, a)
+			switch {
+			case a.Kind != KindWindow:
+				a.Answer = h.answer
+			case h.pick == "":
+				a.Answer, a.Note = chat.GrantDeny, "not now"
+			default:
+				a.Answer = chat.Grant(chat.GrantPick + h.pick)
+			}
+			return a, nil
+		},
+		AtTurnEnd: func(f func()) { h.ends = append(h.ends, f) },
+	}
+	return h
+}
+
+// call runs a tool and returns its text, or its error's text.
+func (h *harness) call(name string, args any) (string, bool) {
+	h.t.Helper()
+	b, _ := json.Marshal(args)
+	r, err := tool.Run(context.Background(), h.tools[name], tool.Call{ID: fmt.Sprint(len(h.f.calls)), Args: b, Env: h.env})
+	if err != nil {
+		var te *tool.Error
+		if !errors.As(err, &te) {
+			h.t.Fatalf("%s: %v", name, err)
+		}
+		return te.Msg, false
+	}
+	return r.Text, true
+}
+
+func (h *harness) ok(name string, args any) string {
+	h.t.Helper()
+	s, ok := h.call(name, args)
+	if !ok {
+		h.t.Fatalf("%s(%v): %s", name, args, s)
+	}
+	return s
+}
+
+func (h *harness) fails(name string, args any, want string) string {
+	h.t.Helper()
+	s, ok := h.call(name, args)
+	if ok || !strings.Contains(s, want) {
+		h.t.Fatalf("%s(%v) = %q (ok %v), want an error with %q", name, args, s, ok, want)
+	}
+	return s
+}
+
+func (h *harness) endTurn() {
+	for _, f := range h.ends {
+		f()
+	}
+	h.ends = nil
+}

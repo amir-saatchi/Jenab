@@ -1,13 +1,14 @@
 import * as React from "react"
-import { Dialogs } from "@wailsio/runtime"
+import { Dialogs, System } from "@wailsio/runtime"
 import { FolderInputIcon, FolderOpenIcon, InfoIcon, TriangleAlertIcon } from "lucide-react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
+import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SettingsService, type FolderWarning as Warning, type MoveResult } from "@/lib/api"
 import { showError, toUIError } from "@/lib/errors"
@@ -83,6 +84,7 @@ export function GeneralSection() {
       <p className="text-xs text-muted-foreground">
         The approval level for new projects. Each project can change its own in its settings.
       </p>
+      {System.IsWindows() && <DesktopControl />}
       <About />
       {started && (
         <ChooseFolder
@@ -93,6 +95,33 @@ export function GeneralSection() {
         />
       )}
     </SettingsSection>
+  )
+}
+
+// DesktopControl is the switch for desktop control (SPEC 8.10), off by
+// default. It applies from the agent's next request.
+function DesktopControl() {
+  const on = useSettings((s) => s.view?.settings.desktop_control ?? false)
+  const edit = useSettings((s) => s.edit)
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldLabel htmlFor="desktop-control">Let agents use other apps' windows</FieldLabel>
+        <FieldDescription>
+          In a chat you start, the agent can ask you to pick one window, such as your browser or an editor, and then
+          read it and click or type in it. Each pick, and the first key it presses, asks you.
+        </FieldDescription>
+      </FieldContent>
+      <Switch
+        id="desktop-control"
+        checked={on}
+        onCheckedChange={(v) =>
+          edit((s) => {
+            s.desktop_control = v
+          }).catch(showError)
+        }
+      />
+    </Field>
   )
 }
 

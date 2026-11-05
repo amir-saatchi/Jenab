@@ -1,0 +1,15 @@
+agent-desktop
+https://github.com/vercel-labs/agent-desktop
+Licensed under the Apache License, Version 2.0 (see LICENSE in this folder).
+
+Jenab ships agent-desktop.exe unchanged, next to its own executable, and runs
+it as a separate program for desktop control (SPEC 8.10). The version and the
+SHA-256 Jenab accepts are pinned in internal/desktop/desktop.go; Jenab checks
+the hash before every start and never downloads the program at run time.
+
+Version: 1.0.2
+Release: https://github.com/vercel-labs/agent-desktop/releases/tag/v1.0.2
+Archive: agent-desktop-v1.0.2-x86_64-pc-windows-msvc.tar.gz (checked against
+the release's checksums.txt)
+agent-desktop.exe SHA-256:
+409e58cbdd6aed47e29771ffa60bc122a9843505a227af488cded85215943988

@@ -92,6 +92,11 @@ type ToolResult struct {
 	Text    string `json:"text"`
 	Ref     string `json:"ref,omitempty"`
 	IsError bool   `json:"is_error,omitempty"` // also "cancelled by user" after Stop (8.3)
+	// Series and Stub: once a newer result of the same series is in a
+	// request, this one is sent as Stub, such as an older desktop
+	// snapshot (8.10).
+	Series string `json:"series,omitempty"`
+	Stub   string `json:"stub,omitempty"`
 }
 
 // Image is an image stored in the bucket (4.7); the bytes are never in a part.
@@ -199,7 +204,17 @@ type Approval struct {
 type ApprovalOption struct {
 	Label string `json:"label"`
 	Grant Grant  `json:"grant"`
+	// Group sorts a pick card's options (SPEC 8.10): OptionMatch for the
+	// windows of the app the agent named, OptionOther for the rest; ""
+	// when the agent named none.
+	Group string `json:"group,omitempty"`
 }
+
+// Groups of pick options.
+const (
+	OptionMatch = "match"
+	OptionOther = "other"
+)
 
 // Grant is what an approval option gives.
 type Grant string
@@ -209,6 +224,17 @@ const (
 	GrantAlways Grant = "always" // kept for the project; the target isn't asked for again
 	GrantDeny   Grant = "deny"
 )
+
+// GrantPick starts the grant of an option that picks one of several
+// things, such as the window for desktop control (SPEC 8.10):
+// "pick:<value>". A pick is for this call only, as Once is.
+const GrantPick = "pick:"
+
+// Picked is the value a pick grant carries.
+func (g Grant) Picked() (string, bool) {
+	v, ok := strings.CutPrefix(string(g), GrantPick)
+	return v, ok && v != ""
+}
 
 // Option returns the card's option with grant g.
 func (a *Approval) Option(g Grant) (ApprovalOption, bool) {
@@ -351,8 +377,11 @@ func (a *Approval) validate() error {
 		if o.Label == "" {
 			return invalid("approval %s has an option without a label", a.ID)
 		}
-		if o.Grant != GrantOnce && o.Grant != GrantAlways && o.Grant != GrantDeny {
+		if _, pick := o.Grant.Picked(); !pick && o.Grant != GrantOnce && o.Grant != GrantAlways && o.Grant != GrantDeny {
 			return invalid("approval %s: unknown grant %q", a.ID, o.Grant)
+		}
+		if _, pick := o.Grant.Picked(); o.Group != "" && (!pick || o.Group != OptionMatch && o.Group != OptionOther) {
+			return invalid("approval %s: option %q has the group %q", a.ID, o.Label, o.Group)
 		}
 		if seen[o.Grant] {
 			return invalid("approval %s has two %s options", a.ID, o.Grant)

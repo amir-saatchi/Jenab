@@ -2044,6 +2044,7 @@ Each bad field gives its own error, naming the file and the field.
 | `sql-queries` | The SQLite dialect, window functions, the SQL guard rules (2.2) | – |
 | `web-research` | Search sources, feeds, untrusted content (3.7, 6.5) | `web_search`, `read_feed` |
 | `delegation` | Mother's delegation guidance v1 (8.6) | – (always loaded in Mother) |
+| `desktop` | Desktop control (8.10): other tools first; ask for a browser window when there is no search provider or search fails, saying why; name the app; look first and pick elements by name; decline consent; stop at a CAPTCHA; end the session. Shown only while the Settings switch is on | the five `desktop_*` tools |
 
 **SPIKE-025 results** (the SPIKE-021 guide v2 split into skills, on the three development models):
 - Models loaded the right skill before every first write (60/60 runs) and never loaded one they didn't need.
@@ -2056,7 +2057,7 @@ Each bad field gives its own error, naming the file and the field.
 
 ---
 
-### 8.10 Desktop control (SPIKE-039, Windows)
+### 8.10 Desktop control (SPIKE-039, TASK-035, Windows)
 
 An agent can read and use one window of another app, through [agent-desktop](https://github.com/vercel-labs/agent-desktop) (Apache-2.0), which reads the accessibility tree and acts on elements by reference. v1 is narrow: one window the user picks, in a turn the user started and is watching.
 
@@ -2065,22 +2066,30 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 - Only in turns the user started in a chat. Never in pipelines, scheduled runs, subagents or turns the app started.
 - Windows only in v1.
 
-**Tools:** `desktop_start {why}`, `desktop_snapshot {full?}`, `desktop_act {id, action, text?, key?}`, `desktop_wait {text | gone, seconds ≤ 20}` and `desktop_end`.
+**Tools:** `desktop_start {app?, why}`, `desktop_snapshot {full?}`, `desktop_act {id, action, text?, key?}`, `desktop_wait {text | gone, seconds ≤ 20}` and `desktop_end`.
 
 **Picking the window:**
-- `desktop_start` shows an approval card (8.8) where the user picks one window, at every level, with no *Always*. The model sees only the picked window, never the list.
-- These can't be picked: Jenab itself; terminals and shells (Windows Terminal, cmd, PowerShell, conhost, the Run box); Registry Editor, Task Scheduler and Settings; password managers; the sign-in and UAC screens. Windows of programs running as administrator can't be reached anyway (UIPI).
+- `desktop_start` shows an approval card (8.8) where the user picks one window, at every level, with no *Always*. The model sees only the picked window's title, never the list.
+- **The agent names an app,** by its process name without .exe (`chrome`, `notepad`, `calculatorapp`), never a window title, and says why. Jenab matches it to each window's process name, without case or ".exe". Each window is offered as `title — app`:
+  - **One window of that app:** "Let the agent use *Search — chrome*?" with *Allow*, *Deny* (with an optional note) and *Show all windows*, which opens the full list in the same card.
+  - **Several:** that app's windows first, the rest folded under *Other windows*.
+  - **None,** or an unknown or denied app: the card says no window of the app is open and lists the others, unfolded.
+  - **No app named:** the full list.
+  - The list scrolls inside the card. The answer is the window picked (a pick grant, `pick:<window id>`) or *Deny*.
+- **The card holds still:** while it waits, the chat doesn't follow new content by itself; the user can still scroll. A click on a window is ignored if the card moved or changed size in the last 500 ms. In TASK-035 an auto-scroll moved the list under a click and the wrong window was picked.
+- These can't be picked: Jenab itself; terminals and shells (Windows Terminal, cmd, PowerShell, pwsh, conhost, wsl, the Run box); Registry Editor, Task Manager, Task Scheduler, the management console, Control Panel and Settings; password managers, also a browser whose title names one ("Google Password Manager"), and a tab that turns into one ends the session; the sign-in, lock, credential and UAC screens; invisible windows. Windows of programs running as administrator can't be reached anyway (UIPI).
+- Apps that run commands themselves, such as the Claude desktop app, VS Code or Cursor, are left to the user's pick (decided 2026-11-05).
 - **Lock:** the session is locked to the window's id and agent-desktop's process instance, not the window owner's process (a UWP app's frame belongs to ApplicationFrameHost). Every command names the window. When the window closes, the app restarts or agent-desktop no longer lists the window, the session ends and the agent must ask again. An action can do this: Calculator's *Keep on top* turns it into an overlay that agent-desktop doesn't list.
 - In a browser, the lock includes the site's origin, taken from the page's document value and checked before each action. A window on a blank page takes the origin of the first site it opens.
 
 **What the agent can do:**
 - Element ids are Jenab's own (`3:e12`: snapshot 3, element 12) and only from this session's snapshots.
 - Actions run without taking the pointer or focus: click, set value, toggle, expand, collapse, select.
-- Keys: Return, Escape, Tab and Backspace, without combinations, sent to the app without taking the foreground; no real typing in v1. A key goes to the element that has focus in the app, so before a press Jenab checks that it is inside the locked window, and the result says where the key went. The first key press in a session asks in a card, at every level.
+- Keys: Return, Escape, Tab and Backspace, without combinations, sent to the app without taking the foreground; no real typing in v1. A key goes to the element that has focus in the app, so before a press Jenab checks that it is inside the locked window, and the result says where the key went. The first key press in a session asks in a card, at every level; later ones ask at Strict, like any action.
 - No clipboard in v1.
-- **Consent is never accepted:** a click on a button that accepts cookies, terms or other consent ("Accept all", "Alle akzeptieren", "پذیرش همه") is refused, with a message to decline or to stop and tell the user. Declining is allowed. In SPIKE-039 both models clicked accept first in 5 of 6 Google searches, then declined.
+- **Consent is never accepted:** a click on a button that accepts cookies, terms or other consent ("Accept all", "Alle akzeptieren", "پذیرش همه") is refused, with a message to decline or to stop and tell the user. Declining is allowed, and so is a button whose name also declines ("Don't accept", "Nicht akzeptieren"); a name of 60 characters or more is text, not a button. In SPIKE-039 both models clicked accept first in 5 of 6 Google searches, then declined.
 - **CAPTCHAs:** a CAPTCHA or "unusual traffic" page ends the session and tells the user. Jenab never solves or avoids one.
-- **Password fields** are refused: an element with the `secure` state (in the snapshot, or read again just before the action), or with a name such as password, PIN, passcode or verification code, in English, German and Persian (such as "رمز" and "گذرواژه"). A secure field found after an action ends the session.
+- **Password fields** are refused: an element with the `secure` state (in the snapshot, or read again just before the action), or with a name such as password, PIN, passcode, or a verification, one-time or security code, in English, German and Persian (such as "رمز" and "گذرواژه"); a plain "Code" field is allowed unless it is `secure`. A secure field found after an action ends the session.
 
 **Approvals** (8.8):
 
@@ -2097,16 +2106,18 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 - A compact snapshot, one line per element: `- button "Send" [3:e14] (disabled)`. Interactive elements by default (`full` for all), at most 400 lines.
 - In a browser, only the page, read to a depth of 40 (agent-desktop's default of 10 hid Google's results), plus the address bar as its origin, not the full URL: a `file://` URL carries the Windows user name. Tabs, profile and bookmarks stay out. Jenab waits until the page has children; a cold browser can report an empty page as complete.
 - After each action, one line on what changed, e.g. `Display is "4,827"`.
-- Older snapshots become stubs: `[snapshot 3 of "Calculator" — replaced by snapshot 5]`.
+- Older snapshots become stubs: `[snapshot 3 of "Calculator" — replaced by a newer snapshot]`. The chat keeps the full text.
 - No screenshots in v1.
 
-**Limits:** a session ends after 10 minutes, at `desktop_end`, at *Stop* or when the turn ends. The chat log shows each step as a tool part with the lengths of the text, not the text.
+**Limits:** a session ends after 10 minutes, at `desktop_end`, at *Stop* or when the turn ends. The chat shows each step as a tool chip with the action, the element id and the lengths of any text, not the text; the app log keeps the same, lengths and times only. The chat's history keeps the full results, which the model needs.
 
 **How Jenab runs it:**
 - agent-desktop's command-line program as a child process, not its library: it pins refs to a window, has `find` and `wait`, and a hung call can be killed. The library reads the app's focused window and blocks one shared thread when a call hangs (SPIKE-039).
 - The program ships in Jenab's installer, pinned to a version and checked against its SHA-256 before each start, with its Apache-2.0 NOTICE. Nothing is downloaded at run time.
 - No console window. A call is killed after 15 s, or 30 s for a session's first snapshot.
-- Its state folder is `agent-desktop` under Jenab's data folder, with a private ACL; Jenab refuses to start it if the folder inherits other access.
+- Its state folder is `agent-desktop` under Jenab's fixed app folder (`%LOCALAPPDATA%\Jenab`, next to the settings and logs), not the data folder, which can be moved or synced. Jenab makes it with access for the user and SYSTEM only, and refuses to start agent-desktop if the folder inherits access or grants anyone else (Administrators allowed).
+- The program goes next to `jenab.exe` (`build/agent-desktop/` has its license, NOTICE and version); it is not in git.
+- **Help:** the `desktop` skill (8.9) comes with the tools.
 - The same tools and rules for every model (1).
 
 ### 8.11 Desktop macros and recipes (SPIKE-040)

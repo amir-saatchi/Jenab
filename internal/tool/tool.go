@@ -58,7 +58,19 @@ type Spec struct {
 	// decides at a cut, and for WhenTables at a schema change too, so
 	// the tool list changes only where block 2-5 may (3.1).
 	When When
+	// On, if set, says whether the tool is turned on now, such as desktop
+	// control by its setting (8.10). A tool that is off isn't offered or
+	// run, and a skill that comes only with tools that are off is left
+	// out of the skill list.
+	On func() bool
+	// UserTurns: the tool is only for turns the user started in a chat;
+	// never in subagents, pipelines, scheduled runs or turns the app
+	// started (8.10).
+	UserTurns bool
 }
+
+// IsOn reports whether the tool is turned on now (Spec.On).
+func (s Spec) IsOn() bool { return s.On == nil || s.On() }
 
 // When is what a tool needs before it is offered.
 type When uint
@@ -143,6 +155,7 @@ type Env struct {
 	Project  *project.Project
 	Chat     id.Chat
 	Message  id.Message // the assistant message with the call
+	Turn     int        // the chat's turn
 	Source   id.Source  // "message:<id>", for created_by
 	Priority limit.Priority
 	// PreviewTokens is the largest result that enters the context whole
@@ -174,6 +187,10 @@ type Env struct {
 	// Subagent runs a subagent on the chat's model (8.6). The agent sets
 	// it; nil inside a subagent, which can't start another.
 	Subagent func(ctx context.Context, s Subagent) (SubagentResult, error)
+	// AtTurnEnd has f run when the turn ends, however it ends, such as a
+	// desktop session's end (8.10). The agent sets it; nil where there is
+	// no turn.
+	AtTurnEnd func(f func())
 }
 
 // Subagent is a run of its own inside a tool call (8.6): its messages
@@ -209,7 +226,9 @@ type SubagentResult struct {
 // long Text its own way, such as query, sets Preview: Output stores Text
 // as it stores any long one, and Preview(ref) enters the context.
 // Notices are chips shown after the result, which the model doesn't
-// read, such as an applied migration (8.2).
+// read, such as an applied migration (8.2). A result with a Series is
+// sent as its Stub once a newer result of the same series is in the
+// request, such as an older desktop snapshot (8.10).
 type Result struct {
 	Text    string
 	Ref     string
@@ -217,6 +236,8 @@ type Result struct {
 	Whole   bool
 	Preview func(ref string) string
 	Notices []chat.Notice
+	Series  string
+	Stub    string
 }
 
 // Error is a mistake the model can fix, such as bad arguments, a missing

@@ -85,6 +85,7 @@ function argsPreview(args: unknown): string {
 // ToolChip is a tool call with its result: a one-line preview, unfolded
 // to the arguments and the output.
 export function ToolChip({ call, result, running }: { call: ToolCall; result?: ToolResult; running: boolean }) {
+  if (call.name.startsWith("desktop_")) return <DesktopChip call={call} result={result} running={running} />
   const state = result ? (result.is_error ? "failed" : "done") : running ? "running" : "failed"
   const detail = result ? firstLine(result.text) : running ? argsPreview(call.args) || "running" : "not run"
   return (
@@ -126,6 +127,48 @@ export function ToolChip({ call, result, running }: { call: ToolCall; result?: T
       </CollapsibleContent>
     </Collapsible>
   )
+}
+
+// DesktopChip is a desktop control step (SPEC 8.10): what it did, with
+// the lengths of the texts, not the texts read from or typed into the
+// window. Errors are Jenab's own and show in full.
+function DesktopChip({ call, result, running }: { call: ToolCall; result?: ToolResult; running: boolean }) {
+  const state = result ? (result.is_error ? "failed" : "done") : running ? "running" : "failed"
+  const args = desktopArgs(call.args)
+  const detail = result?.is_error
+    ? firstLine(result.text)
+    : [args, result ? characters(result.text.length) : running ? "running" : "not run"].filter(Boolean).join(" · ")
+  return (
+    <Badge variant="outline" className="h-6 w-fit max-w-full font-normal text-muted-foreground not-typeset">
+      {state === "done" && <CheckIcon data-icon="inline-start" className="text-tone-green" />}
+      {state === "running" && <Spinner data-icon="inline-start" />}
+      {state === "failed" && <XIcon data-icon="inline-start" className="text-tone-red" />}
+      <span className="font-mono text-foreground">{call.name}</span>
+      <span dir="auto" className={cn("truncate", state === "running" && "shimmer")}>
+        {detail}
+      </span>
+    </Badge>
+  )
+}
+
+const characters = (n: number) => (n === 1 ? "1 character" : `${n} characters`)
+
+// desktopArgs is a desktop call's arguments in one line: the action, key
+// and element as they are, any other text by its length.
+export function desktopArgs(args: unknown): string {
+  try {
+    const v = typeof args === "string" ? JSON.parse(args) : args
+    if (v && typeof v === "object") {
+      return Object.entries(v as Record<string, unknown>)
+        .map(([k, x]) =>
+          typeof x !== "string" ? `${k} ${String(x)}` : ["id", "action", "key"].includes(k) ? x : `${k}: ${characters(x.length)}`,
+        )
+        .join(" · ")
+    }
+  } catch {
+    // nothing to show
+  }
+  return ""
 }
 
 function ToolDetail({ label, children }: { label: string; children: React.ReactNode }) {

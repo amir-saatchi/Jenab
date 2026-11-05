@@ -135,11 +135,11 @@ func (r *runner) addSkill(ctx context.Context, t *turn, tm *toolMsg, s skill.Ski
 }
 
 // skills is the skill set without the skills that come with tools this
-// build lacks (8.9).
+// build lacks (8.9), or that are off, such as desktop control's (8.10).
 func (o *Orchestrator) skills() *skill.Set {
 	return o.d.Skills.Usable(func(name string) bool {
-		_, ok := o.d.Tools.Get(name)
-		return ok
+		tl, ok := o.d.Tools.Get(name)
+		return ok && tl.Spec().IsOn()
 	})
 }
 

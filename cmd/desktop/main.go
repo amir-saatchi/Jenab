@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/desktop"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
 	"github.com/amir-saatchi/jenab/internal/project"
@@ -128,6 +130,15 @@ func run(_ []string) (err error) {
 	tools := tool.NewRegistry()
 	tools.Add(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})})...)
 	tools.Add(agent.Tools()...)
+	if runtime.GOOS == "windows" { // desktop control is Windows-only in v1 (SPEC 8.10)
+		prog, _ := desktop.ProgramPath() // "" fails at the first call, with the reason
+		dm := desktop.NewManager(desktop.Deps{
+			Runner: &desktop.CLI{Path: prog, Home: filepath.Join(paths.Root, "agent-desktop")},
+			On:     func() bool { return live.Get().DesktopControl },
+			Self:   os.Getpid(), Class: desktop.WindowClass, Log: log,
+		})
+		tools.Add(dm.Tools()...)
+	}
 	skills, err := skill.Builtin()
 	if err != nil {
 		return err

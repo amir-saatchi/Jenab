@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BellIcon, CheckIcon, ChevronRightIcon, CircleSlashIcon, RefreshCwIcon, XIcon } from "lucide-react"
+import { AppWindowIcon, BellIcon, CheckIcon, ChevronRightIcon, CircleSlashIcon, RefreshCwIcon, XIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ import { textDir } from "@/lib/dir"
 import { cn } from "@/lib/utils"
 import { noticeText } from "@/chat/parts"
 import { changes, lineDiff, type LineOp } from "@/chat/line-diff"
+import { isPick, pickView, useMoveGuard } from "@/chat/pick"
 
 // Cards waiting for the user, by "message:index", so the waiting bar can
 // tell whether one is on screen and scroll to it.
@@ -63,7 +64,11 @@ const kinds: Record<string, string> = {
   command: "Command",
   memory: "Memory edit",
   private: "Private network",
+  desktop_window: "Other app's window",
+  desktop_action: "Other app's window",
+  desktop_key: "Key press",
 }
+
 
 function time(at?: string | null) {
   return at ? new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""
@@ -81,10 +86,23 @@ interface CardProps {
 // ApprovalCard is an approval (SPEC 8.8): what, why, the risk, the details
 // and the choice. Deny takes an optional note for the agent.
 export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Approval }) {
-  const ref = useCardRef(cardKey(p.message, p.index))
+  const cardRef = useCardRef(cardKey(p.message, p.index))
+  const box = React.useRef<HTMLDivElement | null>(null)
+  const ref = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      box.current = el
+      cardRef(el)
+    },
+    [cardRef],
+  )
   const [note, setNote] = React.useState("")
   const [busy, setBusy] = React.useState(false)
-  if (a.answer || a.stopped || !p.live) return <ApprovalRecord approval={a} />
+  const [all, setAll] = React.useState(false)
+  const open = !a.answer && !a.stopped && p.live
+  const view = pickView(a.options, all)
+  // A click on a window is ignored while the card moves (SPEC 8.10).
+  const steady = useMoveGuard(box, open && view !== null)
+  if (!open) return <ApprovalRecord approval={a} />
   const answer = (grant: Grant) => {
     setBusy(true)
     ChatService.Answer(p.project, p.chat, { message: p.message, index: p.index, grant, note: note.trim() || undefined })
@@ -94,12 +112,17 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
   // A refresh's card asks the user, not the agent: Deny takes no note.
   const refresh = a.target.startsWith("refresh:")
   const deny = !refresh && a.options?.some((o) => o.grant === Grant.GrantDeny)
+  const pick = (grant: Grant) => {
+    if (steady()) answer(grant)
+  }
+  const buttons = (a.options ?? []).filter((o) => !isPick(o.grant))
+  const ask = all ? "Pick a window for the agent to use" : a.ask
   return (
     <Card ref={ref} size="sm" className="not-typeset">
       <CardHeader>
         <Kicker>Approval · {refresh ? "Refresh memory" : (kinds[a.kind] ?? a.kind)}</Kicker>
         <CardTitle className="text-base" dir="auto">
-          {a.ask}
+          {ask}
         </CardTitle>
         <CardDescription className="flex flex-col gap-1">
           {a.why && (
@@ -117,6 +140,33 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
           ) : (
             <MemoryEdit before={a.before} after={a.after} />
           )}
+        </CardContent>
+      )}
+      {view?.kind === "list" && (
+        <CardContent>
+          <div className="-mx-1 flex max-h-[min(50vh,24rem)] flex-col gap-1 overflow-y-auto px-1">
+            {view.first.map((o) => (
+              <WindowButton key={o.grant} label={o.label} disabled={busy} onClick={() => pick(o.grant)} />
+            ))}
+            {view.other.length > 0 &&
+              (view.folded ? (
+                <Collapsible className="flex flex-col gap-1">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="xs" className="w-fit text-muted-foreground">
+                      <ChevronRightIcon data-icon="inline-start" className="transition-transform group-data-[state=open]/button:rotate-90" />
+                      Other windows ({view.other.length})
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="flex flex-col gap-1">
+                    {view.other.map((o) => (
+                      <WindowButton key={o.grant} label={o.label} disabled={busy} onClick={() => pick(o.grant)} />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                view.other.map((o) => <WindowButton key={o.grant} label={o.label} disabled={busy} onClick={() => pick(o.grant)} />)
+              ))}
+          </div>
         </CardContent>
       )}
       {a.details && (
@@ -137,7 +187,12 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
         </CardContent>
       )}
       <CardFooter className="flex-wrap gap-2">
-        {(a.options ?? []).map((o, i) => (
+        {view?.kind === "one" && (
+          <Button size="sm" disabled={busy} onClick={() => pick(view.window.grant)}>
+            Allow
+          </Button>
+        )}
+        {buttons.map((o, i) => (
           <Button
             key={o.grant}
             size="sm"
@@ -158,8 +213,24 @@ export function ApprovalCard({ approval: a, ...p }: CardProps & { approval: Appr
             onChange={(e) => setNote(e.target.value)}
           />
         )}
+        {view?.kind === "one" && (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => setAll(true)}>
+            Show all windows
+          </Button>
+        )}
       </CardFooter>
     </Card>
+  )
+}
+
+function WindowButton({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
+  return (
+    <Button size="sm" variant="outline" className="shrink-0 justify-start" disabled={disabled} onClick={onClick}>
+      <AppWindowIcon data-icon="inline-start" />
+      <span className="truncate" dir="auto">
+        {label}
+      </span>
+    </Button>
   )
 }
 
@@ -243,6 +314,9 @@ function ApprovalRecord({ approval: a }: { approval: Approval }) {
   if (a.answer === Grant.GrantDeny) {
     result = a.note ? `Denied ${at} · “${a.note}”` : `Denied ${at}`
     icon = <XIcon className="size-4 text-tone-red" />
+  } else if (a.answer && isPick(a.answer)) {
+    const label = a.options?.find((o) => o.grant === a.answer)?.label ?? ""
+    result = `Picked ${label} ${at}`
   } else if (a.answer) {
     result = a.by === "auto" ? `Approved by the Auto level ${at}` : `Approved ${at}`
   } else {

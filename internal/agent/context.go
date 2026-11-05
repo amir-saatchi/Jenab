@@ -141,7 +141,9 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		tools = r.o.d.Tools.For(t.ch.Kind)
 	}
 	for _, tl := range tools {
-		req.Tools = append(req.Tools, toolDef(tl))
+		if tl.Spec().IsOn() { // a switch applies from the next request (8.10)
+			req.Tools = append(req.Tools, toolDef(tl))
+		}
 	}
 	if last {
 		req.ToolChoice = provider.ToolsNone
@@ -203,6 +205,7 @@ func (r *runner) plainWindow(ctx context.Context, t *turn) error {
 // in block 1 leaves a stub (8.9). A tool call without a result, left by a
 // crash, gets one, so every provider accepts the history.
 func shape(ms []chat.Message, w *window) []chat.Message {
+	newest := newestOfSeries(ms)
 	out := make([]chat.Message, 0, len(ms))
 	var open []string // calls of the last assistant message without results
 	var from chat.Message
@@ -242,7 +245,10 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 				if r := p.ToolResult; r != nil {
 					open = without(open, r.CallID)
 					s := *r
-					if m.Turn < w.stubBelow || w.stubbed[r.CallID] {
+					switch {
+					case s.Series != "" && s.Stub != "" && newest[s.Series] != s.CallID:
+						s.Text = s.Stub // a newer one replaced it, such as a desktop snapshot (8.10)
+					case m.Turn < w.stubBelow || w.stubbed[r.CallID]:
 						s.Text = tool.Stub(s)
 					}
 					for _, k := range skills {
@@ -276,6 +282,22 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 		out = append(out, m)
 	}
 	closeOpen()
+	return out
+}
+
+// newestOfSeries is the call id of each series' newest result in ms.
+func newestOfSeries(ms []chat.Message) map[string]string {
+	var out map[string]string
+	for _, m := range ms {
+		for _, p := range m.Parts {
+			if r := p.ToolResult; r != nil && r.Series != "" {
+				if out == nil {
+					out = map[string]string{}
+				}
+				out[r.Series] = r.CallID
+			}
+		}
+	}
 	return out
 }
 

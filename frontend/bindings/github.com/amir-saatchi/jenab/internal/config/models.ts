@@ -117,6 +117,11 @@ export interface Settings {
     "ui": UISettings;
     "updates": UpdateSettings;
     "dev_tools": boolean;
+
+    /**
+     * DesktopControl is "Let agents use other apps' windows" (SPEC 8.10).
+     */
+    "desktop_control": boolean;
 }
 
 export interface UISettings {

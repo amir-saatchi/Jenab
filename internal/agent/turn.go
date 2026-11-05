@@ -64,6 +64,17 @@ type turn struct {
 	told         bool     // the model got the check's notice this turn
 	flagged      []number // the numbers the notice named, for the check right after it
 	again        bool     // the check asks for one more request
+
+	atEnd []func() // run when the turn ends (tool.Env.AtTurnEnd)
+}
+
+// ended runs what the turn's calls asked to run at its end, such as a
+// desktop session's end (8.10), newest first.
+func (t *turn) ended() {
+	for i := len(t.atEnd) - 1; i >= 0; i-- {
+		t.atEnd[i]()
+	}
+	t.atEnd = nil
 }
 
 // turn runs steps until the model answers without tool calls, the request
@@ -75,6 +86,7 @@ func (r *runner) turn(ctx context.Context, n int) (*turn, bool) {
 	t := &turn{n: n, set: r.o.d.Settings()}
 	t.trace = r.o.d.Traces.begin(r.cs.key.p, r.cs.key.c, n)
 	defer r.o.d.Traces.end(t.trace)
+	defer t.ended()
 	if err := r.begin(ctx, t); err != nil {
 		r.finish(ctx, t, err)
 		return t, false
@@ -603,9 +615,16 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	if !ok || tl.Spec().Mother && t.ch.Kind != chat.KindMother {
 		return result("there is no tool named " + c.Name), true
 	}
+	if !tl.Spec().IsOn() {
+		return result(c.Name + " is turned off in Settings"), false
+	}
+	// Every chat turn now is one the user started: tools for those
+	// (Spec.UserTurns) run here and not in subagents. Turns the app
+	// starts (8.3) will leave them out.
 	env := &tool.Env{
-		Project: r.p, Chat: t.ch.ID, Message: msg, Source: id.SourceOf("message", string(msg)),
-		Priority: limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens, ChatStatus: r.o.ChatStatus,
+		Project: r.p, Chat: t.ch.ID, Message: msg, Turn: t.n, Source: id.SourceOf("message", string(msg)),
+		AtTurnEnd: func(f func()) { t.atEnd = append(t.atEnd, f) },
+		Priority:  limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens, ChatStatus: r.o.ChatStatus,
 		Ask: func(ctx context.Context, q chat.Question) (chat.Question, error) {
 			p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartQuestion, Question: &q})
 			return *p.Question, err

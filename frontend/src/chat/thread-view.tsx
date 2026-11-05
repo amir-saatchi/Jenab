@@ -28,6 +28,7 @@ import { showError } from "@/lib/errors"
 import { cn } from "@/lib/utils"
 import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
+import { pickWaiting } from "@/chat/pick"
 import { modelName, starters } from "@/chat/composer"
 import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
@@ -88,7 +89,9 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
   }
 
   return (
-    <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+    // A window card holds still: the chat stops following new content until
+    // it is answered (SPEC 8.10). The user can still scroll.
+    <MessageScrollerProvider autoScroll={!pickWaiting(thread.messages, thread.waiting)} defaultScrollPosition="end">
       <Finished running={running} />
       <SelectionReply chat={thread.chat.id} root={root} />
       <MessageScroller ref={root} className="flex-1">
