@@ -1,10 +1,12 @@
 import * as React from "react"
+import { System } from "@wailsio/runtime"
 import { MonitorIcon, MoonIcon, SunIcon, TriangleAlertIcon } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { showError } from "@/lib/errors"
 import { readTheme, type ThemeChoice } from "@/lib/theme"
+import { DesktopSection } from "@/settings/desktop"
 import { DeveloperSection } from "@/settings/developer"
 import { GeneralSection } from "@/settings/general"
 import { UserMemorySection } from "@/settings/memory"
@@ -14,7 +16,9 @@ import { useSettings } from "@/state/settings"
 import { backToChats } from "@/shell/open"
 import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
-export const settingsPages = ["General", "Memory", "Appearance", "Models", "Usage", "Developer"]
+// Desktop control is Windows-only in v1 (SPEC 8.10), and so is its page
+// (tests run without a window).
+export const settingsPages = ["General", "Memory", "Appearance", "Models", "Usage", ...(typeof window !== "undefined" && System.IsWindows() ? ["Desktop"] : []), "Developer"]
 
 // SettingsView is *Settings* as a full view (SPEC 5.12). Search,
 // connections, MCP servers and updates come with their tickets.
@@ -71,6 +75,12 @@ export function SettingsView({ section }: { section?: string }) {
       <SettingsDivider />
       <UsageSection />
       <SettingsDivider />
+      {System.IsWindows() && (
+        <>
+          <DesktopSection />
+          <SettingsDivider />
+        </>
+      )}
       <DeveloperSection />
     </SettingsLayout>
   )

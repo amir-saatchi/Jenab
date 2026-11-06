@@ -17,6 +17,9 @@ import * as config$0 from "../config/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as project$0 from "../project/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as store$0 from "../store/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -39,6 +42,35 @@ export function CheckFolder(dir: string): $CancellablePromise<project$0.FolderWa
  */
 export function Connect(req: $models.ConnectRequest): $CancellablePromise<$models.ConnectResult> {
     return $Call.ByID(2036821164, req);
+}
+
+/**
+ * DeleteDesktopMacro removes a macro; Settings lists it for 30 days.
+ */
+export function DeleteDesktopMacro(mid: number): $CancellablePromise<void> {
+    return $Call.ByID(4046087565, mid);
+}
+
+/**
+ * DeleteDesktopRecipe removes a recipe; Settings lists it for 30 days.
+ */
+export function DeleteDesktopRecipe(rid: number): $CancellablePromise<void> {
+    return $Call.ByID(767561497, rid);
+}
+
+/**
+ * Desktop lists the saved macros and recipes, after the removal rules.
+ */
+export function Desktop(): $CancellablePromise<$models.DesktopList> {
+    return $Call.ByID(1730108502);
+}
+
+/**
+ * EditDesktopMacro saves the user's edit of a macro as a new version,
+ * after the checks of a save (SPEC 8.11).
+ */
+export function EditDesktopMacro(e: $models.DesktopMacroEdit): $CancellablePromise<store$0.DesktopMacro> {
+    return $Call.ByID(3816724718, e);
 }
 
 /**
@@ -121,4 +153,12 @@ export function Usage(days: number): $CancellablePromise<$models.UsageReport> {
  */
 export function UserMemory(): $CancellablePromise<$models.MemoryView> {
     return $Call.ByID(1120224202);
+}
+
+/**
+ * WriteDesktopRecipe saves the user's recipe or edit. The user's recipes
+ * are never removed by the rules (SPEC 8.11).
+ */
+export function WriteDesktopRecipe(w: $models.DesktopRecipeWrite): $CancellablePromise<store$0.DesktopRecipe> {
+    return $Call.ByID(1654399913, w);
 }

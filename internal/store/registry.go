@@ -48,6 +48,7 @@ var RegistryFormat = Format{Name: "registry", Steps: []func(*sql.Tx) error{
 		)`,
 	),
 	userMemoryLog,
+	desktopTables, // SPEC 8.11
 }}
 
 // Registry is registry.db: written rarely, so one connection with

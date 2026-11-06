@@ -146,6 +146,14 @@ const (
 	// the project stay (TASK-018). The chat shows the rewind's mark
 	// instead.
 	NoticeRewound NoticeKind = "rewound"
+	// NoticeDesktopSaved is the chip of a desktop macro or recipe an agent
+	// saved, in the tool message (8.11): Target is desktop:macro:<id> or
+	// desktop:recipe:<id>, Change the save its Undo reverts, Details the
+	// steps.
+	NoticeDesktopSaved NoticeKind = "desktop_saved"
+	// NoticeReminder is the app's reminder to the model before it answers,
+	// such as to save a desktop task (8.11). The model reads it.
+	NoticeReminder NoticeKind = "reminder"
 )
 
 // MemoryDiff is one section a Refresh memory batch changes (3.5): its

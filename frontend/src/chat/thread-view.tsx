@@ -30,7 +30,7 @@ import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { pickWaiting } from "@/chat/pick"
 import { modelName, starters } from "@/chat/composer"
-import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip, UserText } from "@/chat/parts"
+import { AgentText, CopyButton, DesktopSavedChip, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip, UserText } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
 import { RefreshChip } from "@/chat/refresh"
 import { QuoteView, SelectionReply, flash, reply } from "@/chat/quote"
@@ -442,6 +442,7 @@ function PartView({
       if (p.notice.kind === NoticeKind.NoticeSkillLoaded) return <SkillChip text={p.notice.text} />
       if (p.notice.kind === NoticeKind.NoticeMigration) return <MigrationChip notice={p.notice} />
       if (p.notice.kind === NoticeKind.NoticeMemoryUpdated) return <MemoryChip project={thread.project} notice={p.notice} />
+      if (p.notice.kind === NoticeKind.NoticeDesktopSaved) return <DesktopSavedChip notice={p.notice} />
       return <NoticeLine notice={p.notice} />
     case PartKind.PartApproval:
     case PartKind.PartQuestion: {

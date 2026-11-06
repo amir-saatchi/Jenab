@@ -201,6 +201,15 @@ type Env struct {
 	// desktop session's end (8.10). The agent sets it; nil where there is
 	// no turn.
 	AtTurnEnd func(f func())
+	// BeforeAnswer has check run each time the model answers without a
+	// tool call, until the turn ends. A check that returns a text gets it
+	// to the model as the app's reminder, with one more request, such as
+	// to save a desktop task (8.11). The agent sets it; nil where there is
+	// no turn.
+	BeforeAnswer func(check func() string)
+	// Model is the turn's model, "provider/id", for what a call records
+	// of who made it.
+	Model string
 }
 
 // Subagent is a run of its own inside a tool call (8.6): its messages

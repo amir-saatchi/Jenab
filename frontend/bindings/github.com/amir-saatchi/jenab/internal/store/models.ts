@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as json$0 from "../../../../../encoding/json/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as chat$0 from "../chat/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -50,6 +53,83 @@ export enum ConflictReason {
      */
     ConflictUnsupported = "unsupported",
 };
+
+/**
+ * DesktopMacro is a row of desktop_macros. Steps are the desktop
+ * package's JSON. App is the program's name in lower case without .exe;
+ * Site is a browser macro's origin.
+ */
+export interface DesktopMacro {
+    "id": number;
+    "app": string;
+    "site": string;
+    "name": string;
+    "description": string;
+    "params": string[] | null;
+    "steps": json$0.RawMessage;
+    "version": number;
+    "made_at": string;
+    "made_by_model": string;
+    "made_in_chat": string;
+    "untrusted": boolean;
+    "last_worked_at": string;
+    "last_run_at": string;
+    "runs": number;
+    "failures": number;
+    "fail_streak": number;
+    "removed_at": string;
+    "removed_why": string;
+}
+
+/**
+ * DesktopRecipe is a row of desktop_recipes.
+ */
+export interface DesktopRecipe {
+    "id": number;
+    "app": string;
+    "site": string;
+    "name": string;
+    "text": string;
+    "source": string;
+    "app_version": string;
+    "made_at": string;
+    "made_by_model": string;
+    "made_in_chat": string;
+    "untrusted": boolean;
+    "last_used_at": string;
+    "uses": number;
+    "removed_at": string;
+    "removed_why": string;
+}
+
+/**
+ * DesktopRun is a row of desktop_macro_runs.
+ */
+export interface DesktopRun {
+    "macro_id": number;
+    "version": number;
+    "at": string;
+    "ok": boolean;
+
+    /**
+     * the step number; 0 when it worked
+     */
+    "failed_at": number;
+    "reason": string;
+    "skipped": number;
+    "seconds": number;
+    "log_chars": number;
+}
+
+/**
+ * DesktopUndo says what an Undo or Redo did. Changed: the item changed
+ * since, so nothing was done. Undone is the save's state now.
+ */
+export interface DesktopUndo {
+    "done": boolean;
+    "changed": boolean;
+    "undone": boolean;
+}
 
 /**
  * Hit is one message that matched, with a snippet of its text.

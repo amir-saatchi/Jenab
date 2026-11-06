@@ -93,7 +93,7 @@ func TestDesktopLive(t *testing.T) {
 	models := provider.NewRegistry(provider.Deps{Settings: set.LLM, Gate: limit.NewGate(2), Backends: bk, Catalog: provider.MustCatalog(), Log: log,
 		Secrets: secret.New(&memKeyring{m: map[string]string{provider.KeyName("live"): key}})})
 	cli := &desktop.CLI{Path: prog, Home: filepath.Join(root, "agent-desktop")}
-	dm := desktop.NewManager(desktop.Deps{Runner: cli, On: func() bool { return true }, Self: os.Getpid(), Class: desktop.WindowClass, Log: log})
+	dm := desktop.NewManager(desktop.Deps{Runner: cli, On: func() bool { return true }, Self: os.Getpid(), Class: desktop.WindowClass, Log: log, Store: reg})
 	tools := tool.NewRegistry()
 	tools.Add(tool.Builtin(tool.Deps{})...)
 	tools.Add(Tools()...)
@@ -258,8 +258,12 @@ type countingProvider struct {
 }
 
 func (c countingProvider) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
-	c.n.add(func(r *requestTally) { r.requests++ })
 	return func(yield func(provider.Event, error) bool) {
+		if !c.n.wait(ctx) {
+			yield(provider.Event{}, ctx.Err())
+			return
+		}
+		c.n.add(func(r *requestTally) { r.requests++ })
 		var answered, done, failed bool
 		var stop provider.StopReason
 		defer func() {
@@ -306,6 +310,28 @@ type requestTally struct {
 type requestCount struct {
 	mu sync.Mutex
 	t  requestTally
+	// pace is the least time between two requests' starts (a provider's
+	// per-minute limit); last is when the latest may start.
+	pace time.Duration
+	last time.Time
+}
+
+// wait holds a request until pace has passed since the one before; false
+// when ctx ended first.
+func (c *requestCount) wait(ctx context.Context) bool {
+	c.mu.Lock()
+	at := time.Now()
+	if next := c.last.Add(c.pace); next.After(at) {
+		at = next
+	}
+	c.last = at
+	c.mu.Unlock()
+	select {
+	case <-time.After(time.Until(at)):
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (c *requestCount) add(f func(*requestTally)) {

@@ -66,6 +66,10 @@ type Deps struct {
 	// the developer tools off, records nothing.
 	Traces *Traces
 	Log    *slog.Logger
+	// ChatReset is called after a chat's turns start again (Clear) or the
+	// chat is deleted, for tools that keep state per chat and turn, such
+	// as the desktop session (8.10); nil calls nothing.
+	ChatReset func(p id.Project, c id.Chat)
 	// Grounding is SPIKE-032's number check. Spike-only: the scenario
 	// runner sets it to compare the check's conditions; the app leaves it
 	// off.
@@ -394,7 +398,7 @@ func (cs *chatState) retryInTurn() (bool, error) {
 // (8.6); its turns start again from 1. It fails with ErrInTurn while the
 // chat is in a turn.
 func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error {
-	return o.empty(ctx, p, c, func(proj *project.Project, cs *chatState) error {
+	err := o.empty(ctx, p, c, func(proj *project.Project, cs *chatState) error {
 		seq, err := proj.Chats.Clear(ctx, c)
 		if err != nil {
 			return err
@@ -404,6 +408,10 @@ func (o *Orchestrator) Clear(ctx context.Context, p id.Project, c id.Chat) error
 		o.d.Traces.drop(p, c) // turn numbers start again
 		return nil
 	})
+	if err == nil && o.d.ChatReset != nil {
+		o.d.ChatReset(p, c)
+	}
+	return err
 }
 
 // Delete removes the chat with its messages, notes and review results.
@@ -423,6 +431,9 @@ func (o *Orchestrator) Delete(ctx context.Context, p id.Project, c id.Chat) erro
 	o.mu.Lock()
 	delete(o.chats, key{p, c})
 	o.mu.Unlock()
+	if o.d.ChatReset != nil {
+		o.d.ChatReset(p, c)
+	}
 	return nil
 }
 

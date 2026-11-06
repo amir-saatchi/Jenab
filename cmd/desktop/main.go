@@ -18,6 +18,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/desktop"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
 	"github.com/amir-saatchi/jenab/internal/project"
@@ -130,14 +131,16 @@ func run(_ []string) (err error) {
 	tools := tool.NewRegistry()
 	tools.Add(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})})...)
 	tools.Add(agent.Tools()...)
+	var chatReset func(id.Project, id.Chat)
 	if runtime.GOOS == "windows" { // desktop control is Windows-only in v1 (SPEC 8.10)
 		prog, _ := desktop.ProgramPath() // "" fails at the first call, with the reason
 		dm := desktop.NewManager(desktop.Deps{
 			Runner: &desktop.CLI{Path: prog, Home: filepath.Join(paths.Root, "agent-desktop")},
 			On:     func() bool { return live.Get().DesktopControl },
-			Self:   os.Getpid(), Class: desktop.WindowClass, Log: log,
+			Self:   os.Getpid(), Class: desktop.WindowClass, Log: log, Store: registry,
 		})
 		tools.Add(dm.Tools()...)
+		chatReset = dm.EndChat
 	}
 	skills, err := skill.Builtin()
 	if err != nil {
@@ -148,7 +151,7 @@ func run(_ []string) (err error) {
 		traces = agent.NewTraces()
 	}
 	orch := agent.New(agent.Deps{Context: ctx, Projects: projects, Models: models, Tools: tools,
-		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Traces: traces, Log: log,
+		Settings: live.Get, Events: wapp.Publisher(), Skills: skills, Traces: traces, Log: log, ChatReset: chatReset,
 		Card: func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, time.Now()) }})
 
 	wapp.Bind(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,

@@ -7,6 +7,10 @@ export {
 } from "./models.js";
 
 export type {
+    DesktopMacro,
+    DesktopRecipe,
+    DesktopRun,
+    DesktopUndo,
     Hit,
     MemorySection,
     RewindInfo,

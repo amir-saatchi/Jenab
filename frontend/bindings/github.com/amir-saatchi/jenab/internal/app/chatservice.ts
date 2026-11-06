@@ -66,6 +66,14 @@ export function Delete(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void>
 }
 
 /**
+ * DesktopSaveUndone reports whether a desktop save is undone now, so its
+ * chip offers Redo after a reload.
+ */
+export function DesktopSaveUndone(r: $models.DesktopUndoRequest): $CancellablePromise<boolean> {
+    return $Call.ByID(2944851613, r);
+}
+
+/**
  * Export saves the chat as a Markdown or JSON file (SPEC 2.3). It reads
  * only what is stored; a part still streaming is left out. Every
  * provider's key and field, and every secret the app has read, is
@@ -222,6 +230,14 @@ export function Snapshot(p: id$0.Project, c: id$0.Chat): $CancellablePromise<$mo
  */
 export function Stop(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> {
     return $Call.ByID(1081880097, p, c);
+}
+
+/**
+ * UndoDesktopSave reverts an agent's macro or recipe save from its chip,
+ * or puts it back. One changed since is left as it is: Changed says so.
+ */
+export function UndoDesktopSave(r: $models.DesktopUndoRequest): $CancellablePromise<store$0.DesktopUndo> {
+    return $Call.ByID(2809054508, r);
 }
 
 /**

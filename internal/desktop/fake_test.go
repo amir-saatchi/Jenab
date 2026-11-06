@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -29,6 +31,9 @@ type fake struct {
 	inputs  []string          // what RunInput got on standard input, in order
 	partial bool              // snapshots are cut short: incomplete, refs unproven
 	snaps   []func(Node) Node // applied one per snapshot, then the last tree stays
+	// onAct changes the window after an action, like an app: the command
+	// and the element's ref.
+	onAct func(f *fake, cmd, ref string)
 }
 
 func (f *fake) Run(ctx context.Context, timeout time.Duration, args ...string) (json.RawMessage, error) {
@@ -82,6 +87,9 @@ func (f *fake) run(input *string, args []string) (json.RawMessage, error) {
 			}
 			return marshal(map[string]int{"count": n})
 		}
+		if flag(args, "--role") != "" || flag(args, "--name") != "" {
+			return marshal(map[string]any{"matches": f.matches(w, args)})
+		}
 		ref := f.focus[w]
 		if ref == "" {
 			return marshal(map[string]any{"match": nil})
@@ -104,9 +112,53 @@ func (f *fake) run(input *string, args []string) (json.RawMessage, error) {
 				n.Value = *input
 			}
 		}
+		if f.onAct != nil {
+			f.onAct(f, args[0], args[1])
+		}
 		return marshal(map[string]any{"disposition": map[string]string{"delivery": "delivered_verified"}})
+	case "click", "toggle", "select", "expand", "collapse":
+		if f.onAct != nil {
+			f.onAct(f, args[0], args[1])
+		}
 	}
 	return marshal(map[string]any{})
+}
+
+// matches is find by role and name, as agent-desktop 1.2.0 answers it:
+// --exact is the whole name without case, else a part of it; path lists
+// the ancestors' roles.
+func (f *fake) matches(w string, args []string) []map[string]any {
+	role, name := flag(args, "--role"), strings.ToLower(flag(args, "--name"))
+	exact := slices.Contains(args, "--exact")
+	limit, _ := strconv.Atoi(flag(args, "--limit"))
+	out := []map[string]any{}
+	var walk func(n Node, path []string)
+	walk = func(n Node, path []string) {
+		nm := strings.ToLower(n.Name)
+		if (role == "" || n.Role == role) && (name == "" || exact && nm == name || !exact && strings.Contains(nm, name)) {
+			var v any
+			if n.Value != "" {
+				v = n.Value
+			}
+			out = append(out, map[string]any{"ref_id": n.Ref, "role": n.Role, "name": n.Name, "value": v, "states": n.States, "path": slices.Clone(path)})
+		}
+		for _, c := range n.Children {
+			walk(c, append(path, n.Role))
+		}
+	}
+	walk(f.trees[w], nil)
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out
+}
+
+// node is the element with ref in window w, to change it.
+func (f *fake) node(w, ref string) *Node {
+	t := f.trees[w]
+	n := find(&t, func(n *Node) bool { return n.Ref == ref })
+	f.trees[w] = t
+	return n
 }
 
 func (f *fake) ran(cmd string) [][]string {
@@ -193,18 +245,7 @@ type harness struct {
 
 func newHarness(t *testing.T) *harness {
 	h := &harness{t: t, f: newFake(), pick: "w-1", answer: chat.GrantOnce, now: time.Date(2026, 11, 3, 10, 0, 0, 0, time.UTC)}
-	h.m = NewManager(Deps{Runner: h.f, On: func() bool { return true }, Self: self, Poll: time.Millisecond,
-		Now: func() time.Time { return h.now },
-		Class: func(w string) string {
-			if w == "w-5" {
-				return "#32770"
-			}
-			return ""
-		}})
-	h.tools = map[string]tool.Tool{}
-	for _, tl := range h.m.Tools() {
-		h.tools[tl.Spec().Name] = tl
-	}
+	h.build(nil)
 	h.env = &tool.Env{Project: &project.Project{ID: id.Project(id.New())}, Chat: id.Chat(id.New()), Turn: 1,
 		Approve: func(_ context.Context, a chat.Approval) (chat.Approval, error) {
 			if h.level != nil && !h.level(a.Kind) {
@@ -225,6 +266,22 @@ func newHarness(t *testing.T) *harness {
 		AtTurnEnd: func(f func()) { h.ends = append(h.ends, f) },
 	}
 	return h
+}
+
+// build makes the manager and its tools, with st for macros and recipes.
+func (h *harness) build(st Store) {
+	h.m = NewManager(Deps{Runner: h.f, On: func() bool { return true }, Self: self, Poll: time.Millisecond, Store: st,
+		Now: func() time.Time { return h.now },
+		Class: func(w string) string {
+			if w == "w-5" {
+				return "#32770"
+			}
+			return ""
+		}})
+	h.tools = map[string]tool.Tool{}
+	for _, tl := range h.m.Tools() {
+		h.tools[tl.Spec().Name] = tl
+	}
 }
 
 // call runs a tool and returns its text, or its error's text.

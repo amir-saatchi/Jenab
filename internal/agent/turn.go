@@ -66,6 +66,9 @@ type turn struct {
 	again        bool     // the check asks for one more request
 
 	atEnd []func() // run when the turn ends (tool.Env.AtTurnEnd)
+	// checks run when the model answers without calls
+	// (tool.Env.BeforeAnswer), such as the desktop reminder (8.11).
+	checks []func() string
 }
 
 // ended runs what the turn's calls asked to run at its end, such as a
@@ -207,7 +210,26 @@ func (r *runner) step(ctx context.Context, t *turn, last bool) (bool, error) {
 			return false, err
 		}
 	}
-	return false, r.ground(ctx, t, req)
+	if err := r.ground(ctx, t, req); err != nil {
+		return false, err
+	}
+	return false, r.remind(ctx, t)
+}
+
+// remind runs the turn's checks before it ends: the first that has a
+// reminder writes it as a notice the model reads, and gets the turn one
+// more request (8.11).
+func (r *runner) remind(ctx context.Context, t *turn) error {
+	for _, c := range t.checks {
+		if text := c(); text != "" {
+			if err := r.notice(ctx, t, chat.NoticeReminder, text); err != nil {
+				return err
+			}
+			t.again = true
+			return nil
+		}
+	}
+	return nil
 }
 
 // response is one model answer, kept in memory until it is complete.
@@ -623,8 +645,10 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	// starts (8.3) will leave them out.
 	env := &tool.Env{
 		Project: r.p, Chat: t.ch.ID, Message: msg, Turn: t.n, Source: id.SourceOf("message", string(msg)),
-		AtTurnEnd: func(f func()) { t.atEnd = append(t.atEnd, f) },
-		Priority:  limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens, ChatStatus: r.o.ChatStatus,
+		AtTurnEnd:    func(f func()) { t.atEnd = append(t.atEnd, f) },
+		BeforeAnswer: func(f func() string) { t.checks = append(t.checks, f) },
+		Model:        t.model,
+		Priority:     limit.Interactive, PreviewTokens: t.set.Context.ToolPreviewTokens, ChatStatus: r.o.ChatStatus,
 		Ask: func(ctx context.Context, q chat.Question) (chat.Question, error) {
 			p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartQuestion, Question: &q})
 			return *p.Question, err

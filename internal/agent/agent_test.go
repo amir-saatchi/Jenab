@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/fake"
@@ -278,6 +280,8 @@ func TestClear(t *testing.T) {
 	started, release := make(chan string, 1), make(chan struct{})
 	h := newHarness(t, t.TempDir(), "", testSettings(), blocker(started, release))
 	defer h.stop()
+	var resets atomic.Int32 // the desktop session's EndChat in the app
+	h.o.d.ChatReset = func(id.Project, id.Chat) { resets.Add(1) }
 	c := h.newChat(chat.Chat{Title: "Prices"})
 	for n := 1; n <= 12; n++ {
 		h.turn(c.ID, fmt.Sprint("message ", n))
@@ -292,6 +296,9 @@ func TestClear(t *testing.T) {
 	h.wait()
 	if err := h.o.Clear(context.Background(), h.pid, c.ID); err != nil {
 		t.Fatal(err)
+	}
+	if n := resets.Load(); n != 1 {
+		t.Errorf("ChatReset called %d times, want 1 (not for the Clear refused in a turn)", n)
 	}
 	h.turn(c.ID, "fresh start")
 	calls := h.fp.Calls()

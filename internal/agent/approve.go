@@ -74,11 +74,12 @@ var rules = map[string][3]decision{
 	"desktop_window": {ask, ask, ask},
 	"desktop_key":    {ask, ask, ask},
 	"desktop_action": {ask, noAsk, noAsk},
+	"desktop_macro":  {ask, noAsk, noAsk},
 }
 
 // fresh are the kinds whose earlier answers never count: each asks
 // anew (6.7, 8.10).
-var fresh = map[string]bool{"private": true, "desktop_window": true, "desktop_key": true, "desktop_action": true}
+var fresh = map[string]bool{"private": true, "desktop_window": true, "desktop_key": true, "desktop_action": true, "desktop_macro": true}
 
 // levelDecision is what level l does with an approval of kind.
 func levelDecision(l project.Level, kind string, untrusted bool) decision {

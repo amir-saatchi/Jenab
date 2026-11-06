@@ -138,6 +138,68 @@ export interface Deleted {
 }
 
 /**
+ * DesktopAppItem is one app in Settings › Desktop.
+ */
+export interface DesktopAppItem {
+    "app": string;
+    "macros": DesktopMacroItem[] | null;
+    "recipes": store$0.DesktopRecipe[] | null;
+}
+
+/**
+ * DesktopList is Settings › Desktop: each app's macros and recipes, and
+ * what was removed in the last 30 days.
+ */
+export interface DesktopList {
+    "apps": DesktopAppItem[] | null;
+    "removed_macros": store$0.DesktopMacro[] | null;
+    "removed_recipes": store$0.DesktopRecipe[] | null;
+}
+
+/**
+ * DesktopMacroEdit is the user's edit of a macro: Steps is the JSON list
+ * Settings shows.
+ */
+export interface DesktopMacroEdit {
+    "id": number;
+    "description": string;
+    "params": string[] | null;
+    "steps": string;
+}
+
+/**
+ * DesktopMacroItem is a macro in Settings › Desktop: its steps as a list
+ * to read and as JSON to edit, and its last runs.
+ */
+export interface DesktopMacroItem {
+    "macro": store$0.DesktopMacro;
+    "listing": string;
+    "steps": string;
+    "runs": store$0.DesktopRun[] | null;
+}
+
+/**
+ * DesktopRecipeWrite is the user's recipe: ID 0 for a new one, with its
+ * app, site and name; else an edit of ID's text.
+ */
+export interface DesktopRecipeWrite {
+    "id": number;
+    "app": string;
+    "site": string;
+    "name": string;
+    "text": string;
+}
+
+/**
+ * DesktopUndoRequest names a desktop save's notice (SPEC 8.11): Change
+ * is the notice's Change.
+ */
+export interface DesktopUndoRequest {
+    "change": string;
+    "redo": boolean;
+}
+
+/**
  * ExportRequest is the place the user chose in the save dialog.
  */
 export interface ExportRequest {

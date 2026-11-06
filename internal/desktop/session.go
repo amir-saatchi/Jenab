@@ -34,6 +34,9 @@ type Deps struct {
 	// Poll is how long desktop_wait and a browser's first snapshot wait
 	// between tries; 0 is a second.
 	Poll time.Duration
+	// Store keeps macros and recipes (8.11): registry.db in the app. Nil
+	// leaves the macro and recipe tools without effect.
+	Store Store
 }
 
 // Manager holds each chat's session: one window, in one turn.
@@ -42,6 +45,10 @@ type Manager struct {
 	mu       sync.Mutex
 	sessions map[key]*Session
 	ended    map[key]string // why a chat's last session ended, for the next call
+	// last is a chat's session after it ended, for the saves of the rest
+	// of its turn: a model often ends the session, then saves.
+	last    map[key]*Session
+	shipped sync.Once // the recipes that come with Jenab are in the store
 }
 
 type key struct {
@@ -63,7 +70,7 @@ func NewManager(d Deps) *Manager {
 	if d.On == nil {
 		d.On = func() bool { return false }
 	}
-	return &Manager{d: d, sessions: map[key]*Session{}, ended: map[key]string{}}
+	return &Manager{d: d, sessions: map[key]*Session{}, ended: map[key]string{}, last: map[key]*Session{}}
 }
 
 // Session is one locked window: its id and agent-desktop's process
@@ -83,7 +90,18 @@ type Session struct {
 	ids      map[string]string // Jenab's id → agent-desktop's ref
 	nodes    map[string]Node
 	last     []string // the latest tree, for the change line
+	lastAll  []Node   // its elements, for the log check
 	keyAsked bool     // the first key press was approved
+
+	// The recorder (8.11): the steps that worked, in memory for this
+	// session only.
+	done      []Step
+	byHand    int             // the model's own actions that worked
+	saved     bool            // a macro or recipe was saved
+	reminded  bool            // the reminder to save was given
+	failed    map[string]bool // macros whose replay failed in this session
+	changedBy []Node          // the elements the last action changed
+	before    []Node          // the elements before it
 }
 
 // session returns the chat's open session for this turn.
@@ -112,8 +130,25 @@ func (m *Manager) end(s *Session, why string) {
 	if m.sessions[s.key] == s {
 		delete(m.sessions, s.key)
 		m.ended[s.key] = why
+		m.last[s.key] = s
 		m.d.Log.Info("desktop: session ended", "app", s.win.App, "why", why, "snapshots", s.snaps, "took", m.d.Now().Sub(s.started).Round(time.Second))
 	}
+}
+
+// EndChat drops all a chat keeps here: its session, the session kept for
+// the saves of its turn and why the last one ended. The orchestrator calls
+// it when the chat's turn numbers start again (a Clear, a rewind), so a
+// new turn with an old number can't reach an old turn's window or steps.
+func (m *Manager) EndChat(p id.Project, c id.Chat) {
+	k := key{p, c}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s := m.sessions[k]; s != nil {
+		m.d.Log.Info("desktop: session ended", "app", s.win.App, "why", "the chat was reset", "snapshots", s.snaps)
+	}
+	delete(m.sessions, k)
+	delete(m.last, k)
+	delete(m.ended, k)
 }
 
 // endError ends the session and is the error the model gets.

@@ -25,6 +25,7 @@ type ChatService struct {
 	projects *project.Manager
 	secrets  *secret.Store // for Export's redaction; nil redacts nothing
 	settings *Settings     // the providers whose keys Export hides, and the model aliases; may be nil
+	registry *store.Registry
 }
 
 // ChatItem is a row of the chat list.

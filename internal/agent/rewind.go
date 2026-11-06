@@ -162,7 +162,9 @@ func (o *Orchestrator) UndoRewind(ctx context.Context, p id.Project, c id.Chat, 
 // from the store again, and the window is built again at the next turn,
 // a cut with a new cached prefix (3.6). Traces of turns after turn go.
 // With empty, the chat has no turn left, so a title still being made
-// from its first turn is dropped, as after Clear. cs.mu is held.
+// from its first turn is dropped, as after Clear. Per-chat tool state,
+// such as the desktop session (8.10), is ended: the turn numbers it is
+// keyed by come again. cs.mu is held.
 func (o *Orchestrator) rewound(ctx context.Context, cs *chatState, proj *project.Project, turn int, empty bool) {
 	if empty {
 		cs.clears++
@@ -173,6 +175,9 @@ func (o *Orchestrator) rewound(ctx context.Context, cs *chatState, proj *project
 		o.d.Log.Warn("agent: reading the chat after a rewind", "chat", cs.key.c, "err", err)
 	}
 	o.d.Traces.dropAfter(cs.key.p, cs.key.c, turn)
+	if o.d.ChatReset != nil {
+		o.d.ChatReset(cs.key.p, cs.key.c)
+	}
 	o.publishStatus(cs)
 }
 

@@ -20,6 +20,8 @@ test("a chip saved without a note shows as before", () => {
 test("a desktop step shows the lengths of its texts, not the texts (SPEC 8.10)", () => {
   expect(desktopArgs({ id: "2:e7", action: "set_value", text: "my secret sentence" })).toBe("2:e7 · set_value · text: 18 characters")
   expect(desktopArgs('{"full":true}')).toBe("full true")
+  // A macro's params are values typed into the window: only their count (SPEC 8.11).
+  expect(desktopArgs({ name: "site_search", params: ["query=blue folders"] })).toBe("site_search · params: 1")
   const html = renderToStaticMarkup(
     createElement(ToolChip, {
       call: { id: "c1", name: "desktop_snapshot", args: {} },

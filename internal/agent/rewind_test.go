@@ -197,6 +197,8 @@ func TestUndoRewind(t *testing.T) {
 	h, c := rewindHarness(t, t.TempDir(), "")
 	defer h.stop()
 	ctx := context.Background()
+	var resets int // the desktop session's EndChat in the app
+	h.o.d.ChatReset = func(id.Project, id.Chat) { resets++ }
 	before := texts(h.messages(c.ID))
 	r, err := h.o.Rewind(ctx, h.pid, c.ID, 1)
 	if err != nil {
@@ -204,6 +206,9 @@ func TestUndoRewind(t *testing.T) {
 	}
 	if err := h.o.UndoRewind(ctx, h.pid, c.ID, r.Rewind); err != nil {
 		t.Fatal(err)
+	}
+	if resets != 2 {
+		t.Errorf("ChatReset called %d times, want 2 (the rewind and its undo)", resets)
 	}
 	if got := texts(h.messages(c.ID)); !slices.Equal(got, before) {
 		t.Errorf("after the undo:\n%q\nwant\n%q", got, before)

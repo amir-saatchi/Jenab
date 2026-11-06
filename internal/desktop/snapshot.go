@@ -53,6 +53,7 @@ const maxLines = 400
 type view struct {
 	text  string
 	lines []string // without ids and indent, for the change line
+	all   []Node   // the element of each line, without children
 	ids   map[string]string
 	nodes map[string]Node
 }
@@ -72,6 +73,9 @@ func compact(roots []Node, n int) view {
 			} else {
 				line := describe(nd)
 				v.lines = append(v.lines, line)
+				flat := nd
+				flat.Children = nil
+				v.all = append(v.all, flat)
 				b.WriteString(strings.Repeat("  ", depth))
 				b.WriteString("- " + nd.Role)
 				if nd.Name != "" {
@@ -120,6 +124,23 @@ func describe(n Node) string {
 		s += " (" + strings.Join(n.States, ", ") + ")"
 	}
 	return s
+}
+
+// changed are the elements of after whose line is new since before.
+func changed(before []string, after view) []Node {
+	count := map[string]int{}
+	for _, l := range before {
+		count[l]++
+	}
+	var out []Node
+	for i, l := range after.lines {
+		if count[l] > 0 {
+			count[l]--
+		} else {
+			out = append(out, after.all[i])
+		}
+	}
+	return out
 }
 
 // changes is the line after an action (8.10): what is new in the window

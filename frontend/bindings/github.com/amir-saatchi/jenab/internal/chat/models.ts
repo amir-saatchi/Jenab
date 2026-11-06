@@ -375,6 +375,20 @@ export enum NoticeKind {
      * instead.
      */
     NoticeRewound = "rewound",
+
+    /**
+     * NoticeDesktopSaved is the chip of a desktop macro or recipe an agent
+     * saved, in the tool message (8.11): Target is desktop:macro:<id> or
+     * desktop:recipe:<id>, Change the save its Undo reverts, Details the
+     * steps.
+     */
+    NoticeDesktopSaved = "desktop_saved",
+
+    /**
+     * NoticeReminder is the app's reminder to the model before it answers,
+     * such as to save a desktop task (8.11). The model reads it.
+     */
+    NoticeReminder = "reminder",
 };
 
 /**

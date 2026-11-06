@@ -67,6 +67,7 @@ const kinds: Record<string, string> = {
   desktop_window: "Other app's window",
   desktop_action: "Other app's window",
   desktop_key: "Key press",
+  desktop_macro: "Macro",
 }
 
 

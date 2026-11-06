@@ -123,6 +123,7 @@ func TestDesktopApprovalRows(t *testing.T) {
 		"desktop_window": {ask, ask, ask},
 		"desktop_key":    {ask, ask, ask},
 		"desktop_action": {ask, noAsk, noAsk},
+		"desktop_macro":  {ask, noAsk, noAsk},
 	} {
 		for i, l := range []project.Level{project.Strict, project.Standard, project.Auto} {
 			for _, untrusted := range []bool{false, true} {
@@ -135,4 +136,58 @@ func TestDesktopApprovalRows(t *testing.T) {
 			t.Errorf("%s: an earlier answer would count", kind)
 		}
 	}
+}
+
+// A tool's check before the answer (8.11): the first answer without calls
+// gets the reminder as a notice the model reads, and one more request;
+// the check answers once, so the turn then ends. The tool sees the model.
+func TestReminderBeforeAnswer(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var model string
+		var asked int
+		act := tool.Func(tool.Spec{Name: "act", Description: "Acts.", Schema: json.RawMessage(`{"type": "object"}`), UserTurns: true},
+			func(_ context.Context, env *tool.Env, _ struct{}) (tool.Result, error) {
+				model = env.Model
+				env.BeforeAnswer(func() string {
+					asked++
+					if asked == 1 {
+						return "Before you answer: save it."
+					}
+					return ""
+				})
+				return tool.Result{Text: "done"}, nil
+			})
+		h := newHarness(t, t.TempDir(), "", testSettings(), append(cardTools(), act)...)
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Desk"})
+		h.fp.Push(fake.ToolCall("c1", "act", struct{}{}), fake.Text("It is done."), fake.Text("Saved, and done."))
+		h.turn(c.ID, "do it")
+		tx := texts(h.messages(c.ID))
+		i := slices.Index(tx, "user: Before you answer: save it.")
+		if i < 0 || i == 0 || tx[i-1] != "assistant: It is done." || tx[len(tx)-1] != "assistant: Saved, and done." {
+			t.Fatalf("messages: %q", tx)
+		}
+		calls := h.fp.Calls()
+		if len(calls) != 3 || asked != 2 {
+			t.Fatalf("%d requests, %d checks; want 3 and 2", len(calls), asked)
+		}
+		var sent bool
+		for _, m := range calls[2].Messages {
+			for _, p := range m.Parts {
+				sent = sent || p.Text != nil && strings.Contains(p.Text.Text, "save it") || p.Notice != nil && strings.Contains(p.Notice.Text, "save it")
+			}
+		}
+		if !sent {
+			t.Fatal("the model didn't get the reminder")
+		}
+		if model == "" {
+			t.Fatal("the tool didn't see the turn's model")
+		}
+		// The next turn starts without the check.
+		h.fp.Push(fake.Text("Hi."))
+		h.turn(c.ID, "hello")
+		if asked != 2 {
+			t.Fatalf("a check of the last turn ran again: %d", asked)
+		}
+	})
 }

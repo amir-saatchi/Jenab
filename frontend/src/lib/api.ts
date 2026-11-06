@@ -15,6 +15,9 @@ export type {
   ConnectRequest,
   ConnectResult,
   Deleted,
+  DesktopAppItem,
+  DesktopList,
+  DesktopMacroItem,
   ExportRequest,
   MemoryEdit,
   MemorySaved,
@@ -98,7 +101,15 @@ export type {
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ExportFormat, ExportStep } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ConflictReason } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
-export type { MemorySection, RewindInfo, UndoConflict, UndoItem } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
+export type {
+  DesktopMacro,
+  DesktopRecipe,
+  DesktopRun,
+  MemorySection,
+  RewindInfo,
+  UndoConflict,
+  UndoItem,
+} from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Reading as MemoryReading } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Info as VersionInfo } from "../../bindings/github.com/amir-saatchi/jenab/internal/version/models"

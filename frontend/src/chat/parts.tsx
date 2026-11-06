@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BookmarkIcon, BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, InfoIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { BookmarkIcon, BrainIcon, CheckIcon, ChevronRightIcon, CopyIcon, DatabaseIcon, InfoIcon, MousePointerClickIcon, SparklesIcon, TriangleAlertIcon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +14,7 @@ import { splitLinks } from "@/lib/files"
 import { cn } from "@/lib/utils"
 import { Markdown } from "@/chat/markdown"
 import { flash } from "@/chat/quote"
-import { openMemory } from "@/shell/open"
+import { openDesktop, openMemory } from "@/shell/open"
 import { openAnchor, openHere } from "@/shell/open-file"
 
 // AgentText is the agent's text. source is its message, for *Reply* on a
@@ -187,7 +187,14 @@ export function desktopArgs(args: unknown): string {
     if (v && typeof v === "object") {
       return Object.entries(v as Record<string, unknown>)
         .map(([k, x]) =>
-          typeof x !== "string" ? `${k} ${String(x)}` : ["id", "action", "key"].includes(k) ? x : `${k}: ${characters(x.length)}`,
+          // A macro's params and log hold values typed into the window: only their count.
+          Array.isArray(x)
+            ? `${k}: ${x.length}`
+            : typeof x !== "string"
+              ? `${k} ${String(x)}`
+              : ["id", "action", "key", "name"].includes(k)
+                ? x
+                : `${k}: ${characters(x.length)}`,
         )
         .join(" · ")
     }
@@ -315,6 +322,73 @@ export function MemoryChip({ project, notice }: { project: string; notice: ChatN
       </div>
       <MemoryNote note={notice.note} />
     </div>
+  )
+}
+
+// DesktopSavedChip marks a desktop macro or recipe the agent saved without
+// asking (SPEC 8.11): Macro saved: site_search (6 steps) [View steps]
+// [Undo] [Edit]. Undo removes the save, or puts back the version before
+// it; Redo puts the save back. Edit opens Settings › Desktop.
+export function DesktopSavedChip({ notice }: { notice: ChatNotice }) {
+  const [undone, setUndone] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+  const change = notice.change ?? ""
+  React.useEffect(() => {
+    if (!change) return
+    let live = true
+    ChatService.DesktopSaveUndone({ change, redo: false })
+      .then((u) => live && setUndone(u))
+      .catch(() => {}) // the chip keeps Undo; a click says what is wrong
+    return () => {
+      live = false
+    }
+  }, [change])
+  const flip = async () => {
+    setBusy(true)
+    try {
+      const r = await ChatService.UndoDesktopSave({ change, redo: undone })
+      setUndone(r.undone)
+      if (r.changed) toast.info("It changed since, so it was left as it is. Edit it in Settings › Desktop.")
+      else if (!r.done) toast.info(r.undone ? "This save was already undone." : "This save is already back.")
+    } catch (err) {
+      showError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Collapsible className="flex flex-col gap-1.5 not-typeset">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Badge variant="outline" className="h-6 w-fit font-normal text-muted-foreground">
+          <MousePointerClickIcon data-icon="inline-start" />
+          <span dir="auto">{notice.text}</span>
+          {undone && <span>· undone</span>}
+        </Badge>
+        {notice.details && (
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="xs" className="w-fit text-muted-foreground">
+              {notice.target?.startsWith("desktop:macro:") ? "View steps" : "View text"}
+              <ChevronRightIcon data-icon="inline-end" className="transition-transform group-data-[state=open]/button:rotate-90" />
+            </Button>
+          </CollapsibleTrigger>
+        )}
+        {change && (
+          <Button variant="ghost" size="xs" className="text-muted-foreground" disabled={busy} onClick={() => void flip()}>
+            {undone ? "Redo" : "Undo"}
+          </Button>
+        )}
+        <Button variant="ghost" size="xs" className="text-muted-foreground" onClick={() => openDesktop()}>
+          Edit
+        </Button>
+      </div>
+      {notice.details && (
+        <CollapsibleContent>
+          <pre dir="auto" className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-muted/60 p-3 text-start font-mono text-xs">
+            {notice.details}
+          </pre>
+        </CollapsibleContent>
+      )}
+    </Collapsible>
   )
 }
 

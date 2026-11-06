@@ -50,6 +50,12 @@ export function openMemory(project: string, target: string) {
   else useNav.getState().go({ view: "project-settings", project, section: "Memory" })
 }
 
+// openDesktop opens Settings › Desktop, the saved macros and recipes
+// (SPEC 8.11).
+export function openDesktop() {
+  useNav.getState().go({ view: "settings", section: "Desktop" })
+}
+
 // backToChats leaves Settings for the chat used last, or the first-run
 // screen when there is none.
 export function backToChats() {

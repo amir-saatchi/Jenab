@@ -34,7 +34,7 @@ func (m *Manager) Tools() []tool.Tool {
 		}
 		return s
 	}
-	return []tool.Tool{
+	return append([]tool.Tool{
 		tool.Func(spec(tool.Spec{Name: "desktop_start", Timeout: 2 * time.Minute,
 			Description: "Ask the user for one window of another app on this computer for you to read and use, such as a browser or an editor. Only for what no other tool can do. Name the app you want; the user picks the window in a card, and you see only that one. Say why in one line.",
 			Schema: json.RawMessage(`{"type":"object","properties":{` +
@@ -63,7 +63,7 @@ func (m *Manager) Tools() []tool.Tool {
 			Description: "Stop using the picked window, once the task is done.",
 			Schema:      json.RawMessage(`{"type":"object","properties":{},"additionalProperties":false}`),
 		}), m.endTool),
-	}
+	}, m.macroTools(spec)...)
 }
 
 type startArgs struct {
@@ -164,14 +164,18 @@ func (m *Manager) start(ctx context.Context, env *tool.Env, a startArgs) (tool.R
 	m.mu.Lock()
 	m.sessions[k] = s
 	delete(m.ended, k)
+	delete(m.last, k)
 	m.mu.Unlock()
 	env.AtTurnEnd(func() { m.end(s, "the turn ended") })
+	m.remind(env, s)
+	m.prepare(ctx)
 	m.d.Log.Info("desktop: session started", "app", w.App, "browser", s.browser)
 	kind := "window"
 	if s.browser {
 		kind = "browser window; you see its page and the address bar's site, and the session stays on the first site it opens"
 	}
-	return tool.Result{Text: fmt.Sprintf("The user picked %q (%s). Take a snapshot to see it. The session ends after 10 minutes, at desktop_end, or when this turn ends.", title(w), kind)}, nil
+	return tool.Result{Text: fmt.Sprintf("The user picked %q (%s). Take a snapshot to see it. The session ends after 10 minutes, at desktop_end, or when this turn ends.", title(w), kind) +
+		m.savedList(ctx, s)}, nil
 }
 
 type snapshotArgs struct {
@@ -187,33 +191,13 @@ func (m *Manager) snapshotTool(ctx context.Context, env *tool.Env, a snapshotArg
 	if err := s.check(ctx); err != nil {
 		return tool.Result{}, err
 	}
-	n := s.snaps + 1
-	v, snap, err := s.snapshot(ctx, a.Full, n)
+	text, err := s.look(ctx, a.Full)
 	if err != nil {
 		return tool.Result{}, err
 	}
-	s.snaps, s.full, s.last = n, a.Full, v.lines
-	s.remember(v)
-	var b strings.Builder
-	if s.browser {
-		site := s.origin
-		if site == "" {
-			site = "no site yet"
-		}
-		fmt.Fprintf(&b, "Browser window %q (snapshot %d), page: %s\n", title(s.win), n, site)
-	} else {
-		fmt.Fprintf(&b, "Window %q (snapshot %d)\n", title(s.win), n)
-	}
-	b.WriteString(v.text)
-	switch {
-	case snap.Unproven:
-		b.WriteString("[the tree is incomplete: the app didn't answer in time, and its ids may be refused. Take a new snapshot before you act]\n")
-	case !snap.Complete:
-		b.WriteString("[the tree is incomplete: the app didn't answer in time]\n")
-	}
-	m.d.Log.Info("desktop: snapshot", "app", s.win.App, "n", n, "full", a.Full, "lines", len(v.lines), "chars", b.Len(), "took", m.d.Now().Sub(start).Milliseconds())
-	return tool.Result{Text: b.String(), Whole: true, Series: "desktop_snapshot",
-		Stub: fmt.Sprintf("[snapshot %d of %q — replaced by a newer snapshot]", n, title(s.win))}, nil
+	m.d.Log.Info("desktop: snapshot", "app", s.win.App, "n", s.snaps, "full", a.Full, "lines", len(s.last), "chars", len(text), "took", m.d.Now().Sub(start).Milliseconds())
+	return tool.Result{Text: text, Whole: true, Series: "desktop_snapshot",
+		Stub: fmt.Sprintf("[snapshot %d of %q — replaced by a newer snapshot]", s.snaps, title(s.win))}, nil
 }
 
 type actArgs struct {
@@ -228,7 +212,6 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 	if err != nil {
 		return tool.Result{}, err
 	}
-	start := m.d.Now()
 	ref, ok := s.ids[a.ID]
 	if !ok {
 		return tool.Result{}, tool.Errorf("%q is not an id from this session's snapshots. Take a snapshot and use an id from it.", a.ID)
@@ -242,10 +225,27 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 			return tool.Result{}, err
 		}
 	}
-	n := s.nodes[a.ID]
+	out, err := s.do(ctx, env, a, ref, s.nodes[a.ID], true)
+	if err != nil {
+		return tool.Result{}, err
+	}
+	s.byHand++
+	return tool.Result{Text: out}, nil
+}
+
+// do runs one action on the element ref, n, with every 8.10 guard: the
+// consent, password and key rules, the cards, and after it the site lock,
+// the CAPTCHA stop and a password field's end. ask is false in a replay,
+// which asked once at Strict: only the first key press still asks. A
+// done action is recorded (8.11). It returns the result's text.
+func (s *Session) do(ctx context.Context, env *tool.Env, a actArgs, ref string, n Node, ask bool) (string, error) {
+	m := s.m
+	start := m.d.Now()
 	var cmd []string
 	var input *string // standard input, for --stdin
 	var target *Node  // where a key goes
+	var err error
+	step := Step{Do: a.Action, Role: n.Role, Name: Names{n.Name}}
 	switch a.Action {
 	case "click", "toggle", "expand", "collapse":
 		cmd = []string{a.Action, ref}
@@ -253,52 +253,60 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 		// The text goes through standard input, never the arguments, which
 		// other programs can read in the process list (8.10).
 		if strings.ContainsRune(a.Text, 0) {
-			return tool.Result{}, tool.Errorf("the text has a NUL character, which can't be set; leave it out")
+			return "", tool.Errorf("the text has a NUL character, which can't be set; leave it out")
 		}
 		cmd, input = []string{"set-value", ref, "--stdin"}, &a.Text
+		step.Text = a.Text
 	case "select":
 		if a.Text == "" {
-			return tool.Result{}, tool.Errorf("select needs text: the option to pick")
+			return "", tool.Errorf("select needs text: the option to pick")
 		}
 		// An option's name is on the screen already; agent-desktop's
 		// select has no --stdin.
 		cmd = []string{"select", ref, a.Text}
+		step.Text = a.Text
 	case "press":
-		if !slices.Contains([]string{"return", "escape", "tab", "backspace"}, a.Key) {
-			return tool.Result{}, tool.Errorf("press needs key: return, escape, tab or backspace")
+		if !slices.Contains(keys, a.Key) {
+			return "", tool.Errorf("press needs key: return, escape, tab or backspace")
 		}
 		// A key goes to the element that has the focus in the app, which
 		// must be in the locked window (8.10).
 		if target, err = s.focused(ctx); err != nil {
-			return tool.Result{}, err
+			return "", err
 		}
 		if target == nil {
-			return tool.Result{}, tool.Errorf("no element of the window has the keyboard focus, so the key could go somewhere else. Click or set a value in the element first, or use another action.")
+			return "", tool.Errorf("no element of the window has the keyboard focus, so the key could go somewhere else. Click or set a value in the element first, or use another action.")
 		}
 		n = *target
 		cmd = []string{"press", a.Key, "--window-id", s.win.ID}
+		step = Step{Do: "press", Key: a.Key}
 	default:
-		return tool.Result{}, tool.Errorf("unknown action %q", a.Action)
+		return "", tool.Errorf("unknown action %q", a.Action)
+	}
+	if n.Name == "" {
+		step.Name = nil
 	}
 	if a.Action != "set_value" && isConsent(n) {
-		return tool.Result{}, tool.Errorf("refused: the user doesn't allow accepting cookies, terms or other consent. Decline instead, or stop and tell the user.")
+		return "", tool.Errorf("refused: the user doesn't allow accepting cookies, terms or other consent. Decline instead, or stop and tell the user.")
 	}
 	if a.Action == "set_value" || a.Action == "select" || a.Action == "press" {
 		if isPassword(n) {
-			return tool.Result{}, tool.Errorf("refused: this is a password or code field. Ask the user to type it themselves.")
+			return "", tool.Errorf("refused: this is a password or code field. Ask the user to type it themselves.")
 		}
 		if a.Action != "press" {
 			st, err := s.states(ctx, ref)
 			if err != nil {
-				return tool.Result{}, err
+				return "", err
 			}
 			if slices.Contains(st, "secure") {
-				return tool.Result{}, tool.Errorf("refused: this is a password field. Ask the user to type it themselves.")
+				return "", tool.Errorf("refused: this is a password field. Ask the user to type it themselves.")
 			}
 		}
 	}
-	if err := s.approve(ctx, env, a, n); err != nil {
-		return tool.Result{}, err
+	if ask || a.Action == "press" && !s.keyAsked {
+		if err := s.approve(ctx, env, a, n); err != nil {
+			return "", err
+		}
 	}
 	var data json.RawMessage
 	if input != nil {
@@ -307,8 +315,8 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 		data, err = m.d.Runner.Run(ctx, callTimeout, cmd...)
 	}
 	if err != nil {
-		m.d.Log.Info("desktop: act", "app", s.win.App, "action", a.Action, "text_len", len([]rune(a.Text)), "failed", true, "took", m.d.Now().Sub(start).Milliseconds())
-		return tool.Result{}, s.fail(err)
+		m.d.Log.Info("desktop: act", "app", s.win.App, "action", a.Action, "text_len", len([]rune(a.Text)), "failed", true, "replay", !ask, "took", m.d.Now().Sub(start).Milliseconds())
+		return "", s.fail(err)
 	}
 	out := delivery(data)
 	if a.Action == "press" {
@@ -317,15 +325,17 @@ func (m *Manager) act(ctx context.Context, env *tool.Env, a actArgs) (tool.Resul
 	// After each action, one line on what changed (8.10).
 	v, snap, err := s.snapshot(ctx, s.full, 0)
 	if err != nil {
-		return tool.Result{}, err
+		return "", err
 	}
 	if anySecure(&snap.Tree) {
-		return tool.Result{}, s.endError("a password field is in the window now. The user has to fill it in themselves")
+		return "", s.endError("a password field is in the window now. The user has to fill it in themselves")
 	}
 	out += " " + changes(s.last, v.lines)
-	s.last = v.lines
-	m.d.Log.Info("desktop: act", "app", s.win.App, "action", a.Action, "text_len", len([]rune(a.Text)), "result_len", len(out), "took", m.d.Now().Sub(start).Milliseconds())
-	return tool.Result{Text: out}, nil
+	s.changedBy, s.before = changed(s.last, v), s.lastAll
+	s.last, s.lastAll = v.lines, v.all
+	s.did(step)
+	m.d.Log.Info("desktop: act", "app", s.win.App, "action", a.Action, "text_len", len([]rune(a.Text)), "result_len", len(out), "replay", !ask, "took", m.d.Now().Sub(start).Milliseconds())
+	return out, nil
 }
 
 // approve asks for the cards an action needs (8.10): the first key press
@@ -428,8 +438,10 @@ func (m *Manager) wait(ctx context.Context, env *tool.Env, a waitArgs) (tool.Res
 		_ = json.Unmarshal(data, &c)
 		switch there := c.Count > 0; {
 		case there && !a.Gone:
+			s.did(Step{Do: "wait", Name: Names{a.Text}})
 			return tool.Result{Text: "The text is in the window now."}, nil
 		case !there && a.Gone:
+			s.did(Step{Do: "wait_gone", Name: Names{a.Text}})
 			return tool.Result{Text: "The text is gone from the window."}, nil
 		case waited >= limit:
 			state := "still not there"
