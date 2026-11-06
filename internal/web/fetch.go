@@ -66,6 +66,12 @@ type Rules struct {
 	// addresses; nil blocks them.
 	AskPrivate PrivateAsk
 	Redirect   RedirectCheck // nil follows redirects to any host
+	// PrivateOnly is a host this fetch may reach only at private
+	// addresses: its host card was left to the private card, which asks
+	// before it connects (6.7, 8.8). A public address for it is refused,
+	// so a name that resolves elsewhere since the check can't skip the
+	// host card.
+	PrivateOnly string
 }
 
 // Resolver finds a host's addresses. net.DefaultResolver is one; tests use
@@ -123,11 +129,11 @@ func (c *Client) transport(allow HostCheck, f *fetchState) *http.Transport {
 // the fetch, so a connection opened under one project's exception or one
 // fetch's answer is never reused without it.
 func (c *Client) client(ctx context.Context, r Rules) (*http.Client, func()) {
-	if r.Private == nil && r.AskPrivate == nil {
+	if r.Private == nil && r.AskPrivate == nil && r.PrivateOnly == "" {
 		return &http.Client{Transport: c.hc.Transport, CheckRedirect: checkRedirect(r.Redirect, nil)}, func() {}
 	}
 	fctx, cancel := context.WithCancel(ctx)
-	f := &fetchState{ctx: fctx, ask: r.AskPrivate, from: map[string]string{}, allowed: map[string][]netip.Addr{}}
+	f := &fetchState{ctx: fctx, ask: r.AskPrivate, only: r.PrivateOnly, from: map[string]string{}, allowed: map[string][]netip.Addr{}}
 	t := c.transport(r.Private, f)
 	return &http.Client{Transport: t, CheckRedirect: checkRedirect(r.Redirect, f)}, func() {
 		cancel()
@@ -140,8 +146,9 @@ func (c *Client) client(ctx context.Context, r Rules) (*http.Client, func()) {
 type fetchState struct {
 	// ctx is the fetch's, cancelled when it returns: a dial's own is
 	// detached from the request, so Stop wouldn't end the question.
-	ctx context.Context
-	ask PrivateAsk
+	ctx  context.Context
+	ask  PrivateAsk
+	only string // Rules.PrivateOnly
 
 	mu      sync.Mutex
 	from    map[string]string       // a host the fetch was redirected to → the host before it
@@ -358,7 +365,13 @@ func (c *Client) dialer(allow HostCheck, f *fetchState) func(ctx context.Context
 		dial := func(a netip.Addr) (net.Conn, error) {
 			return d.DialContext(ctx, network, net.JoinHostPort(a.Unmap().String(), port))
 		}
+		only := f != nil && f.only != "" && f.only == h
 		for _, a := range addrs {
+			if only && blocked(a) == "" {
+				lastErr = &BlockedError{URL: host, Reason: "it resolved to a public address (" + a.Unmap().String() +
+					") after it was checked for a private one; fetch it again"}
+				continue
+			}
 			if why := blocked(a); why != "" && !exception && !f.mayConnect(h, a) {
 				held = append(held, a.Unmap())
 				lastErr = &BlockedError{URL: host, Reason: why + " (" + a.Unmap().String() + ")", Private: true}
@@ -395,6 +408,32 @@ func (c *Client) dialer(allow HostCheck, f *fetchState) func(ctx context.Context
 		}
 		return nil, lastErr
 	}
+}
+
+// lookupTimeout bounds Private's lookup.
+const lookupTimeout = 5 * time.Second
+
+// Private reports whether host reaches only addresses the network rules
+// hold back (6.7): it is such an address, or a name whose addresses all
+// are, as a fetch would find them now. False if the lookup fails or finds
+// none: the fetch then fails or asks on its own.
+func (c *Client) Private(ctx context.Context, host string) bool {
+	h := canonical(host)
+	if a, err := netip.ParseAddr(h); err == nil {
+		return blocked(a) != ""
+	}
+	ctx, cancel := context.WithTimeout(ctx, lookupTimeout)
+	defer cancel()
+	addrs, err := c.resolver.LookupNetIP(ctx, "ip", h)
+	if err != nil || len(addrs) == 0 {
+		return false
+	}
+	for _, a := range addrs {
+		if blocked(a) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // ParseHost checks a host for the exceptions (6.7): a name or an address,

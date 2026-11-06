@@ -60,10 +60,22 @@ func (t *fetchPage) Preflight(ctx context.Context, call Call) (Needs, error) {
 	if err != nil {
 		return Needs{}, &Error{Msg: err.Error(), Err: err}
 	}
-	return Needs{
-		Effects:   t.Spec().Effects,
-		Approvals: []chat.Approval{HostApproval(Host(u), "fetch_page")},
-	}, nil
+	h := Host(u)
+	n := Needs{Effects: t.Spec().Effects, Approvals: []chat.Approval{HostApproval(h, "fetch_page")}}
+	if t.web != nil && !hostApproved(ctx, call.Env, h) && t.web.Private(ctx, h) {
+		n.Private = h // one card asks for both (6.7)
+	}
+	return n, nil
+}
+
+// hostApproved reports whether host is approved for env's project, so
+// Preflight skips the lookup for it.
+func hostApproved(ctx context.Context, env *Env, host string) bool {
+	if env == nil || env.Project == nil {
+		return false
+	}
+	ok, err := env.Project.DB.Approved(ctx, "host", host)
+	return err == nil && ok
 }
 
 // HostApproval is the approval card for a new host (6.7, 8.8).
@@ -81,7 +93,8 @@ func HostApproval(host, by string) chat.Approval {
 
 func (t *fetchPage) run(ctx context.Context, env *Env, a fetchPageArgs) (Result, error) {
 	ask := AskPrivate(env, "fetch_page")
-	p, err := t.web.Fetch(ctx, a.URL, web.Rules{Private: env.PrivateHosts, AskPrivate: ask, Redirect: approvedRedirect(env, a.URL)})
+	p, err := t.web.Fetch(ctx, a.URL, web.Rules{Private: env.PrivateHosts, AskPrivate: ask, Redirect: approvedRedirect(env, a.URL),
+		PrivateOnly: env.FoldHost})
 	if err != nil {
 		if ctx.Err() != nil {
 			return Result{}, err
@@ -110,7 +123,8 @@ func PrivateHint(host string) string {
 
 // AskPrivate asks the user about a request to private addresses the
 // project's exceptions don't allow, in an approval card at every level
-// (6.7, 8.8). Allow in this project adds the host to the exceptions. Nil
+// (6.7, 8.8). Allow in this project adds the host to the exceptions; for
+// the call's FoldHost, the agent approves it as a host too. Nil
 // where no one can answer, such as in a pipeline: the request is then
 // blocked.
 func AskPrivate(env *Env, by string) web.PrivateAsk {
@@ -118,7 +132,12 @@ func AskPrivate(env *Env, by string) web.PrivateAsk {
 		return nil
 	}
 	return func(ctx context.Context, r web.PrivateRequest) error {
-		got, err := env.Approve(ctx, PrivateApproval(r, by))
+		c := PrivateApproval(r, by)
+		if r.Host == env.FoldHost {
+			// The host card was left to this one (Needs.Private).
+			c.Details += "\nNew host for this project: Allow in this project also approves it as a host"
+		}
+		got, err := env.Approve(ctx, c)
 		switch {
 		case err != nil:
 			return err

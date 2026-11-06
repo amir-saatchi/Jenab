@@ -563,3 +563,60 @@ func TestParseHost(t *testing.T) {
 		}
 	}
 }
+
+// Private finds a host that reaches only held-back addresses: a private
+// address, or a name whose addresses all are. A public address, a name
+// with one public address, or a lookup that fails is not (6.7).
+func TestClientPrivate(t *testing.T) {
+	c := NewClient(Options{Resolver: multiResolver{
+		"nas.local":   {"192.168.1.20"},
+		"both.test":   {"127.0.0.1", "203.0.113.7"},
+		"public.test": {"203.0.113.7"},
+		"loop.test":   {"127.0.0.1", "::1"},
+	}})
+	for host, want := range map[string]bool{
+		"127.0.0.1": true, "10.0.0.1": true, "[::1]": true, "nas.local": true, "loop.test": true, "LOOP.test.": true,
+		"203.0.113.7": false, "both.test": false, "public.test": false, "missing.test": false,
+	} {
+		if got := c.Private(t.Context(), strings.Trim(host, "[]")); got != want {
+			t.Errorf("Private(%q) = %v, want %v", host, got, want)
+		}
+	}
+}
+
+type multiResolver map[string][]string
+
+func (m multiResolver) LookupNetIP(_ context.Context, _, host string) ([]netip.Addr, error) {
+	var out []netip.Addr
+	for _, a := range m[host] {
+		out = append(out, netip.MustParseAddr(a))
+	}
+	if len(out) == 0 {
+		return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+	}
+	return out, nil
+}
+
+// PrivateOnly: a host whose host card was left to the private card may
+// reach only private addresses in this fetch. A name that resolves to a
+// public address after the check is refused, and nothing is asked; other
+// hosts are not affected (6.7, 8.8).
+func TestPrivateOnly(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	c := NewClient(Options{Resolver: &flipResolver{addrs: []netip.Addr{netip.MustParseAddr("203.0.113.7")}}})
+	asked := 0
+	r := Rules{PrivateOnly: "flip.test", AskPrivate: func(context.Context, PrivateRequest) error { asked++; return nil }}
+	_, err := c.Fetch(t.Context(), "http://flip.test:"+port+"/", r)
+	var b *BlockedError
+	if !errors.As(err, &b) || b.Private || !strings.Contains(err.Error(), "resolved to a public address (203.0.113.7) after it was checked") || asked != 0 {
+		t.Errorf("public after the check: %v, asked %d", err, asked)
+	}
+
+	// Its private address asks as before.
+	c = NewClient(Options{Resolver: &flipResolver{addrs: []netip.Addr{netip.MustParseAddr("127.0.0.1")}}})
+	if _, err := c.Fetch(t.Context(), "http://flip.test:"+port+"/", r); !errors.As(err, new(*StatusError)) || asked != 1 {
+		t.Errorf("private: %v, asked %d", err, asked)
+	}
+}

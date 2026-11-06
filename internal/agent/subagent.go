@@ -331,8 +331,11 @@ func (sr *subRun) runTool(ctx context.Context, msg id.Message, n int, c chat.Too
 			return failed(err)
 		}
 	}
+	if err := r.foldHost(ctx, &needs, env); err != nil {
+		return failed(err)
+	}
 	for _, a := range needs.Approvals {
-		got, err := p.Approve(ctx, a)
+		got, err := env.Approve(ctx, a)
 		if err != nil {
 			return failed(err)
 		}

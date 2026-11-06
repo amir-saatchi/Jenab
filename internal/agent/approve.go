@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -148,9 +149,7 @@ func (r *runner) readOutside(n int) {
 // comes back answered, with Answer GrantOnce and no By when nothing was
 // asked or recorded.
 func (r *runner) approveNow(ctx context.Context, tm *toolMsg, a chat.Approval) (chat.Approval, error) {
-	if a.Kind == "private" && a.Why == "" {
-		a.Why = tm.why // the request comes from the page, not the agent: say what the agent was doing
-	}
+	a = withReason(a, tm.why)
 	asks, autos, err := r.approve(ctx, tool.Needs{Approvals: []chat.Approval{a}})
 	switch {
 	case err != nil:
@@ -163,6 +162,60 @@ func (r *runner) approveNow(ctx context.Context, tm *toolMsg, a chat.Approval) (
 	}
 	a.Answer = chat.GrantOnce
 	return a, nil
+}
+
+// noReason is a host or private card's reason when the agent wrote
+// nothing before the call (8.8).
+const noReason = "The agent gave no reason"
+
+// withReason gives a host or private card the agent's text before the
+// call, why, as its reason: the tool asks for these, not the agent, so
+// the card says what the agent was doing; noReason if it wrote nothing.
+func withReason(a chat.Approval, why string) chat.Approval {
+	if (a.Kind == "host" || a.Kind == "private") && a.Why == "" {
+		a.Why = why
+		if a.Why == "" {
+			a.Why = noReason
+		}
+	}
+	return a
+}
+
+// foldHost asks once for a new host that reaches only private addresses
+// (6.7, 8.8). Where its host card would ask and the host isn't an
+// exception, the card is dropped from needs and the private card the call
+// asks while it runs stands for both: the call may reach the host only at
+// private addresses (Env.FoldHost), and that card's answer is recorded for
+// the host too. Allow in this project approves the host, Deny denies it,
+// and Allow once approves this request alone. Auto, where the level
+// approves the host by itself, is unchanged.
+func (r *runner) foldHost(ctx context.Context, needs *tool.Needs, env *tool.Env) error {
+	h := needs.Private
+	if h == "" || env.Approve == nil || env.PrivateHosts != nil && env.PrivateHosts(h) {
+		return nil
+	}
+	i := slices.IndexFunc(needs.Approvals, func(a chat.Approval) bool { return a.Kind == "host" && a.Target == h })
+	if i < 0 {
+		return nil
+	}
+	asks, _, err := r.approve(ctx, tool.Needs{Approvals: needs.Approvals[i : i+1]})
+	if err != nil || len(asks) == 0 {
+		return err
+	}
+	needs.Approvals = slices.Delete(slices.Clone(needs.Approvals), i, i+1)
+	env.FoldHost = h
+	approve := env.Approve
+	env.Approve = func(ctx context.Context, a chat.Approval) (chat.Approval, error) {
+		got, err := approve(ctx, a)
+		if err != nil || a.Kind != "private" || a.Target != h || got.By != id.SourceUser || got.AnsweredAt == nil ||
+			got.Answer != chat.GrantAlways && got.Answer != chat.GrantDeny {
+			return got, err
+		}
+		host := chat.Approval{ID: id.Approval(id.New()), Kind: "host", Target: h, Answer: got.Answer, Note: got.Note,
+			By: got.By, AnsweredAt: got.AnsweredAt}
+		return got, r.record(ctx, host)
+	}
+	return nil
 }
 
 // autoApprove records an approval the level gave, and shows it as a chip:

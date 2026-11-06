@@ -40,6 +40,13 @@ func (n lookup) LookupNetIP(_ context.Context, _, host string) ([]netip.Addr, er
 // so the cards are the private-network ones.
 func privateHarness(t *testing.T) (*harness, string) {
 	t.Helper()
+	return siteHarness(t, "127.0.0.1", "nas.local", "prices.example.com", "gate.test")
+}
+
+// siteHarness is privateHarness with only the hosts given approved.
+// public.test resolves to a public address, which no test connects to.
+func siteHarness(t *testing.T, approved ...string) (*harness, string) {
+	t.Helper()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/crypto/2026-10-05", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "<html><head><title>Crypto prices, 5 October 2026</title></head><body><article>"+
@@ -51,11 +58,11 @@ func privateHarness(t *testing.T) (*harness, string) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	_, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
-	c := web.NewClient(web.Options{Resolver: lookup{"nas.local": "127.0.0.1", "prices.example.com": "127.0.0.1", "gate.test": "127.0.0.1"}})
+	c := web.NewClient(web.Options{Resolver: lookup{"nas.local": "127.0.0.1", "prices.example.com": "127.0.0.1", "gate.test": "127.0.0.1", "public.test": "203.0.113.7"}})
 	pages := slices.DeleteFunc(tool.Builtin(tool.Deps{Web: c}), func(tl tool.Tool) bool { return tl.Spec().Name != "fetch_page" })
 	h := newHarness(t, t.TempDir(), "", testSettings(), pages...)
 	h.open(func(p *project.Project) {
-		for _, host := range []string{"127.0.0.1", "nas.local", "prices.example.com", "gate.test"} {
+		for _, host := range approved {
 			a := store.Approval{ID: id.Approval(id.New()), Kind: "host", Target: host, Answer: chat.GrantAlways, Source: id.SourceUser, CreatedAt: time.Now()}
 			if err := p.DB.RecordApproval(context.Background(), a); err != nil {
 				t.Fatal(err)

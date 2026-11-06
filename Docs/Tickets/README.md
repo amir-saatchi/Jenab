@@ -84,7 +84,7 @@
 | [TASK-038](TASK-038-desktop-macros.md) | Desktop macros and recipes | Task | Open | 3 |
 | [TASK-039](TASK-039-agent-desktop-1-2.md) | agent-desktop 1.2.0 | Task | Done | 3 |
 | [TASK-040](TASK-040-chat-bubble-fixes.md) | Chat bubble fixes: links in the user's message, wide answers | Task | Done | 3 |
-| [TASK-041](TASK-041-one-card-private-host.md) | One card for a new private host | Task | Open | 3 |
+| [TASK-041](TASK-041-one-card-private-host.md) | One card for a new private host | Task | Done | 3 |
 
 ## Phase 1
 

@@ -141,6 +141,11 @@ type Preflighter interface {
 type Needs struct {
 	Effects   Effects
 	Approvals []chat.Approval
+	// Private is the host of the call's host approval when that host
+	// reaches only private addresses (6.7): where its host card would ask
+	// and the host isn't an exception, the private card the call asks
+	// while it runs stands for both, so the user is asked once (8.8).
+	Private string
 }
 
 // Call is one tool call and where it runs.
@@ -164,6 +169,11 @@ type Env struct {
 	// PrivateHosts are the hosts that may reach private addresses: the
 	// project's exceptions (6.7). Nil allows none.
 	PrivateHosts web.HostCheck
+	// FoldHost is the host whose host card was left to its private card
+	// (Needs.Private): the call may reach it only at private addresses,
+	// and the private card's answer is its host answer too. The agent
+	// sets it; "" for none.
+	FoldHost string
 	// ChatStatus gives a chat's status for list_chats, such as "in a
 	// turn"; nil or "" leaves it out. The agent sets it.
 	ChatStatus func(id.Chat) string

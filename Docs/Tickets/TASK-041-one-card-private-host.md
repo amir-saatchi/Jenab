@@ -1,6 +1,6 @@
 # TASK-041 — One card for a new private host
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-036
 
@@ -22,3 +22,13 @@ At Strict and Standard, a fetch to a new host on this computer or the local netw
 - Go tests: a new private host at Strict and Standard gets one card; each answer's effect (once, in this project, deny) on the next request; a public host unchanged; Auto unchanged; the empty reason.
 - In a server-mode build with `jenab-fakesite` (TASK-034), a new chat reading from `127.0.0.1` shows one card, at Standard. A fake model is fine; no API key needed.
 - The report proposes the SPEC 6.7 and 8.8 text.
+
+## Result
+Done on 2026-11-06. SPEC 6.7 and 8.8 describe it.
+
+- **One card:** a new host that reaches only private addresses, and isn't an exception, gets only the private card where the host card would ask. *Allow once* allows the request, *Allow in this project* adds the exception and approves the host, *Deny* denies both (it records a host Deny).
+- **Held to private addresses:** that fetch may reach the host only at private addresses, so a name that resolves to a public address after the check can't skip the host card.
+- **Reason:** host and private cards say "The agent gave no reason" when the model wrote nothing.
+- **Unchanged:** public hosts, hosts with public and private addresses, exceptions not yet approved as hosts, hosts Auto approves by itself, and redirects. At Auto after untrusted content the host card would ask, so it folds too (decided: the private card asks there anyway).
+- **Checked:** Go tests with local servers and a fake resolver; a server build with `jenab-fakesite` and a fake model at Standard showed one card, and after *Allow in this project* the next read asked nothing.
+- **Open:** the check costs one DNS lookup (up to 5 s) before the card for an unapproved host; no test covers the subagent path.

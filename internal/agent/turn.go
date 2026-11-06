@@ -657,11 +657,24 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 			return failed(err)
 		}
 	}
+	if needs.Effects&tool.Network != 0 {
+		// Before the approvals: the exceptions decide whether a new private
+		// host asks once (foldHost), and the call uses the same list.
+		hosts, err := r.p.PrivateHosts(ctx)
+		if err != nil {
+			return failed(err)
+		}
+		env.PrivateHosts = func(h string) bool { return slices.Contains(hosts, strings.ToLower(h)) }
+	}
+	if err := r.foldHost(ctx, &needs, env); err != nil {
+		return failed(err)
+	}
 	asks, autos, err := r.approve(ctx, needs)
 	if err != nil {
 		return failed(err)
 	}
 	for _, a := range asks {
+		a = withReason(a, tm.why)
 		p, err := r.await(ctx, tm, chat.Part{Kind: chat.PartApproval, Approval: &a})
 		if err != nil {
 			return failed(err)
@@ -676,13 +689,6 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 		if _, err := r.autoApprove(ctx, tm, a); err != nil {
 			return failed(err)
 		}
-	}
-	if needs.Effects&tool.Network != 0 {
-		hosts, err := r.p.PrivateHosts(ctx)
-		if err != nil {
-			return failed(err)
-		}
-		env.PrivateHosts = func(h string) bool { return slices.Contains(hosts, strings.ToLower(h)) }
 	}
 	timeout := tl.Spec().Timeout
 	if timeout <= 0 {

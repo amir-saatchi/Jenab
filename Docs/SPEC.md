@@ -1333,11 +1333,13 @@ The agent writes pipelines after reading untrusted web content, and pipelines ru
 - **Host approval:** every literal host in a pipeline must be approved for the project once, in an approval card (8.8), or by the Auto level when the turn hasn't read untrusted content. A connection's host is approved when the connection is made. Approvals are stored in `_jenab_approvals`. Requests whose host comes from an expression (e.g. URLs from search results) are allowed, but cannot carry secrets or custom headers. `fetch_page` doesn't follow a redirect to a host not approved for the project; it returns the target, and the model fetches that URL itself, which asks.
 - **Private network** (TASK-036): requests that would reach loopback, private (RFC 1918), link-local or unique-local addresses ask first. The check is on the resolved address, after DNS and on every redirect, and an answer holds only for the addresses it named, so a name that later resolves elsewhere asks again.
   - **In a chat:** the turn waits on an approval card (8.8): *Allow once*, *Allow in this project* or *Deny*. *Allow in this project* adds the host to the project's private-network exceptions. It asks at every approval level; Auto never allows it by itself.
-  - **The card says** what is reached in plain words: "this computer" for loopback, "your local network" for the rest. When a public name resolves to a private address, it says so. A redirect names both hosts.
+  - **The card says** what is reached in plain words: "this computer" for loopback, "your local network" for the rest. When a public name resolves to a private address, it says so. A redirect names both hosts. Its reason is the agent's text before the call, or "The agent gave no reason".
   - **Exceptions:** hosts in project settings (5.12), as a name or an address without scheme, path or port; they cover every port of that host. Requests to them don't ask. The list is the only standing permission: an earlier *Allow in this project* doesn't outlive the host's removal. Changes apply to the next request. Exports leave them out.
   - **Where no card can be shown** (pipelines, scheduled runs), the request is blocked unless the host is an exception, and the error names the project setting.
   - *Deny* returns the usual blocked error, with the user's note. A waiting card pauses the tool's time limit.
-  - On Strict and Standard, a new private host asks twice for now: the host card, then this one.
+  - **One card for a new host** (TASK-041): where the host card would ask, and the host reaches only private addresses and isn't an exception, only this card is shown, and its answer covers both. *Allow once* allows this request. *Allow in this project* adds the exception and approves the host. *Deny* denies both. This also holds at Auto after the turn read untrusted content, where the host card would ask too.
+    - That fetch reaches the host only at private addresses: a name that resolves to a public one after the check is refused, and the next request asks as for a public host.
+    - A public host, a host with public and private addresses, an exception not yet approved as a host, and a host Auto approves by itself ask as before.
 - Only `http` and `https` URLs are allowed.
 - **Redaction:** secret values are replaced with `[secret:NAME]` in previews, errors, logs and anything sent to an LLM.
 - **Keychain** (SPIKE-006, Windows):
@@ -1911,8 +1913,8 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 
 | Asked for | Options | Details shown |
 |---|---|---|
-| A new host (6.7) | Allow for this project, Deny | The host, and the pipeline or tool that needs it |
-| A private network address (6.7) | Allow once, Allow in this project, Deny | The host, the resolved address and what it is (this computer or your local network), the redirecting host, the tool, and the agent's reason |
+| A new host (6.7) | Allow for this project, Deny | The host, the pipeline or tool that needs it, and the agent's reason |
+| A private network address (6.7) | Allow once, Allow in this project, Deny | The host, the resolved address and what it is (this computer or your local network), the redirecting host, the tool, and the agent's reason; for a new host, that *Allow in this project* also approves it as a host |
 | A destructive migration (7.5, 8.2) | Approve, Deny | The plan in plain language, destructive steps, affected dependents and row counts; the estimated time for long ones |
 | Starlark code (6.5) | Approve, Deny | The code and its hash |
 | A connection (6.9) | Save, Cancel | Title, host, where the key goes, and the key field |
@@ -1923,7 +1925,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 | A memory edit at Strict (3.3) | Save, Deny | The section, before and after |
 | A *Refresh memory* batch at Strict (3.5) | Save, Deny | Each section, before and after |
 
-- **Content:** what is asked, why (one line from the agent) and the risk. Details expand.
+- **Content:** what is asked, why (one line from the agent) and the risk. Details expand. On host and private-network cards, the reason is the agent's text before the call, or "The agent gave no reason" when it wrote none.
 - **Options:** each one grants *Once*, *Always* or *Deny*. *Always* appears only where the rules allow it, and the project isn't asked again. *Deny* can carry a short note, which goes back to the agent with the result.
 - **Waiting:**
   - The turn waits. No transaction is held while waiting (7.4), and other chats, pipelines and forms keep working.
@@ -1956,7 +1958,7 @@ Two chat parts ask the user something and make the turn wait: the **approval car
 
 - **The same at every level:**
   - Connections: the user pastes the key in the card.
-  - Private network addresses ask every time, unless the host is an exception in project settings (6.7).
+  - Private network addresses ask every time, unless the host is an exception in project settings (6.7). A new host that reaches only private addresses asks once, in this card, where its host card would ask.
   - A snapshot before every destructive migration (7.5), and the migration always asks.
   - Scheduled runs never ask.
 - **Auto-approved** actions show a chip in the chat, e.g. `Auto-approved: api.coingecko.com · revoke`, and are recorded in `_jenab_approvals` like manual ones.
