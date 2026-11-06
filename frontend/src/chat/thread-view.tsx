@@ -30,7 +30,7 @@ import { MOTHER } from "@/lib/names"
 import { ApprovalCard, FailedCard, QuestionForm } from "@/chat/cards"
 import { pickWaiting } from "@/chat/pick"
 import { modelName, starters } from "@/chat/composer"
-import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip } from "@/chat/parts"
+import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine, SkillChip, Thinking, ToolChip, UserText } from "@/chat/parts"
 import { ProviderCard } from "@/chat/provider-card"
 import { RefreshChip } from "@/chat/refresh"
 import { QuoteView, SelectionReply, flash, reply } from "@/chat/quote"
@@ -277,7 +277,7 @@ function UserRow({ message, thread, joining }: { message: Message; thread: Threa
           ) : p.text ? (
             <Bubble key={i} variant={joining ? "outline" : "secondary"} align="end" data-quote-source={message.id} className={flash}>
               <BubbleContent dir="auto" className={cn("text-start whitespace-pre-wrap", joining && "border-dashed")}>
-                {p.text.text}
+                <UserText text={p.text.text} />
               </BubbleContent>
             </Bubble>
           ) : null,

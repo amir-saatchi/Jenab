@@ -720,7 +720,7 @@ cache_max_size: 500MB      # cache/ is trimmed least-recently-read first
 
 ### 4.5 Links and references
 
-- Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". In chat, a link written as a link, bare, or alone in inline code opens the object in the Files panel (5.12). A link to another project or to a missing object says so and opens nothing.
+- Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". In chat, a link written as a link, bare, or alone in inline code opens the object in the Files panel (5.12); in the user's own message, only a bare link does. A link to another project or to a missing object says so and opens nothing.
 - **In tables, object-reference columns store the key only**, not the full link, so data stays valid when a project is imported under a new ID. The schema agent marks such columns in `_jenab_columns` with `kind: object_ref`. A write with a key that does not exist fails.
 - The frontend loads objects through a Wails asset handler route, `/objects/<project_id>/<key>`, never through `file://` paths.
 
@@ -955,6 +955,8 @@ Measured in WebView2 on a mid-range laptop.
   - Every message, Markdown block, input, table cell and page text block gets `dir="auto"`, so Persian, Arabic or Hebrew text runs right to left, also next to English.
   - Text inside these elements aligns with `text-align: start`, so right-to-left text starts on the right.
   - A quote, in the composer's chip and above a sent message, has `dir="auto"` with its bar on the start side, so a right-to-left quote keeps its direction (TASK-019).
+  - An answer takes the chat column's width, so each paragraph lines up on its own start edge: a right-to-left one on the right, a left-to-right one on the left.
+  - The user's own message is shown as typed, not as Markdown. Only bare `jenab://` links in it become links, opening the file as in answers (4.5). A link runs left to right on its own (`dir="ltr"`), so it doesn't change the direction of the text around it.
   - Markdown lists, list items and tables get an explicit `dir` from their first strong character, so an item that differs from its list keeps its bullet. `dir="auto"` can't do this, and CSS `:dir()` is rewritten by the build (Lightning CSS).
   - **Font:** Geist has no Arabic-script glyphs, so Vazirmatn (OFL) is bundled right after it. Persian then looks the same on every OS; Latin text stays Geist.
   - The UI itself stays English and left to right. Only the text is handled.

@@ -10,22 +10,48 @@ import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
 import { Spinner } from "@/components/ui/spinner"
 import { ChatService, NoticeKind, type ChatNotice, type Part, type ToolCall, type ToolResult } from "@/lib/api"
 import { showError } from "@/lib/errors"
+import { splitLinks } from "@/lib/files"
 import { cn } from "@/lib/utils"
 import { Markdown } from "@/chat/markdown"
 import { flash } from "@/chat/quote"
 import { openMemory } from "@/shell/open"
-import { openHere } from "@/shell/open-file"
+import { openAnchor, openHere } from "@/shell/open-file"
 
 // AgentText is the agent's text. source is its message, for *Reply* on a
 // selection (TASK-019); text still streaming has none.
+// It takes the column's width, so each paragraph lines up on its own
+// start edge: the right one for right-to-left text (TASK-040).
 export function AgentText({ text, stopped, source }: { text: string; stopped?: boolean; source?: string }) {
   return (
-    <Bubble variant="ghost" data-quote-source={source} className={source && flash}>
-      <BubbleContent>
+    <Bubble variant="ghost" data-quote-source={source} className={cn("w-full", source && flash)}>
+      <BubbleContent className="w-full">
         <Markdown>{text}</Markdown>
         {stopped && <span className="text-xs text-muted-foreground">Stopped</span>}
       </BubbleContent>
     </Bubble>
+  )
+}
+
+// UserText is the user's own text as typed, not Markdown: only bare
+// jenab:// links become links, and open the file like those in answers
+// (SPEC 4.5). A link runs left to right on its own, so it doesn't turn the
+// text around it, and dir="auto" goes by the words (TASK-040).
+export function UserText({ text }: { text: string }) {
+  return splitLinks(text).map((p, i) =>
+    typeof p === "string" ? (
+      <React.Fragment key={i}>{p}</React.Fragment>
+    ) : (
+      <a
+        key={i}
+        href={p.link}
+        dir="ltr"
+        className="rounded-[0.125em] font-medium underline decoration-current/30 outline-none hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        onClick={openAnchor}
+        onAuxClick={openAnchor}
+      >
+        {p.link}
+      </a>
+    ),
   )
 }
 

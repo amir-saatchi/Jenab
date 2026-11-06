@@ -1,3 +1,5 @@
+import type * as React from "react"
+import { Browser } from "@wailsio/runtime"
 import { toast } from "sonner"
 
 import { BucketService } from "@/lib/api"
@@ -45,6 +47,19 @@ export async function openLink(href: string, head: Head = (p, k) => BucketServic
   }
   // The place may have changed while the file was looked up.
   if (current(useNav.getState()) === place) openFile(place.project, place.chat, l.key)
+}
+
+// openAnchor is the click of a link in the chat, in an answer's Markdown
+// or in the user's own text. Links open in the browser, not in the app's
+// window; a middle click too. A jenab:// link opens the file in the Files
+// panel (SPEC 4.5).
+export function openAnchor(e: React.MouseEvent<HTMLAnchorElement>) {
+  if (e.type === "auxclick" && e.button !== 1) return
+  const raw = e.currentTarget.getAttribute("href") ?? ""
+  const href = e.currentTarget.href
+  e.preventDefault()
+  if (raw.startsWith("jenab://")) void openLink(raw)
+  else if (/^(https?|mailto):/i.test(href)) void Browser.OpenURL(href)
 }
 
 export function copyLink(project: string, key: string) {

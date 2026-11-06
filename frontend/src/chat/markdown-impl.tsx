@@ -1,5 +1,4 @@
 import * as React from "react"
-import { Browser } from "@wailsio/runtime"
 import type { Element, ElementContent, Root, RootContent } from "hast"
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
@@ -8,7 +7,7 @@ import remarkGfm from "remark-gfm"
 import { splitBlocks } from "@/lib/blocks"
 import { textDir } from "@/lib/dir"
 import { parseLink, splitLinks } from "@/lib/files"
-import { openLink } from "@/shell/open-file"
+import { openAnchor } from "@/shell/open-file"
 
 // This module is loaded lazily (SPEC 5.8): react-markdown and the
 // highlighter are about 97 KB gzip.
@@ -20,17 +19,6 @@ function text(n: ElementContent | Element): string {
 }
 function dirOf(node?: Element): "rtl" | "ltr" {
   return node ? textDir(text(node)) : "ltr"
-}
-
-// Links open in the browser, not in the app's window; a middle click too.
-// A jenab:// link opens the file in the Files panel (SPEC 4.5).
-function open(e: React.MouseEvent<HTMLAnchorElement>) {
-  if (e.type === "auxclick" && e.button !== 1) return
-  const raw = e.currentTarget.getAttribute("href") ?? ""
-  const href = e.currentTarget.href
-  e.preventDefault()
-  if (raw.startsWith("jenab://")) void openLink(raw)
-  else if (/^(https?|mailto):/i.test(href)) void Browser.OpenURL(href)
 }
 
 // urlTransform keeps react-markdown's safe defaults and lets jenab://
@@ -74,7 +62,7 @@ function linkTo(href: string, children: ElementContent[]): Element {
 const remarkPlugins = [remarkGfm]
 const rehypePlugins = [rehypeJenabLinks, rehypeHighlight]
 const components: Components = {
-  a: ({ node: _, ...props }) => <a {...props} onClick={open} onAuxClick={open} />,
+  a: ({ node: _, ...props }) => <a {...props} onClick={openAnchor} onAuxClick={openAnchor} />,
   // Only the project's own pictures load; a picture from the web would
   // tell its host the chat was read.
   img: ({ node: _, src, alt }) =>
