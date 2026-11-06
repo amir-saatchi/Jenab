@@ -86,7 +86,7 @@ func TestQuoteSearch(t *testing.T) {
 func TestQuoteFormatStep(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
-	old := Format{Name: ChatsFormat.Name, Steps: ChatsFormat.Steps[:len(ChatsFormat.Steps)-1]}
+	old := Format{Name: ChatsFormat.Name, Steps: ChatsFormat.Steps[:4]} // before quotes
 	db, err := Open(ctx, dir+"/chats.db", Options{Format: old, Snapshots: dir + "/snapshots"})
 	if err != nil {
 		t.Fatal(err)

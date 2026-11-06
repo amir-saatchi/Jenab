@@ -537,6 +537,16 @@ func (m *Manager) cleanChanges(p *Project) {
 			case rep.Rows > 0:
 				m.d.Log.Info("project: dropped old change-log rows", "project", p.ID, "changes", rep.Changes, "rows", rep.Rows)
 			}
+			// Rewound turns keep to the same window (TASK-018).
+			keep := m.d.ChangeKeep
+			if keep <= 0 {
+				keep = store.ChangeKeep
+			}
+			if n, err := p.Chats.PurgeRewinds(p.ctx, time.Now().Add(-keep)); err != nil && p.ctx.Err() == nil {
+				m.d.Log.Warn("project: dropping old rewinds failed", "project", p.ID, "err", err)
+			} else if n > 0 {
+				m.d.Log.Info("project: dropped rewinds past the undo window", "project", p.ID, "rewinds", n)
+			}
 			// User memory's log keeps to the same window. Any open project
 			// may run it; a second run that day drops nothing.
 			if m.d.Registry != nil {

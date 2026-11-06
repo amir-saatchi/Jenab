@@ -109,6 +109,7 @@ var ChatsFormat = Format{Name: "chats", Steps: []func(*sql.Tx) error{
 			DELETE FROM messages_fts WHERE rowid = old.rowid;
 		END`,
 	),
+	rewindTables, // TASK-018
 }}
 
 // Limits from SPEC 3.4 and 8.6. Tokens are estimated at 4 bytes each, as
@@ -435,7 +436,8 @@ func (c *ChatsDB) SetModel(ctx context.Context, ch id.Chat, model string) (uint6
 }
 
 // SetSkills sets the skills loaded in a chat (8.9); they move into block 1
-// at the next cut.
+// at the next cut. The skills before the first change in a turn are kept
+// for a rewind (TASK-018).
 func (c *ChatsDB) SetSkills(ctx context.Context, ch id.Chat, skills []string) (uint64, error) {
 	if skills == nil {
 		skills = []string{}
@@ -444,7 +446,22 @@ func (c *ChatsDB) SetSkills(ctx context.Context, ch id.Chat, skills []string) (u
 	if err != nil {
 		return 0, err
 	}
-	return c.update(ctx, ch, `UPDATE chats SET skills = ? WHERE id = ?`, string(b), ch)
+	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (uint64, error) {
+		var cur string
+		if err := tx.QueryRow(`SELECT skills FROM chats WHERE id = ?`, ch).Scan(&cur); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = fmt.Errorf("store: chat %s: %w", ch, ErrNotFound)
+			}
+			return 0, err
+		}
+		if err := keepBefore(tx, ch, stateSkills, json.RawMessage(cur)); err != nil {
+			return 0, err
+		}
+		if _, err := tx.Exec(`UPDATE chats SET skills = ? WHERE id = ?`, string(b), ch); err != nil {
+			return 0, err
+		}
+		return bump(tx, ch)
+	})
 }
 
 // Archive archives or restores a chat. The Mother chat can't be archived.
@@ -497,8 +514,8 @@ func (c *ChatsDB) DeleteChat(ctx context.Context, ch id.Chat) error {
 	return err
 }
 
-// Clear removes a chat's messages, session notes and review results, and
-// keeps the chat with its title, role and model. It works on every chat,
+// Clear removes a chat's messages, session notes, review results and
+// rewinds, and keeps the chat with its title, role and model. It works on every chat,
 // the Mother chat too.
 func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error) {
 	return Do(ctx, c.DB, limit.Interactive, func(tx *sql.Tx) (uint64, error) {
@@ -506,6 +523,8 @@ func (c *ChatsDB) Clear(ctx context.Context, ch id.Chat) (uint64, error) {
 			`DELETE FROM messages WHERE chat_id = ?`,
 			`DELETE FROM session_notes WHERE chat_id = ?`,
 			`DELETE FROM review_chunks WHERE chat_id = ?`,
+			`DELETE FROM rewinds WHERE chat_id = ?`,
+			`DELETE FROM turn_state WHERE chat_id = ?`,
 			`UPDATE chats SET memory_reviewed_up_to = '' WHERE id = ?`,
 		} {
 			if _, err := tx.Exec(q, ch); err != nil {
@@ -962,7 +981,11 @@ func saveNotesTx(tx *sql.Tx, ch id.Chat, revision int, bumpSeq bool, edit func(*
 	if cur.Revision != revision {
 		return cur, &NotesConflictError{Current: cur}
 	}
+	before := notesState{Content: cur.Content, Summary: cur.Summary}
 	if err := edit(&cur); err != nil {
+		return cur, err
+	}
+	if err := keepBefore(tx, ch, stateNotes, before); err != nil {
 		return cur, err
 	}
 	cur.Revision++
@@ -1164,11 +1187,15 @@ type UsageRow struct {
 
 // Usage sums the tokens of the messages since from, by day, chat and
 // model (SPEC 3.9). offset is the caller's UTC offset, which sets the day.
+// Messages a rewind took out of the chat count too: their tokens were
+// spent (TASK-018).
 func (c *ChatsDB) Usage(ctx context.Context, from time.Time, offset time.Duration) ([]UsageRow, error) {
 	shift := fmt.Sprintf("%+d minutes", int(offset.Minutes()))
 	return Query(ctx, c.DB, `SELECT date(created_at, ?) AS day, chat_id, model,
 			SUM(input_tokens), SUM(output_tokens), SUM(cache_read_tokens), SUM(cache_write_tokens)
-		FROM messages
+		FROM (SELECT created_at, chat_id, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens FROM messages
+			UNION ALL
+			SELECT created_at, chat_id, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens FROM rewound_messages)
 		WHERE created_at >= ? AND input_tokens + output_tokens + cache_read_tokens + cache_write_tokens > 0
 		GROUP BY day, chat_id, model ORDER BY day, chat_id, model`, []any{shift, formatTime(from)}, func(r *sql.Rows) (UsageRow, error) {
 		var u UsageRow
@@ -1210,7 +1237,7 @@ func (c *ChatsDB) MessageHead(ctx context.Context, m id.Message) (chat.Message, 
 }
 
 // MessageChats returns the chat of each of ms that exists, for naming who
-// made a change.
+// made a change; a message a rewind took out of its chat still names it.
 func (c *ChatsDB) MessageChats(ctx context.Context, ms []id.Message) (map[id.Message]id.Chat, error) {
 	out := map[id.Message]id.Chat{}
 	if len(ms) == 0 {
@@ -1224,7 +1251,8 @@ func (c *ChatsDB) MessageChats(ctx context.Context, ms []id.Message) (map[id.Mes
 		m  id.Message
 		ch id.Chat
 	}
-	rows, err := Query(ctx, c.DB, `SELECT id, chat_id FROM messages WHERE id IN (SELECT value FROM json_each(?))`, []any{string(b)},
+	rows, err := Query(ctx, c.DB, `SELECT id, chat_id FROM messages WHERE id IN (SELECT value FROM json_each(?1))
+		UNION ALL SELECT id, chat_id FROM rewound_messages WHERE id IN (SELECT value FROM json_each(?1))`, []any{string(b)},
 		func(r *sql.Rows) (row, error) {
 			var x row
 			return x, r.Scan(&x.m, &x.ch)

@@ -170,6 +170,21 @@ func (s *Traces) drop(p id.Project, c id.Chat) {
 	}
 }
 
+// dropAfter forgets a chat's turns after turn, after a rewind took them
+// out of the chat (TASK-018): their numbers are used again.
+func (s *Traces) dropAfter(p id.Project, c id.Chat, turn int) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i := len(s.turns) - 1; i >= 0; i-- {
+		if t := s.turns[i]; t.Project == p && t.Chat == c && t.Turn > turn {
+			s.remove(i)
+		}
+	}
+}
+
 func textSize(r RequestTrace) int {
 	if r.Dropped {
 		return 0

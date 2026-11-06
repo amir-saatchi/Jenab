@@ -699,7 +699,7 @@ func (o *Orchestrator) untrustedTurn(ms []chat.Message) int {
 // hidden.
 func aside(kind chat.NoticeKind) bool {
 	return kind == chat.NoticeApprovalLevel || kind == chat.NoticeTurnUndone || kind == chat.NoticeMemoryRefreshed ||
-		kind == chat.NoticeCardOutside
+		kind == chat.NoticeCardOutside || kind == chat.NoticeRewound
 }
 
 // bumpSeq raises the known sequence number to s.

@@ -9,6 +9,7 @@ export {
 export type {
     Hit,
     MemorySection,
+    RewindInfo,
     SearchResult,
     TableRows,
     UndoConflict,

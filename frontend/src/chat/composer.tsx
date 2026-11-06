@@ -45,7 +45,7 @@ import { QuoteChip } from "@/chat/quote"
 import { useProjects } from "@/state/projects"
 import { useQuotes } from "@/state/quote"
 import { useSettings } from "@/state/settings"
-import { drafts, useThreads, type Thread } from "@/state/thread"
+import { drafts, useFill, useThreads, type Thread } from "@/state/thread"
 
 // modelName is the name the picker shows for a chat's model: an alias
 // shows the model it points at.
@@ -94,6 +94,16 @@ export function Composer({ thread, mother, readOnly }: { thread: Thread; mother:
     if (v) drafts.set(chat, v)
     else drafts.delete(chat)
   }
+
+  // Text from *Edit and resend* replaces the draft.
+  const fill = useFill((s) => s.fills[chat])
+  React.useEffect(() => {
+    if (fill === undefined) return
+    change(fill)
+    setFiles([])
+    useFill.getState().take(chat)
+    ref.current?.focus()
+  }, [chat, fill])
 
   // attach stores each file; one that can't be stored stays, saying why,
   // until it is removed.

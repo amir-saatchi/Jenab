@@ -52,6 +52,8 @@ export type {
   Answer,
   Live,
   RefreshEstimate,
+  RewindResult,
+  RewindState,
   TurnConflict,
   TurnPlan,
   TurnUndo,
@@ -96,7 +98,7 @@ export type {
 } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ExportFormat, ExportStep } from "../../bindings/github.com/amir-saatchi/jenab/internal/project/models"
 export { ConflictReason } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
-export type { MemorySection, UndoConflict, UndoItem } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
+export type { MemorySection, RewindInfo, UndoConflict, UndoItem } from "../../bindings/github.com/amir-saatchi/jenab/internal/store/models"
 export { Level as MemoryLevel } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Reading as MemoryReading } from "../../bindings/github.com/amir-saatchi/jenab/internal/sysmem/models"
 export type { Info as VersionInfo } from "../../bindings/github.com/amir-saatchi/jenab/internal/version/models"

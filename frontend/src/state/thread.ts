@@ -12,6 +12,7 @@ import {
   type Message,
   type PartDone,
   type Retry,
+  type RewindInfo,
   type Waiting,
 } from "@/lib/api"
 import { showError, toUIError } from "@/lib/errors"
@@ -37,6 +38,7 @@ export interface Thread {
   streaming: string // the answer streaming now, not yet stored
   streamed: string[] // answers streamed since the chat was read: the assistant's
   joining: string[] // sent during a turn; they join at its next request
+  rewinds: RewindInfo[] // the chat's rewinds, each marked after its turn (TASK-018)
 }
 
 // share keeps the old object of every message that didn't change, so
@@ -50,7 +52,8 @@ export function share(old: Message[], next: Message[]): Message[] {
 }
 
 // fromSnapshot is the thread a snapshot gives. Older turns loaded before
-// are kept.
+// are kept: a rewind or its undo changes only turns after the chat's last
+// one now, which the snapshot holds.
 export function fromSnapshot(prev: Thread | undefined, project: string, snap: ChatSnapshot): Thread {
   const messages = snap.messages ?? []
   const older = prev ? prev.messages.filter((m) => m.turn < snap.from) : []
@@ -70,6 +73,7 @@ export function fromSnapshot(prev: Thread | undefined, project: string, snap: Ch
     streaming: live.streaming ?? "",
     streamed: live.streaming ? [live.streaming] : [],
     joining: live.running ? [...new Set([...(prev?.joining ?? []), ...joiningIn(messages, live)])] : [],
+    rewinds: snap.rewinds ?? [],
   }
 }
 
@@ -200,6 +204,7 @@ interface ThreadsState {
   delta(d: Delta): void
   part(e: PartDone): void
   status(s: ChatStatus): void
+  reload(chat: string): Promise<void>
   forget(chat: string, deleted?: boolean): void
   gone(project: string, chats: string[]): void
 }
@@ -220,6 +225,19 @@ let recent: string[] = []
 
 // drafts are the composer's text per chat, kept while another chat is open.
 export const drafts = new Map<string, string>()
+
+// useFill puts text in a chat's composer from outside it, as *Edit and
+// resend* does with the message it takes back (TASK-018). The composer
+// takes the text and clears it.
+export const useFill = create<{
+  fills: Record<string, string>
+  fill(chat: string, text: string): void
+  take(chat: string): void
+}>((set) => ({
+  fills: {},
+  fill: (chat, text) => set((s) => ({ fills: { ...s.fills, [chat]: text } })),
+  take: (chat) => set((s) => (chat in s.fills ? { fills: omit(s.fills, chat) } : s)),
+}))
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -335,6 +353,12 @@ export const useThreads = create<ThreadsState>((set, get) => {
     delta: (d) => event(d.chat, { delta: d }),
     part: (e) => event(e.chat, { part: e }),
     status: (st) => event(st.chat, { status: st }),
+    // reload reads an open chat again after a rewind or its undo, which
+    // change the chat without events.
+    reload: async (chat) => {
+      const t = get().threads[chat]
+      if (t) await read(t.project, chat)
+    },
     // forget drops a chat's thread and stream; a deleted chat's draft too.
     forget: (chat, deleted = false) => {
       stream.drop(chat)

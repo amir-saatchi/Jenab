@@ -84,6 +84,12 @@ export interface ChatSnapshot {
      * the answer still streaming, a wait or a retry
      */
     "live": agent$0.Live;
+
+    /**
+     * Rewinds are the chat's rewinds still in the undo window, for their
+     * marks (TASK-018).
+     */
+    "rewinds": store$0.RewindInfo[] | null;
 }
 
 /**

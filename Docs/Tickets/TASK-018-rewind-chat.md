@@ -1,6 +1,6 @@
 # TASK-018 — Rewind a chat to an earlier message
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** P1-15
 
@@ -32,3 +32,17 @@ First write it into the SPEC (2.3, 3.6, 8.3), then build it:
 - The SPEC describes it.
 - A rewound chat answers as if the later turns never happened, also after a restart.
 - Go tests cover the history index, loaded skills and running background work.
+
+## Result
+Done on 2026-11-06. SPEC 2.3, 2.6, 3.4, 3.6, 8.3, 8.6 and 8.9 describe it.
+
+- **No branches:** *Rewind to here* and *Edit and resend* on a user message move the later turns to `rewound_messages` (chats.db step 6). They leave the chat, the context and the history index. *Undo rewind* brings them back for the newest rewind while the chat hasn't gone on; they are dropped with the change log after 90 days.
+- **State follows:** session notes and loaded skills go back through a new `turn_state` table (the state before each turn first changed it); *Refresh memory*'s progress is reset. Usage still counts the dropped turns.
+- **Data changes stay:** the dialog lists them, the model gets a hidden notice, and the rewind's mark has *Undo changes*.
+- **Between turns only,** like *Clear*.
+- **Checked:** Go tests in store and agent (index, notes, skills, Usage, data kept, the next request free of the dropped turns, undo, restart); by hand in a server build with a fake model: rewind, undo, edit and resend, restart.
+- **Open:**
+  - Desktop sessions are keyed by turn number, so after a rewind or *Clear* a new turn with the same number within 10 minutes could reuse a dropped turn's window; end the chat's desktop session on *Clear*, rewind and undo (TASK-038's area).
+  - Chats from before this change have no earlier notes or skills recorded, so a rewind keeps theirs.
+  - Subagent transcripts of dropped turns stay in the bucket until *Clear* or delete, like a stopped turn's.
+  - *Edit and resend* brings back attached files as links, not chips.

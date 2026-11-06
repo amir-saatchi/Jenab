@@ -793,7 +793,7 @@ func TestChatsUsage(t *testing.T) {
 func TestSessionNotesFormatStep(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
-	old := Format{Name: ChatsFormat.Name, Steps: ChatsFormat.Steps[:len(ChatsFormat.Steps)-1]}
+	old := Format{Name: ChatsFormat.Name, Steps: ChatsFormat.Steps[:3]} // before the summary
 	db, err := Open(ctx, dir+"/chats.db", Options{Format: old, Snapshots: dir + "/snapshots"})
 	if err != nil {
 		t.Fatal(err)

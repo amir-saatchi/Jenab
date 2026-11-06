@@ -14,12 +14,17 @@ const aside: (NoticeKind | undefined)[] = [
   NoticeKind.NoticeTurnUndone,
   NoticeKind.NoticeMemoryRefreshed,
   NoticeKind.NoticeCardOutside,
+  NoticeKind.NoticeRewound,
 ]
 
 // hidden tells whether a message holds only notices nobody reads: history
-// cards' mark of outside data, for the app (agent.cardMark).
+// cards' mark of outside data, for the app (agent.cardMark), and a
+// rewind's notice, for the model; the rewind's mark stands for it.
 function hidden(m: Message) {
-  return isNotice(m) && (m.parts ?? []).every((p) => p.notice?.kind === NoticeKind.NoticeCardOutside)
+  return (
+    isNotice(m) &&
+    (m.parts ?? []).every((p) => p.notice?.kind === NoticeKind.NoticeCardOutside || p.notice?.kind === NoticeKind.NoticeRewound)
+  )
 }
 
 // isNotice tells whether a user message is a note from the app.

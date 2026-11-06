@@ -141,6 +141,11 @@ const (
 	// after a restart as well. It is not shown, and the model never reads
 	// it.
 	NoticeCardOutside NoticeKind = "card_outside"
+	// NoticeRewound tells the model, in the last turn kept, that the user
+	// took the later turns out of the chat and which of their changes to
+	// the project stay (TASK-018). The chat shows the rewind's mark
+	// instead.
+	NoticeRewound NoticeKind = "rewound"
 )
 
 // MemoryDiff is one section a Refresh memory batch changes (3.5): its

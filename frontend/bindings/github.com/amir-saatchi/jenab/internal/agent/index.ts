@@ -5,6 +5,8 @@ export type {
     Answer,
     Live,
     RefreshEstimate,
+    RewindResult,
+    RewindState,
     TurnConflict,
     TurnPlan,
     TurnUndo,

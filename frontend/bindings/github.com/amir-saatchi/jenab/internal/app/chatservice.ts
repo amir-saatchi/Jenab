@@ -144,6 +144,32 @@ export function Retry(p: id$0.Project, c: id$0.Chat): $CancellablePromise<void> 
 }
 
 /**
+ * Rewind takes the chat back to the end of turn, from *Rewind to here*
+ * or *Edit and resend* (TASK-018). The later turns leave the chat and can
+ * come back with UndoRewind until the chat goes on.
+ */
+export function Rewind(p: id$0.Project, c: id$0.Chat, turn: number): $CancellablePromise<agent$0.RewindResult> {
+    return $Call.ByID(1970886410, p, c, turn);
+}
+
+/**
+ * RewindState says what a rewind of the chat to the end of turn would do,
+ * for its dialog: the turns that leave, the project data they changed
+ * that stays, and the notes and skills that go back (TASK-018).
+ */
+export function RewindState(p: id$0.Project, c: id$0.Chat, turn: number): $CancellablePromise<agent$0.RewindState> {
+    return $Call.ByID(1286157023, p, c, turn);
+}
+
+/**
+ * RewindUndoState says what Undo turn and Redo turn would revert now for
+ * the changes of the turns a rewind took out, for its mark.
+ */
+export function RewindUndoState(p: id$0.Project, c: id$0.Chat, rewind: number): $CancellablePromise<agent$0.TurnUndoState> {
+    return $Call.ByID(1511778013, p, c, rewind);
+}
+
+/**
  * Search searches the project's chat history.
  */
 export function Search(p: id$0.Project, q: $models.SearchRequest): $CancellablePromise<store$0.SearchResult> {
@@ -218,6 +244,13 @@ export function UndoMemory(p: id$0.Project, r: $models.MemoryUndoRequest): $Canc
  */
 export function UndoRefresh(p: id$0.Project, r: $models.RefreshUndoRequest): $CancellablePromise<$models.RefreshUndo> {
     return $Call.ByID(3327439166, p, r);
+}
+
+/**
+ * UndoRewind brings back the turns the chat's newest rewind took out.
+ */
+export function UndoRewind(p: id$0.Project, c: id$0.Chat, rewind: number): $CancellablePromise<void> {
+    return $Call.ByID(2261406008, p, c, rewind);
 }
 
 /**

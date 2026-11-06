@@ -157,6 +157,9 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 | `session_notes` | chat_id, content (the agent's notes), summary (written by *Refresh memory*), revision, updated_at (3.4) |
 | `review_chunks` | Results of *Refresh memory* per message range (3.5) |
 | `role_changes` | Each role change: before, after, source and time (8.6) |
+| `rewinds` | Each rewind (8.3): the turn the chat went back to, the last turn that left, the notice it wrote, the notes, skills and *Refresh memory* progress it replaced (for its undo), and the time |
+| `rewound_messages` | The messages a rewind took out, with their parts as JSON, token counts and times; out of the chat, the context and `messages_fts` |
+| `turn_state` | Per chat and turn, the session notes and loaded skills as they were before the turn first changed them, so a rewind can put them back |
 | `messages_fts` | FTS5 index over text parts, used by `search_history`. See the full-text search rules below |
 
 - A **turn** is one user message plus everything the agent does until it replies.
@@ -198,6 +201,10 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
   - Only a user or assistant message of the same chat can be quoted. A quote alone isn't a message: it needs text or an image.
   - The text is cut at 4,000 bytes, at a character, in the frontend and in Go alike.
   - Quote text is indexed like text, so history search finds the reply.
+- **Rewind** (TASK-018): a rewind (8.3) moves the later turns' messages to `rewound_messages` in one transaction. Deleting their parts takes them out of `messages_fts`, so history search, `read_messages` and the substring scan no longer find them. *Undo rewind* writes them back with their IDs and indexes them again.
+  - Usage (3.9) still counts their tokens: they were spent.
+  - A change-log source `message:<id>` of a rewound message still names its chat, for conflict lists and *Undo turn*.
+  - Rewinds and their messages are dropped with the change log after `change_keep` (90 days, 2.5), and with *Clear* or the chat.
   - The model reads it as plain text before the message, the same for every model: `[Quote from your answer in turn N]` (or `my message`), then the passage as `> ` lines. A cut quote ends with a line naming `read_messages(chat_id, from: N)`.
   - `read_messages`, history cards (3.6), *Refresh memory* and the Markdown export show it.
 - **Export a chat** (TASK-016): *Export chat…* in the chat menu saves one chat as a file. It reads only what is stored, never calls a model, and leaves out a part still streaming.
@@ -243,6 +250,7 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 
 - **Undo turn** reverts all changes whose source is a message of that turn, in reverse order. Inserted rows are deleted, updated and deleted rows are restored, and configs, memory and objects return to their previous revision. Changes from other chats, forms and pipelines are not touched.
 - **Revert run** does the same for one pipeline run.
+- **Rewound turns:** a rewind (8.3) never undoes the turns' changes to project data. Its mark in the chat has *Undo changes*, which works like *Undo turn* (plan, conflicts, partly undone, redo) over the changes whose source is a rewound message. Its notice names the turns: `[the changes of turns 4–6, taken out of this chat, were undone: 12 rows in prices]`; after a rewind to the start there is no turn to hold it, so there is none.
 - **Conflicts:** if a later change touched the same row, config, memory section or object (found through `_jenab_change_rows`), undo stops and lists the conflicts. The user chooses to skip those items or cancel.
   - **Undo state is per item.** An undo flips each item it reverts and writes an `s` entry for each item it leaves. A skipped item stays as it is, and a later undo of the turn tries it again, for example once the later change is undone. A redo works the same way. If every item is skipped, nothing is written and the turn stays as it was.
   - A later change is no conflict when its undo chain cancels out after the item's reverted entry (an even number of entries), or when that chain started before and is undone now. So undo B, undo A, redo A, redo B works.
@@ -425,6 +433,7 @@ Where information goes: *Would a new chat in this project need it?* Then project
 - **Who writes:** the main agent and *Refresh memory*. Subagents don't get the tool, and an agent's edit never asks, since the notes reach only this chat.
 - **UI:** a *Notes* button in the chat header opens them read-only.
 - *Clear* empties them.
+- **Rewind** (8.3): the notes go back to how they were before the first turn that left changed them, with a new revision, so a model holding the old one is told to read them again. *Undo rewind* puts back the notes it replaced, again with a new revision. A chat from before TASK-018 has no record of earlier notes, so a rewind keeps them as they are.
 
 ### 3.5 Refresh memory
 
@@ -467,7 +476,7 @@ context:
 
 - The current turn is always complete.
 - Previous turns in the window contain user and assistant text in full and tool results as previews (3.7).
-- **Cut:** when the window passes `history_max_turns` or `history_max_tokens`, it is reduced to the last `history_min_turns` turns in one step. At the same cut, tool results of previous turns become stubs and blocks 2–5 are refreshed. *Refresh memory* also ends with a cut.
+- **Cut:** when the window passes `history_max_turns` or `history_max_tokens`, it is reduced to the last `history_min_turns` turns in one step. At the same cut, tool results of previous turns become stubs and blocks 2–5 are refreshed. *Refresh memory* also ends with a cut. So do a rewind and its undo (8.3): blocks 2–5 are rebuilt with the notes and skills the rewind left.
 - If the chat was idle long enough for the provider's cache to expire (5 minutes), a due cut happens on the next turn, since the cache is lost anyway. The first turn after the app starts also cuts, for the same reason.
 - After the first cut, the context includes a line such as: `This chat has 38 earlier turns. Use search_history or read_messages.`
 - **History cards** (TASK-027): after a cut, at a turn's first request, Go adds cards for earlier turns before the window that the user's message points to. `search_history` and `read_messages` stay for what cards miss.
@@ -1724,6 +1733,17 @@ Decided in SPIKE-023.
   - A message sent after *Stop* starts a new turn, even while the stopped turn is still closing its tool calls.
   - A write the writer has already taken finishes; one still waiting in the queue is skipped (7.3).
   - *Undo turn* covers everything in the turn, including after the new message.
+- **Rewind** (TASK-018): the user can take a chat back to an earlier turn. There are no branches.
+  - **Where:** on a user message that starts a turn (not one that joined a running turn), between turns only, like *Clear*: not while the chat is in a turn, has a queued message or runs *Refresh memory*.
+    - *Rewind to here* keeps that turn and takes out every later one. It shows only when there is a later turn.
+    - *Edit and resend* takes out that turn and every later one, and puts its text back in the composer. A quote of a kept turn comes back with it; attached files come back as their links.
+  - **Asking first:** a dialog says which turns leave, that what they changed in the project stays, whether the session notes go back, which skills are unloaded or loaded again, and that *Undo rewind* brings the turns back until the chat goes on.
+  - **What goes:** the later turns leave the chat, the context and the history index (2.3). The next turn takes the next number after the kept one. Session notes (3.4), loaded skills (8.9) and *Refresh memory*'s progress (3.5) go back to how they were at the end of the kept turn.
+  - **Data changes stay.** When the turns changed project data, the kept turn gets a notice for the model, not shown in the chat: `[the user took turns 4–6 out of this chat; what they changed in the project stays: 12 rows in prices]`. It says nothing of what the turns were about. A rewind to the start writes none, like *Clear*. The mark offers *Undo changes* (2.6).
+  - **The mark:** a line after the kept turn, `Turns 4–6 taken out · 14:02`, with *Undo rewind* and, while the turns have changes in effect, *Undo changes*. A later rewind to an earlier turn moves older marks up to its place.
+  - **Undo rewind** brings the turns back as they were, with their index entries, notes, skills and refresh progress, and drops the notice. Only for the chat's newest rewind, while the chat hasn't gone on, and within 90 days. After that the rewound turns are kept only for their changes' undo and for Usage.
+  - **Cache:** a rewind is a cut (3.6).
+  - **Background work:** nothing a turn started runs between turns: subagents run inside their call. A title still being made from the first turn is dropped on a rewind to the start, as after *Clear*. When background tasks, `create_chat` and `send_to_chat` come (8.6), a rewind stops the tasks the dropped turns started, keeps the chats Mother made or messaged, and says so in its notice.
 - **Prompt rule for requests with several parts:**
   1. Answer the parts that need no tools first.
   2. Start slow work in the background.
@@ -1813,6 +1833,7 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   - The colour is a gradient of the `purple`, `blue` and `green` tones (5.11): a border on Mother's chat row and composer, and a filled tile in the rail while a page is open (5.12).
   - The gradient turns slowly while Mother is in a turn, and stays still when the OS asks for reduced motion. It can't be archived or deleted, only cleared.
   - *Clear* (on any chat) removes the messages, session notes and review results. The chat keeps its title, role, loaded skills (8.9) and model. It works between turns, and the next turn starts a fresh window.
+  - A rewind to the start (8.3) is like *Clear* with undo, but it also puts the notes and skills back to how they were before the first turn. A role's skills stay.
 - **Context:** the project card is followed by a **chat list** (3.1, block 4):
   - ID, title, the first line of the role, status (idle / in a turn / waiting for the user), the number of its background tasks still running (8.3), last activity, and the first lines of the session notes.
   - Example row: `c_07  ETH tracker  in a turn · 2 tasks running · last activity 14:02`.
@@ -2034,6 +2055,7 @@ Each bad field gives its own error, naming the file and the field.
   - **Unloading** (TASK-033): at a cut, a skill whose loading turn has left the window leaves block 1 when no turn in the window loaded it again or called a tool of its `load_with`. A skill no turn loaded, such as one from a role, stays. `load_skill` or a `load_with` tool brings it back.
   - Starting limit: 6 skills or 10,000 tokens per chat. Beyond that, `load_skill` returns an error that lists what is loaded.
   - *Clear* (8.6) keeps the loaded skills, like the role.
+  - **Rewind** (8.3): the skills go back to those loaded at the end of the kept turn: skills loaded in the dropped turns are unloaded, and skills that left block 1 at a cut in them come back. The next request is a cut, so block 1 matches. *Undo rewind* puts back the skills it replaced.
 - **Subagents:** `subagent(task, inputs, background, skills)` starts with those skills loaded. The schema agent (8.2) is a subagent with `database-design` and `migrations`.
 - **Shown:** a loaded skill is a chip in the chat, `Skill loaded: migrations`. It is a `skill_loaded` notice in the tool message, which isn't sent to the model. The `skill_text` notice is not shown.
 - **Skills and memory:** memory holds facts and intent and is always in the context (3.3). Skills hold procedures and are loaded when needed.

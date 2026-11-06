@@ -114,6 +114,66 @@ export interface RefreshEstimate {
 }
 
 /**
+ * RewindResult is what Rewind did.
+ */
+export interface RewindResult {
+    /**
+     * for Undo rewind and the undo of its changes
+     */
+    "rewind": number;
+    "turn": number;
+    "last_turn": number;
+
+    /**
+     * kept in the project
+     */
+    "changes": TurnPlan;
+    "notes": boolean;
+
+    /**
+     * the chat's skills now; nil if they didn't change
+     */
+    "skills": string[] | null;
+}
+
+/**
+ * RewindState is what a rewind of the chat to Turn would do, for its
+ * dialog.
+ */
+export interface RewindState {
+    /**
+     * the chat would end with this turn
+     */
+    "turn": number;
+
+    /**
+     * the last turn that would leave
+     */
+    "last_turn": number;
+
+    /**
+     * Changes is what the turns that would leave changed in the project
+     * and is still in effect; it stays after the rewind.
+     */
+    "changes": TurnPlan;
+
+    /**
+     * the session notes would go back
+     */
+    "notes": boolean;
+
+    /**
+     * skills that would be unloaded
+     */
+    "unload": string[] | null;
+
+    /**
+     * skills that would be loaded again
+     */
+    "load": string[] | null;
+}
+
+/**
  * TurnConflict is a conflict with the chat that made the later change,
  * when a message of a chat made it.
  */
@@ -170,6 +230,7 @@ export interface TurnPlan {
  */
 export interface TurnUndo {
     "turn": number;
+    "rewind"?: number;
     "redo": boolean;
     "done": boolean;
     "summary": string;
@@ -198,10 +259,13 @@ export interface TurnUndoState {
 
 /**
  * UndoRequest is an Undo turn or a Redo turn from the footer, or its second
- * try with the conflicts the user chose to skip.
+ * try with the conflicts the user chose to skip. With Rewind, it is for
+ * the turns that rewind took out of the chat, from its mark (TASK-018),
+ * and Turn is ignored.
  */
 export interface UndoRequest {
     "turn": number;
+    "rewind"?: number;
     "redo": boolean;
     "skip"?: store$0.UndoItem[] | null;
 }

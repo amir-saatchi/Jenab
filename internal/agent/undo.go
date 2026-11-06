@@ -34,11 +34,14 @@ type TurnUndoState struct {
 }
 
 // UndoRequest is an Undo turn or a Redo turn from the footer, or its second
-// try with the conflicts the user chose to skip.
+// try with the conflicts the user chose to skip. With Rewind, it is for
+// the turns that rewind took out of the chat, from its mark (TASK-018),
+// and Turn is ignored.
 type UndoRequest struct {
-	Turn int              `json:"turn"`
-	Redo bool             `json:"redo"`
-	Skip []store.UndoItem `json:"skip,omitempty"`
+	Turn   int              `json:"turn"`
+	Rewind int64            `json:"rewind,omitempty"`
+	Redo   bool             `json:"redo"`
+	Skip   []store.UndoItem `json:"skip,omitempty"`
 }
 
 // TurnConflict is a conflict with the chat that made the later change,
@@ -53,6 +56,7 @@ type TurnConflict struct {
 // user skips them, with UndoRequest.Skip, or cancels.
 type TurnUndo struct {
 	Turn       int            `json:"turn"`
+	Rewind     int64          `json:"rewind,omitempty"`
 	Redo       bool           `json:"redo"`
 	Done       bool           `json:"done"`
 	Summary    string         `json:"summary"`
@@ -89,6 +93,26 @@ func turnSources(ctx context.Context, proj *project.Project, c id.Chat, turn int
 		srcs[i] = id.SourceOf("message", string(m))
 	}
 	return srcs, nil
+}
+
+// rewindSources are the sources of the changes of the turns a rewind took
+// out of the chat, and "turns 4–6" for its notice.
+func rewindSources(ctx context.Context, proj *project.Project, c id.Chat, rewind int64) ([]id.Source, string, error) {
+	ms, err := proj.Chats.RewindMessages(ctx, c, rewind)
+	if err != nil {
+		return nil, "", err
+	}
+	rs, err := proj.Chats.Rewinds(ctx, c)
+	if err != nil {
+		return nil, "", err
+	}
+	removed := "the turns"
+	for _, x := range rs {
+		if x.ID == rewind {
+			removed = turnsText(x.Turn+1, x.LastTurn)
+		}
+	}
+	return sources(ms), removed, nil
 }
 
 // UndoState says what Undo turn and Redo turn would revert now for the
@@ -198,7 +222,10 @@ func (o *Orchestrator) UndoTurn(ctx context.Context, p id.Project, c id.Chat, r 
 }
 
 func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id.Chat, r UndoRequest) (TurnUndo, map[id.Chat]uint64, error) {
-	res := TurnUndo{Turn: r.Turn, Redo: r.Redo}
+	res := TurnUndo{Turn: r.Turn, Rewind: r.Rewind, Redo: r.Redo}
+	if r.Rewind != 0 {
+		res.Turn, r.Turn = 0, 0
+	}
 	cs := o.state(proj.ID, c)
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -211,7 +238,14 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	if err := o.load(ctx, cs, proj); err != nil {
 		return res, nil, err
 	}
-	srcs, err := turnSources(ctx, proj, c, r.Turn)
+	var srcs []id.Source
+	var err error
+	var removed string // the turns a rewind took out, for the notice
+	if r.Rewind != 0 {
+		srcs, removed, err = rewindSources(ctx, proj, c, r.Rewind)
+	} else {
+		srcs, err = turnSources(ctx, proj, c, r.Turn)
+	}
 	if err != nil {
 		return res, nil, err
 	}
@@ -316,7 +350,11 @@ func (o *Orchestrator) undoTurn(ctx context.Context, proj *project.Project, c id
 	res.Summary = turnPlan(plans...).Summary
 	res.Migrations = len(pr.Migrations)
 	res.Skipped = skipped
-	n := chat.Notice{Kind: chat.NoticeTurnUndone, Text: undoNotice(res, rest)}
+	if r.Rewind != 0 && cs.turn == 0 {
+		// The chat was rewound to its start: no turn is left to tell.
+		return res, seqs, sideErr
+	}
+	n := chat.Notice{Kind: chat.NoticeTurnUndone, Text: undoNotice(res, rest, removed)}
 	if _, err := o.write(ctx, cs, proj, chat.Message{Chat: c, Turn: max(cs.turn, 1), Role: chat.RoleUser,
 		Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &n}}}); err != nil {
 		// The undo is in; an error now would read as if it failed.
@@ -415,7 +453,9 @@ func (e *PartError) Unwrap() []error { return []error{e.Part, e.Err} }
 // undoNotice tells the model what Undo turn did, e.g. "[turn 3 was
 // undone: 12 rows in prices; its migration was kept]", or with rest, for a
 // turn that was partly undone, "[the rest of turn 3 was undone: ...]".
-func undoNotice(r TurnUndo, rest bool) string {
+// removed, for turns a rewind took out of the chat, names them instead:
+// "[the changes of turns 4–6, taken out of this chat, were undone: ...]".
+func undoNotice(r TurnUndo, rest bool, removed string) string {
 	verb := "undone"
 	if r.Redo {
 		verb = "redone"
@@ -430,7 +470,11 @@ func undoNotice(r TurnUndo, rest bool) string {
 	} else {
 		b.WriteString("[")
 	}
-	fmt.Fprintf(&b, "turn %d was %s: %s", r.Turn, verb, what)
+	if removed != "" {
+		fmt.Fprintf(&b, "the changes of %s, taken out of this chat, were %s: %s", removed, verb, what)
+	} else {
+		fmt.Fprintf(&b, "turn %d was %s: %s", r.Turn, verb, what)
+	}
 	switch {
 	case r.Migrations == 1:
 		b.WriteString("; its migration was kept")

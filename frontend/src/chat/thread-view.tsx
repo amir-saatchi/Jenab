@@ -34,6 +34,8 @@ import { AgentText, CopyButton, ImagePart, MemoryChip, MigrationChip, NoticeLine
 import { ProviderCard } from "@/chat/provider-card"
 import { RefreshChip } from "@/chat/refresh"
 import { QuoteView, SelectionReply, flash, reply } from "@/chat/quote"
+import { RewindActions, RewindMark } from "@/chat/rewind"
+import { marks as rewindMarks, turnStarts, type Mark } from "@/chat/rewind-text"
 import { copyText, firstRows, lastNotice, results, rows, splitJoining, toolTurn, type Row } from "@/chat/rows"
 import { UndoTurn } from "@/chat/undo"
 import { useNav } from "@/state/nav"
@@ -65,6 +67,23 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
   const [shown, joined] = splitJoining(full ? all : all.slice(-first), thread.joining)
   const lastRow = shown[shown.length - 1]
   const root = React.useRef<HTMLDivElement>(null)
+  // Rewind (TASK-018): the messages that start a turn get its actions
+  // between turns, and each rewind's mark sits after its turn.
+  const starts = React.useMemo(() => turnStarts(thread.messages), [thread.messages])
+  const lastTurn = thread.messages[thread.messages.length - 1]?.turn ?? 0
+  const marks = React.useMemo(() => rewindMarks(thread.rewinds), [thread.rewinds])
+  const mark = (m: Mark) => (
+    <MessageScrollerItem key={`rewind:${m.rewind.id}`} className="-m-1 p-1">
+      <RewindMark thread={thread} rewind={m.rewind} running={running} />
+    </MessageScrollerItem>
+  )
+  // marksAfter are the marks after row i of shown: those of its turn, if
+  // the next row is of a later one.
+  const marksAfter = (i: number) => {
+    const t = rowTurn(shown[i])
+    const next = i + 1 < shown.length ? rowTurn(shown[i + 1]) : Infinity
+    return marks.filter((m) => m.at >= t && m.at < next)
+  }
   const row = (r: Row) => {
     const last = r === lastRow
     // Rows get only the turn state they show, so a new try re-renders the
@@ -83,6 +102,7 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
           waiting={cards ? thread.waiting : null}
           joining={r.kind === "user" && thread.joining.includes(r.id)}
           failed={r.kind === "notice" && failed !== undefined && r.part === failed}
+          rewind={r.kind !== "user" || running || !starts.has(r.id) ? "" : starts.get(r.id)! < lastTurn ? "both" : "edit"}
         />
       </MessageScrollerItem>
     )
@@ -102,8 +122,9 @@ export function ThreadView({ thread, mother }: { thread: Thread; mother: boolean
                 <Older chat={thread.chat.id} />
               </MessageScrollerItem>
             )}
+            {thread.from <= 1 && marks.filter((m) => m.at === 0 || shown.length === 0).map(mark)}
             {all.length === 0 && !streaming && <Empty thread={thread} mother={mother} />}
-            {shown.map(row)}
+            {shown.map((r, i) => [row(r), ...marksAfter(i).map(mark)])}
             {streaming && lastRow?.kind !== "agent" && (
               <MessageScrollerItem key={thread.streaming} className="-m-1 p-1">
                 <MessageRow align="start">
@@ -141,6 +162,11 @@ function Finished({ running }: { running: boolean }) {
       {said}
     </div>
   )
+}
+
+// rowTurn is the turn a row ends in.
+function rowTurn(r: Row) {
+  return r.kind === "agent" ? r.messages[r.messages.length - 1].turn : r.message.turn
 }
 
 // hasCards tells whether an agent item has an approval card or a question.
@@ -211,11 +237,12 @@ interface RowProps {
   waiting: Waiting | null // the card the turn waits for, for an item with cards
   joining: boolean // a user message that joins at the next step
   failed: boolean // the notice of the turn that failed last
+  rewind: "" | "edit" | "both" // a user message's rewind actions: both has *Rewind to here*
 }
 
 const RowView = React.memo(
-  function RowView({ row, thread, stream, running, busy, waiting, joining, failed }: RowProps) {
-    if (row.kind === "user") return <UserRow message={row.message} thread={thread} joining={joining} />
+  function RowView({ row, thread, stream, running, busy, waiting, joining, failed, rewind }: RowProps) {
+    if (row.kind === "user") return <UserRow message={row.message} thread={thread} joining={joining} rewind={rewind} />
     if (row.kind === "notice") {
       const n = row.part.notice
       if (!n) return null
@@ -243,6 +270,7 @@ const RowView = React.memo(
     a.waiting === b.waiting &&
     a.joining === b.joining &&
     a.failed === b.failed &&
+    a.rewind === b.rewind &&
     a.thread.chat.title === b.thread.chat.title,
 )
 
@@ -263,7 +291,7 @@ function Failed({ thread, text }: { thread: Thread; text: string }) {
   return <FailedCard project={thread.project} chat={thread.chat.id} text={text} />
 }
 
-function UserRow({ message, thread, joining }: { message: Message; thread: Thread; joining: boolean }) {
+function UserRow({ message, thread, joining, rewind }: { message: Message; thread: Thread; joining: boolean; rewind: RowProps["rewind"] }) {
   const chat = thread.chat.id
   const text = messageText(message)
   return (
@@ -289,6 +317,7 @@ function UserRow({ message, thread, joining }: { message: Message; thread: Threa
             // Shown on hover and on focus, so the row stays quiet.
             <MessageFooter className="opacity-0 transition-opacity group-hover/message:opacity-100 focus-within:opacity-100">
               <ReplyButton onClick={() => reply(chat, message, text)} />
+              {rewind && <RewindActions thread={thread} message={message} later={rewind === "both"} />}
             </MessageFooter>
           )
         )}

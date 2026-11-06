@@ -367,6 +367,14 @@ export enum NoticeKind {
      * it.
      */
     NoticeCardOutside = "card_outside",
+
+    /**
+     * NoticeRewound tells the model, in the last turn kept, that the user
+     * took the later turns out of the chat and which of their changes to
+     * the project stay (TASK-018). The chat shows the rewind's mark
+     * instead.
+     */
+    NoticeRewound = "rewound",
 };
 
 /**

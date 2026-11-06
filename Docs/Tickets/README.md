@@ -61,7 +61,7 @@
 | [TASK-015](TASK-015-files-panel.md) | The Files panel: browse and open the project's files | Task | Done | 3 |
 | [TASK-016](TASK-016-export-chat.md) | Export a chat | Task | Done | 3 |
 | [TASK-017](TASK-017-installer.md) | Install the app | Task | Open | 3 |
-| [TASK-018](TASK-018-rewind-chat.md) | Rewind a chat to an earlier message | Task | Open | 3 |
+| [TASK-018](TASK-018-rewind-chat.md) | Rewind a chat to an earlier message | Task | Done | 3 |
 | [TASK-019](TASK-019-reply-to-part.md) | Reply to part of a message | Task | Done | 3 |
 | [TASK-020](TASK-020-tool-call-errors.md) | Tool-call errors: measure them, then check more | Task | Open (later) | 3 |
 | [TASK-021](TASK-021-word-files.md) | Read Word files: text from .docx | Task | Done | 3 |

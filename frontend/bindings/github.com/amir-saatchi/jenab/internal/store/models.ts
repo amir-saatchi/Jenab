@@ -101,6 +101,30 @@ export interface MemorySection {
 }
 
 /**
+ * RewindInfo is a chat's rewind, for its mark in the chat (TASK-018).
+ */
+export interface RewindInfo {
+    "id": number;
+
+    /**
+     * the chat ended with this turn
+     */
+    "turn": number;
+
+    /**
+     * the last turn that left
+     */
+    "last_turn": number;
+    "at": string;
+
+    /**
+     * Undoable: it is the chat's newest rewind and the chat has not gone
+     * on since, so Undo rewind can bring the turns back.
+     */
+    "undoable": boolean;
+}
+
+/**
  * SearchResult is the hits, best first for a word search and newest first
  * for a substring scan.
  */

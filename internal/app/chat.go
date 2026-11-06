@@ -112,6 +112,9 @@ type ChatSnapshot struct {
 	From     int            `json:"from"` // the first turn in Messages; older ones come from Messages
 	Seq      uint64         `json:"seq"`
 	Live     agent.Live     `json:"live"` // the answer still streaming, a wait or a retry
+	// Rewinds are the chat's rewinds still in the undo window, for their
+	// marks (TASK-018).
+	Rewinds []store.RewindInfo `json:"rewinds"`
 }
 
 // Snapshot returns the chat with its last SnapshotTurns turns. Live is
@@ -130,10 +133,17 @@ func (s *ChatService) Snapshot(ctx context.Context, p id.Project, c id.Chat) (sn
 		}
 		snap.Chat, snap.From = ch, max(1, last-SnapshotTurns+1)
 		snap.Messages, snap.Seq, err = proj.Chats.Messages(ctx, c, snap.From, 0)
+		if err != nil {
+			return err
+		}
+		snap.Rewinds, err = proj.Chats.Rewinds(ctx, c)
 		return err
 	})
 	if snap.Messages == nil {
 		snap.Messages = []chat.Message{}
+	}
+	if snap.Rewinds == nil {
+		snap.Rewinds = []store.RewindInfo{}
 	}
 	return snap, err
 }
@@ -252,6 +262,35 @@ func (s *ChatService) UndoState(ctx context.Context, p id.Project, c id.Chat, tu
 func (s *ChatService) UndoTurn(ctx context.Context, p id.Project, c id.Chat, r agent.UndoRequest) (res agent.TurnUndo, err error) {
 	defer s.guard("chat.undo_turn", &err)
 	return s.orch.UndoTurn(ctx, p, c, r)
+}
+
+// RewindState says what a rewind of the chat to the end of turn would do,
+// for its dialog: the turns that leave, the project data they changed
+// that stays, and the notes and skills that go back (TASK-018).
+func (s *ChatService) RewindState(ctx context.Context, p id.Project, c id.Chat, turn int) (st agent.RewindState, err error) {
+	defer s.guard("chat.rewind_state", &err)
+	return s.orch.RewindState(ctx, p, c, turn)
+}
+
+// Rewind takes the chat back to the end of turn, from *Rewind to here*
+// or *Edit and resend* (TASK-018). The later turns leave the chat and can
+// come back with UndoRewind until the chat goes on.
+func (s *ChatService) Rewind(ctx context.Context, p id.Project, c id.Chat, turn int) (r agent.RewindResult, err error) {
+	defer s.guard("chat.rewind", &err)
+	return s.orch.Rewind(ctx, p, c, turn)
+}
+
+// UndoRewind brings back the turns the chat's newest rewind took out.
+func (s *ChatService) UndoRewind(ctx context.Context, p id.Project, c id.Chat, rewind int64) (err error) {
+	defer s.guard("chat.undo_rewind", &err)
+	return s.orch.UndoRewind(ctx, p, c, rewind)
+}
+
+// RewindUndoState says what Undo turn and Redo turn would revert now for
+// the changes of the turns a rewind took out, for its mark.
+func (s *ChatService) RewindUndoState(ctx context.Context, p id.Project, c id.Chat, rewind int64) (st agent.TurnUndoState, err error) {
+	defer s.guard("chat.rewind_undo_state", &err)
+	return s.orch.RewindUndoState(ctx, p, c, rewind)
 }
 
 // write runs a change to the chat outside a turn and tells the
