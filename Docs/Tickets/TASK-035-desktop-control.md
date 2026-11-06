@@ -60,3 +60,5 @@ Done on 2026-11-05 with agent-desktop 1.0.2. SPEC 8.10 and 8.9 describe it.
   - Recorded: ministral-14b claimed a write worked after a "session ended" error.
 - **Open:** in server mode the switch is hidden (no Windows check in a plain browser). Key presses fail in plain Win32 windows that aren't in front (SPIKE-039). Prompt cache breaks where a snapshot becomes a stub. Turns the app starts will need to leave the tools out (8.3).
 - **Requests:** Gemini (`GEMINI_API_KEY`) 87 on 2026-11-03 and about 138 on 2026-11-05; Mistral (`MISTRAL_API_KEY`) 17 in the live test, plus the check by hand.
+
+The session's report: [reports/TASK-035-report.md](reports/TASK-035-report.md).

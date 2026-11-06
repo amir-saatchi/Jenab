@@ -52,3 +52,5 @@ Done on 2026-11-02. SPEC 3.7, 4.2, 4.7 and 8.1 describe it.
 - **Decided:** a `.docm` is read but never opened with the system app; a `.docx` that isn't Word no longer opens with it either. Non-decimal list numbers are written as numbers. A bug where a style without `w:default` became the default paragraph style is fixed.
 - **Not done:** files from LibreOffice and Google Docs, and a Word file saved with a German or Persian UI (only built tests cover translated style IDs); a real Word file with a nested list (Word refused to set the level from a script). `go test -fuzz` stalls on this machine, so the fuzzer ran only seconds. No drag-and-drop or paste. `.dotx` isn't detected.
 - **Follow-up:** `jenab://` links in the user's own message bubble show as plain text, not as file links.
+
+The session's report: [reports/TASK-021-report.md](reports/TASK-021-report.md).

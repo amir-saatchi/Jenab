@@ -46,3 +46,5 @@ Done on 2026-11-05. SPEC 8.7 and 8.10 describe it.
 - **Card:** an app that matches no window gets "Pick a window for the agent to use".
 - **Live,** gemini-3.5-flash-lite: 3/3 and Stop, and 1/1 with "In Notepad" (the one-window card). A first attempt was 2/3: one run made 6 requests with no reply and no tool call until the 5-minute limit, while its desktop calls were fast. Most likely failed, retried or empty provider answers; the live test prints only the desktop log lines, not the provider's (`provider: call failed`), so it isn't proven. 57 requests.
 - **Not done:** the 8.7 warning (the server form is Phase 5); whether the exit-crash fix in 1.1.0 explains TASK-035's one failure.
+
+The session's report: [reports/TASK-039-report.md](reports/TASK-039-report.md).

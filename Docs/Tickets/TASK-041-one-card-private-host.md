@@ -32,3 +32,5 @@ Done on 2026-11-06. SPEC 6.7 and 8.8 describe it.
 - **Unchanged:** public hosts, hosts with public and private addresses, exceptions not yet approved as hosts, hosts Auto approves by itself, and redirects. At Auto after untrusted content the host card would ask, so it folds too (decided: the private card asks there anyway).
 - **Checked:** Go tests with local servers and a fake resolver; a server build with `jenab-fakesite` and a fake model at Standard showed one card, and after *Allow in this project* the next read asked nothing.
 - **Open:** the check costs one DNS lookup (up to 5 s) before the card for an unapproved host; no test covers the subagent path.
+
+The session's report: [reports/TASK-041-report.md](reports/TASK-041-report.md).

@@ -46,3 +46,5 @@ Done on 2026-11-06. SPEC 2.3, 2.6, 3.4, 3.6, 8.3, 8.6 and 8.9 describe it.
   - Chats from before this change have no earlier notes or skills recorded, so a rewind keeps theirs.
   - Subagent transcripts of dropped turns stay in the bucket until *Clear* or delete, like a stopped turn's.
   - *Edit and resend* brings back attached files as links, not chips.
+
+The session's report: [reports/TASK-018-report.md](reports/TASK-018-report.md).

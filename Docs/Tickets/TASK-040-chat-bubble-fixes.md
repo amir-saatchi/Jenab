@@ -26,3 +26,5 @@ Done on 2026-11-06. SPEC 4.5 and 5.8 describe it.
 - **Answer width:** answers take the column's width, short ones too: the ghost bubble has no background, so English looks the same, and a short Persian answer now sits on the right. A *Reply* flash on an answer now spans the column.
 - **Checked:** frontend tests (5 new), and by hand in a server build with a fake model at 1280 and 760 px: links open the file, and every Persian paragraph ends at the same right edge.
 - **Open:** while the Markdown renderer loads, for a moment, a mixed answer is one paragraph in the answer's first direction.
+
+The session's report: [reports/TASK-040-report.md](reports/TASK-040-report.md).

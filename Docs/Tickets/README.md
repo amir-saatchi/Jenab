@@ -1,5 +1,7 @@
 # Tickets
 
+The reports the ticket sessions wrote are in [reports/](reports/), linked from each ticket's result.
+
 ## Spikes and tasks
 
 | ID | Title | Type | Status | Gate |

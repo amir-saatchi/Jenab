@@ -47,3 +47,5 @@ Done on 2026-11-06. SPEC 8.11 describes it, and 8.10 the session's end at *Clear
   - The turn's request limit cut off Gemini's save after a long first run (26 requests); saves could get one more request, as the reminder does.
   - An agent's recipe with a shipped recipe's name hides a newer shipped text.
   - A macro can have no log; its replay then says only "Done".
+
+The session's report: [reports/TASK-038-report.md](reports/TASK-038-report.md).
