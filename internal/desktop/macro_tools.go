@@ -39,13 +39,14 @@ const BrowserApp = "browser"
 var Shipped = []store.DesktopRecipe{
 	{App: "calculatorapp", Name: "calculator", Text: "The digits are separate buttons named Zero to Nine, with Plus, Minus and Equals. " +
 		"The result is the statictext 'Display is …'. For another mode, click Open Navigation and select the mode's option (a click doesn't switch it). " +
+		"If there is no button named One, the window is in another mode: switch it to Standard that way first. " +
 		"Don't use Keep on top: the window drops out of the list."},
 	{App: BrowserApp, Name: "web_search", Text: "Set the address bar to the site and press Return. If a cookie dialog appears, decline it. " +
 		"Type the words into the page's search box and press Return or its search button, wait for the results, and read titles and sites from the result links; " +
 		"skip ads and don't open them."},
 }
 
-const ShippedVersion = "1"
+const ShippedVersion = "2"
 
 // reminder is the one reminder per session (8.11), the same for every
 // model.
@@ -61,7 +62,7 @@ func (m *Manager) macroTools(spec func(tool.Spec) tool.Spec) []tool.Tool {
 				`"params":{"type":"array","maxItems":10,"items":{"type":"string","maxLength":2000},"description":"Each param as name=value with this task's value, like [\"query=blue folders\"]"}` +
 				`},"required":["name"],"additionalProperties":false}`),
 		}), m.runMacro),
-		tool.Func(spec(tool.Spec{Name: "desktop_save_macro",
+		tool.Func(spec(tool.Spec{Name: "desktop_save_macro", AtLimit: true,
 			Description: "Save the task you did in the picked window as a macro, once it worked, so it can be replayed without you. Jenab takes the steps from your actions that worked, in order; you name the macro, give the values that change as params and say which elements to log. The same name makes a new version.",
 			Schema: json.RawMessage(`{"type":"object","properties":{` +
 				`"name":{"type":"string","maxLength":41,"description":"lower_snake_case, like site_search"},` +
@@ -75,7 +76,7 @@ func (m *Manager) macroTools(spec func(tool.Spec) tool.Spec) []tool.Tool {
 				`"skip":{"type":"array","maxItems":40,"items":{"type":"integer","minimum":1},"description":"Numbers of recorded steps to leave out, from a save's result"}` +
 				`},"required":["name","description"],"additionalProperties":false}`),
 		}), m.saveMacro),
-		tool.Func(spec(tool.Spec{Name: "desktop_save_recipe",
+		tool.Func(spec(tool.Spec{Name: "desktop_save_recipe", AtLimit: true,
 			Description: "Save a recipe for the picked app: two to five sentences on how to do a task in it, for when a macro breaks. The same name replaces your earlier one.",
 			Schema: json.RawMessage(`{"type":"object","properties":{` +
 				`"name":{"type":"string","maxLength":41,"description":"lower_snake_case, like site_search"},` +

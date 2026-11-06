@@ -463,3 +463,33 @@ func TestCutBytes(t *testing.T) {
 		}
 	}
 }
+
+// A save in the answer to the last request still runs (Spec.AtLimit,
+// 8.11); the other calls next to it are closed as before.
+func TestRequestCapRunsSaves(t *testing.T) {
+	keep := tool.Func(tool.Spec{Name: "keep", Description: "Keep what the turn did.", AtLimit: true,
+		Schema: json.RawMessage(`{"type": "object", "properties": {"text": {"type": "string"}}}`)},
+		func(_ context.Context, _ *tool.Env, a struct{ Text string }) (tool.Result, error) {
+			return tool.Result{Text: "kept " + a.Text}, nil
+		})
+	set := testSettings()
+	set.LLM.TurnMaxRequests = 2
+	h := newHarness(t, t.TempDir(), "", set, echo(), keep)
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	last := fake.ToolCall("c2", "keep", map[string]string{"text": "steps"})
+	other := fake.ToolCall("c3", "echo", map[string]string{"text": "again"})
+	last.Events = slices.Insert(last.Events, 1, other.Events[0])
+	h.fp.Push(fake.ToolCall("c1", "echo", map[string]string{"text": "again"}), last)
+	h.turn(c.ID, "loop")
+	if n := len(h.fp.Calls()); n != 2 {
+		t.Fatalf("%d requests, want the cap of 2", n)
+	}
+	ms := h.messages(c.ID)
+	got := texts(ms)
+	want := []string{"assistant: call keep", "assistant: call echo", "tool: result kept steps", "tool: result not run: the turn reached its request limit"}
+	if !slices.Equal(got[len(got)-len(want)-1:len(got)-1], want) {
+		t.Errorf("stored %q\nwant %q before the cap notice", got, want)
+	}
+	validHistory(t, ms)
+}

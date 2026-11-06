@@ -504,14 +504,14 @@ func (resp *response) why() string {
 // runTools runs the calls in order and writes each result as it is done,
 // in one tool message. After Stop the remaining calls get "cancelled by
 // user" (8.3). Calls in the answer to the last request, which had no
-// tools, are closed without running. It reports whether every call
-// succeeded.
+// tools, are closed without running, except a tool marked AtLimit. It
+// reports whether every call succeeded.
 func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []chat.ToolCall, last bool) (bool, error) {
 	tm := &toolMsg{r: r, t: t, id: resp.toolID, why: resp.why()}
 	allBad, allOK := !last, !last
 	for i, c := range calls {
 		parts := []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: c.ID, Text: "not run: the turn reached its request limit", IsError: true}}}
-		if !last {
+		if !last || r.atLimit(c.Name) {
 			var bad bool
 			parts, bad = r.runTool(ctx, t, tm, resp.id, i, c)
 			allBad = allBad && bad
@@ -533,6 +533,13 @@ func (r *runner) runTools(ctx context.Context, t *turn, resp *response, calls []
 		return false, errBadCalls
 	}
 	return false, nil
+}
+
+// atLimit reports whether the tool runs in the answer to the turn's last
+// request (Spec.AtLimit).
+func (r *runner) atLimit(name string) bool {
+	tl, ok := r.o.d.Tools.Get(name)
+	return ok && tl.Spec().AtLimit
 }
 
 // maxBadRequests is how many requests in a row may have only tool calls

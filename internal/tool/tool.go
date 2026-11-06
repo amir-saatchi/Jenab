@@ -67,6 +67,11 @@ type Spec struct {
 	// never in subagents, pipelines, scheduled runs or turns the app
 	// started (8.10).
 	UserTurns bool
+	// AtLimit: a call in the answer to the turn's last request still
+	// runs. Only for a tool that keeps what the turn did, such as a
+	// desktop save (8.11): it needs no further request, and the work
+	// would be lost otherwise.
+	AtLimit bool
 }
 
 // IsOn reports whether the tool is turned on now (Spec.On).

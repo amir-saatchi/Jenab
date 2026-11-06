@@ -1,6 +1,6 @@
 # TASK-038 report: desktop macros and recipes (SPEC 8.11)
 
-Branch `claude/dazzling-elgamal-396dd2`, head `c32de8c` (c32de8caa44193cd951c0339dcc99978dae9957d). Nothing under `Docs/` was changed.
+Branch `claude/dazzling-elgamal-396dd2`, head `ed00dd9` (ed00dd9c0c41ffba2dbdcadf25d02f5435e7a957). Nothing under `Docs/` was changed.
 This file is not committed.
 
 ## 1. What was built
@@ -218,8 +218,8 @@ A replay's own time was 2–18 s.
 2. **A model can save a macro from a failed task.** With no params, Jenab can't tell. Options:
    - refuse a save in a turn where the last check failed (Jenab has no such check today)
    - let the first replay's result decide whether the macro is kept
-3. **Calculator Date-mode recovery.** Neither model got back to Standard mode after the replay's handover. The handover's snapshot shows the mode menu, but the models didn't use `select`. Maybe the Calculator recipe should say how to switch modes.
-4. **The turn's request limit** cut off Gemini's saves after a long make run (26 requests). Maybe allow the save calls one more request, as the reminder already gets.
+3. **Calculator Date-mode recovery.** Neither model got back to Standard mode after the replay's handover. The shipped recipe already said how to switch modes (Open Navigation, then `select`), but not how to tell that the window is in another mode. **Done in the second commit:** the recipe now says "If there is no button named One, the window is in another mode: switch it to Standard that way first." `ShippedVersion` is 2, so the new text replaces the old at the next start. Not re-run live.
+4. **The turn's request limit** cut off Gemini's saves after a long make run (26 requests). **Done in the second commit:** a new `tool.Spec.AtLimit` lets a call in the answer to the last request still run. Only `desktop_save_macro` and `desktop_save_recipe` have it. They run locally and need no further request, so the limit holds. Tests: `TestRequestCapRunsSaves` (agent) and `TestSavesRunAtTheLimit` (desktop). Not re-run live.
 5. **An agent's recipe can shadow a shipped recipe of the same name.** Gemini saved its own `calculator`, and the agent's recipe is listed first. The order is user, agent, shipped, as designed, but a newer shipped text is then hidden.
 6. **Undo of a macro save puts back the old version's run counts too.** That is by design (the row comes back as it was), but worth a line in the SPEC.
 7. **A macro needs no log.** Most models gave one, and the automatic log covers the rest, but a macro with an empty log can only report "Done".
@@ -234,8 +234,13 @@ A replay's own time was 2–18 s.
 - **Failed step note:** say "found no ROLE named NAME in N s", and give the missing log steps' reason.
 - **Session lifetime:** a chat's desktop session ends on Clear, rewind, undo rewind and when the chat is deleted (`EndChat`). 8.10 should say this too.
 - **Live test grading:** grade on all of the turn's assistant text, not only the last message.
-- **Points 2–4 and 6 above** need a decision.
+- **Request limit:** a save call in the answer to a turn's last request still runs (`Spec.AtLimit`); the other calls next to it are closed as before.
+- **Shipped Calculator recipe:** say how to tell another mode (no button named One) and to switch to Standard first.
+- **Undo:** undoing a macro save restores the row as it was, run counts and failure streak included. The counts belong to the version they measured.
+- **Point 2** (a macro saved from a failed task) is left as a recorded model failure. A possible generic rule: when a model runs a macro and then saves a new version of it in the same session, count that run as a failure.
 
 ## 6. Head
 
-`claude/dazzling-elgamal-396dd2` at `c32de8c`: one commit on top of `8d9d286`, signed off, not pushed.
+`claude/dazzling-elgamal-396dd2` at `ed00dd9`: two signed-off commits on top of `8d9d286`, not pushed.
+- `c32de8c`: TASK-038, desktop macros and recipes.
+- `ed00dd9`: saves run at the request limit (`Spec.AtLimit`), and the Calculator recipe says how to tell another mode. All checks passed again after it.

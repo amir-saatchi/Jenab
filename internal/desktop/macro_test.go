@@ -631,3 +631,22 @@ func TestEndChat(t *testing.T) {
 	h.m.EndChat(h.env.Project.ID, h.env.Chat)
 	h.fails("desktop_snapshot", map[string]any{}, "no window is in use")
 }
+
+// Only the saves run in the answer to a turn's last request, and the
+// shipped recipes fit the recipe limit.
+func TestSavesRunAtTheLimit(t *testing.T) {
+	var at []string
+	for _, tl := range NewManager(Deps{}).Tools() {
+		if tl.Spec().AtLimit {
+			at = append(at, tl.Spec().Name)
+		}
+	}
+	if want := []string{"desktop_save_macro", "desktop_save_recipe"}; !slices.Equal(at, want) {
+		t.Errorf("AtLimit tools %q, want %q", at, want)
+	}
+	for _, r := range Shipped {
+		if n := len([]rune(r.Text)); n > 1200 {
+			t.Errorf("shipped recipe %s has %d characters", r.Name, n)
+		}
+	}
+}
