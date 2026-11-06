@@ -43,6 +43,8 @@ import (
 //	JENAB_DESKTOP_MODEL   kind/base-url/model/key-variable, default
 //	                      gemini//gemini-3.5-flash-lite/GEMINI_API_KEY
 //	JENAB_DESKTOP_REPS    runs, default 3
+//	JENAB_DESKTOP_MAX_REQUESTS  stop a run's turn once it has made this
+//	                      many requests; default no limit
 //	JENAB_DESKTOP_STOP    "1": one more run, stopped after the pick
 //	JENAB_DESKTOP_APP     the task names this program ("Notepad") instead
 //	                      of the window's title; run a copy of the editor
@@ -60,6 +62,7 @@ func TestDesktopLive(t *testing.T) {
 	base := strings.Join(spec[1:len(spec)-2], "/")
 	key := readEnv(t, envFile, keyVar)
 	reps, _ := strconv.Atoi(cmpOr(os.Getenv("JENAB_DESKTOP_REPS"), "3"))
+	maxRequests, _ := strconv.Atoi(os.Getenv("JENAB_DESKTOP_MAX_REQUESTS"))
 
 	root := t.TempDir()
 	set := config.Defaults()
@@ -80,15 +83,14 @@ func TestDesktopLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var requests int
-	var reqMu sync.Mutex
+	count := &requestCount{}
 	bk := backends.All()
 	inner := bk[provider.Kind(kind)]
 	bk[provider.Kind(kind)] = func(c provider.Connection) (provider.Provider, error) {
 		p, err := inner(c)
-		return countingProvider{p, func() { reqMu.Lock(); requests++; reqMu.Unlock() }}, err
+		return countingProvider{p, count}, err
 	}
-	models := provider.NewRegistry(provider.Deps{Settings: set.LLM, Gate: limit.NewGate(2), Backends: bk, Catalog: provider.MustCatalog(),
+	models := provider.NewRegistry(provider.Deps{Settings: set.LLM, Gate: limit.NewGate(2), Backends: bk, Catalog: provider.MustCatalog(), Log: log,
 		Secrets: secret.New(&memKeyring{m: map[string]string{provider.KeyName("live"): key}})})
 	cli := &desktop.CLI{Path: prog, Home: filepath.Join(root, "agent-desktop")}
 	dm := desktop.NewManager(desktop.Deps{Runner: cli, On: func() bool { return true }, Self: os.Getpid(), Class: desktop.WindowClass, Log: log})
@@ -132,9 +134,7 @@ func TestDesktopLive(t *testing.T) {
 		if c, err = p.Chats.CreateChat(ctx, id.SourceUser, chat.Chat{Title: title}); err != nil {
 			t.Fatal(err)
 		}
-		reqMu.Lock()
-		requests = 0
-		reqMu.Unlock()
+		count.reset()
 		start := time.Now()
 		task := fmt.Sprintf("In the open text editor %q, write this sentence: %s", title, sentence)
 		if app := os.Getenv("JENAB_DESKTOP_APP"); app != "" {
@@ -144,8 +144,14 @@ func TestDesktopLive(t *testing.T) {
 			t.Fatal(err)
 		}
 		var kinds []string
+		capped := false
 		deadline := time.Now().Add(5 * time.Minute)
 		for o.State(pid, c.ID) != chat.StateIdle && time.Now().Before(deadline) {
+			if r := count.get().requests; maxRequests > 0 && r >= maxRequests && !capped {
+				capped = true
+				t.Logf("run %d: stopped at %d requests (JENAB_DESKTOP_MAX_REQUESTS)", n, r)
+				o.Stop(pid, c.ID)
+			}
 			l := o.Live(pid, c.ID)
 			if l.Waiting == nil {
 				time.Sleep(200 * time.Millisecond)
@@ -204,11 +210,12 @@ func TestDesktopLive(t *testing.T) {
 		}
 		text := editorText(t, cli, win)
 		ok := strings.Contains(text, sentence)
-		reqMu.Lock()
-		r := requests
-		reqMu.Unlock()
-		t.Logf("run %d: ok %v, %d requests, %d tool calls %v, cards %v, tokens in %d (+%d cached) out %d, %s",
-			n, ok, r, calls, steps, kinds, in, cached, out, took.Round(100*time.Millisecond))
+		r := count.get()
+		t.Logf("run %d: ok %v, %d requests, %d empty, %d failed, %d tool calls %v, cards %v, tokens in %d (+%d cached) out %d, %s",
+			n, ok, r.requests, r.empty, r.failed, calls, steps, kinds, in, cached, out, took.Round(100*time.Millisecond))
+		if r.empty > 0 {
+			t.Logf("run %d: the empty answers stopped with %v", n, r.stops)
+		}
 		if stop {
 			if !logs.has("desktop: session ended", "the turn ended") {
 				t.Errorf("Stop: the session didn't end with the turn:\n%s", logs)
@@ -237,17 +244,84 @@ func TestDesktopLive(t *testing.T) {
 	if os.Getenv("JENAB_DESKTOP_STOP") == "1" {
 		run(reps+1, true)
 	}
-	t.Logf("log lines with text lengths only:\n%s", logs.grep("desktop:"))
+	// desktop: lines hold text lengths only; provider: lines hold the
+	// provider's error, redacted by the Registry, never a key.
+	t.Logf("log lines (desktop: text lengths only; provider: redacted errors):\n%s", logs.grep("desktop:", "provider:"))
 }
 
+// countingProvider counts a backend's requests, the answers with no text
+// and no tool call, and the requests that failed. The Registry's retries
+// and its request without the answer schema are requests of their own.
 type countingProvider struct {
 	provider.Provider
-	count func()
+	n *requestCount
 }
 
 func (c countingProvider) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
-	c.count()
-	return c.Provider.Stream(ctx, req)
+	c.n.add(func(r *requestTally) { r.requests++ })
+	return func(yield func(provider.Event, error) bool) {
+		var answered, done, failed bool
+		var stop provider.StopReason
+		defer func() {
+			// A stream with no done event was cut off: by the provider,
+			// or by the Registry's stall watchdog.
+			c.n.add(func(r *requestTally) {
+				switch {
+				case failed || !done:
+					r.failed++
+				case !answered:
+					r.empty++
+					r.stops = append(r.stops, string(stop))
+				}
+			})
+		}()
+		for ev, err := range c.Provider.Stream(ctx, req) {
+			switch {
+			case err != nil:
+				failed = true
+			case ev.Kind == provider.EventPart && ev.Part != nil:
+				answered = answered || ev.Part.ToolCall != nil || ev.Part.Text != nil && strings.TrimSpace(ev.Part.Text.Text) != ""
+			case ev.Kind == provider.EventDone:
+				done, stop = true, ev.Stop
+			}
+			if !yield(ev, err) {
+				return
+			}
+		}
+	}
+}
+
+// SendsSchema passes the backend's JSON mode on, so the Registry treats
+// the wrapped backend as it treats the real one.
+func (c countingProvider) SendsSchema() bool {
+	j, ok := c.Provider.(provider.JSONMode)
+	return ok && j.SendsSchema()
+}
+
+type requestTally struct {
+	requests, empty, failed int
+	stops                   []string // the stop reasons of the empty answers
+}
+
+type requestCount struct {
+	mu sync.Mutex
+	t  requestTally
+}
+
+func (c *requestCount) add(f func(*requestTally)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	f(&c.t)
+}
+
+func (c *requestCount) reset() { c.add(func(r *requestTally) { *r = requestTally{} }) }
+
+func (c *requestCount) get() requestTally {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	r := c.t
+	r.stops = append([]string(nil), r.stops...)
+	return r
 }
 
 func approvalAt(t *testing.T, p *project.Project, c id.Chat, m id.Message, i int) chat.Approval {
@@ -359,11 +433,15 @@ func (l *lines) has(all ...string) bool {
 	return false
 }
 
-func (l *lines) grep(s string) string {
+// grep is the lines that hold any of ss.
+func (l *lines) grep(ss ...string) string {
 	var out []string
 	for _, line := range strings.Split(l.String(), "\n") {
-		if strings.Contains(line, s) {
-			out = append(out, line)
+		for _, s := range ss {
+			if strings.Contains(line, s) {
+				out = append(out, line)
+				break
+			}
 		}
 	}
 	return strings.Join(out, "\n")
