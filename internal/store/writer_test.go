@@ -226,3 +226,19 @@ func errString(err error) string {
 	}
 	return " " + err.Error()
 }
+
+// Once a caller has its answer, Stats no longer shows its request as running
+// and counts it as done. Outside a bubble, since the bug was a scheduling
+// window between the answer and the stats.
+func TestStatsAreCurrentWhenTheAnswerArrives(t *testing.T) {
+	db := fakeDB(nil)
+	defer db.w.close(context.Background())
+	for i := range 500 {
+		if _, err := do(context.Background(), db, limit.Interactive, func() (string, error) { return "", nil }); err != nil {
+			t.Fatal(err)
+		}
+		if s := db.Stats(); s.Busy || s.Done != int64(i+1) {
+			t.Fatalf("after answer %d: Busy %v, Done %d", i+1, s.Busy, s.Done)
+		}
+	}
+}

@@ -152,29 +152,49 @@ func TestQueryTimeoutInterrupts(t *testing.T) {
 	}
 }
 
-// waitBusy waits until the writer is running a request.
-func waitBusy(t *testing.T, db *DB) {
+// holdWriter starts a write transaction that stays open until release. It
+// returns once the transaction itself says it is running; Stats().Busy alone
+// can't tell this request from the one before it.
+func holdWriter(t *testing.T, db *DB) (release func()) {
 	t.Helper()
-	for i := 0; !db.Stats().Busy; i++ {
-		if i > 500 {
-			t.Fatal("the writer never started the request")
-		}
-		time.Sleep(2 * time.Millisecond)
+	started, ch := make(chan struct{}), make(chan struct{})
+	errc := make(chan error, 1)
+	go func() {
+		_, err := Do(context.Background(), db, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
+			if _, err := tx.Exec("INSERT INTO t (v) VALUES ('held')"); err != nil {
+				return struct{}{}, err
+			}
+			close(started)
+			<-ch
+			return struct{}{}, nil
+		})
+		errc <- err
+	}()
+	select {
+	case <-started:
+	case err := <-errc:
+		t.Fatalf("the held write ended before it started: %v", err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("the writer never started the held write")
 	}
+	return func() { close(ch) }
 }
 
-// holdWriter starts a write transaction that stays open until release.
-func holdWriter(t *testing.T, db *DB) (release func()) {
-	ch := make(chan struct{})
-	go Do(context.Background(), db, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
-		if _, err := tx.Exec("INSERT INTO t (v) VALUES ('held')"); err != nil {
-			return struct{}{}, err
+// waitQueued waits until queued(db.Stats()) holds. errc gets the answer of
+// the request being waited for: if it comes first, the request never sat in
+// the queue, and the test fails at once instead of waiting forever.
+func waitQueued(t *testing.T, db *DB, errc <-chan error, queued func(WriterStats) bool) {
+	t.Helper()
+	deadline := time.After(10 * time.Second)
+	for !queued(db.Stats()) {
+		select {
+		case err := <-errc:
+			t.Fatalf("the request was answered before it was seen queued: %v", err)
+		case <-deadline:
+			t.Fatalf("the request was never seen queued; stats %+v", db.Stats())
+		case <-time.After(time.Millisecond):
 		}
-		<-ch
-		return struct{}{}, nil
-	})
-	waitBusy(t, db)
-	return func() { close(ch) }
+	}
 }
 
 func TestReadsDontWaitForTheWriter(t *testing.T) {
@@ -203,9 +223,7 @@ func TestCancelledWriteNeverCommits(t *testing.T) {
 		})
 		errc <- err
 	}()
-	for p.Stats().Interactive == 0 {
-		time.Sleep(time.Millisecond)
-	}
+	waitQueued(t, p.DB, errc, func(s WriterStats) bool { return s.Interactive > 0 })
 	cancel()
 	if err := <-errc; !errors.Is(err, context.Canceled) {
 		t.Errorf("err = %v", err)
@@ -298,9 +316,7 @@ func TestCheckpointAndClose(t *testing.T) {
 		})
 		errc <- err
 	}()
-	for p.Stats().Background == 0 {
-		time.Sleep(time.Millisecond)
-	}
+	waitQueued(t, p.DB, errc, func(s WriterStats) bool { return s.Background > 0 })
 	closed := make(chan error, 1)
 	go func() { closed <- p.Close(context.Background()) }()
 	time.Sleep(20 * time.Millisecond)

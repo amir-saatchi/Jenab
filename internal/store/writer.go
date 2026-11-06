@@ -25,8 +25,8 @@ const (
 // function in a transaction, Checkpoint runs outside one.
 type job interface {
 	state() *atomic.Int32
-	run(ctx context.Context, c *sql.Conn) // sends its own reply
-	fail(err error)                       // replies with err without running
+	run(ctx context.Context, c *sql.Conn) (reply func()) // reply sends the answer
+	fail(err error)                                      // replies with err without running
 }
 
 // writer owns the only write connection of a file and runs one request at a
@@ -147,15 +147,18 @@ func (w *writer) loop() {
 		}
 		now := time.Now()
 		w.current.Store(&now)
-		w.runSafe(j)
+		reply := w.runSafe(j)
 		w.current.Store(nil)
 		w.completed.Add(1)
+		// Answer only after the stats, so a caller that has its answer never
+		// sees its request still running or not yet done in Stats.
+		reply()
 	}
 }
 
 // runSafe runs one request and recovers a panic, so the writer keeps
 // serving (Q26). The request then gets an error.
-func (w *writer) runSafe(j job) {
+func (w *writer) runSafe(j job) (reply func()) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("store: write request panicked: %v", r)
@@ -163,10 +166,11 @@ func (w *writer) runSafe(j job) {
 			if w.reset != nil {
 				w.reset(r)
 			}
-			j.fail(&PanicError{Value: r, Stack: debug.Stack()})
+			pe := &PanicError{Value: r, Stack: debug.Stack()}
+			reply = func() { j.fail(pe) }
 		}
 	}()
-	j.run(w.ctx, w.conn())
+	return j.run(w.ctx, w.conn())
 }
 
 func (w *writer) setErr(err error) {
@@ -224,10 +228,10 @@ type txJob[T any] struct {
 func (j *txJob[T]) state() *atomic.Int32 { return &j.st }
 func (j *txJob[T]) fail(err error)       { j.reply <- result[T]{err: err} }
 
-func (j *txJob[T]) run(ctx context.Context, c *sql.Conn) {
+func (j *txJob[T]) run(ctx context.Context, c *sql.Conn) func() {
 	var r result[T]
 	r.v, r.err = inTx(ctx, c, j.fn)
-	j.reply <- r
+	return func() { j.reply <- r }
 }
 
 // inTx runs fn in one transaction. A panic rolls back before it goes on up.
@@ -312,10 +316,10 @@ type connJob[T any] struct {
 
 func (j *connJob[T]) state() *atomic.Int32 { return &j.st }
 func (j *connJob[T]) fail(err error)       { j.reply <- result[T]{err: err} }
-func (j *connJob[T]) run(ctx context.Context, c *sql.Conn) {
+func (j *connJob[T]) run(ctx context.Context, c *sql.Conn) func() {
 	var r result[T]
 	r.v, r.err = j.fn(ctx, c)
-	j.reply <- r
+	return func() { j.reply <- r }
 }
 
 func doConn[T any](ctx context.Context, db *DB, p limit.Priority, fn func(context.Context, *sql.Conn) (T, error)) (T, error) {
