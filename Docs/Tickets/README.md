@@ -1,6 +1,6 @@
 # Tickets
 
-The reports the ticket sessions wrote are in [reports/](reports/), linked from each ticket's result.
+The reports the ticket sessions wrote are in [reports/](reports/), linked from each ticket's result. What Jenab can learn from Codex CLI's source, with proposed tickets kept there until Phase 6 is closer: [reports/CODEX-LESSONS-report.md](reports/CODEX-LESSONS-report.md).
 
 ## Spikes and tasks
 

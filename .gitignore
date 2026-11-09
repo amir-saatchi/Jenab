@@ -31,3 +31,6 @@ outreach/
 
 # Claude desktop preview servers: machine-specific paths
 .claude/launch.json
+
+# Source Code
+.source-code/
