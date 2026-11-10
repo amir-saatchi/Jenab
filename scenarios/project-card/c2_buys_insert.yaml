@@ -11,6 +11,9 @@ asserts:
   - {type: tool_called, test: used, tool: insert, args_match: ':\s*"?0?\.1"?\s*[,}]', result_match: '^Inserted 1 row into \w+\.$'}
   - {type: tool_called, test: used, tool: insert, args_match: ':\s*"?63,?000(\.0+)?"?\s*[,}]', result_match: '^Inserted 1 row into \w+\.$'}
   - {type: tool_not_called, test: used, tool: insert, args_match: '"table":\s*"btc_(prices|news)"'}
-  - {type: tool_not_called, test: no_describe, tool: describe_table}
+  # As in C1 (TASK-042): the new table without describe_table; an old one
+  # is info.
+  - {type: tool_not_called, test: no_describe, tool: describe_table, args_not_match: '"btc_(prices|news)"'}
+  - {type: tool_not_called, test: info, tool: describe_table}
   - {type: max_calls, test: info, tool: insert, n: 1}
   - {type: no_turn_failed, test: info}

@@ -11,8 +11,12 @@ asserts:
   - {type: tool_called, test: saved, tool: update_memory, turn: 1, args_match: 'TL;DR', result_match: '^Saved (user|project) memory'}
   - {type: tool_called, test: info, tool: update_memory, turn: 1, args_match: '"scope":\s*"user"'}
   - {type: answer_contains, test: follows, turn: 2, final: true, match: '\A\s*[*_#> ]*TL;DR'}
-  - {type: tool_not_called, test: follows, tool: read_messages, turn: 2}
-  - {type: tool_not_called, test: follows, tool: list_chats, turn: 2}
-  - {type: tool_not_called, test: follows, tool: search_history, turn: 2}
+  # TASK-042: the rule must come from the memory block, so no history call
+  # may show it. A call that looks for the user's books or lists the chats
+  # is allowed (SPEC 3.1 offers these tools to a new chat once the project
+  # has another chat, and 8.6 lets every chat read the others); it is
+  # recorded as info.
+  - {type: tool_not_called, test: follows, tools: [read_messages, search_history], turn: 2, result_match: 'TL;DR'}
+  - {type: tool_not_called, test: info, tools: [read_messages, list_chats, search_history], turn: 2}
   - {type: tool_not_called, test: info, tool: update_memory, turn: 2}
   - {type: no_turn_failed, test: info}

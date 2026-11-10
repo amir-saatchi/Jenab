@@ -104,6 +104,7 @@ type GroundingCheck struct {
 	SavedLeft int      // of them, in what was saved before the notice and is still there (after a notice)
 	Quoted    int      // numbers in the answer left out because the check's notice named them
 	Pct       int      // numbers sourced only by reading a percentage the other way (5.2% = 0.052)
+	Derived   int      // numbers sourced only as one step of arithmetic from other numbers (TASK-042)
 	Fired     bool     // at least K had no source: the answer is marked
 	Told      bool     // the notice went to the model
 	After     bool     // the answer came after the notice, in the same turn
@@ -186,7 +187,25 @@ func (r *runner) sources(req provider.Request, turn int) *sourceSet {
 		src.add([]string{rd.text}, tainted(w.tainted, rd.args))
 	}
 	src.sort()
+	src.addInputs(userInputs(req))
 	return &src
+}
+
+// userInputs are the texts of the user's messages in req: the numbers a
+// worked example or a what-if computes from.
+func userInputs(req provider.Request) []string {
+	var out []string
+	for _, m := range req.Messages {
+		if m.Role != chat.RoleUser {
+			continue
+		}
+		for _, p := range m.Parts {
+			if p.Text != nil {
+				out = append(out, p.Text.Text)
+			}
+		}
+	}
+	return out
 }
 
 // tainted are the numbers of ts that a read with args reads back: the
@@ -264,7 +283,7 @@ func (r *runner) ground(ctx context.Context, t *turn, req provider.Request) erro
 	t.flagged = nil
 	res := checkNumbers(said, fresh, left, *r.sources(req, t.n), quoted)
 	v := GroundingCheck{Request: t.requests - 1, Checked: res.checked, Saved: res.saved, SavedLeft: res.left, Quoted: res.quoted, Pct: res.pct,
-		After: t.told, Took: time.Since(start)}
+		Derived: res.derived, After: t.told, Took: time.Since(start)}
 	for _, n := range res.missing {
 		v.Unsourced = append(v.Unsourced, n.text)
 	}
@@ -452,6 +471,7 @@ type checkResult struct {
 	left    int      // of them, in left
 	quoted  int      // numbers in said left out as quoted
 	pct     int      // numbers sourced only as a percentage read the other way
+	derived int      // numbers sourced only as one step of arithmetic (derivable)
 }
 
 // checkNumbers checks the numbers in said, saved and left (what was saved
@@ -505,6 +525,26 @@ func checkNumbers(said, saved, left []string, src sourceSet, quoted []number) ch
 		}
 		all = append(all, f)
 	}
+	// A number one step of arithmetic from the user's numbers and the
+	// sourced numbers checked here has a source too: a worked example's
+	// chain, a conversion of a shown price. Repeated until none is found,
+	// so each step of a chain can lean on the one before.
+	ops := slices.Clone(src.inputs)
+	for _, s := range all {
+		if !s.miss {
+			ops = appendOperand(ops, s.n, src.exact(s.n))
+		}
+	}
+	for found := true; found; {
+		found = false
+		for i := range all {
+			if all[i].miss && derivable(all[i].n, ops) {
+				all[i].miss, found = false, true
+				res.derived++
+				ops = appendOperand(ops, all[i].n, false)
+			}
+		}
+	}
 	res.checked = len(all)
 	slices.SortFunc(all, func(a, b seen) int { return a.at - b.at })
 	for _, s := range all {
@@ -524,9 +564,102 @@ func checkNumbers(said, saved, left []string, src sourceSet, quoted []number) ch
 
 // sourceSet is the sources' numbers: fine ones, rounded to a unit or
 // less, sorted by value, and coarse ones (64,000, 1.21T), which are few.
-// pcts are the percentages as fractions.
+// pcts are the percentages as fractions. inputs are the user's numbers as
+// operands for derivable.
 type sourceSet struct {
 	fine, coarse, pcts []number
+	inputs             []operand
+}
+
+// addInputs adds the numbers of the user's texts as operands, exact: they
+// are the inputs, not roundings. Small whole numbers are counts ("the
+// last 7 days", "for 6 months"), not amounts, and are left out, but a
+// percentage is kept: a close plus 7 would let a made-up close without
+// cents through about 1 time in 20 (TestDerivedMadeUpShare).
+func (src *sourceSet) addInputs(texts []string) {
+	for _, s := range texts {
+		for _, n := range numbers(s) {
+			if n.small && !n.pct {
+				continue
+			}
+			src.inputs = appendOperand(src.inputs, n, true)
+		}
+	}
+}
+
+// operand is a number a derived one may be computed from, with the
+// rounding it was written with.
+type operand struct{ v, err float64 }
+
+// maxOperands bounds derivable's work: pairs grow with its square.
+const maxOperands = 200
+
+// maxOperandErr is the largest rounding an operand that isn't the user's
+// may have, as a share of its value. A coarser one would fit too much:
+// 0.1 is 0.05 to 0.15, and 0.1 × a close of 63,000 would then fit
+// anything from 3,150 to 9,450.
+const maxOperandErr = 1e-4
+
+// appendOperand adds n to ops: exact for the user's numbers and a
+// source's own value (sourceSet.exact), otherwise with its rounding, and only when that is fine next to the value, since
+// a rounding such as 64k or 0.1 would fit too much. A percentage also
+// gives its fraction and its growth factors: 5% as 0.05, 1.05 and 0.95.
+func appendOperand(ops []operand, n number, exact bool) []operand {
+	if n.value == 0 || !exact && n.half > 0.5 {
+		return ops
+	}
+	err := n.half
+	if exact {
+		err = 0
+	}
+	add := []operand{{n.value, err}}
+	if n.pct {
+		f, fe := n.value/100, err/100
+		add = append(add, operand{f, fe}, operand{1 + f, fe})
+		if f < 1 {
+			add = append(add, operand{1 - f, fe})
+		}
+	}
+	for _, o := range add {
+		if len(ops) >= maxOperands {
+			break
+		}
+		if o.err > maxOperandErr*math.Abs(o.v) {
+			continue
+		}
+		if !slices.Contains(ops, o) {
+			ops = append(ops, o)
+		}
+	}
+	return ops
+}
+
+// derivable reports whether n is a + b, a − b, a × b or a ÷ b of two
+// operands, within n's rounding and the operands' (TASK-042). A
+// percentage may also be the fraction: 34.01% for 340.10 ÷ 1,000.
+func derivable(n number, ops []operand) bool {
+	if derivedFrom(n.value, n.half, ops) {
+		return true
+	}
+	return n.pct && derivedFrom(n.value/100, n.half/100, ops)
+}
+
+func derivedFrom(v, half float64, ops []operand) bool {
+	fits := func(got, err float64) bool { return math.Abs(got-v) <= half+err+eps(v) }
+	for i, a := range ops {
+		for _, b := range ops[i:] {
+			sum := a.err + b.err
+			if fits(a.v+b.v, sum) || fits(math.Abs(a.v-b.v), sum) ||
+				fits(a.v*b.v, a.v*b.err+b.v*a.err+a.err*b.err) {
+				return true
+			}
+			if b.v > b.err && fits(a.v/b.v, (a.err+a.v/b.v*b.err)/(b.v-b.err)) ||
+				a.v > a.err && fits(b.v/a.v, (b.err+b.v/a.v*a.err)/(a.v-a.err)) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // newSourceSet reads the numbers of texts, except those the same as one
@@ -570,6 +703,14 @@ func (src sourceSet) match(n number) bool {
 		}
 	}
 	return slices.ContainsFunc(src.coarse, n.near)
+}
+
+// exact reports whether a fine source has n's value itself, not only a
+// rounding of it: the 0.35 of a holdings row is 0.35, while the 0.35 of
+// an answer may be 0.345 to 0.355.
+func (src sourceSet) exact(n number) bool {
+	i, _ := slices.BinarySearchFunc(src.fine, n.value-eps(n.value), func(s number, v float64) int { return cmpFloat(s.value, v) })
+	return i < len(src.fine) && src.fine[i].value <= n.value+eps(n.value)
 }
 
 // matchPct reports whether n matches a source as a percentage written

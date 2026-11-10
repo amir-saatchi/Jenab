@@ -19,6 +19,7 @@ type GroundResult struct {
 	SavedLeft int      `json:"saved_left,omitempty"` // of them, saved before the notice and still there
 	Quoted    int      `json:"quoted,omitempty"`     // numbers left out as quoted from the notice
 	Pct       int      `json:"pct,omitempty"`        // numbers sourced only as a percentage read the other way
+	Derived   int      `json:"derived,omitempty"`    // numbers sourced only as one step of arithmetic (TASK-042)
 	Fired     bool     `json:"fired"`
 	Told      bool     `json:"told,omitempty"`  // the model got the notice
 	After     bool     `json:"after,omitempty"` // the answer after the notice, in the same turn
@@ -38,7 +39,7 @@ func (rec *record) groundResults() []GroundResult {
 	var out []GroundResult
 	for _, c := range rec.checks {
 		out = append(out, GroundResult{Turn: c.turn, Request: c.request + 1, Checked: c.Checked, Unsourced: c.Unsourced, Saved: c.Saved,
-			SavedLeft: c.SavedLeft, Quoted: c.Quoted, Pct: c.Pct, Fired: c.Fired, Told: c.Told, After: c.After, Micros: c.Took.Microseconds()})
+			SavedLeft: c.SavedLeft, Quoted: c.Quoted, Pct: c.Pct, Derived: c.Derived, Fired: c.Fired, Told: c.Told, After: c.After, Micros: c.Took.Microseconds()})
 	}
 	return out
 }
@@ -140,6 +141,9 @@ func (rec *record) groundTranscript(b *strings.Builder) {
 		}
 		if c.Pct > 0 {
 			fmt.Fprintf(b, ", %d percentages read the other way", c.Pct)
+		}
+		if c.Derived > 0 {
+			fmt.Fprintf(b, ", %d computed from other numbers", c.Derived)
 		}
 		if len(c.Unsourced) > 0 {
 			b.WriteString(": " + clip(strings.Join(c.Unsourced, ", "), 400))

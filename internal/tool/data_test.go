@@ -532,7 +532,7 @@ func TestSQLSkill(t *testing.T) {
 			}
 		}
 	}
-	if len(qs) != 3 {
+	if len(qs) != 4 {
 		t.Fatalf("%d examples", len(qs))
 	}
 	qs = append(qs,

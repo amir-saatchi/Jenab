@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -104,7 +105,9 @@ func TestCheckNumbers(t *testing.T) {
 		{"each value once, however written", "Close 2.52k, or 2,520.50, or 2520.5.", "date,close\n2026-09-26,2520.50", nil, []string{"2,520.50"}, 1},
 		// Computed values have no source: an average and a conversion.
 		{"average of real rows", "Highest 65,230.80, lowest 63,912.40, average 64,551.83.", "", []string{rows}, []string{"64,551.83"}, 3},
-		{"conversion to EUR", "0.35 BTC is 19,316.57 EUR at 55,190.20 EUR per BTC.", "", []string{`{"bitcoin":{"eur":55190.2}}`, "I hold 0.35 BTC"}, []string{"19,316.57"}, 3},
+		// A conversion of numbers the answer shows is one step of arithmetic
+		// (TASK-042); an average of three is not.
+		{"conversion to EUR", "0.35 BTC is 19,316.57 EUR at 55,190.20 EUR per BTC.", "", []string{`{"bitcoin":{"eur":55190.2}}`, "I hold 0.35 BTC"}, nil, 3},
 		{"the user's own numbers", "Saved: buy more under 60,000 USD.", "", []string{"Save a note: buy more if BTC drops under 60,000 USD."}, nil, 1},
 		{"Persian answer, ASCII source", "قیمت بسته شدن دیروز ۶۴٬۵۱۲٫۳۰ دلار بود.", "", []string{rows}, nil, 1},
 		{"ASCII answer, Persian source", "It closed at 64,512.30.", "", []string{"بسته شدن ۶۴٬۵۱۲٫۳۰"}, nil, 1},
@@ -157,12 +160,12 @@ func TestSourceTexts(t *testing.T) {
 	got, read := sourceTexts(req, 3, map[int]bool{1: true}, nil)
 	want := []string{"Today is 2026-10-13.", "Returns up to 200 rows.", "u1", "u2", "earlier 2", "r2", "u3", "[cut]"}
 	if !slices.Equal(got, want) || len(read) != 0 {
-		t.Errorf("sources %q, read %q\nwant %q", got, read, want)
+		t.Errorf("sources %q, read %v\nwant %q", got, read, want)
 	}
 	// The results of tools that read the project come apart.
 	got, read = sourceTexts(req, 3, map[int]bool{1: true}, func(n string) bool { return n == "t" })
 	if len(read) != 1 || read[0].text != "r2" || string(read[0].args) != "{}" || slices.Contains(got, "r2") {
-		t.Errorf("sources %q, read %q", got, read)
+		t.Errorf("sources %q, read %v", got, read)
 	}
 }
 
@@ -627,5 +630,105 @@ func TestGroundingNetworkTool(t *testing.T) {
 	h.turn(c.ID, "Fetch it")
 	if cs := checksOf(h); len(cs) != 1 || cs[0].Checked != 0 || cs[0].Fired {
 		t.Errorf("checks %+v", cs)
+	}
+}
+
+// TASK-042: a number one step of arithmetic from the user's numbers, or
+// from sourced numbers the answer shows, has a source: the arithmetic.
+func TestCheckNumbersDerived(t *testing.T) {
+	ask := "Explain compound growth with a worked example: 1,000 USD that grows 5% a month for 6 months, month by month."
+	// gemini-3.5-flash-lite's R4_worked_example answer of 2026-11-10, shortened.
+	worked := "Month 1: $1,000.00 × 1.05 = $1,050.00 (+ $50.00)\n" +
+		"Month 2: $1,050.00 × 1.05 = $1,102.50 (+ $52.50)\n" +
+		"Month 3: $1,102.50 × 1.05 = $1,157.63 (+ $55.13)\n" +
+		"Month 4: $1,157.63 × 1.05 = $1,215.51 (+ $57.88)\n" +
+		"Month 5: $1,215.51 × 1.05 = $1,276.28 (+ $60.77)\n" +
+		"Month 6: $1,276.28 × 1.05 = $1,340.10 (+ $63.82)\n" +
+		"Total growth: $340.10 (+34.01% overall)."
+	rows := "date | close\n2026-09-07 | 63298.68\n2026-09-14 | 67105.65\n2026-09-30 | 72766.89"
+	sell := "What if I had bought 0.5 BTC at the close on September 1 and sold it at the close on September 30?"
+	for _, tt := range []struct {
+		name          string
+		said          string
+		sources, user []string
+		want          []string
+		derived       int
+	}{
+		{"worked example from the user's numbers", worked, []string{ask}, []string{ask}, nil, 14},
+		// The same chain without the user's numbers: its start has no source,
+		// so nothing leans on it.
+		{"a chain from nothing", worked, nil, nil,
+			[]string{"1,000.00", "1.05", "1,050.00", "50.00", "1,102.50", "52.50", "1,157.63", "55.13", "1,215.51", "57.88", "1,276.28", "60.77", "1,340.10", "63.82", "340.10", "34.01"}, 0},
+		{"what-if on shown closes", "0.1 BTC on 09-07 at 63,298.68 cost 6,329.87; on 09-14 at 67,105.65 it cost 6,710.57. Sold at 72,766.89.",
+			[]string{rows, "What if I bought 0.1 BTC each Monday?"}, []string{"What if I bought 0.1 BTC each Monday?"}, nil, 2},
+		// A made-up close is no step from the real ones or the user's numbers.
+		{"made-up closes", "09-08 closed at 63,912.40 and 09-09 at 64,251.15; 09-14 at 67,105.65.",
+			[]string{rows, "BTC's closes for the 7 days to 09-14?"}, []string{"BTC's closes for the 7 days to 09-14?"}, []string{"63,912.40", "64,251.15"}, 0},
+		// A rounding such as 64k is no operand: 0.5 × 64k would fit anything
+		// from 31,750 to 32,250.
+		{"no coarse operands", "BTC is about 64k, so 0.5 BTC is 32,050.10.", []string{"BTC: about 64k", "What is 0.5 BTC worth?"},
+			[]string{"What is 0.5 BTC worth?"}, []string{"32,050.10"}, 0},
+		// Counts in the user's message are no operands: 63,298.68 + 7 is no
+		// close.
+		{"no counts", "Real: 63,298.68. Made up: 63,305.68.", []string{rows, "The last 7 days?"}, []string{"The last 7 days?"}, []string{"63,305.68"}, 0},
+		// The answer's 0.5 rounds the source's 0.512, so it may be 0.45 to
+		// 0.55: no operand, or 0.5 × 63,298.68 would fit 28,484 to 34,814.
+		{"no coarse rounding of a source", "About 0.5 of 63,298.68: 31,700.00.", []string{rows, "share: 0.512"}, nil, []string{"31,700.00"}, 0},
+		// gpt-oss-120b's R3_what_if of 2026-10-20: 0.5 × 61,834.27 is
+		// 30,917.14, not 31,917.14. The slip stays without a source, and so
+		// does what leans on it: the gain is two steps from the closes.
+		{"an arithmetic slip", "Bought 0.5 BTC at 61,834.27: 31,917.14 USD. Sold at 72,766.89: 0.5 × 72,766.89 = 36,383.45 USD. " +
+			"Gain: 36,383.45 − 31,917.14 = 5,466.31 USD, 5,466.31 / 31,917.14 ≈ 17.68 %. Gain ~5,466 USD (≈ 17.7 %).",
+			[]string{"2026-09-01 | 61834.27\n2026-09-30 | 72766.89", sell}, []string{sell}, []string{"31,917.14", "5,466.31", "17.68"}, 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			src := newSourceSet(tt.sources, nil)
+			src.addInputs(tt.user)
+			res := checkNumbers([]string{tt.said}, nil, nil, src, nil)
+			var got []string
+			for _, m := range res.missing {
+				got = append(got, m.text)
+			}
+			if !slices.Equal(got, tt.want) || res.derived != tt.derived {
+				t.Errorf("unsourced %q, %d derived; want %q, %d", got, res.derived, tt.want, tt.derived)
+			}
+		})
+	}
+}
+
+// A made-up price is seldom one step of arithmetic from real ones: the
+// share of random made-up closes near seven real ones that derivable lets
+// through, with and without cents.
+func TestDerivedMadeUpShare(t *testing.T) {
+	real := []float64{2481.37, 2512.90, 2498.05, 2533.61, 2547.18, 2529.44, 2560.73}
+	var shown strings.Builder
+	for _, v := range real[:3] {
+		fmt.Fprintf(&shown, "%.2f ", v)
+	}
+	src := newSourceSet([]string{shown.String()}, nil)
+	src.addInputs([]string{"ETH's closes for the last 7 days, and the 30-day range?"})
+	ops := slices.Clone(src.inputs)
+	for _, n := range numbers(shown.String()) {
+		ops = appendOperand(ops, n, false)
+	}
+	for _, cents := range []bool{true, false} {
+		r := rand.New(rand.NewPCG(42, 7))
+		through := 0
+		const tries = 2000
+		for range tries {
+			v := 2400 + r.Float64()*250
+			s := fmt.Sprintf("%.0f", v)
+			if cents {
+				s = fmt.Sprintf("%.2f", v)
+			}
+			if derivable(numbers(s)[0], ops) {
+				through++
+			}
+		}
+		if share := float64(through) / tries; share > 0.03 {
+			t.Errorf("cents %v: %.1f%% of made-up closes count as derived", cents, 100*share)
+		} else {
+			t.Logf("cents %v: %.2f%% of made-up closes count as derived", cents, 100*share)
+		}
 	}
 }

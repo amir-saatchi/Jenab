@@ -378,8 +378,9 @@ type describeArgs struct {
 
 func describeTable() Tool {
 	return Func(Spec{
-		Name:        "describe_table",
-		Description: "A table's columns with their types, its keys, indexes and foreign keys, column annotations such as object_ref, and its row count.",
+		Name: "describe_table",
+		Description: "A table's columns with their types, its keys, indexes and foreign keys, column annotations such as object_ref, and its row count. " +
+			"The project card already lists these for each table it shows with columns; call this for a table it names without them.",
 		Schema: json.RawMessage(`{
 			"type": "object",
 			"properties": {"name": {"type": "string", "minLength": 1, "description": "The table's name."}},

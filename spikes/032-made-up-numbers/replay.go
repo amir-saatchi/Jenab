@@ -167,7 +167,7 @@ func readTranscript(path string) (out []scriptReply, clipped, broken int) {
 }
 
 func blockStart(l string) bool {
-	for _, p := range []string{"> call ", "> result ", "**User:**", "**Agent:** ", "*[some numbers", "*[app check", "*[the ", "## Turn ", "## Number check"} {
+	for _, p := range []string{"> call ", "> result ", "**User:**", "**Agent:** ", "*[some numbers", "*[app check", "*[the ", "## Turn ", "## Number check", "## Requests", "Subagent requests: "} {
 		if strings.HasPrefix(l, p) {
 			return true
 		}

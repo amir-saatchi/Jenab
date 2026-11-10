@@ -34,6 +34,7 @@ Each step is a JSON object with an `op`. Names of columns, keys and indexes are 
 - **A column** is `{"name": "close", "type": "REAL", "not_null": true, "default": 0, "check": "close >= 0"}`. Only `name` and `type` are required; the type is `TEXT`, `INTEGER`, `REAL` or `BLOB`. A `default` is a string, a number, or true or false.
 - **A foreign key** is `{"columns": ["coin"], "table": "coins", "to": ["symbol"], "on_delete": "cascade"}`. Leave out `to` for the other table's primary key. Actions: `cascade`, `set null`, `set default`, `restrict`, `no action`.
 - **`copy_data`'s `from`** is a read-only query on the project's tables, with the values written into it: no parameters.
+  A window function sees only the rows the `WHERE` of its own `SELECT` keeps, so a 7-day average from October 1 needs the last days of September. Put the window in an inner query with no date filter, and filter the dates in the outer one: `SELECT date, close, ma7 FROM (SELECT date, close, avg(close) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma7 FROM prices WHERE coin = 'BTC') WHERE date >= '2026-10-01'`.
 - **`rebuild_table`'s `mapping`** gives a new column its value as an SQL expression on the old row: `{"coin": "'BTC'", "price": "close"}`. A new column with the same name as an old one keeps its values without a mapping. An old column that isn't kept is deleted.
 
 ### Deleting data

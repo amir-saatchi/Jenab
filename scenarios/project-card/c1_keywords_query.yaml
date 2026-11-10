@@ -11,7 +11,12 @@ asserts:
   # term in it) and returns both matching news. No \b before FROM or
   # JOIN: in the call's JSON a line break is the text \n.
   - {type: tool_called, test: used, tool: query, args_match: '(?i)(from|join)\s+\\?"?\w*(keyword|watch|term)\w*', result_match: '(?is)ETF inflows.*Exchange outage|Exchange outage.*ETF inflows'}
-  - {type: tool_not_called, test: no_describe, tool: describe_table}
+  # P2-08 asks that the new table is used without describe_table: the
+  # card is rebuilt after the migration. Describing a table that was there
+  # before, which the card already lists, is a wasted call, not that
+  # failure; it is recorded as info (TASK-042).
+  - {type: tool_not_called, test: no_describe, tool: describe_table, args_not_match: '"btc_(prices|news)"'}
+  - {type: tool_not_called, test: info, tool: describe_table}
   - {type: answer_contains, test: answer, match: '(?i)ETF inflows'}
   - {type: answer_contains, test: answer, match: '(?i)Exchange outage'}
   - {type: answer_lacks, test: answer, match: '(?i)Miners sell|rate cut'}

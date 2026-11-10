@@ -9,7 +9,7 @@ The project's tables are in SQLite. `query` runs one read-only query; rows are a
 ### What a query may be
 
 - One statement that starts with `SELECT`, `WITH` or `VALUES`. No second statement after a `;`, and no `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `DROP`, `ATTACH`, `PRAGMA` or `VACUUM`.
-- Only the project's own tables. Names that start with `_jenab_` (Jenab's internal tables), `sqlite_` (such as `sqlite_schema` or `sqlite_master`) or `pragma_` (such as `pragma_table_info`) are refused. To learn the tables and their columns, use the table names you already have and `describe_table(name)`; don't query the schema.
+- Only the project's own tables. Names that start with `_jenab_` (Jenab's internal tables), `sqlite_` (such as `sqlite_schema` or `sqlite_master`) or `pragma_` (such as `pragma_table_info`) are refused. The project card lists the tables and their columns; use `describe_table(name)` only for a table it names without columns. Don't query the schema.
 - Virtual tables: `json_each` and `json_tree` only.
 - Functions: SQLite's core, aggregate, window, date and time, math and JSON functions. Others, such as `load_extension`, are refused.
 - Outside strings and quoted names, only plain SQL characters: no `#`.
@@ -43,6 +43,8 @@ Pass values as parameters, never by pasting them into the text: `WHERE coin = :c
 
 `fn(…) OVER (PARTITION BY … ORDER BY … ROWS BETWEEN n PRECEDING AND CURRENT ROW)`. They run after `WHERE` and `GROUP BY`, so filter on their result in an outer query.
 
+A `WHERE` on the dates in the same `SELECT` as the window also hides the rows before them from it, so the first rows of the range would average fewer days. Put the window in an inner query with no date filter, and filter the dates in the outer one (see the examples).
+
 - Moving average over 7 rows: `avg(price) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)`
 - Change from the row before: `price - lag(price) OVER (ORDER BY date)`
 - Running total: `sum(amount) OVER (ORDER BY date)`
@@ -65,5 +67,14 @@ GROUP BY month ORDER BY month;
 -- the last 30 days
 SELECT date, price FROM prices
 WHERE coin = :coin AND date >= date('now', '-30 days')
+ORDER BY date;
+
+-- a 7-day moving average for October: its first days also average
+-- the last days of September
+SELECT date, price, ma7 FROM (
+  SELECT date, price,
+    avg(price) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ma7
+  FROM prices WHERE coin = :coin
+) WHERE date BETWEEN '2026-10-01' AND '2026-10-31'
 ORDER BY date;
 ```
