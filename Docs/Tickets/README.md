@@ -87,6 +87,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-039](TASK-039-agent-desktop-1-2.md) | agent-desktop 1.2.0 | Task | Done | 3 |
 | [TASK-040](TASK-040-chat-bubble-fixes.md) | Chat bubble fixes: links in the user's message, wide answers | Task | Done | 3 |
 | [TASK-041](TASK-041-one-card-private-host.md) | One card for a new private host | Task | Done | 3 |
+| [TASK-042](TASK-042-shared-scenario-failures.md) | Scenario failures every model shares | Task | Open | 3 |
 
 ## Phase 1
 
