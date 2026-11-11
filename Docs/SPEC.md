@@ -621,7 +621,7 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 **Providers and keys.**
 - Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai or Groq) and Ollama, local or Ollama Cloud (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic and OpenAI use their SDKs, Gemini and Ollama their native APIs, and OpenAI-compatible providers the OpenAI SDK (3.8).
 - Nothing is set up when the app ships: users bring their own keys (decided 2026-10-04).
-  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter and Z.ai. A preset fills in only the kind and base URL; the user can edit both. Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
+  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter, Z.ai and LM Studio (*OpenAI-compatible* with `http://localhost:1234/v1`, no key). A preset fills in only the kind and base URL; the user can edit both. Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
   - Models are never preset. They come from the provider's list or from the user.
 - *Connect* stores the key in the OS keychain (6.7), reads the provider's model list and turns on every catalog model the key can use. They appear in the model picker at once.
   - A base URL can hold placeholders, such as Cloudflare's `{account_id}`. The form asks for each value, which must be letters, digits, `-` or `_`. The values are kept in the keychain as `provider:<name>:<field>` and hidden in logs and errors like keys; the settings file keeps the placeholder.
@@ -1801,12 +1801,16 @@ A project can link one folder on disk, for example a git repository. In v1 the a
 - **Editing:** `edit_file(path, old, new)` and `write_file(path, content)`.
   - Before a turn changes a file, the old version is stored in the bucket, and the change log records a `file:<path>` target.
   - *Undo turn* restores the file if its hash hasn't changed since; otherwise it lists a conflict (2.6).
-  - The chat shows a diff per file.
+  - The chat shows a diff per file, built from the before-copy in the bucket and the content written: one net diff per file per turn, never from git.
 - **Commands:** `run_command(cmd)` for tests, builds and git, only after its own spike. Planned rules:
   - every new command pattern needs the user's approval
   - after a turn has read web content, every command needs approval
   - no secrets in the command's environment
-  - timeouts, killing the whole process tree (Job Objects on Windows), output to the bucket as preview and ref
+  - timeouts, killing the whole process tree (Job Objects on Windows)
+  - **output:** stored in the bucket with a ref; the preview keeps the start and the end of the output, with a marker for what was left out in between, since a build's error is usually at the end. A header gives the exit code (or that it was stopped), the time and the full size
+  - **environment:** `NO_COLOR=1`, `TERM=dumb`, `PAGER=cat` and `GIT_PAGER=cat`. PowerShell scripts start by setting UTF-8 output, and output is decoded from the console's code page, so Persian text survives
+  - **stop:** the process tree gets a short grace period, then is killed. A stopped command's result says it may have partly run, and how long it ran
+  - **network:** a command's own connections are not controlled. The host and private-network rules (6.7) cover Jenab's fetches only. The guard is that after a turn has read untrusted content, every command asks (8.8)
   - **memory, decided by the agent:** commands use the machine itself, and in SPIKE-026 one build took about 1 GB, half of what a busy 16 GB laptop had left. Most commands (`git`, `docker ps`) need almost nothing. So the agent says what a command needs, `run_command(cmd, needs_memory_mb)` (default 256), and the tool's description gives rough sizes
     - the app checks free memory when the command starts, not when the agent wrote it. If too little is free, it checks again after 5, 15 and 30 s by itself, with no LLM calls; the chat shows "Waiting for memory: 1.4 of 1.5 GB free" with *Run now* and *Cancel*
     - after the third check the agent gets `low_memory` with `needs_memory_mb`, `free_memory_mb`, `total_memory_mb` and `waited_s`. It can ask the user, try again with a lower need, or try again with `wait_for_memory_s` (at most 600) to wait for another command to finish
@@ -1909,7 +1913,7 @@ env: { }                      # values may come from the keychain
   - Servers are stored with the connections in `registry.db` and enabled per project. Keys go to the keychain as `jenab:mcp:<id>`, and the process gets only the `env` listed.
   - **agent-desktop's own server** (`agent-desktop mcp`, 67 tools, one per command) would give the agent raw desktop tools without 8.10's rules: no window the user picks, no lock, no deny list, no consent, password or CAPTCHA guards, no approvals. When the command or an argument (such as `npx agent-desktop`) is agent-desktop, the server form warns: "This gives the agent control of every window on this computer, without the rules of Jenab's desktop control. Use *Settings → Let agents use other apps' windows* instead." Adding it stays possible after the warning.
 - **Tools in the context:**
-  - The project card lists each enabled server with its tool names and one-line descriptions.
+  - The project card lists each enabled server with its tool names and one-line descriptions. They come from the server's last start, kept in `registry.db`, so the card lists them before the server runs.
   - `mcp_describe(server, tool)` returns a tool's input schema, and `mcp_call(server, tool, arguments)` calls it. Jenab checks the arguments against the schema first, with errors as in 10. It refuses argument names the schema doesn't list, even if the server's schema allows them, and its errors name the arguments the tool takes, since models often call without describing first.
   - This keeps the tool list and the prompt cache stable, however many servers are enabled. In SPIKE-024 it cost about a third of the prompt tokens of giving each MCP tool as a native tool.
   - A native call of an MCP tool's name gets a result pointing to `mcp_call`, so the model can recover.
@@ -1925,9 +1929,9 @@ env: { }                      # values may come from the keychain
   - It is stopped with its whole process tree (a Job Object on Windows), since launchers such as `uvx` and `npx` start child processes.
   - An app the server opens (a process with a window, as Viso's server opens Viso) is never closed: not on the idle stop, Jenab's exit or a crash. Jenab watches the job's new processes, keeps kill-on-close off until each one is checked, and stops only background helpers (SPIKE-024). The job code is shared with the SQL workers (2.2).
   - Its stderr goes to a log in *Settings → Developer*. After a crash, the next call restarts it once.
-- **Time limit:** 60 s per call by default, configurable per server. Progress messages are shown on the tool chip.
+- **Time limit:** 60 s per call by default, configurable per server. Progress messages are shown on the tool chip. A start that doesn't finish within 30 s fails, separately from the call limit. Start and call errors name the setting to change, such as the server's time limit.
 - **Not in pipelines yet:** a later `mcp.call` step (v1.1) may use only the tools the user marks as safe for pipelines.
-- **Not yet:** MCP resources, prompts and sampling; Jenab as an MCP server, so that other agents can query a project's tables.
+- **Not yet:** MCP resources, prompts and sampling; elicitation (declined unless the user answers); Jenab as an MCP server, so that other agents can query a project's tables.
 - **Model-neutral:** the same tools and descriptions for every model (1).
 
 ### 8.8 Approvals and questions
@@ -2043,7 +2047,7 @@ Each bad field gives its own error, naming the file and the field.
   - **User skills:** in *Settings → Skills*, for all projects.
   - **Project skills:** in `skills/` in the project folder, so they travel with exports.
   - Names are unique. A user or project skill can't replace a built-in one.
-- **Trust:** skills are instructions, so only built-in skills and skills the user wrote or accepted are used.
+- **Trust:** skills are instructions, so only built-in skills and skills the user wrote or accepted are used. The hash of each accepted user or project skill is stored with it. A skill whose files change on disk, or that arrives in an imported project, is left out of the skill list until the user accepts it again in the import card.
   - Jenab never downloads skills. Importing a file shows it in an approval card (8.8) first.
   - Later, the agent may propose a skill, e.g. from *Refresh memory*. It is saved only when the user accepts it.
 - **How a chat gets a skill:**

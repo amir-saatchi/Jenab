@@ -48,6 +48,9 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-038](SPIKE-038-local-models.md) | Local models on the user's PC | Spike | Done | 3 |
 | [SPIKE-039](SPIKE-039-desktop-control.md) | Desktop control with agent-desktop | Spike | Done (go, narrow v1) | 3 |
 | [SPIKE-040](SPIKE-040-desktop-macros.md) | Desktop macros and recipes | Spike | Done (go, Jenab records) | 3 |
+| [SPIKE-041](SPIKE-041-edit-tool.md) | Edit tool: matching, shape and protected paths | Spike | Open (Phase 6) | 3 |
+| [SPIKE-042](SPIKE-042-command-patterns.md) | Commands: patterns, approvals and output | Spike | Open (Phase 6) | 3 |
+| [SPIKE-043](SPIKE-043-windows-write-sandbox.md) | Windows write sandbox without admin rights | Spike | Open (Phase 6) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -89,6 +92,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-041](TASK-041-one-card-private-host.md) | One card for a new private host | Task | Done | 3 |
 | [TASK-042](TASK-042-shared-scenario-failures.md) | Scenario failures every model shares | Task | Done | 3 |
 | [TASK-043](TASK-043-more-shared-failures.md) | More scenario failures both reference models share | Task | Done | 3 |
+| [TASK-044](TASK-044-parallel-read-calls.md) | Run read-only tool calls of one answer together | Task | Open | 3 |
+| [TASK-045](TASK-045-stopped-call-wording.md) | Say when a stopped call may have run | Task | Open | 3 |
 
 ## Phase 1
 
