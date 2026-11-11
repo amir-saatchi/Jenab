@@ -88,7 +88,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-040](TASK-040-chat-bubble-fixes.md) | Chat bubble fixes: links in the user's message, wide answers | Task | Done | 3 |
 | [TASK-041](TASK-041-one-card-private-host.md) | One card for a new private host | Task | Done | 3 |
 | [TASK-042](TASK-042-shared-scenario-failures.md) | Scenario failures every model shares | Task | Done | 3 |
-| [TASK-043](TASK-043-more-shared-failures.md) | More scenario failures both reference models share | Task | Open | 3 |
+| [TASK-043](TASK-043-more-shared-failures.md) | More scenario failures both reference models share | Task | Done | 3 |
 
 ## Phase 1
 

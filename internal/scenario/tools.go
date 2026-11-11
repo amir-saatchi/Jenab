@@ -14,6 +14,7 @@ import (
 	_ "modernc.org/sqlite" // the fixture database, as the store's
 
 	"github.com/amir-saatchi/jenab/internal/agent"
+	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/web"
 )
@@ -35,17 +36,8 @@ var schemaTools = []string{"request_schema_change", "apply_migration"}
 // set's fakes in place of real ones of the same name.
 func (r *run) tools() *tool.Registry {
 	reg := tool.NewRegistry()
-	fakes := func(names []string) bool {
-		return slices.ContainsFunc(names, func(n string) bool { return r.sc.set.tool(n) != nil })
-	}
-	fakesData := fakes(dataTools)
-	fakesSchema := fakesData || fakes(schemaTools)
-	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
-		n := t.Spec().Name
-		if !slices.Contains(realOff, n) && r.sc.set.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) &&
-			!(fakesSchema && n == "request_schema_change") {
-			reg.Add(t)
-		}
+	for _, t := range r.sc.set.realTools() {
+		reg.Add(t)
 	}
 	for _, t := range r.sc.set.Tools {
 		reg.Add(r.fake(t))
@@ -60,6 +52,43 @@ func (r *run) tools() *tool.Registry {
 		return only
 	}
 	return reg
+}
+
+// realTools are the app's tools a run of the set gets: those that need
+// no network, without the ones its fakes replace.
+func (s *Set) realTools() []tool.Tool {
+	fakes := func(names []string) bool {
+		return slices.ContainsFunc(names, func(n string) bool { return s.tool(n) != nil })
+	}
+	fakesData := fakes(dataTools)
+	fakesSchema := fakesData || fakes(schemaTools)
+	var out []tool.Tool
+	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
+		n := t.Spec().Name
+		if !slices.Contains(realOff, n) && s.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) &&
+			!(fakesSchema && n == "request_schema_change") {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// usableSkills is the skill list the set's chats get: the built-in and
+// the set's skills, without those that come with tools the set lacks
+// (8.9), as the orchestrator leaves them out.
+func (s *Set) usableSkills() (*skill.Set, error) {
+	all, err := s.skillSet()
+	if err != nil {
+		return nil, err
+	}
+	real := s.realTools()
+	return all.Usable(func(name string) bool {
+		if s.tool(name) != nil {
+			return true
+		}
+		i := slices.IndexFunc(real, func(t tool.Tool) bool { return t.Spec().Name == name })
+		return i >= 0 && real[i].Spec().IsOn()
+	}), nil
 }
 
 // fake makes a fake tool. Its calls take the tool's delay, scaled.

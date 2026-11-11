@@ -1311,3 +1311,36 @@ func TestMigrateSnapshotOnWriter(t *testing.T) {
 		t.Errorf("the snapshot has %q, %v", note, err)
 	}
 }
+
+// DescribeTable gives each column's CHECK, so the schema agent sees what
+// a widen keeps (TASK-043); a table CHECK leaves the columns' out.
+func TestDescribeChecks(t *testing.T) {
+	p, _ := openTestProject(t)
+	ctx := context.Background()
+	migrateOK(t, p, `[{"op": "create_table", "table": "btc_prices", "columns": [
+		{"name": "date", "type": "TEXT"}, {"name": "price", "type": "REAL", "check": "price >= 0"}], "primary_key": ["date"]}]`, MigrateOptions{})
+	d, err := p.DescribeTable(ctx, "btc_prices")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := d.Column("price"); c.Check != "price >= 0" {
+		t.Errorf("price check %q", c.Check)
+	}
+	if c, _ := d.Column("date"); c.Check != "" {
+		t.Errorf("date check %q", c.Check)
+	}
+	migrateOK(t, p, `[{"op": "widen_table", "table": "btc_prices", "column": {"name": "coin", "type": "TEXT"}, "value": "'BTC'", "to": "prices"}]`, MigrateOptions{Approved: true})
+	if d, err = p.DescribeTable(ctx, "prices"); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := d.Column("price"); c.Check != "price >= 0" || !slices.Equal(d.Key, []string{"coin", "date"}) {
+		t.Errorf("after the widen: check %q, key %v", c.Check, d.Key)
+	}
+	mustExec(t, p.DB, `CREATE TABLE odd (a INTEGER CHECK (a > 0), b INTEGER, CHECK (a < b))`)
+	if d, err = p.DescribeTable(ctx, "odd"); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := d.Column("a"); c.Check != "" {
+		t.Errorf("a check %q with a table CHECK", c.Check)
+	}
+}

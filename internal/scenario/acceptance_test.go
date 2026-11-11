@@ -84,8 +84,9 @@ func textOfAll(ms []chat.Message) string {
 
 // TestAcceptanceRestart runs P1-18's scenario on a scripted model: a chat
 // of 25 turns with a restart before turn 13. The chat goes on after the
-// restart, and at turn 25 the purchase from turn 3 is found only through
-// search_history: it is no longer in the window.
+// restart, and at turn 25 the purchase from turn 3 is no longer in the
+// window: a history card brings it back (3.6), and the scripted model
+// searches for it too.
 func TestAcceptanceRestart(t *testing.T) {
 	s, err := Load(filepath.Join("..", "..", "scenarios", "acceptance"))
 	if err != nil {

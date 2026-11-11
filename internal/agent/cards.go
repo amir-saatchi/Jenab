@@ -358,6 +358,21 @@ func (w *window) dropCards() {
 	}
 }
 
+// cardHead follows a card's turn number.
+const cardHead = " of this chat, before the recent turns."
+
+// IsHistoryCards reports whether a text part of a user message in a
+// request is the history cards Go added to it (3.6), for harnesses that
+// read requests.
+func IsHistoryCards(text string) bool {
+	rest, ok := strings.CutPrefix(text, "[Turn ")
+	if !ok {
+		return false
+	}
+	i := strings.IndexFunc(rest, func(r rune) bool { return r < '0' || r > '9' })
+	return i > 0 && strings.HasPrefix(rest[i:], cardHead)
+}
+
 // historyCard is turn n of chat ch, from its messages, as a card of at
 // most room bytes: the user's text, the calls without their results, and
 // the answer. Calls that don't fit are left out, with a line that says so.
@@ -386,7 +401,7 @@ func historyCard(ch id.Chat, n int, ms []chat.Message, room int) string {
 			}
 		}
 	}
-	head := fmt.Sprintf("[Turn %d of this chat, before the recent turns. read_messages(chat_id: %s, from: %d) has its tool results.", n, ch, n)
+	head := fmt.Sprintf("[Turn %d"+cardHead+" read_messages(chat_id: %s, from: %d) has its tool results.", n, ch, n)
 	const more = "\nCall … (more calls: read_messages has them)"
 	// The request and the answer share what a small room leaves, after
 	// the line that says calls are left out.

@@ -18,7 +18,7 @@ Each step is a JSON object with an `op`. Names of columns, keys and indexes are 
 | op | Fields |
 |---|---|
 | `create_table` | `table`, `columns`, `primary_key` (required), `unique` (a list of column lists), `foreign_keys` |
-| `add_column` | `table`, `column`, `value`: the old rows' value, as SQL; required when the table has rows and the column no default (`NULL` for none) |
+| `add_column` | `table`, `column`, `value`: the old rows' value, as SQL; required when the table has rows and the column no default (`NULL` for none). Not for a column that tells the rows apart, such as a coin for news tracked per coin: that is `widen_table` |
 | `rename_table` | `from`, `to` |
 | `rename_column` | `table`, `from`, `to` |
 | `create_index` | `table`, `columns`, `name` (optional), `unique` (true or false) |
@@ -53,7 +53,7 @@ A table whose rows are all about one thing, when the goal needs many, is widened
 - The old rows get `value`. The column is `NOT NULL` with no default, so new rows set it.
 - Every other column, check, foreign key and index stays with its data. `to` renames the table; the old name is then gone, with nothing left to drop.
 
-Build a new table instead only when it must look different: `create_table` with every old column plus the new one, `copy_data` of all of them, then `drop_table` on the old one.
+Build a new table instead only when it must look different: `create_table` with every old column, with its type, NOT NULL, default and check, plus the new one, `copy_data` of all of them, then `drop_table` on the old one.
 
 ### Dependents
 

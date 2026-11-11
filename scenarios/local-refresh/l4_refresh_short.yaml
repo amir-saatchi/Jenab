@@ -39,9 +39,10 @@ asserts:
     test: refreshed
     query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
     match: '(?i)organic|pesticide'
-  - type: db_query
+  # The user said "for all my chats", so the format belongs in user memory
+  # (3.5); the check reads both memories (TASK-043).
+  - type: memory_contains
     test: info
-    query: "SELECT group_concat(section || ': ' || content, char(10)) FROM _jenab_memory WHERE content <> ''"
     match: '(?i)YYYY-MM-DD'
   - type: db_query
     test: info

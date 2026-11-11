@@ -5,7 +5,8 @@ context: main
 why: >
   Answer each message, with tools where they help. After the restart the
   chat goes on where it was. At turn 25 the purchase from turn 3 is out of
-  the history window, so the agent finds it with search_history.
+  the history window: a history card (3.6) or search_history brings it
+  back.
 messages:
   - text: Hi! Can you give me a quick overview of what's in this project?
   - text: What was the Bitcoin price on 2026-10-01?
@@ -39,8 +40,11 @@ messages:
 asserts:
   # The chat survives the restart: turn 13 adds up the list from turn 12.
   - {type: answer_contains, test: restart, turn: "13", match: '301[,.\s ]?500'}
-  # Turn 25 finds turn 3 through history search.
-  - {type: tool_called, test: history, tool: search_history, turn: "25"}
+  # Turn 25 gets turn 3 back from beyond the window: on a history card Go
+  # adds (3.6), or through search_history or read_messages. With the card,
+  # a search isn't needed, so the call is recorded, not checked (TASK-043).
+  - {type: from_history, test: history, turn: "25", match: '48[,.\s ]?200'}
+  - {type: tool_called, test: info, tool: search_history, turn: "25"}
   - {type: answer_contains, test: history, turn: "25", match: '48[,.\s ]?200'}
   - {type: answer_contains, test: history, turn: "25", match: '(?i)bitstamp'}
   - {type: max_turns, test: info, n: 25}

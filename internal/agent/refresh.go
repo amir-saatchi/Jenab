@@ -1069,10 +1069,12 @@ func (rf *refresh) replan(ctx context.Context, edits []plannedEdit) ([]plannedEd
 // check finds problems the schema can't, such as an edit over a cap. A
 // wrong answer gets one retry that lists what was wrong; after it, only an
 // answer that can't be read is an error, and check's problems are left to
-// the caller.
+// the caller. An answer cut off at maxTokens, often by thinking the API
+// can't turn off, is told so, and its retry gets the merge's cap, which
+// every refresh already sends to the model (TASK-043).
 func (rf *refresh) jsonCall(ctx context.Context, sys, user string, s jsonSchema, maxTokens int, v any, check func() []string) error {
 	msgs := []chat.Message{{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: user}}}}}
-	text, err := rf.call(ctx, sys, msgs, s.text, maxTokens)
+	text, cut, err := rf.call(ctx, sys, msgs, s.text, maxTokens)
 	if err != nil {
 		return err
 	}
@@ -1086,17 +1088,26 @@ func (rf *refresh) jsonCall(ctx context.Context, sys, user string, s jsonSchema,
 	if len(problems) == 0 {
 		return nil
 	}
+	if cut {
+		problems = append([]string{fmt.Sprintf("- the answer reached the output limit of %d tokens before it ended; think briefly", maxTokens)}, problems...)
+		maxTokens = max(maxTokens, refreshMergeTokens)
+	}
 	if strings.TrimSpace(text) == "" {
 		text = "(no answer)"
 	}
 	msgs = append(msgs,
 		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}},
 		chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: fixRequest(problems)}}}})
-	if text, err = rf.call(ctx, sys, msgs, s.text, maxTokens); err != nil {
+	if text, cut, err = rf.call(ctx, sys, msgs, s.text, maxTokens); err != nil {
 		return err
 	}
 	zero(v)
-	return readJSON(text, s, v)
+	if err := readJSON(text, s, v); err != nil && cut {
+		return fmt.Errorf("the answer was cut off at the output limit of %d tokens: %w", maxTokens, err)
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
 func problemLines(err error) []string {
@@ -1111,14 +1122,15 @@ func problemLines(err error) []string {
 func zero(v any) { reflect.ValueOf(v).Elem().SetZero() }
 
 // call sends one background request with thinking off, and returns the
-// answer's text. schema, the one the prompt shows, also goes to the API's
+// answer's text, and whether it stopped at maxTokens. schema, the one the prompt shows, also goes to the API's
 // JSON mode where it has one. A retryable provider error is tried again,
 // up to refreshTries in all.
-func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, schema string, maxTokens int) (string, error) {
+func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, schema string, maxTokens int) (string, bool, error) {
 	req := provider.Request{Model: rf.plan.model, MaxTokens: maxTokens, System: []provider.Block{{Text: sys}}, Messages: msgs, Schema: json.RawMessage(schema)}
 	for try := 0; ; try++ {
 		var text strings.Builder
 		var err error
+		cut := false
 		for ev, e := range rf.o.d.Models.Stream(ctx, limit.Background, req) {
 			if e != nil {
 				err = e
@@ -1127,16 +1139,19 @@ func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, sc
 			if ev.Kind == provider.EventPart && ev.Part.Text != nil {
 				text.WriteString(ev.Part.Text.Text)
 			}
+			if ev.Kind == provider.EventDone {
+				cut = ev.Stop == provider.StopMaxTokens
+			}
 		}
 		if err == nil {
-			return text.String(), nil
+			return text.String(), cut, nil
 		}
 		var pe *provider.Error
 		if ctx.Err() != nil {
-			return "", context.Cause(ctx)
+			return "", false, context.Cause(ctx)
 		}
 		if !errors.As(err, &pe) || !pe.Retryable() || try+1 >= refreshTries {
-			return "", err
+			return "", false, err
 		}
 		wait := pe.RetryAfter
 		if wait <= 0 {
@@ -1147,7 +1162,7 @@ func (rf *refresh) call(ctx context.Context, sys string, msgs []chat.Message, sc
 		case <-t.C:
 		case <-ctx.Done():
 			t.Stop()
-			return "", context.Cause(ctx)
+			return "", false, context.Cause(ctx)
 		}
 	}
 }

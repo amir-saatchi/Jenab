@@ -1,6 +1,6 @@
 # TASK-043 — More scenario failures both reference models share
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-042
 
@@ -27,3 +27,21 @@ Also look at:
 - The fixes are in, with Go tests where the change is in code, and `jenab-scenarios check scenarios` passes.
 - Before and after pass shares on both models for the affected scenarios.
 - The report proposes any SPEC text.
+
+## Result
+Done on 2026-11-11. SPEC 3.5, 8.1, 8.2 and 8.4 have the new rules. Before and after on both reference models:
+
+- **role-skills** (no migrations, pipelines or config-guide for a new chat): the set. It faked no write tools, so the skill list hid the skills that load with them. The set now fakes `apply_migration`, `save_pipeline` and `save_view`, and `check` rejects a skill assert the chat's skill list can't meet. Gemini 3/18 → 11/18, mistral 2/18 → 7/18.
+- **acceptance** (turn 25 right without `search_history`): the check. The history card (3.6) carries turn 3. A new `from_history` assert accepts a card or a history tool, and fails if the window already holds the fact. Gemini 0/1 → 1/1, mistral 0/2 → 1/1.
+- **schema-widen** (news key, lost CHECK, `DEFAULT 'BTC'`): Jenab. The main agent designed the migration in its goal, and `describe_table` hid CHECKs. `request_schema_change` now says not to design; the schema agent's prompt and the migrations skill say the design is its own, when to widen and to keep checks; `describe_table` shows CHECKs. mistral swc 0/3 → 2/3, sw 1/3 → 3/3. Gemini swc 2/3 → 2/3: checks and columns are kept now, but the news key is still `url` in 1 of 3.
+- **local-refresh** (date format): the check. "For all my chats" goes to user memory; a new `memory_contains` assert reads both memories. 5/5 re-scored, 3/3 after on each model.
+- **refresh-memory R1 on mistral** ("no JSON object"): Jenab, and the model. JSON mode is sent and honoured; mistral thinks on NVIDIA even when asked not to, and used the whole 4,096-token cap. A cut-off answer is now named, and its retry gets 8,192 tokens. 0/1 → 1/1.
+- **sql-queries before SQL:** the model. Gemini loaded it before the first query in 0 of 16 transcripts, mistral in 8 of 33; 3 of 135 queries without it failed, each fixed in the next call. Left open.
+- **Open:**
+  - Gemini swc and sw with the last migrations-skill line weren't run (budget).
+  - R3: both models give a daily job web-research only, never pipelines; the delegation skill could say that work on a schedule needs pipelines.
+  - mistral adds skills that don't fit (R2, R5).
+  - A table-level CHECK hides the column checks in `describe_table`.
+  - A proposal: `query`'s description could say to load sql-queries before anything beyond a simple SELECT; it needs its own measurement.
+
+The session's report: [reports/TASK-043-report.md](reports/TASK-043-report.md).

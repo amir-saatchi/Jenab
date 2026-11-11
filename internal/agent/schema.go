@@ -58,7 +58,7 @@ func requestSchemaChange() tool.Tool {
 	return tool.Func(tool.Spec{
 		Name: "request_schema_change",
 		Description: "Change the project's tables: create a table, add, rename or drop columns, add an index, or restructure or drop a table. " +
-			"Only this tool changes the schema. Give the goal in plain words: what the user wants, the names they gave, and any data to keep or move; the schema agent designs the rest, with its own database-design and migrations skills, so don't load them for this. " +
+			"Only this tool changes the schema. Give the goal in plain words: what the user wants, the names they gave, and any data to keep or move. Don't design it: leave out keys, types, defaults and steps the user didn't ask for. The schema agent designs the rest, with its own database-design and migrations skills, so don't load them for this. " +
 			"The schema agent writes the migration and tries it; the user approves it when it deletes data or the approval level asks. " +
 			"Returns applied with the migration and the tables as they are now, rejected with the reason, or the user's denial.",
 		Schema: json.RawMessage(`{

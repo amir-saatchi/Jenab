@@ -368,3 +368,22 @@ func TestCardSmallWords(t *testing.T) {
 		})
 	}
 }
+
+// IsHistoryCards knows a card by its head, so harnesses that read requests
+// can tell cards from the user's text (TASK-043).
+func TestIsHistoryCards(t *testing.T) {
+	card := historyCard("01CHAT", 12, []chat.Message{
+		{Turn: 12, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "Hi."}}}},
+	}, cardClip)
+	for text, want := range map[string]bool{
+		card:                   true,
+		"[Turn 3 of this chat": false,
+		"[Turn of this chat, before the recent turns.":  false,
+		"Turn 3 of this chat, before the recent turns.": false,
+		"[Turn 3 of the plan, before the recent turns.": false,
+	} {
+		if got := IsHistoryCards(text); got != want {
+			t.Errorf("%.40q: %v, want %v", text, got, want)
+		}
+	}
+}

@@ -439,6 +439,9 @@ func Describe(t store.Table) string {
 		if c.Default != nil {
 			b.WriteString(" DEFAULT " + *c.Default)
 		}
+		if c.Check != "" {
+			b.WriteString(" CHECK (" + strings.Join(strings.Fields(c.Check), " ") + ")")
+		}
 		var notes []string
 		if slices.Contains(t.Key, c.Name) {
 			n := "primary key"

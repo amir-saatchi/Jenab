@@ -121,19 +121,9 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 			return nil, fmt.Errorf("scenario: no scenario %s in the set", n)
 		}
 	}
-	builtin, err := skill.Builtin()
+	skills, err := s.skillSet()
 	if err != nil {
-		return nil, err
-	}
-	// A set's skill replaces the built-in one of its name, as its fake
-	// tools replace the real ones.
-	own := builtin.For(chat.KindMother)
-	own = slices.DeleteFunc(own, func(b skill.Skill) bool {
-		return slices.ContainsFunc(s.Skills, func(sk skill.Skill) bool { return sk.Name == b.Name })
-	})
-	skills, err := skill.New(append(own, s.Skills...)...)
-	if err != nil {
-		return nil, fmt.Errorf("scenario: the set's skills: %w", err)
+		return nil, fmt.Errorf("scenario: %w", err)
 	}
 	type job struct {
 		model   string

@@ -57,8 +57,13 @@ type record struct {
 	subUsage    chat.Usage
 	// db are the answers of the db_query checks, by query and table regex.
 	db map[string][]dbAnswer
-	// userMemory is user memory at the end, for the transcript.
-	userMemory []store.MemorySection
+	// userMemory is user memory at the end, for the transcript, and
+	// projectMemory the project's, for memory_contains.
+	userMemory, projectMemory []store.MemorySection
+	// cards are the history cards Go added to each turn's first request
+	// (3.6), and window the text of the turns before it in that request,
+	// without cards, for from_history.
+	cards, window map[int]string
 	// memoryTokens and notesTokens are the sizes at the end, as the caps
 	// count them: user and project memory, and the chats' session notes
 	// (3.3, 3.4).
@@ -159,6 +164,7 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	if err != nil {
 		return nil, err
 	}
+	rec.projectMemory = pm
 	rec.memoryTokens = store.MemoryTokens(rec.userMemory) + store.MemoryTokens(pm)
 	for _, c := range r.chats {
 		n, err := proj.Chats.Notes(ctx, c)
@@ -179,8 +185,12 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 		}
 	}
 	list := traces.List()
+	rec.cards, rec.window = map[int]string{}, map[int]string{}
 	for _, t := range slices.Backward(list) {
 		if b, ok := base[t.Chat]; ok {
+			if full, ok := traces.Turn(agent.TraceKey{Project: t.Project, Chat: t.Chat, Turn: t.Turn}); ok && len(full.Requests) > 0 {
+				rec.cards[b+t.Turn], rec.window[b+t.Turn] = splitCards(full.Requests[0].Req.Messages, t.Turn)
+			}
 			for _, c := range t.Checks {
 				rec.checks = append(rec.checks, groundCheck{turn: b + t.Turn, request: len(rec.requests) + c.Request, GroundingCheck: c})
 			}
@@ -191,6 +201,35 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 		}
 	}
 	return rec, nil
+}
+
+// splitCards reads a turn's first request: the history cards on its
+// user message, and the text of the turns before it, cards left out.
+func splitCards(ms []chat.Message, turn int) (cards, window string) {
+	before, now := agent.SplitTurn(ms, turn)
+	var c, w []string
+	for _, m := range now {
+		if m.Role != chat.RoleUser {
+			continue
+		}
+		for _, p := range m.Parts {
+			if p.Text != nil && agent.IsHistoryCards(p.Text.Text) {
+				c = append(c, p.Text.Text)
+			}
+		}
+		break
+	}
+	for _, m := range before {
+		for _, p := range m.Parts {
+			switch {
+			case p.Text != nil && !agent.IsHistoryCards(p.Text.Text):
+				w = append(w, p.Text.Text)
+			case p.ToolResult != nil:
+				w = append(w, p.ToolResult.Text)
+			}
+		}
+	}
+	return strings.Join(c, "\n\n"), strings.Join(w, "\n")
 }
 
 // turnsIn is the last turn of ms.
@@ -301,6 +340,7 @@ func (rec *record) transcript() string {
 		fmt.Fprintf(&b, "\nGood behaviour: %s\n", rec.sc.Why)
 	}
 	turn := 0
+	carded := map[int]bool{}
 	for _, e := range rec.events {
 		if e.turn != turn {
 			turn = e.turn
@@ -309,6 +349,10 @@ func (rec *record) transcript() string {
 		switch e.kind {
 		case evUser:
 			fmt.Fprintf(&b, "\n**User:** %s\n", e.text)
+			if c := rec.cards[e.turn]; c != "" && !carded[e.turn] {
+				carded[e.turn] = true
+				fmt.Fprintf(&b, "\n> history cards:\n> %s\n", strings.ReplaceAll(clip(c, 1200), "\n", "\n> "))
+			}
 		case evText:
 			if t := strings.TrimSpace(e.text); t != "" {
 				fmt.Fprintf(&b, "\n**Agent:** %s\n", t)

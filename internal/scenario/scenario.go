@@ -22,6 +22,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -455,7 +456,59 @@ func Load(dir string) (*Set, error) {
 	if len(s.Scenarios) == 0 {
 		return nil, errors.New("the set has no scenarios")
 	}
+	if err := s.checkSkills(); err != nil {
+		return nil, err
+	}
 	return s, nil
+}
+
+// skillSet is the built-in skills and the set's: a set's skill replaces
+// the built-in one of its name, as its fake tools replace the real ones.
+func (s *Set) skillSet() (*skill.Set, error) {
+	builtin, err := skill.Builtin()
+	if err != nil {
+		return nil, err
+	}
+	own := builtin.For(chat.KindMother)
+	own = slices.DeleteFunc(own, func(b skill.Skill) bool {
+		return slices.ContainsFunc(s.Skills, func(sk skill.Skill) bool { return sk.Name == b.Name })
+	})
+	set, err := skill.New(append(own, s.Skills...)...)
+	if err != nil {
+		return nil, fmt.Errorf("the set's skills: %w", err)
+	}
+	return set, nil
+}
+
+// checkSkills fails for an assert that wants a skill its chat's skill
+// list doesn't show: no run could load it or give it to a new chat. A
+// skill whose load_with tools the set lacks is left out of the list (8.9),
+// as role-skills learned (TASK-043).
+func (s *Set) checkSkills() error {
+	usable, err := s.usableSkills()
+	if err != nil {
+		return err
+	}
+	for _, sc := range s.Scenarios {
+		for i, a := range sc.Asserts {
+			kind := chat.KindChat
+			switch a.Type {
+			case "created_skills":
+			case "skill_loaded", "skill_loaded_before":
+				if sc.Context == "mother" {
+					kind = chat.KindMother
+				}
+			default:
+				continue
+			}
+			for _, n := range append([]string{a.Skill}, a.Skills...) {
+				if _, ok := usable.Get(kind, n); n != "" && !ok {
+					return fmt.Errorf("%s: asserts[%d] (%s): the skill list of its chat has no %s; give the set a tool of its load_with, or a skill of that name", sc.ID, i, a.Type, n)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func strict(b []byte, v any) error {

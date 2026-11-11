@@ -618,3 +618,43 @@ func TestRefreshNotice(t *testing.T) {
 		t.Errorf("notice %q", got)
 	}
 }
+
+// An answer cut off at the cap with no text, as a model that thinks
+// anyway leaves it, is told so, and its retry gets the merge's cap. Cut
+// off again, the chip names the limit, not a missing JSON object
+// (TASK-043).
+func TestRefreshCutOff(t *testing.T) {
+	cutOff := fake.Reply{Events: []provider.Event{fake.Done(provider.StopMaxTokens, chat.Usage{Input: 10, Output: refreshMapTokens})}}
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Cut off"})
+		h.addTurns(c.ID, 1, 1)
+		h.fp.Push(cutOff, mapReply(mapItem("goal", "project", "Weekly")), mergeReply(edit("project", "goals", "Weekly."), ""))
+		h.refresh(c.ID, false)
+		h.wait()
+		calls := h.fp.Calls()
+		if len(calls) != 3 || calls[0].MaxTokens != refreshMapTokens || calls[1].MaxTokens != refreshMergeTokens {
+			t.Fatalf("%d calls, caps %d then %d", len(calls), calls[0].MaxTokens, calls[1].MaxTokens)
+		}
+		if fix := calls[1].Messages[2].Parts[0].Text.Text; !strings.Contains(fix, "reached the output limit of 4096 tokens") {
+			t.Errorf("the retry's message %q", fix)
+		}
+		if got, _ := h.section(store.ScopeProject, "goals"); got != "Weekly." {
+			t.Errorf("goals %q", got)
+		}
+	})
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		c := h.newChat(chat.Chat{Title: "Cut off twice"})
+		h.addTurns(c.ID, 1, 1)
+		h.fp.Push(cutOff, cutOff)
+		h.refresh(c.ID, false)
+		h.wait()
+		chips := refreshChips(h.messages(c.ID))
+		if len(chips) != 1 || !strings.Contains(chips[0].Text, "cut off at the output limit of 8192 tokens") {
+			t.Errorf("chips %+v", chips)
+		}
+	})
+}

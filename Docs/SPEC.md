@@ -448,7 +448,7 @@ A button per chat, in the chat header. It makes sure memory and session notes ho
      source: [msg_210, msg_214]
    ```
 3. **Merge and compare.** One LLM call merges the items in chat order (later items replace earlier items on the same subject, duplicates are removed, items that state data values are dropped) and compares them with the current user memory, project memory and session notes. Each item is labeled `present`, `missing`, `contradicts` or `outdated`. The same call rewrites the `summary` section of the session notes (3.4): what was done, what was decided, what is still open.
-   Chat-scope items (progress, open questions) only go into the summary. Both calls answer JSON with the schema in the prompt, the same for every model, and the same schema goes to the provider's JSON mode where it has one (3.8). Go checks the answer either way; a wrong answer gets one retry that lists what was wrong (SPIKE-030). The merge returns the full new content of each section it changes.
+   Chat-scope items (progress, open questions) only go into the summary. Both calls answer JSON with the schema in the prompt, the same for every model, and the same schema goes to the provider's JSON mode where it has one (3.8). Go checks the answer either way; a wrong answer gets one retry that lists what was wrong (SPIKE-030). An answer cut off at its output cap is retried with the merge's cap (8,192 tokens), and the retry says it was cut off; cut off again, the refresh fails with "cut off at the output limit" (TASK-043). The merge returns the full new content of each section it changes.
 4. **Apply.** Go reads memory again after the merge. It drops an edit whose section changed meanwhile or that would go over a cap, and names it on the chip. The rest are written as normal memory edits (3.3) with source `refresh:<chat_id>`. One chip shows them: `Memory refreshed: 3 added, 1 changed · view changes · undo`. *View changes* shows the diff per section. *Undo* reverts the whole batch, or nothing if a section changed since; then it names that section.
    - **Asking first:** only at Strict, with one approval card for the batch, *Save* or *Deny*, and the diff per section (8.8). Standard and Auto save without asking.
    - **The chip's line:** "From a chat that read web pages, files or MCP results" when the reviewed turns or the context turn hold results of tools that read untrusted content; "Changed a section you wrote" when a saved edit changes, deletes or brings back a section whose last edit was made by the user. When both apply, one line says both. A batch that saved no edit has no line.
@@ -1567,7 +1567,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | Tool | Purpose |
 |---|---|
 | `query(sql, params)` | Read-only query; returns up to 200 rows or 4,000 tokens, plus the total count |
-| `describe_table(name)` | Columns, types, keys, annotations, row count. The project card already lists these for each table it shows with columns; the agent calls it only for a table the card names without them (3.2) |
+| `describe_table(name)` | Columns with their types, NOT NULL, defaults and CHECKs, keys, annotations, row count. The project card already lists these for each table it shows with columns; the agent calls it only for a table the card names without them (3.2) |
 | `insert(table, rows)` | Small manual entries, at most 50 rows per call; recurring or bulk data goes through pipelines |
 | `request_schema_change(goal)` | Hands a schema request to the schema agent (8.2) |
 
@@ -1649,7 +1649,9 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 
 **Instructions:** the `database-design` and `migrations` skills (8.9), so the main chat can use the same text when the user discusses a design.
 
-**Input:** the goal, the current schema with annotations, the dependents (views, pipelines and forms, with the columns they use), and row counts. Pages only point to views, so they rarely need changes. It can read each dependent's full config with `read_config` (8.1); it needs the full configs to rewrite them.
+**Input:** the goal, the current schema with annotations and CHECKs, the dependents (views, pipelines and forms, with the columns they use), and row counts. Pages only point to views, so they rarely need changes. It can read each dependent's full config with `read_config` (8.1); it needs the full configs to rewrite them.
+
+**The goal** says what the user wants, with the names they gave and the data to keep or move. The main agent doesn't design the change: it leaves out keys, types, defaults and steps the user didn't ask for. The schema agent designs it; where its design differs from the goal, its plan says so (TASK-043).
 
 **Output:**
 
@@ -1685,7 +1687,8 @@ Dependent updates (views, pipelines, forms) are sent in the same request as full
 - Every table has an explicit primary key (2.2).
 - Tables for pipeline data get `_run_id` and `_fetched_at`. Copied rows keep both.
 - Existing rows get new values explicitly, through `value`, `copy_data` or the `rebuild_table` mapping. A column `default` is never used to label old rows, because it would also silently label new rows that lack a value.
-- A key must fit the widened goal: when news is tracked per coin, the key is `(coin, url)`, not `url`.
+- A key must fit the widened goal: when news is tracked per coin, the key is `(coin, url)`, not `url`. A column that tells the rows apart for the wider goal is added with `widen_table`, not `add_column`, so it joins the key.
+- A rebuilt or moved table keeps every old column with its type, NOT NULL, default and check.
 - Columns that hold bucket keys are marked as `object_ref`.
 - Never drop tables or columns, or change keys, without approval.
 - Update all dependents in the same migration (7.5).
@@ -1761,8 +1764,9 @@ The scenario runner and the turn inspector use the real orchestrator, context bu
     - a fixture project
     - scripted user messages, with an optional `at` time for messages sent during a turn
     - fake or recorded tool results, with delays
-    - assertions, e.g. `text_before_tool`, `tool_called`, `config_valid`, `max_prompt_tokens`
+    - assertions, e.g. `text_before_tool`, `tool_called`, `config_valid`, `max_prompt_tokens`. `from_history` passes when a history card (3.6) or a `search_history` or `read_messages` result in the turn holds the match, and fails when the turn's window already holds it; `memory_contains` reads user and project memory at the end (TASK-043)
   - A scenario can set `context` and `llm` settings, such as the request cap (TASK-013).
+  - `check` fails a skill assertion whose skill the chat's skill list can't hold, for example because the set lacks every tool of its `load_with` (8.9, TASK-043).
   - It runs every scenario on the test model set: the free development models, plus any frontier model the developer has a key for. It reports pass rates, repair rounds, tokens with the share read from the cache, and time per model. With 3 or more reps it shows the spread of pass rates (TASK-013).
   - Scripted answers can stand in for a model, so a regression run needs no keys (TASK-013).
   - The SPIKE-021 config tasks and the Phase 2 benchmark (PROPOSAL 11) are scenario sets for it.

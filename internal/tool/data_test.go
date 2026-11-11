@@ -348,7 +348,7 @@ func TestDescribeTable(t *testing.T) {
 Columns:
 - date TEXT NOT NULL — primary key
 - coin TEXT NOT NULL — primary key
-- price REAL NOT NULL
+- price REAL NOT NULL CHECK (price > 0)
 - volume INTEGER
 - note TEXT DEFAULT ''
 - chart TEXT — object_ref: holds bucket keys

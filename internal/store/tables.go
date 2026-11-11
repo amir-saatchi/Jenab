@@ -39,6 +39,9 @@ type Column struct {
 	Type    string // as declared; "" for none
 	NotNull bool
 	Default *string // the default's SQL text; nil for none
+	// Check is the column's CHECK expression as written; "" for none, or
+	// when the table has a table CHECK, which Go doesn't read apart.
+	Check string
 	// Generated: SQLite computes the value, so a write can't give it.
 	Generated bool
 	Kind      string // the annotation (_jenab_columns), such as object_ref; "" for none
@@ -200,6 +203,15 @@ func describe(ctx context.Context, tx *sql.Tx, name string, count bool) (Table, 
 	for _, k := range kinds {
 		if c, ok := t.Column(k[0]); ok { // an annotation of a dropped column is skipped
 			c.Kind = k[1]
+		}
+	}
+	var ddl string
+	if err := tx.QueryRowContext(ctx, `SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?`, t.Name).Scan(&ddl); err != nil {
+		return t, err
+	}
+	if checks, ok := columnChecks(ddl); ok {
+		for i := range t.Columns {
+			t.Columns[i].Check = checks[strings.ToLower(t.Columns[i].Name)]
 		}
 	}
 	if !count {

@@ -58,6 +58,8 @@ var assertFields = map[string][]string{
 	"approval_shown":      {"match"},
 	"no_approval":         nil,
 	"notice_shown":        {"match"},
+	"from_history":        {"match"}, // TASK-043: a history card or tool brought it back
+	"memory_contains":     {"match"}, // user or project memory at the end
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -103,6 +105,10 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		skills = append(slices.Clone(skills), a.Skill)
 	}
 	switch a.Type {
+	case "from_history":
+		return rec.fromHistory(a)
+	case "memory_contains":
+		return rec.memoryContains(a)
 	case "text_before_tool":
 		for _, e := range rec.events {
 			if e.kind == evText && len(strings.TrimSpace(e.text)) >= 20 {

@@ -337,6 +337,12 @@ type schemaCall struct {
 	Valid    bool    `json:"valid"`  // the answer is a JSON object as it is
 	Seconds  float64 `json:"seconds"`
 	Error    string  `json:"error,omitempty"`
+	// Stop, Output and Thinking tell an empty answer apart: cut off at
+	// the token cap, spent on thinking, or ended (TASK-043).
+	Stop     string `json:"stop,omitempty"`
+	Output   int    `json:"output,omitempty"`
+	Thinking int    `json:"thinking_chars,omitempty"`
+	Thought  int    `json:"thought,omitempty"` // the output tokens spent on thinking, when the provider says
 }
 
 func (w watched) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
@@ -351,18 +357,29 @@ func (w watched) Stream(ctx context.Context, req provider.Request) iter.Seq2[pro
 		start := time.Now()
 		var text strings.Builder
 		var failed error
+		var stop string
+		var output, thinking, thought int
 		for ev, err := range w.Provider.Stream(ctx, req) {
-			if err != nil {
+			switch {
+			case err != nil:
 				failed = err
-			} else if ev.Kind == provider.EventPart && ev.Part.Text != nil {
+			case ev.Kind == provider.EventPart && ev.Part.Text != nil:
 				text.WriteString(ev.Part.Text.Text)
+			case ev.Kind == provider.EventPart && ev.Part.Thinking != nil:
+				thinking += len(ev.Part.Thinking.Text)
+			case ev.Kind == provider.EventDone:
+				stop = string(ev.Stop)
+				if ev.Usage != nil {
+					output, thought = ev.Usage.Output, ev.Usage.Thought
+				}
 			}
 			if !yield(ev, err) {
 				break
 			}
 		}
-		c := schemaCall{Time: start.Format(time.RFC3339), Model: req.Model, Schema: schemaName(schema), Messages: len(req.Messages),
-			Sent: req.Schema != nil, Input: firstUser(req.Messages), Answer: text.String(), Seconds: time.Since(start).Seconds()}
+		c := schemaCall{Time: start.UTC().Format(time.RFC3339), Model: req.Model, Schema: schemaName(schema), Messages: len(req.Messages),
+			Sent: req.Schema != nil, Input: firstUser(req.Messages), Answer: text.String(), Seconds: time.Since(start).Seconds(),
+			Stop: stop, Output: output, Thinking: thinking, Thought: thought}
 		var obj map[string]any
 		c.Valid = json.Unmarshal([]byte(strings.TrimSpace(c.Answer)), &obj) == nil
 		if failed != nil {
