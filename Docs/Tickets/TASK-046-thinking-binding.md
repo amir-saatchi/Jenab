@@ -1,6 +1,6 @@
 # TASK-046 — Thinking blocks after the context changes
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** —
 
@@ -31,3 +31,17 @@ Jenab changes that prefix often, then sends the old blocks back unchanged (3.8).
 - Go tests: the request has `block_binding` with adaptive thinking and none with a budget or without a thinking setting, and dropped blocks are counted.
 - The 11 runs rerun with no 400.
 - SPEC 3.8 has the rule, and the catalog has Haiku 5.5.
+
+## Result
+Done on 2026-11-12. SPEC 3.8 has the rule.
+
+- **The fix:** adaptive thinking carries `drop_block` with the beta; budget thinking (Haiku 4.5) gets neither. A request with no thinking setting sends no earlier thinking. A live probe on Haiku 5.5 showed that path works mid tool call, with no 400. Dropped blocks are counted in the usage, the trace and the runner.
+- **Reruns on Haiku 5.5:** no binding 400 in 274 requests. 9 of the 11 broken runs pass; acceptance passes with every turn answered. The 2 failures are the model's: N1 wrote its answer before the notes tool and nothing after it, and schema-widen T4 kept 3 keyword rows instead of 2. Cost about $0.20.
+- **Catalog:** `claude-haiku-5-5` added and marked `fast` (moved from Haiku 4.5); Sonnet 5.5's cache read is $0.10.
+- **Open:**
+  - Jenab changes the prefix often, so much reasoning is dropped. In the bench runs nearly every request dropped all earlier thinking, because the date changes each turn. The report proposes keeping the system blocks fixed between cuts, with card, tool and date changes sent as messages. That needs its own ticket.
+  - Thinking off doesn't stop Haiku 5.5 thinking: Jenab sends no thinking field then.
+  - Not in the catalog: `claude-fable-5-2` and the older Claude models; Haiku 5.5's second price tier over 100K prompt tokens.
+  - A `message_delta` is not read for later drops.
+
+The session's report: [reports/TASK-046-report.md](reports/TASK-046-report.md).

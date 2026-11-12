@@ -197,14 +197,15 @@ func TestToolTurnAndSendBack(t *testing.T) {
 	}
 }
 
+var haiku = &provider.Model{ID: "claude-haiku-4-5-20251001", Thinking: true, ThinkingBudget: true}
+
 func TestThinkingSettings(t *testing.T) {
-	haiku := &provider.Model{ID: "claude-haiku-4-5-20251001", Thinking: true, ThinkingBudget: true}
 	tests := []struct {
 		name string
 		req  provider.Request
 		want string // the thinking field, "" for none
 	}{
-		{"adaptive", provider.Request{Known: opus, Thinking: true}, `{"type":"adaptive","display":"summarized"}`},
+		{"adaptive", provider.Request{Known: opus, Thinking: true}, `{"type":"adaptive","display":"summarized","block_binding":{"prefix_mismatch_behavior":"drop_block"}}`},
 		{"budget", provider.Request{Known: haiku, Thinking: true, MaxTokens: 8000}, `{"type":"enabled","budget_tokens":4000}`},
 		// The budget stays below max_tokens, or thinking is off (TASK-008).
 		{"budget at 2048", provider.Request{Known: haiku, Thinking: true, MaxTokens: 2048}, `{"type":"enabled","budget_tokens":1024}`},
@@ -215,7 +216,7 @@ func TestThinkingSettings(t *testing.T) {
 	}
 	b := &backend{}
 	for _, tt := range tests {
-		body, err := b.body(context.Background(), tt.req)
+		body, beta, err := b.body(context.Background(), tt.req)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -225,6 +226,12 @@ func TestThinkingSettings(t *testing.T) {
 		json.Unmarshal(body, &r)
 		if string(r.Thinking) != tt.want {
 			t.Errorf("%s: thinking = %s, want %s", tt.name, r.Thinking, tt.want)
+		}
+		// The beta goes with block_binding, and only with it: without
+		// the beta the field is a 400, and so is block_binding with a
+		// budget (TASK-046).
+		if binds := strings.Contains(tt.want, "block_binding"); binds != (beta == bindingBeta) || (!binds && beta != "") {
+			t.Errorf("%s: beta = %q", tt.name, beta)
 		}
 	}
 }
@@ -237,7 +244,7 @@ func TestOtherProvidersThinkingSkipped(t *testing.T) {
 		{Kind: chat.PartThinking, Thinking: &chat.Thinking{Redacted: "opaque=="}},
 		{Kind: chat.PartText, Text: &chat.Text{Text: "Done."}},
 	}})
-	body, _ := (&backend{}).body(context.Background(), req)
+	body, _, _ := (&backend{}).body(context.Background(), req)
 	if strings.Contains(string(body), "from Gemini") || strings.Contains(string(body), "rs_1") || !strings.Contains(string(body), `"redacted_thinking"`) {
 		t.Errorf("body = %s", body)
 	}
@@ -254,7 +261,7 @@ func TestBlankTextSkipped(t *testing.T) {
 		}},
 		chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: " "}}, {Kind: chat.PartText, Text: &chat.Text{Text: "go on"}}}},
 	)
-	body, err := (&backend{}).body(context.Background(), req)
+	body, _, err := (&backend{}).body(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -527,6 +534,102 @@ func TestToolChoiceNone(t *testing.T) {
 		}
 		if len(body.Tools) != 1 || string(body.ToolChoice) != want {
 			t.Errorf("choice %q: %d tools, tool_choice %s", choice, len(body.Tools), body.ToolChoice)
+		}
+	}
+}
+
+// earlier is a history with thinking from an earlier request: plain and
+// redacted, each before its call.
+func earlier(known *provider.Model, thinking bool) provider.Request {
+	req := hello
+	req.Known, req.Thinking = known, thinking
+	req.Messages = append(append([]chat.Message(nil), hello.Messages...),
+		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{
+			{Kind: chat.PartThinking, Thinking: &chat.Thinking{Text: "Count them.", Signature: "EqQBsig1=="}},
+			{Kind: chat.PartToolCall, ToolCall: &chat.ToolCall{ID: "toolu_1", Name: "query", Args: json.RawMessage(`{}`)}},
+		}},
+		chat.Message{Role: chat.RoleTool, Parts: []chat.Part{{Kind: chat.PartToolResult, ToolResult: &chat.ToolResult{CallID: "toolu_1", Text: "42"}}}},
+		chat.Message{Role: chat.RoleAssistant, Parts: []chat.Part{
+			{Kind: chat.PartThinking, Thinking: &chat.Thinking{Redacted: "opaque=="}},
+			{Kind: chat.PartText, Text: &chat.Text{Text: "42 rows."}},
+		}},
+		chat.Message{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: "And ETH?"}}}})
+	return req
+}
+
+// Thinking blocks go back only where the request can say what to do with
+// a stale one, or the model doesn't check (TASK-046).
+func TestThinkingSentBack(t *testing.T) {
+	tests := []struct {
+		name string
+		req  provider.Request
+		back bool
+	}{
+		{"adaptive, with drop_block", earlier(opus, true), true},
+		{"budget: the model doesn't check", earlier(haiku, true), true},
+		{"thinking off", earlier(opus, false), false},
+		{"no room for a budget", func() provider.Request { r := earlier(haiku, true); r.MaxTokens = 1024; return r }(), false},
+		{"unknown model", earlier(nil, true), false},
+	}
+	for _, tt := range tests {
+		body, _, err := (&backend{}).body(context.Background(), tt.req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := string(body)
+		sent := strings.Contains(s, `"type":"thinking"`) && strings.Contains(s, "EqQBsig1==") && strings.Contains(s, `"redacted_thinking"`)
+		none := !strings.Contains(s, "thinking\"") && !strings.Contains(s, "EqQBsig1==") && !strings.Contains(s, "opaque==")
+		if tt.back && !sent || !tt.back && !none {
+			t.Errorf("%s: body = %s", tt.name, s)
+		}
+		if !strings.Contains(s, `"tool_use"`) || !strings.Contains(s, "42 rows.") {
+			t.Errorf("%s: lost the calls or the text: %s", tt.name, s)
+		}
+	}
+}
+
+// The beta header goes on the wire with adaptive thinking only, and the
+// answer's dropped thinking blocks are counted (TASK-046).
+func TestBindingOnTheWire(t *testing.T) {
+	withDrops := strings.Replace(start, `"stop_reason":null,`, `"stop_reason":null,"input_transformations":[`+
+		`{"type":"thinking_dropped","path":"messages.1.content.0","reason":"prefix_binding_mismatch"},`+
+		`{"type":"thinking_dropped","path":"messages.3.content.0","reason":"prefix_binding_mismatch"},`+
+		`{"type":"thinking_dropped","path":"messages.5.content.0","reason":"model_binding_mismatch"},`+
+		`{"type":"thinking_mismatch_allowed","path":"messages.7.content.0","reason":"prefix_binding_mismatch"},`+
+		`{"type":"thinking_dropped","path":"messages.9.content.0","reason":"a_later_reason"},`+
+		`{"type":"a_later_type"}],`, 1)
+	answer := func(first string) string {
+		return events(first,
+			`{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+			`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"ETH has 40."}}`,
+			`{"type":"content_block_stop","index":0}`,
+			`{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":9}}`,
+			`{"type":"message_stop"}`)
+	}
+	tests := []struct {
+		name    string
+		req     provider.Request
+		first   string
+		beta    string
+		dropped int
+	}{
+		{"adaptive", earlier(opus, true), withDrops, bindingBeta, 3},
+		{"adaptive, nothing dropped", earlier(opus, true), strings.Replace(start, `"stop_reason":null,`, `"stop_reason":null,"input_transformations":[],`, 1), bindingBeta, 0},
+		{"budget", earlier(haiku, true), start, "", 0},
+		{"unknown model", earlier(nil, true), start, "", 0},
+	}
+	for _, tt := range tests {
+		s := newServer(t, 200, answer(tt.first))
+		evs, err := run(newBackend(t, s), tt.req)
+		if err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if got := s.heads[0].Get("anthropic-beta"); got != tt.beta {
+			t.Errorf("%s: anthropic-beta = %q, want %q", tt.name, got, tt.beta)
+		}
+		d := evs[len(evs)-1]
+		if d.Kind != provider.EventDone || d.Usage.ThinkingDropped != tt.dropped || d.Usage.Output != 9 {
+			t.Errorf("%s: done = %+v, usage %+v", tt.name, d, d.Usage)
 		}
 	}
 }

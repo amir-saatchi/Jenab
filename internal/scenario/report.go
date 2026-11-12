@@ -62,6 +62,13 @@ type Run struct {
 	GroundExtra   *GroundExtra   `json:"grounding_extra,omitempty"`
 	// TurnStats are each turn's requests, tokens and seconds (P2-13).
 	TurnStats []TurnStat `json:"turn_stats,omitempty"`
+
+	// ThinkingDropped is how many earlier thinking blocks the provider
+	// left out of the chat's requests, in DropRequests of them (TASK-046).
+	// A stale block is counted again in each later request.
+	ThinkingDropped int `json:"thinking_dropped,omitempty"`
+	DropRequests    int `json:"thinking_drop_requests,omitempty"`
+
 	// MemoryTokens and NotesTokens are the sizes at the end, as the caps
 	// count them: user and project memory, and the session notes.
 	MemoryTokens int    `json:"memory_tokens,omitempty"`

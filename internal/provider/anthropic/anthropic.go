@@ -28,7 +28,7 @@ const defaultMaxTokens = 32000
 
 // New builds the backend for c.
 func New(c provider.Connection) (provider.Provider, error) {
-	g, err := provider.NewGuard(c, "x-api-key", "anthropic-version")
+	g, err := provider.NewGuard(c, "x-api-key", "anthropic-version", "anthropic-beta")
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +82,23 @@ type request struct {
 }
 
 type thinking struct {
-	Type         string `json:"type"` // adaptive or enabled
-	Display      string `json:"display,omitempty"`
-	BudgetTokens int    `json:"budget_tokens,omitempty"`
+	Type         string   `json:"type"` // adaptive or enabled
+	Display      string   `json:"display,omitempty"`
+	BudgetTokens int      `json:"budget_tokens,omitempty"`
+	BlockBinding *binding `json:"block_binding,omitempty"` // adaptive only, with bindingBeta
 }
+
+// binding asks the API to drop a thinking block whose conversation changed
+// since it was made, and every thinking block after it, rather than refuse
+// the request (SPEC 3.8). The drop holds for one request, so it is sent on
+// each one.
+type binding struct {
+	PrefixMismatchBehavior string `json:"prefix_mismatch_behavior"`
+}
+
+// bindingBeta lets a request set block_binding, and adds
+// input_transformations to the answer.
+const bindingBeta = string(sdk.AnthropicBetaThinkingBindingControls2026_08_01)
 
 type toolChoice struct {
 	Type string `json:"type"` // auto, any, tool or none
@@ -141,6 +154,8 @@ type event struct {
 	Index   int    `json:"index"`
 	Message struct {
 		Usage usage `json:"usage"`
+		// What the API changed in the request, with bindingBeta (SPEC 3.8).
+		InputTransformations []transformation `json:"input_transformations"`
 	} `json:"message"`
 	ContentBlock struct {
 		Type string `json:"type"`
@@ -170,6 +185,29 @@ type usage struct {
 	CacheReadInputTokens     *int `json:"cache_read_input_tokens"`
 }
 
+// transformation is an input_transformations entry.
+type transformation struct {
+	Type   string `json:"type"`
+	Reason string `json:"reason"`
+	Path   string `json:"path"`
+}
+
+// dropped counts the thinking blocks the API left out of the request.
+// Types and reasons it doesn't know are skipped: later checks add values.
+func dropped(ts []transformation) int {
+	n := 0
+	for _, t := range ts {
+		if t.Type != "thinking_dropped" {
+			continue
+		}
+		switch t.Reason {
+		case "prefix_binding_mismatch", "model_binding_mismatch", "organization_binding_mismatch":
+			n++
+		}
+	}
+	return n
+}
+
 // add takes the fields u reports; message_delta repeats some of them.
 func (u usage) add(to *chat.Usage) {
 	if u.InputTokens != nil {
@@ -195,13 +233,17 @@ type open struct {
 
 func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
 	return func(yield func(provider.Event, error) bool) {
-		body, err := b.body(ctx, req)
+		body, beta, err := b.body(ctx, req)
 		if err != nil {
 			yield(provider.Event{}, err)
 			return
 		}
 		ctx, capt := provider.WithCapture(ctx)
-		st := b.client.Messages.NewStreaming(ctx, sdk.MessageNewParams{}, option.WithRequestBody("application/json", body))
+		opts := []option.RequestOption{option.WithRequestBody("application/json", body)}
+		if beta != "" {
+			opts = append(opts, option.WithHeader("anthropic-beta", beta))
+		}
+		st := b.client.Messages.NewStreaming(ctx, sdk.MessageNewParams{}, opts...)
 		defer st.Close()
 
 		blocks := map[int]*open{}
@@ -217,6 +259,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			switch ev.Type {
 			case "message_start":
 				ev.Message.Usage.add(&u)
+				u.ThinkingDropped = dropped(ev.Message.InputTransformations)
 			case "content_block_start":
 				o := &open{kind: ev.ContentBlock.Type, id: ev.ContentBlock.ID, name: ev.ContentBlock.Name}
 				o.data.WriteString(ev.ContentBlock.Data)
@@ -345,11 +388,11 @@ func (b *backend) streamError(typ, msg string) *provider.Error {
 // mapped.
 var callIDs = provider.CallIDRule{Allowed: provider.IDChar}
 
-// body builds the request. req.Schema is not sent: the API's structured
-// outputs need every object to close its properties, which the app's
-// schemas don't, and the mapping is untested (TASK-029). The prompt
-// carries the schema.
-func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error) {
+// body builds the request, and the anthropic-beta header it needs ("" for
+// none). req.Schema is not sent: the API's structured outputs need every
+// object to close its properties, which the app's schemas don't, and the
+// mapping is untested (TASK-029). The prompt carries the schema.
+func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, string, error) {
 	r := request{Model: req.Model, MaxTokens: req.MaxTokens, CacheControl: ephemeral}
 	if r.MaxTokens <= 0 {
 		r.MaxTokens = defaultMaxTokens
@@ -371,15 +414,25 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 	// Unknown models get the API's default, which never fails.
 	// A budget must be at least 1,024 tokens and below max_tokens; when
 	// it can't be, thinking is off.
+	//
+	// Newer models refuse a thinking block whose system prompt, tools or
+	// earlier messages changed since it was made, and Jenab changes them
+	// (SPEC 3.8). Adaptive thinking asks the API to drop such blocks
+	// instead. block_binding takes only adaptive, and budget models don't
+	// check. A request without a thinking setting can't ask, so it sends
+	// no earlier thinking: leaving out all of it is always valid.
+	beta := ""
 	if k := req.Known; req.Thinking && k != nil && k.Thinking {
 		if k.ThinkingBudget {
 			if b := max(1024, r.MaxTokens/2); b < r.MaxTokens {
 				r.Thinking = &thinking{Type: "enabled", BudgetTokens: b}
 			}
 		} else {
-			r.Thinking = &thinking{Type: "adaptive", Display: "summarized"}
+			r.Thinking = &thinking{Type: "adaptive", Display: "summarized", BlockBinding: &binding{PrefixMismatchBehavior: "drop_block"}}
+			beta = bindingBeta
 		}
 	}
+	sendThinking := r.Thinking != nil
 
 	add := func(role string, bs ...block) {
 		if len(bs) == 0 {
@@ -399,7 +452,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 			for _, p := range m.Parts {
 				blk, err := userBlock(ctx, req, p)
 				if err != nil {
-					return nil, err
+					return nil, "", err
 				}
 				if blk != nil {
 					bs = append(bs, *blk)
@@ -409,6 +462,8 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 		case chat.RoleAssistant:
 			for _, p := range m.Parts {
 				switch {
+				case p.Thinking != nil && !sendThinking:
+					continue
 				case p.Thinking != nil && p.Thinking.Redacted != "":
 					bs = append(bs, block{Type: "redacted_thinking", Data: p.Thinking.Redacted})
 				case p.Thinking != nil:
@@ -437,7 +492,7 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 					// A tool's image goes inside its result.
 					img, err := imageBlock(ctx, req, p.Image)
 					if err != nil {
-						return nil, err
+						return nil, "", err
 					}
 					last := &bs[len(bs)-1]
 					last.Content = append(last.Content, img)
@@ -449,7 +504,8 @@ func (b *backend) body(ctx context.Context, req provider.Request) ([]byte, error
 	if r.Messages == nil {
 		r.Messages = []message{}
 	}
-	return json.Marshal(r)
+	out, err := json.Marshal(r)
+	return out, beta, err
 }
 
 // ownSignature tells an Anthropic thinking signature from another

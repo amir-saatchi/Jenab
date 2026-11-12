@@ -269,8 +269,20 @@ func (rec *record) usage() chat.Usage {
 		u.CacheRead += q.Usage.CacheRead
 		u.CacheWrite += q.Usage.CacheWrite
 		u.Output += q.Usage.Output
+		u.ThinkingDropped += q.Usage.ThinkingDropped
 	}
 	return u
+}
+
+// dropRequests counts the requests with a dropped thinking block.
+func (rec *record) dropRequests() int {
+	n := 0
+	for _, q := range rec.requests {
+		if q.Usage.ThinkingDropped > 0 {
+			n++
+		}
+	}
+	return n
 }
 
 func (rec *record) prompt() int {

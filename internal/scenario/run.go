@@ -234,6 +234,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 		out.SubRequests = rec.subRequests
 		u := rec.usage()
 		out.Input, out.CacheRead, out.CacheWrite = u.Input, u.CacheRead, u.CacheWrite
+		out.ThinkingDropped, out.DropRequests = u.ThinkingDropped, rec.dropRequests()
 		if e := rec.failure(); e != "" && out.Error == "" {
 			out.Error = r.opt.Models.redact(e)
 		}

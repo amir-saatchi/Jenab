@@ -546,9 +546,12 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 - **Message shapes:**
   - Anthropic: all tool results of a turn go in one user message.
   - OpenAI: tool messages take text only, so tool images follow in one user message.
-  - Thinking blocks are sent back unchanged, signature included, before their `tool_use`.
+  - Thinking blocks are sent back unchanged, signature included, before their `tool_use`. On Anthropic, only when the request has a thinking setting (below).
   - OpenAI's Responses API is used with `store: false`; its reasoning comes back encrypted and is sent back the same way. Its newest models take tools only there. A catalog model that reasons gets `reasoning: {summary: "auto"}` when thinking is on, so its thinking shows. A `refusal` part is kept as the answer's text, with a `refused` stop (TASK-008).
 - **Anthropic thinking:** a catalog model that thinks gets `adaptive` thinking with summarized text. A model marked `thinking_budget` in the catalog (Claude Haiku 4.5) gets `enabled` with a budget of half `max_tokens`, at least 1,024 tokens and always below `max_tokens`; when that can't be, thinking is off. Unknown models get the API's default. Changing these settings between requests invalidates the prompt cache.
+  - **Changed context:** newer Claude models (Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.1 and 5.2) refuse a thinking block whose system prompt, tools or earlier messages changed since it was made. Jenab changes them at cuts, when a migration rebuilds the card or the tool list (3.1, 3.6), and when it trims the current turn. So adaptive thinking always carries `block_binding.prefix_mismatch_behavior: "drop_block"` with the `thinking-binding-controls-2026-08-01` beta: the API leaves out the first stale block and every thinking block after it, for that request, and goes on. Budget thinking gets neither: those models don't check (TASK-046).
+  - A request without a thinking setting (unknown model, thinking off, no room for a budget) sends no earlier thinking blocks; leaving all of them out is always valid. Jenab never removes a block from the middle itself.
+  - The `thinking_dropped` entries of `input_transformations` in `message_start` are counted as the request's dropped thinking blocks, in the trace and the scenario runner, not stored. Other types and reasons are ignored, and no error text is matched. A dropped block is lost reasoning, so the prefix should change as little as possible.
 - **Caching and usage:**
   - Cache points follow 3.1.
   - Cache write and read tokens are stored with the message.

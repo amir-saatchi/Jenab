@@ -130,10 +130,10 @@ func TestUsageWatch(t *testing.T) {
 	if err := json.Unmarshal([]byte(lines[0]), &c); err != nil {
 		t.Fatal(err)
 	}
-	if c.Model != "m" || c.Input != 10 || c.CacheRead != 900 || c.CacheWrite != 90 || c.Output != 50 || c.Thought != 20 || c.Stop != "end" {
+	if c.Model != "m" || c.Input != 10 || c.CacheRead != 900 || c.CacheWrite != 90 || c.Output != 50 || c.Thought != 20 || c.Dropped != 3 || c.Stop != "end" {
 		t.Errorf("the log line %+v", c)
 	}
-	if s := tally.take(); s != "2 requests, input 20, cache read 1800, cache write 180, output 100 (thinking 40)" {
+	if s := tally.take(); s != "2 requests, input 20, cache read 1800, cache write 180, output 100 (thinking 40), thinking blocks dropped 6 in 2 requests" {
 		t.Errorf("take: %q", s)
 	}
 	if s := tally.take(); s != "0 requests, input 0, cache read 0, cache write 0, output 0" {
@@ -153,7 +153,7 @@ func (f *fake) Stream(_ context.Context, req provider.Request) iter.Seq2[provide
 				return
 			}
 		}
-		yield(provider.Event{Kind: provider.EventDone, Stop: provider.StopEnd, Usage: &chat.Usage{Input: 10, CacheRead: 900, CacheWrite: 90, Output: 50, Thought: 20}}, nil)
+		yield(provider.Event{Kind: provider.EventDone, Stop: provider.StopEnd, Usage: &chat.Usage{Input: 10, CacheRead: 900, CacheWrite: 90, Output: 50, Thought: 20, ThinkingDropped: 3}}, nil)
 	}
 }
 

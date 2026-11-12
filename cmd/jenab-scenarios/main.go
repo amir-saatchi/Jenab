@@ -456,6 +456,7 @@ type usageCall struct {
 	Thought    int     `json:"thought,omitempty"`
 	Stop       string  `json:"stop,omitempty"`
 	Error      string  `json:"error,omitempty"`
+	Dropped    int     `json:"thinking_dropped,omitempty"` // earlier thinking blocks the provider left out (TASK-046)
 }
 
 func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
@@ -470,6 +471,7 @@ func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[pro
 				call.Stop = string(ev.Stop)
 				if u := ev.Usage; u != nil {
 					call.Input, call.CacheRead, call.CacheWrite, call.Output, call.Thought = u.Input, u.CacheRead, u.CacheWrite, u.Output, u.Thought
+					call.Dropped = u.ThinkingDropped
 				}
 			}
 			if !yield(ev, err) {
@@ -483,10 +485,11 @@ func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[pro
 
 // usageTally adds up the requests since the last take.
 type usageTally struct {
-	mu  sync.Mutex
-	log io.Writer
-	sum usageCall
-	n   int
+	mu   sync.Mutex
+	log  io.Writer
+	sum  usageCall
+	n    int
+	drop int // requests with a dropped thinking block
 }
 
 func (t *usageTally) add(c usageCall) {
@@ -498,6 +501,10 @@ func (t *usageTally) add(c usageCall) {
 	t.sum.CacheWrite += c.CacheWrite
 	t.sum.Output += c.Output
 	t.sum.Thought += c.Thought
+	t.sum.Dropped += c.Dropped
+	if c.Dropped > 0 {
+		t.drop++
+	}
 	if t.log != nil {
 		line, _ := json.Marshal(c)
 		t.log.Write(append(line, '\n'))
@@ -513,7 +520,10 @@ func (t *usageTally) take() string {
 	if s.Thought > 0 {
 		out += fmt.Sprintf(" (thinking %d)", s.Thought)
 	}
-	t.sum, t.n = usageCall{}, 0
+	if s.Dropped > 0 {
+		out += fmt.Sprintf(", thinking blocks dropped %d in %d requests", s.Dropped, t.drop)
+	}
+	t.sum, t.n, t.drop = usageCall{}, 0, 0
 	return out
 }
 

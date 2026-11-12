@@ -55,6 +55,11 @@ type Usage struct {
 	// Thought is the part of Output spent on thinking, when the provider
 	// reports it. It is not stored yet.
 	Thought int `json:"thought,omitempty"`
+	// ThinkingDropped is how many earlier thinking blocks the provider
+	// left out of the request because the conversation before them
+	// changed or they came from another model (Anthropic, SPEC 3.8). It
+	// is not stored yet.
+	ThinkingDropped int `json:"thinking_dropped,omitempty"`
 }
 
 // Message is one message with its parts (SPEC 2.3). A turn is one user
