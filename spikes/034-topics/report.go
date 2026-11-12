@@ -339,6 +339,10 @@ func transcript(r runResult, sc scenarioDef) string {
 		if mr.Parallel {
 			b.WriteString(" · parallel")
 		}
+		if len(mr.Sends) == 0 { // the run stopped before this message's turn
+			b.WriteString("\n\n(no turn: the run stopped here)\n\n")
+			continue
+		}
 		fmt.Fprintf(&b, "\n\n**User** (in %s", mr.Sends[0].Thread)
 		switch {
 		case mr.Sub != "":

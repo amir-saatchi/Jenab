@@ -8,7 +8,7 @@ When a check here changes (a quota runs out, a new key, a model that stops answe
 ## Rules
 
 - **Reference models** are the ones spikes are decided on ([DEVELOPMENT](DEVELOPMENT.md#reference-models)). Failures on other models are recorded, not worked around.
-- **Reserve keys** (`OLLAMA_API_KEY_II`, `Z_API_KEY_II`) are used only when the user says so.
+- **Reserve keys** (`OLLAMA_API_KEY_II`, `Z_API_KEY_II`, `GEMINI_API_KEY_II`, `_III`, `_IV`) are used only when the user says so.
 - **Paid use** (adding credit, a card check, a purchase) is the user's job.
 - Only synthetic prompts go to cloud models.
 
@@ -16,7 +16,7 @@ When a check here changes (a quota runs out, a new key, a model that stops answe
 
 | Provider | Kind | Base URL | Key | Models that answer | Limits |
 |---|---|---|---|---|---|
-| Gemini | `gemini` | (native) | `GEMINI_API_KEY` | `gemini-3.5-flash-lite` (reference), `gemma-4-31b-it`, `gemma-4-26b-a4b-it` | Free tier, about 1,500 requests a day, reset at midnight Pacific. Google may use free-tier prompts. Used up on 2026-10-26. |
+| Gemini | `gemini` | (native) | `GEMINI_API_KEY` | `gemini-3.5-flash-lite` (reference), `gemma-4-31b-it`, `gemma-4-26b-a4b-it` | Free tier: `gemini-3.5-flash-lite` allows 500 requests a day and 15 a minute (its 429s, 2026-11-11), reset at midnight Pacific. Google may use free-tier prompts. Used up on 2026-10-26 and 2026-11-11. Reserve keys, checked 2026-11-11 with one request each on `gemini-3.5-flash-lite`: `GEMINI_API_KEY_III` and `_IV` answer; `_II` gets 402 (prepayment credits used up). |
 | Ollama Cloud | `ollama` | `https://ollama.com/` | `OLLAMA_API_KEY` | `gemma4:31b` (reference), `gpt-oss:120b`; the account lists more (below) | Monthly credits; the free plan runs 1 request at a time. |
 | Groq | `openai_compatible` | `https://api.groq.com/openai/v1/` | `GROQ_API_KEY` | `openai/gpt-oss-120b`; also lists `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` | Free tier; rate limits per model. |
 | Mistral | `openai_compatible` | `https://api.mistral.ai/v1/` | `MISTRAL_API_KEY` | `ministral-14b-latest`, `ministral-8b-latest`, `ministral-3b-latest`, `codestral-latest` | Limited tier. Requests a minute: 3b 750, 8b 188, 14b 30, codestral 125. `mistral-small/medium` and `magistral` get 429 (0 a minute); `mistral-large` gets 403. Reports cache reads. 14b ran SPIKE-034's 24 runs (2026-10-27) with 88 429s, and round 2's 12 runs with 42, each waited out by the app's `retry_after`. |

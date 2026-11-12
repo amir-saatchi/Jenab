@@ -1,6 +1,6 @@
 # SPIKE-034 — Topics: threads inside a chat, with their own notes and history
 **Type:** Spike
-**Status:** In progress (round 1: topics are out; round 2 done on gemma and ministral: sub-sessions with a notice up work; Gemini to run)
+**Status:** In progress (round 1: topics are out; round 2 done on gemma, ministral and Gemini: sub-sessions with a notice up work; the user decides)
 **Gate:** 3
 
 ## Question
@@ -184,7 +184,7 @@ Measures:
 - what a sub-session's line in the parent's list holds
 - what changes in SPEC 8.6: `create_chat` beyond Mother, or a separate `create_session`
 
-**Round 2 result** (2026-10-27, gemma4:31b and ministral-14b-latest; Gemini to run): 2 chats × conditions 5 and 6 × 3 reps per model, 24 runs, none lost. The findings and tables, next to round 1's baselines, are in [`results-round2.md`](../../spikes/034-topics/results-round2.md). The second spike-only hook, `agent.Deps.Notices`, writes the notices; the app leaves it nil.
+**Round 2 result** (2026-10-27, gemma4:31b and ministral-14b-latest; Gemini below): 2 chats × conditions 5 and 6 × 3 reps per model, 24 runs, none lost. The findings and tables, next to round 1's baselines, are in [`results-round2.md`](../../spikes/034-topics/results-round2.md). The second spike-only hook, `agent.Deps.Notices`, writes the notices; the app leaves it nil.
 
 | gemma / ministral | 1 one chat | 2 user opens topics | 5 sub-sessions, notice | 6 sub-sessions, summary line |
 |---|---|---|---|---|
@@ -202,4 +202,21 @@ Measures:
 - **The parent rarely passes the finish notice on** when its next message is about something else. The user sees the sub-session; a finish turn, as Mother has (8.6), is the way to pass a reply on.
 - **Cost:** with notices, +11% (gemma) and +20% (ministral) prompt tokens per run against one chat; the notices themselves are about 440 and 1,060 tokens a run, and none reached the 1,000-character cut.
 
-**Proposed after round 2,** for the user to decide once Gemini has run: sub-sessions yes, started when the user asks or for lasting work, one level; the way up is a notice after every sub-session turn, cut to 1,000 characters, without a turn; the list line stays round 1's, without the summary. Whether SPEC 8.6 gets a separate `create_session` or `create_chat` beyond Mother is the user's call.
+**Gemini** (2026-11-11 and 12, `gemini-3.5-flash-lite`): round 1's conditions 1, 2 and 4 and round 2's 5 and 6, 2 chats × 3 reps, 30 runs, none lost. Details in findings 10 and 11 of [`results.md`](../../spikes/034-topics/results.md) and finding 8 of [`results-round2.md`](../../spikes/034-topics/results-round2.md).
+
+| Gemini | 1 one chat | 2 user opens topics | 4 subjects | 5 sub-sessions, notice | 6 sub-sessions, summary line |
+|---|---|---|---|---|---|
+| Follow-ups after cuts | 9/9 | 9/9 | 9/9 | 9/9 | 9/9 |
+| Cross-topic questions in main or the parent | 18/18 | 17/18 | 17/18 | 17/18 | 17/18 |
+| Decisions made in a topic or sub-session, asked in main | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+| Asked: one `create_session` with the task, no work in the parent | – | – | – | 6/6 | 6/6 |
+| Finish notice passed on in the parent's next answer | – | – | – | 1/6 | 5/6 |
+| Prompt tokens per run (k), main's or the parent's own | 195, 195 | 292, 123 | 240, 240 | 282, 117 | 315, 139 |
+
+- **Gemini reaches across topics by searching them.** Its main thread read the topics' history in 4 of 6 decision turns, so topics didn't cost it the reach they cost gemma and ministral. They didn't help follow-ups either (9/9 in every condition) and cost +50% prompt tokens: topics stay out.
+- **Sub-sessions work on Gemini too:** 12/12 asked creations with the whole task, none unasked, `merge_sessions` 12/12.
+- **Both ways up score the same on Gemini** (17/18), because its parent searches the sub-sessions. The finish notice is passed on more often when it is the only notice (5/6) than among a notice per turn (1/6).
+- **Cost runs higher than on the other models:** +45% (notice) and +62% (summary line) prompt tokens against one chat.
+- **The free tier allows 500 requests a day,** not about 1,500 as planned; a run takes 39–73. The runs used `GEMINI_API_KEY` on both days and the reserve keys `_III` and `_IV` on the first, with the user's OK. Three runs passed the 40-minute limit during Modern Standby and ran again.
+
+**Proposed after round 2,** for the user to decide (Gemini's runs don't change it): sub-sessions yes, started when the user asks or for lasting work, one level; the way up is a notice after every sub-session turn, cut to 1,000 characters, without a turn; the list line stays round 1's, without the summary. Whether SPEC 8.6 gets a separate `create_session` or `create_chat` beyond Mother is the user's call.

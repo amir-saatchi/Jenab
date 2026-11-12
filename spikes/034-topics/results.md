@@ -2,8 +2,11 @@
 
 Run on 2026-10-27 on `ollama-cloud/gemma4:31b` (`OLLAMA_API_KEY`) and
 `mistral/ministral-14b-latest` (`MISTRAL_API_KEY`): 2 chats × 4 conditions ×
-3 reps per model, 48 runs, none lost. Gemini `gemini-3.5-flash-lite` is still
-to run; its free quota was used up the day before. The runs are in
+3 reps per model, 48 runs, none lost. Gemini `gemini-3.5-flash-lite` ran
+conditions 1, 2 and 4 with round 2 on 2026-11-11 and 12: 18 runs, none lost
+(findings 10 and 11), in
+[`results/gemini/2026-11-11_132250/`](results/gemini/2026-11-11_132250/).
+The other runs are in
 [`results/2026-10-27_010643/`](results/2026-10-27_010643/) (gemma) and
 [`results/mistral/2026-10-27_010844/`](results/mistral/2026-10-27_010844/)
 (ministral), with a transcript each; the smoke run is in
@@ -69,10 +72,31 @@ to run; its free quota was used up the day before. The runs are in
      running turn. A topic's parallel turn sees it.
    - The per-chat block needed an app hook, `agent.Deps.Notes` (block 5),
      left nil by the app.
+10. **Gemini answers across topics where the other two didn't, and topics
+    still don't beat one chat.** In condition 2 its main thread answered
+    cross-topic questions 17/18 (one chat: 18/18) and every decision made
+    in a topic (6/6), against 9/18 and 3/6 (gemma) and 6/18 and 3/6
+    (ministral). It read the topics' history in 4 of the 6 decision turns,
+    9.2 reads a run that reached another thread. Once in 3 it still answered
+    "nothing is automated yet" from the index (`jobs` 10). Follow-ups after
+    cuts were 9/9 in every condition, so topics didn't help there. Subjects
+    (condition 4): cross-topic 17/18, waiting work as an open item 6/6,
+    merge 5/6, 0.2 duplicate subjects a run. Merging topics: 2/6. Prompt
+    tokens per run against one chat's 195k: +50% with topics, +23% with
+    subjects; requests 45, 62 and 47 a run.
+11. **Gemini's free tier.** Its 429s say `gemini-3.5-flash-lite` allows 500
+    requests a day and 15 a minute; the plan assumed about 1,500 a day. A
+    run takes 39–73 requests, so one key holds about 8 runs a day. The 30
+    Gemini runs (these 18 and round 2's 12) used `GEMINI_API_KEY` on both
+    days and, with the user's OK, the reserve keys `GEMINI_API_KEY_III` and
+    `_IV` on the first; `_II` has no credit (402). Three runs passed the
+    40-minute limit while the PC was in Modern Standby (Kernel-Power 506)
+    and ran again with `-resume`. The first of them crashed the transcript
+    writer on the messages it never sent; it now marks them.
 
 ## Tables
 
-48 runs. Each cell adds up both chats and all reps.
+66 runs. Each cell adds up both chats and all reps.
 
 ## ollama-cloud/gemma4:31b
 
@@ -157,6 +181,55 @@ to run; its free quota was used up the day before. The runs are in
 | Cache reads, share of prompt tokens | 16% | 15% | 16% | 20% |
 | Topic's first request: prefix shared with main, of tools + system (est. tokens) | – | 2371 of 2722 | – | – |
 | Request errors | 24 | 19 | 20 | 27 |
+
+## gemini/gemini-3.5-flash-lite
+
+| | 1 baseline | 2 topics, user opens | 4 subjects |
+|---|---|---|---|
+| Runs (failed) | 6 (0) | 6 (0) | 6 (0) |
+| **Payoff** |  |  |  |
+| Follow-ups after cuts | 9/9 (100%) | 9/9 (100%) | 9/9 (100%) |
+| Cross-topic questions | 18/18 (100%) | 17/18 (94%) | 17/18 (94%) |
+| Calls that changed earlier work | 17/18 (94%) | 16/18 (89%) | 17/18 (94%) |
+| Main thread: decisions made in topics | 6/6 (100%) | 6/6 (100%) | 6/6 (100%) |
+| ...turns of those that read history | 0/6 | 4/6 | 0/6 |
+| **Proposals (3)** |  |  |  |
+| New-topic chances (a subject without a topic) that got one | – | – | – |
+| Returns proposed into their topic | – | – | – |
+| Noise proposals, per run | 0.0 | 0.0 | 0.0 |
+| ...proposals on the merge message, per run | 0.0 | 0.0 | 0.0 |
+| Duplicate topics proposed, per run | 0.0 | 0.0 | 0.0 |
+| Wrong topic proposed, per run | 0.0 | 0.0 | 0.0 |
+| Messages answered outside their topic, per run | 0.0 | 0.0 | 0.0 |
+| Proposing turns: requests each | – | – | – |
+| Proposing turns: prompt tokens each | – | – | – |
+| Topics / subjects / sub-sessions at the end, per run | 0.0 | 3.7 | 2.5 |
+| Subjects for main messages, per run (4) | 0.0 | 0.0 | 0.0 |
+| Duplicate subjects, per run (4) | 0.0 | 0.0 | 0.2 |
+| **Sub-sessions (5–6)** |  |  |  |
+| Asked: one create_session with the task, no work in the parent | – | – | – |
+| Finish notice passed on in the parent's answer | – | – | – |
+| create_session calls nobody asked for, per run | 0.0 | 0.0 | 0.0 |
+| Notices to the parent, per run | 0.0 | 0.0 | 0.0 |
+| ...their tokens, per run (est.) | 0.0 | 0.0 | 0.0 |
+| **Notes and memory** |  |  |  |
+| Waiting work shows as an open item | – | 6/6 (100%) | 6/6 (100%) |
+| Merge message: one topic / subject | – | 2/6 (33%) | 5/6 (83%) |
+| Notes or subject writes, per run | 0.0 | 11.2 | 11.2 |
+| ...alone in their response | 0/0 | 49/67 | 21/67 |
+| Parallel steps run at the same time | 0/6 | 6/6 | 0/6 |
+| Project memory has both facts | 9/9 (100%) | 8/9 (89%) | 9/9 (100%) |
+| Memory revision conflicts (merged and saved again) | 0 (0) | 2 (2) | 0 (0) |
+| **History and cost** |  |  |  |
+| History reads, per run | 4.5 | 9.3 | 3.8 |
+| ...that reach another thread | 0.0 | 9.2 | 0.0 |
+| Requests, per run | 45.5 | 61.7 | 47.2 |
+| Prompt tokens, per run (k) | 194.7 | 292.2 | 239.8 |
+| ...of the main thread or parent (k) | 194.7 | 123.0 | 239.8 |
+| Output tokens, per run (k) | 8.7 | 11.8 | 10.0 |
+| Cache reads, share of prompt tokens | 29% | 35% | 40% |
+| Topic's first request: prefix shared with main, of tools + system (est. tokens) | – | 2370 of 2721 | – |
+| Request errors | 24 | 32 | 23 |
 
 ## Checks one by one
 
@@ -269,3 +342,32 @@ Passes per check, over the reps.
 | sqlite | 18 | follow-up | Is the restock check done? | 2/3 | 0/3 | 0/3 | 1/3 |
 | sqlite | 18 | new topic | Is the restock check done? | – | – | 0/3 | – |
 | sqlite | 19 | cross | What's still open everywhere? | 3/3 | 0/3 | 3/3 | 2/3 |
+
+### gemini/gemini-3.5-flash-lite
+
+| Chat | # | Check | Message | 1 | 2 | 4 |
+|---|---|---|---|---|---|---|
+| jobs | 3 | memory | When I say a company rejected me, set the status to closed, … | 3/3 | 3/3 | 3/3 |
+| jobs | 6 | waiting | I also want a pipeline that checks Zalando's careers page ev… | – | 3/3 | 3/3 |
+| jobs | 9 | call | N26 rejected me. | 3/3 | 3/3 | 3/3 |
+| jobs | 10 | cross | Which of my applications are still waiting, and is anything … | 3/3 | 2/3 | 3/3 |
+| jobs | 11 | call | Make follow_up run on Fridays instead, and use 10 days inste… | 3/3 | 3/3 | 3/3 |
+| jobs | 13 | memory | Remember this for the whole project: job alerts should only … | 3/3 | 3/3 | 3/3 |
+| jobs | 14 | merge | follow_up and the board are really one thing for me: my Frid… | – | 1/3 | 3/3 |
+| jobs | 15 | cross | What day does follow_up run now, and after how many days doe… | 3/3 | 3/3 | 3/3 |
+| jobs | 15 | reach | What day does follow_up run now, and after how many days doe… | 3/3 | 3/3 | 3/3 |
+| jobs | 16 | call | Here's the Zalando link: https://jobs.zalando.com/en/jobs?se… | 2/3 | 1/3 | 2/3 |
+| jobs | 18 | follow-up | What happened with my N26 application, and why does it say c… | 3/3 | 3/3 | 3/3 |
+| jobs | 19 | cross | What have we set up so far, and is anything still waiting on… | 3/3 | 3/3 | 2/3 |
+| sqlite | 6 | call | In orders, user_id must point to users.id. | 3/3 | 3/3 | 3/3 |
+| sqlite | 8 | waiting | I need stock counts too: a table inventory with sku and quan… | – | 3/3 | 3/3 |
+| sqlite | 9 | cross | How do users and orders relate? | 3/3 | 3/3 | 3/3 |
+| sqlite | 10 | call | Add a column discount to products, 0 by default. | 3/3 | 3/3 | 3/3 |
+| sqlite | 11 | call | Change of mind on orders: use a plain INTEGER key after all.… | 3/3 | 3/3 | 3/3 |
+| sqlite | 13 | memory | Remember this for the whole project: money is stored as whol… | 3/3 | 2/3 | 3/3 |
+| sqlite | 14 | cross | Did we settle the key for orders? | 3/3 | 3/3 | 3/3 |
+| sqlite | 14 | reach | Did we settle the key for orders? | 3/3 | 3/3 | 3/3 |
+| sqlite | 15 | merge | Products and inventory are one thing for me: my catalog. Kee… | – | 1/3 | 2/3 |
+| sqlite | 17 | follow-up | Why did we make email unique in users? | 3/3 | 3/3 | 3/3 |
+| sqlite | 18 | follow-up | Is the restock check done? | 3/3 | 3/3 | 3/3 |
+| sqlite | 19 | cross | What's still open everywhere? | 3/3 | 3/3 | 3/3 |
