@@ -184,6 +184,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		schemaLog  = fs.String("schema-log", "", "SPIKE-038: a JSONL file that gets each request with an answer schema and its answer")
 		harness    = fs.String("harness", "", "P2-13: harnesses to run each scenario in, comma-separated: jenab, plain (a plain chat harness); the report shows them side by side")
 		ctxFlag    = fs.String("context", "", "context settings over the sets', as key=value, comma-separated, such as history_max_turns=12,history_min_turns=4 (P2-13's tuning)")
+		usageLog   = fs.String("usage-log", "", "a JSONL file that gets every provider request's tokens: input, cache read and write, output and thinking; each set's totals are printed too")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -216,6 +217,16 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			log = f
 		}
 		all = schemaWatch(all, strip, log)
+	}
+	var tally *usageTally
+	if *usageLog != "" {
+		f, err := os.OpenFile(*usageLog, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		tally = &usageTally{log: f}
+		all = usageWatch(all, tally)
 	}
 	ss, err := load(fs.Args())
 	if err != nil {
@@ -289,6 +300,9 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			fmt.Fprintf(w, "  %s: %d/%d runs passed, %d broke, %d skipped\n", sum.Model, sum.Passed, sum.Runs, sum.Errors, sum.Skipped)
 		}
 		fmt.Fprintf(w, "  report: %s\n", md)
+		if tally != nil {
+			fmt.Fprintf(w, "  usage: %s\n", tally.take())
+		}
 		if runErr != nil {
 			return runErr // stopped; the report has the runs so far
 		}
@@ -398,6 +412,109 @@ func schemaName(s json.RawMessage) string {
 	}
 	json.Unmarshal(s, &v)
 	return strings.Join(slices.Sorted(maps.Keys(v.Properties)), ",")
+}
+
+// usageWatch wraps each backend for -usage-log: every request the
+// providers get, the chat's, the subagents' and the untraced ones such as
+// titles and Refresh memory, adds its tokens to t and writes a line.
+func usageWatch(all map[provider.Kind]provider.Factory, t *usageTally) map[provider.Kind]provider.Factory {
+	out := map[provider.Kind]provider.Factory{}
+	for k, f := range all {
+		out[k] = func(c provider.Connection) (provider.Provider, error) {
+			p, err := f(c)
+			if err != nil {
+				return nil, err
+			}
+			return counted{Provider: p, t: t}, nil
+		}
+	}
+	return out
+}
+
+// counted keeps the backend's JSON mode as it is, so the Registry
+// treats it the same.
+type counted struct {
+	provider.Provider
+	t *usageTally
+}
+
+func (c counted) SendsSchema() bool {
+	j, ok := c.Provider.(provider.JSONMode)
+	return ok && j.SendsSchema()
+}
+
+// usageCall is a usage-log line. Thought is the part of Output spent on
+// thinking, when the provider says.
+type usageCall struct {
+	Time       string  `json:"time"`
+	Model      string  `json:"model"`
+	Seconds    float64 `json:"seconds"`
+	Input      int     `json:"input"` // not read from or written to the cache
+	CacheRead  int     `json:"cache_read"`
+	CacheWrite int     `json:"cache_write"`
+	Output     int     `json:"output"`
+	Thought    int     `json:"thought,omitempty"`
+	Stop       string  `json:"stop,omitempty"`
+	Error      string  `json:"error,omitempty"`
+}
+
+func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
+	return func(yield func(provider.Event, error) bool) {
+		start := time.Now()
+		call := usageCall{Time: start.UTC().Format(time.RFC3339), Model: req.Model}
+		for ev, err := range c.Provider.Stream(ctx, req) {
+			switch {
+			case err != nil:
+				call.Error = clip(err.Error())
+			case ev.Kind == provider.EventDone:
+				call.Stop = string(ev.Stop)
+				if u := ev.Usage; u != nil {
+					call.Input, call.CacheRead, call.CacheWrite, call.Output, call.Thought = u.Input, u.CacheRead, u.CacheWrite, u.Output, u.Thought
+				}
+			}
+			if !yield(ev, err) {
+				break
+			}
+		}
+		call.Seconds = time.Since(start).Seconds()
+		c.t.add(call)
+	}
+}
+
+// usageTally adds up the requests since the last take.
+type usageTally struct {
+	mu  sync.Mutex
+	log io.Writer
+	sum usageCall
+	n   int
+}
+
+func (t *usageTally) add(c usageCall) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.n++
+	t.sum.Input += c.Input
+	t.sum.CacheRead += c.CacheRead
+	t.sum.CacheWrite += c.CacheWrite
+	t.sum.Output += c.Output
+	t.sum.Thought += c.Thought
+	if t.log != nil {
+		line, _ := json.Marshal(c)
+		t.log.Write(append(line, '\n'))
+	}
+}
+
+// take returns the totals as a line and starts again from zero.
+func (t *usageTally) take() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	s := t.sum
+	out := fmt.Sprintf("%d requests, input %d, cache read %d, cache write %d, output %d", t.n, s.Input, s.CacheRead, s.CacheWrite, s.Output)
+	if s.Thought > 0 {
+		out += fmt.Sprintf(" (thinking %d)", s.Thought)
+	}
+	t.sum, t.n = usageCall{}, 0
+	return out
 }
 
 func firstUser(ms []chat.Message) string {

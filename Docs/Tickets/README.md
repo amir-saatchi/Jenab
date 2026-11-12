@@ -96,6 +96,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-043](TASK-043-more-shared-failures.md) | More scenario failures both reference models share | Task | Done | 3 |
 | [TASK-044](TASK-044-parallel-read-calls.md) | Run read-only tool calls of one answer together | Task | Open | 3 |
 | [TASK-045](TASK-045-stopped-call-wording.md) | Say when a stopped call may have run | Task | Open | 3 |
+| [TASK-046](TASK-046-thinking-binding.md) | Thinking blocks after the context changes | Task | Open | 3 |
 
 ## Phase 1
 

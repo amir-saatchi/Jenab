@@ -103,6 +103,44 @@ func TestSchemaWatch(t *testing.T) {
 	}
 }
 
+// -usage-log: a line per request with its tokens, totals that start again
+// after a take, and the backend's JSON mode kept.
+func TestUsageWatch(t *testing.T) {
+	var got []provider.Request
+	var log bytes.Buffer
+	tally := &usageTally{log: &log}
+	f := func(provider.Connection) (provider.Provider, error) { return &fake{seen: &got}, nil }
+	all := usageWatch(map[provider.Kind]provider.Factory{provider.KindOllama: f}, tally)
+	p, err := all[provider.KindOllama](provider.Connection{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j, ok := p.(provider.JSONMode); !ok || !j.SendsSchema() {
+		t.Error("the wrapper lost the backend's JSON mode")
+	}
+	for range 2 {
+		for range p.Stream(context.Background(), provider.Request{Model: "m"}) {
+		}
+	}
+	lines := strings.Split(strings.TrimSpace(log.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("the log %q", log.String())
+	}
+	var c usageCall
+	if err := json.Unmarshal([]byte(lines[0]), &c); err != nil {
+		t.Fatal(err)
+	}
+	if c.Model != "m" || c.Input != 10 || c.CacheRead != 900 || c.CacheWrite != 90 || c.Output != 50 || c.Thought != 20 || c.Stop != "end" {
+		t.Errorf("the log line %+v", c)
+	}
+	if s := tally.take(); s != "2 requests, input 20, cache read 1800, cache write 180, output 100 (thinking 40)" {
+		t.Errorf("take: %q", s)
+	}
+	if s := tally.take(); s != "0 requests, input 0, cache read 0, cache write 0, output 0" {
+		t.Errorf("take after take: %q", s)
+	}
+}
+
 type fake struct{ seen *[]provider.Request }
 
 func (f *fake) SendsSchema() bool { return true }
@@ -111,8 +149,11 @@ func (f *fake) Stream(_ context.Context, req provider.Request) iter.Seq2[provide
 	*f.seen = append(*f.seen, req)
 	return func(yield func(provider.Event, error) bool) {
 		if len(req.Messages) > 0 {
-			yield(provider.Event{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: `{"items":[]}`}}}, nil)
+			if !yield(provider.Event{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: `{"items":[]}`}}}, nil) {
+				return
+			}
 		}
+		yield(provider.Event{Kind: provider.EventDone, Stop: provider.StopEnd, Usage: &chat.Usage{Input: 10, CacheRead: 900, CacheWrite: 90, Output: 50, Thought: 20}}, nil)
 	}
 }
 
