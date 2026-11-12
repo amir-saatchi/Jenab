@@ -1,0 +1,28 @@
+2026/10/27 01:06:43 24 runs to go, results in results\2026-10-27_010643
+2026/10/27 01:08:50 [1/24] ollama-cloud-gemma4-31b_sqlite_c1_r1 127s req 38 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:08:55 [2/24] ollama-cloud-gemma4-31b_sqlite_c2_r1 132s req 42 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:11:07 [3/24] ollama-cloud-gemma4-31b_sqlite_c4_r1 131s req 34 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:11:08 [4/24] ollama-cloud-gemma4-31b_sqlite_c3_r1 138s req 36 follow 2/2 cross 2/3 new 0/12 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:14:24 [5/24] ollama-cloud-gemma4-31b_jobs_c2_r1 197s req 41 follow 1/1 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:15:06 [6/24] ollama-cloud-gemma4-31b_jobs_c1_r1 240s req 49 follow 1/1 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:16:55 [7/24] ollama-cloud-gemma4-31b_jobs_c3_r1 151s req 47 follow 1/1 cross 3/3 new 1/10 ret 1/2 noise 0 dup 0 · ok
+2026/10/27 01:17:08 [8/24] ollama-cloud-gemma4-31b_jobs_c4_r1 122s req 43 follow 1/1 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:18:39 [9/24] ollama-cloud-gemma4-31b_sqlite_c1_r2 103s req 36 follow 1/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:18:50 [10/24] ollama-cloud-gemma4-31b_sqlite_c2_r2 101s req 36 follow 2/2 cross 1/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:20:29 [11/24] ollama-cloud-gemma4-31b_sqlite_c3_r2 110s req 34 follow 2/2 cross 2/3 new 0/12 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:20:40 [12/24] ollama-cloud-gemma4-31b_sqlite_c4_r2 110s req 35 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:22:48 [13/24] ollama-cloud-gemma4-31b_jobs_c1_r2 139s req 42 follow 1/1 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:22:59 [14/24] ollama-cloud-gemma4-31b_jobs_c2_r2 139s req 43 follow 1/1 cross 1/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:24:44 [15/24] ollama-cloud-gemma4-31b_jobs_c3_r2 116s req 38 follow 1/1 cross 3/3 new 0/12 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:25:26 [16/24] ollama-cloud-gemma4-31b_jobs_c4_r2 147s req 45 follow 1/1 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:26:28 [17/24] ollama-cloud-gemma4-31b_sqlite_c1_r3 104s req 36 follow 2/2 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:27:02 [18/24] ollama-cloud-gemma4-31b_sqlite_c2_r3 96s req 39 follow 2/2 cross 1/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:28:02 [19/24] ollama-cloud-gemma4-31b_sqlite_c3_r3 94s req 32 follow 2/2 cross 2/3 new 0/12 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:28:36 [20/24] ollama-cloud-gemma4-31b_sqlite_c4_r3 94s req 33 follow 2/2 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+time=2026-10-27T01:30:48.603+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=transport status=0 retry_after=0s err="Post \"https://ollama.com/api/chat\": unexpected EOF"
+time=2026-10-27T01:30:48.603+03:30 level=WARN msg="provider: call failed" provider=ollama-cloud kind=transport status=0 retry_after=0s err="unexpected EOF"
+2026/10/27 01:31:16 [21/24] ollama-cloud-gemma4-31b_jobs_c1_r3 194s req 47 follow 1/1 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:31:24 [22/24] ollama-cloud-gemma4-31b_jobs_c2_r3 168s req 40 follow 1/1 cross 2/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:33:19 [23/24] ollama-cloud-gemma4-31b_jobs_c3_r3 123s req 40 follow 1/1 cross 3/3 new 0/12 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:33:27 [24/24] ollama-cloud-gemma4-31b_jobs_c4_r3 123s req 43 follow 1/1 cross 3/3 new 0/0 ret 0/0 noise 0 dup 0 · ok
+2026/10/27 01:33:27 wrote results\2026-10-27_010643\results.md

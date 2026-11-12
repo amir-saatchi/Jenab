@@ -1,0 +1,28 @@
+# SPIKE-034's models. Keys come from ../../.env; no reserve keys unless the
+# user says so. The reference models are gemini-3.5-flash-lite and
+# gemma4:31b (DEVELOPMENT.md); the others are stand-ins from MODELS.md.
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY
+    models:
+      - {id: gemma4:31b, context: 262144}
+      - {id: gpt-oss:120b, context: 131072}
+  - name: mistral
+    kind: openai_compatible
+    base_url: https://api.mistral.ai/v1/
+    key_env: MISTRAL_API_KEY
+    models:
+      - {id: ministral-14b-latest, context: 131072}
+  - name: groq
+    kind: openai_compatible
+    base_url: https://api.groq.com/openai/v1/
+    key_env: GROQ_API_KEY
+    models:
+      - {id: openai/gpt-oss-120b, context: 131072}

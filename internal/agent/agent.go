@@ -94,6 +94,18 @@ type Deps struct {
 	// harness sets it with a registry of its own; the app leaves it nil,
 	// and block 1 stays as it is.
 	ToolIndex func(k chat.Kind) string
+	// Notes is SPIKE-034's block 5 (3.1): text chosen per chat, such as
+	// its session notes, a topic's notes and its parent's, or the topic
+	// index. It replaces the chat's own session notes in block 5, and is
+	// built at a cut, like blocks 2–4. An error is logged and leaves the
+	// block out. Spike-only: the app leaves it nil, and block 5 holds the
+	// chat's session notes.
+	Notes func(ctx context.Context, p *project.Project, ch chat.Chat) (string, error)
+	// Notices is SPIKE-034 round 2's way up from a sub-session: notices
+	// for a chat, written into its turn before each request, where the
+	// memory-changed notices are (3.6). Each is given once. An error is
+	// logged. Spike-only: the app leaves it nil.
+	Notices func(ctx context.Context, p *project.Project, ch chat.Chat) ([]chat.Notice, error)
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

@@ -41,7 +41,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-031](SPIKE-031-thoughts-graph.md) | Thoughts-Graph: a how-to task as a graph of model calls | Spike | Done | 3 |
 | [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | Done | 3 |
 | [SPIKE-033](SPIKE-033-semantic-recall.md) | Semantic recall: find earlier messages and file passages by meaning | Spike | Done | 3 |
-| [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Deferred | 3 |
+| [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Deferred (rounds 1–2 done on gemma, ministral and Gemini) | 3 |
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
