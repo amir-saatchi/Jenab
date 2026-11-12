@@ -15,7 +15,7 @@ import (
 // usual. When the project can't be read, every tool is offered.
 func (r *runner) offerTools(ctx context.Context, t *turn) {
 	w := &r.cs.win
-	all := r.o.d.Tools.For(t.ch.Kind)
+	all := r.o.chatTools(t.ch)
 	w.tools, w.toolsAt = all, -1
 	v, err := r.p.DB.SchemaVersion(ctx)
 	if err != nil {
@@ -77,4 +77,34 @@ func (r *runner) refreshTools(ctx context.Context, t *turn) {
 		return
 	}
 	r.offerTools(ctx, t)
+}
+
+// chatTools is the tools chat ch gets: every tool of its kind, or those
+// Deps.ChatTools names (SPIKE-044, spike-only).
+func (o *Orchestrator) chatTools(ch chat.Chat) []tool.Tool {
+	all := o.d.Tools.For(ch.Kind)
+	if o.d.ChatTools == nil {
+		return all
+	}
+	names, _ := o.d.ChatTools(ch)
+	if names == nil {
+		return all
+	}
+	return slices.DeleteFunc(all, func(tl tool.Tool) bool { return !slices.Contains(names, tl.Spec().Name) })
+}
+
+// refusal is the error for a call to a tool chat ch doesn't have under
+// Deps.ChatTools (SPIKE-044, spike-only), or "" when the call may run.
+func (o *Orchestrator) refusal(ch chat.Chat, name string) string {
+	if o.d.ChatTools == nil {
+		return ""
+	}
+	names, refuse := o.d.ChatTools(ch)
+	if names == nil || slices.Contains(names, name) {
+		return ""
+	}
+	if refuse != nil {
+		return refuse(name)
+	}
+	return name + " is not one of this chat's tools"
 }

@@ -138,7 +138,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 	req := provider.Request{Model: t.model, System: w.system, Messages: msgs, Thinking: true, Image: r.image}
 	tools := w.tools
 	if plain || tools == nil {
-		tools = r.o.d.Tools.For(t.ch.Kind)
+		tools = r.o.chatTools(t.ch)
 	}
 	for _, tl := range tools {
 		if tl.Spec().IsOn() { // a switch applies from the next request (8.10)
@@ -375,9 +375,9 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 // block1 is block 1 (3.1): the system prompt with today's date, the role,
 // the loaded skills and the skill list.
 func (r *runner) block1(t *turn) string {
-	tools := r.o.d.Tools.For(t.ch.Kind)
+	tools := r.o.chatTools(t.ch)
 	var b strings.Builder
-	b.WriteString(base(tools))
+	b.WriteString(baseOf(r.o.d.Tools.For(t.ch.Kind), tools))
 	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
 		b.WriteString("\n\n" + r.o.rule())
 	}
@@ -519,9 +519,15 @@ var areaText = []string{"tables in a local database", "pipelines that fetch data
 // base is the system prompt's start. It names the parts of a project the
 // tools work on, and says the others aren't in this version, so the model
 // doesn't build them from files (TASK-014).
-func base(tools []tool.Tool) string {
+func base(tools []tool.Tool) string { return baseOf(tools, tools) }
+
+// baseOf is base with the areas of the registered tools and the other
+// lines of the chat's own: they differ only under Deps.ChatTools
+// (SPIKE-044), where a chat without a pipeline tool is still told the
+// project has pipelines.
+func baseOf(registered, tools []tool.Tool) string {
 	var has tool.Areas
-	for _, tl := range tools {
+	for _, tl := range registered {
 		has |= tl.Spec().Areas
 	}
 	var parts, missing []string

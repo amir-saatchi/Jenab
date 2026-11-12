@@ -297,3 +297,48 @@ func TestToolIndexHook(t *testing.T) {
 		t.Errorf("kinds %v", kinds)
 	}
 }
+
+// TestChatToolsHook: Deps.ChatTools narrows a chat's tools, block 1's
+// lines follow the narrowed list (its areas stay those of the registered
+// tools), and a call to another tool is refused
+// with the hook's text, not run (SPIKE-044, spike-only). Other chats keep
+// every tool.
+func TestChatToolsHook(t *testing.T) {
+	ran := 0
+	noop := func(s tool.Spec) tool.Tool {
+		s.Description, s.Schema = "Test.", json.RawMessage(`{"type": "object"}`)
+		return tool.Func(s, func(context.Context, *tool.Env, struct{}) (tool.Result, error) { ran++; return tool.Result{Text: "ran"}, nil })
+	}
+	h := newHarness(t, t.TempDir(), "", testSettings(),
+		noop(tool.Spec{Name: "subagent", Background: true}), noop(tool.Spec{Name: "save_view", Areas: tool.Views}), noop(tool.Spec{Name: "lookup"}))
+	defer h.stop()
+	agentChat := h.newChat(chat.Chat{Title: "Agent"})
+	other := h.newChat(chat.Chat{Title: "Other"})
+	h.o.d.ChatTools = func(ch chat.Chat) ([]string, func(string) string) {
+		if ch.ID != agentChat.ID {
+			return nil, nil
+		}
+		return []string{"lookup"}, func(name string) string { return name + " is in a group this chat doesn't have" }
+	}
+	h.fp.Push(fake.ToolCall("c1", "save_view", map[string]any{}), fake.Text("I can't save views here."))
+	h.turn(agentChat.ID, "save a view")
+	h.fp.Push(fake.Text("ok"))
+	h.turn(other.ID, "hi")
+	calls := h.fp.Calls()
+	var names []string
+	for _, d := range calls[0].Tools {
+		names = append(names, d.Name)
+	}
+	if !slices.Equal(names, []string{"lookup"}) {
+		t.Errorf("the agent's tools %v, want [lookup]", names)
+	}
+	if sys := calls[0].System[0].Text; strings.Contains(sys, strings.TrimSpace(rulePrompt)) || !strings.Contains(sys, "keeps a project: views.") {
+		t.Errorf("block 1 has lines of tools the chat doesn't have, or lacks the registered areas:\n%s", sys)
+	}
+	if second := jsonOf(t, calls[1].Messages); ran != 0 || !strings.Contains(second, "save_view is in a group this chat doesn't have") {
+		t.Errorf("save_view ran %d times; the agent's second request:\n%s", ran, second)
+	}
+	if sys := calls[2].System[0].Text; len(calls[2].Tools) != 3 || !strings.Contains(sys, strings.TrimSpace(rulePrompt)) {
+		t.Errorf("the other chat has %d tools; block 1:\n%s", len(calls[2].Tools), sys)
+	}
+}

@@ -94,6 +94,12 @@ type Deps struct {
 	// harness sets it with a registry of its own; the app leaves it nil,
 	// and block 1 stays as it is.
 	ToolIndex func(k chat.Kind) string
+	// ChatTools is SPIKE-044's tool groups: the names of the tools chat
+	// ch has, and the refusal for a call to any other tool. A nil hook,
+	// or nil names, is every tool of the chat's kind. Block 1's lines
+	// follow the narrowed list, and the usual gating (TASK-033) narrows
+	// it further. Spike-only: the app leaves it nil.
+	ChatTools func(ch chat.Chat) (names []string, refusal func(name string) string)
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.
