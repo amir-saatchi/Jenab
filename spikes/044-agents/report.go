@@ -32,6 +32,9 @@ func readRuns(paths ...string) ([]runResult, error) {
 			return nil, err
 		}
 	}
+	if err := checkRound(out); err != nil {
+		return nil, err
+	}
 	// A run done again after an error replaces it.
 	last := map[job]int{}
 	for i, r := range out {

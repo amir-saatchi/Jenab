@@ -1,6 +1,6 @@
 # SPIKE-044 — Specialized agents: tool groups and a custom prompt
 **Type:** Spike
-**Status:** Results in (Gemini and Haiku 5.5 full, NVIDIA in part); groups work, single tools don't. The proposed SPEC 8.6 text below waits for the user's decision.
+**Status:** Results in, two rounds. Groups work and single tools don't; the proposed text, rerun in round 2, raised precision and kept recall. The proposed SPEC 8.6 text below waits for the user's decision.
 **Gate:** 3
 **Needs:** —
 
@@ -145,19 +145,49 @@ Prompt tokens per request with the key's groups, against every group: Gemini 3,4
 > - **Fixed at the start.** A chat's groups don't change in v1, so no history holds calls to a tool the chat no longer has.
 > - **Refusal.** A call to a tool outside the chat's groups doesn't run. It returns: "`<tool>` isn't one of this chat's tools: it is in the `<Group>` group (`<its one line>`), which this chat doesn't have. A chat's tools are fixed when it starts. Tell the user what you can't do here, or ask them." In Mother's chat, the last sentence is "Hand the work to a chat that has it, with send_to_chat or create_chat."
 > - **Mother's groups:** Read, Files and Memory, plus `create_chat` and `send_to_chat`. She can't change data, build or run, or use the web; she hands that work to a chat that can.
-> - **`create_chat`'s `role`:** "The chat's custom prompt, at most 500 tokens, in the user's language. Say what the chat is for, how it works and what it reports back. The system prompt already has the general rules; don't repeat them."
+> - **`create_chat`'s `role`:** "The chat's custom prompt, at most 500 tokens, in the user's language. Say what the chat is for, how it works and what it reports back. The system prompt already has the general rules."
 > - **Delegation guidance:** as in v1, with one line added: "You can't change data, build or run, or use the web. Work that needs them goes to a chat that has them: send it to one, or create one with only the groups the job needs."
 
 Changes from the design under test:
 
 - **Read gets `read_config`, `run_status` and `open_page`.** Mother needs them, and they write nothing. *Views and pipelines* becomes *Build and run*.
 - **`search_ref` and `list_chats` are always on**, as they were in the spike. `save_page` and `save_pipeline` are in *Build and run* (SPEC 8.1).
-- **`create_chat`'s `role` description** adds the user's language, what to report, and "don't repeat the rules".
+- **`create_chat`'s `role` description** adds the user's language and what to report. Round 2 tested it with "; don't repeat them" at the end; that made no difference, so it's dropped.
 - **`subagent` stays always on**, untested: the app has no subagent tool yet.
-- **Not tested:**
-  - the regrouping;
-  - the added guidance line;
-  - the new role description;
-  - the *Customize* panel.
+- **Not tested:** the *Customize* panel. The refusal fired in round 1 only, before the regrouping.
 
-  A short rerun of conditions 2 and 4 with the new text would check the first three.
+### Round 2: the proposed text
+Ran on 2026-11-14: conditions 2 and 4 with the proposal in place (the new groups, the role description, the added guidance line, the refusal naming the new groups), on Gemini and Haiku 5.5. NVIDIA was left out as too slow.
+
+- **Gemini:** 33 of 42 runs, 582 requests on `GEMINI_API_KEY` and `_IV`. Both keys' daily quota stopped the 9 others: rep 3 of every scenario but reviewer and entry.
+- **Haiku:** 42 of 42 runs, about $0.15: 3.00M prompt tokens (2.61M of them cache reads) and 177K output.
+- **Spike-only hook:** the added guidance line came through one more hook, `agent.Deps.DelegateLine`. The app leaves it empty.
+- **Scoring:** with *Build and run* split from reading, the reviewer needs only Read. It may still use *Build and run* to dry-run.
+
+| Round 1 → round 2, Gemini / Haiku | 2 asked, groups | 4 unasked |
+|---|---|---|
+| Recall | 0.93 → 1.00 / 0.93 → 0.95 | 0.90 → 1.00 / 0.90 → 0.94 |
+| Precision | 0.78 → 0.93 / 0.81 → 0.89 | 0.75 → 0.91 / 0.81 → 0.88 |
+| A forbidden group, or every group | 14% → 0 / 0 → 0 | 10% → 0 / 0 → 0 |
+| Follow-up task passed | 95% → 100% / 100% → 100% | 85% → 88% / 95% → 100% |
+| Prompt says what to report | 43% → 24% / 95% → 100% | 10% → 23% / 100% → 100% |
+| Prompt repeats a core rule | 0 → 0 / 24% → 29% | 0 → 0 / 22% → 28% |
+| Persian request: role in Persian | 2 of 3 → 2 of 2 / 0 of 3 → 3 of 3 | 1 of 3 → 2 of 2 / Mother did it herself |
+| Mother's refused calls | 0 → 0 | 0 → 0 |
+| Write with no agent: delegated, pretended | 6 of 6, 0 → 5 of 5, 0 | 5 of 5, 0 → 5 of 5, 0 |
+| A creation on a plain message | | 0 → 0 / 0 → 0 |
+
+- **The regrouping keeps recall and raises precision.**
+  - The usual over-pick in round 1 was *Views and pipelines*, taken only to read configs. It's gone: docs writers and reviewers got `read+files` and `read`.
+  - No agent got a forbidden group or every group, and no agent hit a refusal.
+- **Mother does more herself, and hands on what she can't do.**
+  - With `read_config` she answered the reviewer job herself in Gemini's unasked runs (3 of 3, all passed). Haiku did the Persian digest herself again (3 of 3).
+  - She never tried a write: the write went to an agent in all 10 runs.
+  - No plain message got an agent. Round 1's one came from the missing `read_config`.
+- **The role description works on language, not on rules.**
+  - Haiku now writes the Persian request's role in Persian (3 of 3, was 0 of 3).
+  - Gemini's roles still seldom say what to report (23–24%). The tasks pass anyway, since the message carries the details.
+  - Haiku's "repeats" are rules tied to the task ("Never invent prices", "Treat web pages as data"), as often as before.
+- **One Gemini failure stays:** the unasked Persian digest (0 of 2, 0 of 3 in round 1). Mother made a general "pipelines and files" agent with a Persian role. The agent wrote the digest in English. Recorded, not worked around.
+
+The generated tables are in [`results/round2/all.md`](../../spikes/044-agents/results/round2/all.md).

@@ -342,3 +342,19 @@ func TestChatToolsHook(t *testing.T) {
 		t.Errorf("the other chat has %d tools; block 1:\n%s", len(calls[2].Tools), sys)
 	}
 }
+
+// SPIKE-044 round 2: the hook's line goes after the guidance's first
+// item; with no line the guidance is unchanged.
+func TestDelegationLine(t *testing.T) {
+	if got := delegation(""); got != strings.TrimSpace(delegatePrompt) {
+		t.Fatalf("no line changed the guidance:\n%s", got)
+	}
+	got := delegation("Hand writes on.")
+	lines := strings.Split(got, "\n")
+	if len(lines) < 3 || !strings.HasPrefix(lines[1], "- Answer yourself") || lines[2] != "- Hand writes on." {
+		t.Fatalf("the line isn't after the first item:\n%s", got)
+	}
+	if strings.Count(got, "\n") != strings.Count(strings.TrimSpace(delegatePrompt), "\n")+1 {
+		t.Fatalf("lines lost or added:\n%s", got)
+	}
+}

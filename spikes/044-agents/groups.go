@@ -171,9 +171,8 @@ func createChatSchema(single bool) json.RawMessage {
 	s := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"title": map[string]any{"type": "string", "description": "The chat's title, unique in the project."},
-			"role": map[string]any{"type": "string", "description": "The chat's custom prompt, at most 500 tokens, added after its system prompt. " +
-				"Say what the chat is for, how it works and what it reports. The system prompt already has the general rules."},
+			"title":   map[string]any{"type": "string", "description": "The chat's title, unique in the project."},
+			"role":    map[string]any{"type": "string", "description": roleDesc},
 			"message": map[string]any{"type": "string", "description": "The first message to the chat: what to do now, with the context it needs."},
 			"tools":   map[string]any{"type": "array", "items": map[string]any{"type": "string", "enum": enum}, "description": desc.String()},
 		},

@@ -56,8 +56,12 @@ func main() {
 		reportOnly = flag.String("report", "", "write results.md from these runs.jsonl files (comma-separated) and stop")
 		keep       = flag.Bool("keep", false, "keep the runs' projects")
 		dry        = flag.Bool("dry", false, "use a rule-based fake model, dry/fake: no key, no quota")
+		roundN     = flag.Int("round", 1, "1: the ticket's design; 2: the proposed SPEC 8.6 text (groups, role description, delegation line)")
 	)
 	flag.Parse()
+	if err := setRound(*roundN); err != nil {
+		log.Fatal(err)
+	}
 	if *reportOnly != "" {
 		paths := strings.Split(*reportOnly, ",")
 		runs, err := readRuns(paths...)

@@ -37,6 +37,24 @@ Each batch writes `results/<model>/<stamp>/`: `runs.jsonl`, `results.md` and a
 transcript per run. `results/all.md` is the report over every model's
 `runs.jsonl`.
 
+`-round 2` runs the proposed SPEC 8.6 text instead of the ticket's design
+(`round2.go`):
+- Read gains `read_config`, `run_status` and `open_page`, and *Views and
+  pipelines* becomes *Build and run*. The scenarios' groups are renamed to
+  match.
+- `create_chat`'s role description changes.
+- Mother's delegation guidance gets one line, through the spike-only hook
+  `agent.Deps.DelegateLine`.
+
+Each run records its round, and `-report` and `-resume` refuse runs from
+another round, so pass the same `-round`. Round 2's runs are in
+`results/round2/<model>/<stamp>/`, and their report is in
+`results/round2/all.md`:
+
+```
+go run . -round 2 -env D:/DEV/Burrow/.env -models gemini/gemini-3.5-flash-lite -conds 2,4 -out results/round2/gemini
+```
+
 ## Files
 
 | File | What |

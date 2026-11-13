@@ -127,6 +127,7 @@ type runResult struct {
 	Calls     []call     `json:"calls"`
 	Creations []creation `json:"creations"`
 	Agent     string     `json:"agent,omitempty"` // the chat the task went to; "" for Mother
+	Round     int        `json:"round,omitempty"` // 2 for the proposed SPEC text; 0 or 1 is round 1
 	// AllTools is the estimated tokens of every chat tool's definition:
 	// what a chat with every tool sends in each request.
 	AllTools int   `json:"all_tools"`
@@ -165,7 +166,7 @@ type run struct {
 }
 
 func (h *harness) run(ctx context.Context, j job, sc scenarioDef) (res runResult) {
-	res = runResult{job: j, Started: time.Now().UTC()}
+	res = runResult{job: j, Started: time.Now().UTC(), Round: round}
 	defer func() { res.Seconds = time.Since(res.Started).Seconds() }()
 	r := &run{h: h, j: j, sc: sc, w: newWorld(), res: &res, agents: map[id.Chat][]string{}, seen: map[id.Chat]int{}}
 	if err := r.play(ctx); err != nil {
@@ -245,9 +246,10 @@ func (r *run) play(ctx context.Context) error {
 	r.o = agent.New(agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: r.h.models, Tools: tools, Events: nopPublisher{},
 		Settings: func() config.Settings { return set }, Traces: r.tr, Log: r.h.log,
-		Now:       func() time.Time { return today },
-		Card:      r.w.card,
-		ChatTools: r.chatTools,
+		Now:          func() time.Time { return today },
+		Card:         r.w.card,
+		ChatTools:    r.chatTools,
+		DelegateLine: delegateLine,
 	})
 	defer func() {
 		r.o.Refuse()

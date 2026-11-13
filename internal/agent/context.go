@@ -392,7 +392,7 @@ func (r *runner) block1(t *turn) string {
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))
 		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {
-			b.WriteString("\n\n" + strings.TrimSpace(delegatePrompt))
+			b.WriteString("\n\n" + delegation(r.o.d.DelegateLine))
 		}
 	}
 	b.WriteString("\n\n" + today(r.o.d.Now()))
@@ -652,4 +652,24 @@ func (r *runner) image(ctx context.Context, ref string) ([]byte, error) {
 	}
 	defer rc.Close()
 	return io.ReadAll(rc)
+}
+
+// delegation is Mother's delegation guidance, with SPIKE-044's line after
+// its first item when the hook sets one.
+func delegation(line string) string {
+	g := strings.TrimSpace(delegatePrompt)
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return g
+	}
+	i := strings.Index(g, "\n- ")
+	if i < 0 {
+		return g + "\n- " + line
+	}
+	j := strings.Index(g[i+1:], "\n")
+	if j < 0 {
+		return g + "\n- " + line
+	}
+	j += i + 1
+	return g[:j] + "\n- " + line + g[j:]
 }

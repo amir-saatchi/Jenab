@@ -100,6 +100,10 @@ type Deps struct {
 	// follow the narrowed list, and the usual gating (TASK-033) narrows
 	// it further. Spike-only: the app leaves it nil.
 	ChatTools func(ch chat.Chat) (names []string, refusal func(name string) string)
+	// DelegateLine is SPIKE-044 round 2's line in Mother's delegation
+	// guidance (8.6), added after its first item. Spike-only: the app
+	// leaves it empty, and the guidance stays as it is.
+	DelegateLine string
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.

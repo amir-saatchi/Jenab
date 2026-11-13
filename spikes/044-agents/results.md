@@ -162,6 +162,44 @@ with `-resume`; the report leaves failed runs out.
 - **Every scenario is a single agent;** SPIKE-045 covers notices between
   agents.
 
+## Round 2: the proposed text
+
+On 2026-11-14 conditions 2 and 4 ran again with the proposal in place (`-round 2`):
+
+- Read with `read_config`, `run_status` and `open_page`; *Build and run*.
+- `create_chat`'s new role description.
+- The added delegation line.
+- The refusal naming the new groups.
+
+| Model | Runs | Of | Requests | Left |
+|---|---|---|---|---|
+| Gemini `gemini-3.5-flash-lite` | 33 | 42 | 582 | 9: rep 3 of five scenarios, stopped by the daily quota of `GEMINI_API_KEY` and `_IV` |
+| Anthropic `claude-haiku-5-5` | 42 | 42 | 410 | none; about $0.15 (3.00M prompt tokens, 2.61M of them cache reads, 177K output) |
+
+NVIDIA was left out as too slow. The tables are in
+[`results/round2/all.md`](results/round2/all.md).
+
+| Round 1 → round 2 | Gemini, asked | Gemini, unasked | Haiku, asked | Haiku, unasked |
+|---|---|---|---|---|
+| Recall | 0.93 → 1.00 | 0.90 → 1.00 | 0.93 → 0.95 | 0.90 → 0.94 |
+| Precision | 0.78 → 0.93 | 0.75 → 0.91 | 0.81 → 0.89 | 0.81 → 0.88 |
+| A forbidden group, or every group | 14% → 0 | 10% → 0 | 0 → 0 | 0 → 0 |
+| Task passed | 95% → 100% | 85% → 88% | 100% → 100% | 95% → 100% |
+| Prompt says what to report | 43% → 24% | 10% → 23% | 95% → 100% | 100% → 100% |
+| Prompt repeats a core rule | 0 → 0 | 0 → 0 | 24% → 29% | 22% → 28% |
+
+- **The regrouping keeps recall and raises precision.**
+  - Round 1's usual over-pick was *Views and pipelines*, taken to read configs. It's gone.
+  - No forbidden group, no every-group pick, and no refusal.
+- **Mother hands on what she can't do, and does the rest herself.**
+  - The write went to an agent in all 10 write runs, and she never tried it.
+  - No plain message got an agent.
+  - With `read_config` she did Gemini's unasked reviewer job herself (3 of 3, passed).
+- **Language.** Haiku writes the Persian request's role in Persian now: 3 of 3, against 0 of 3 in round 1.
+  - Gemini's unasked Persian digest still fails (0 of 2). Its agent got a Persian role and wrote the digest in English. That's recorded, not worked around.
+- **"Don't repeat them" did nothing.** Haiku's repeats are rules tied to the task ("Never invent prices"), as often as before. So the proposal drops the clause.
+- **Gemini's roles still seldom say what to report.** The tasks pass anyway, since the message carries the details.
+
 ## Proposed SPEC 8.6 text
 
-In the ticket's Result section. The decision is the user's.
+In the ticket's Result section, with round 2's comparison. The decision is the user's.

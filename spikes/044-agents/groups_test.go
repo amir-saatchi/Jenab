@@ -116,3 +116,36 @@ func TestScenarios(t *testing.T) {
 		}
 	}
 }
+
+// Round 2 renames the groups everywhere: the registry is still covered,
+// Mother reads configs and can't build, and every scenario's groups exist.
+func TestRound2(t *testing.T) {
+	saved, savedMother, savedSc := slices.Clone(groups), slices.Clone(motherGroups), slices.Clone(scenarios)
+	savedRole, savedRound := roleDesc, round
+	defer func() {
+		groups, motherGroups, scenarios, roleDesc, round, delegateLine = saved, savedMother, savedSc, savedRole, savedRound, ""
+	}()
+	for i := range scenarios { // useRound2 renames in place: give it its own slices
+		scenarios[i].Need, scenarios[i].Forbid, scenarios[i].KeyGroups = slices.Clone(scenarios[i].Need), slices.Clone(scenarios[i].Forbid), slices.Clone(scenarios[i].KeyGroups)
+	}
+	useRound2()
+	TestGroupsCoverRegistry(t)
+	TestScenarios(t)
+	m := motherToolList()
+	for _, n := range []string{"read_config", "run_status", "open_page", "query"} {
+		if !slices.Contains(m, n) {
+			t.Errorf("Mother lacks %s", n)
+		}
+	}
+	for _, n := range []string{"save_pipeline", "dry_run", "insert", "web_search"} {
+		if slices.Contains(m, n) {
+			t.Errorf("Mother has %s", n)
+		}
+	}
+	if !strings.Contains(string(createChatSchema(false)), "in the user's language") || delegateLine == "" {
+		t.Error("round 2's role description or delegation line is missing")
+	}
+	if err := checkRound([]runResult{{}}); err == nil {
+		t.Error("a round-1 run passed the round-2 check")
+	}
+}

@@ -73,8 +73,8 @@ func dryReply(req provider.Request) fake.Reply {
 		if strings.Contains(low, "which") || strings.Contains(low, "what") || strings.Contains(low, "how many") || strings.Contains(user, "چند") {
 			return text("The card has it (dry run).")
 		}
-		tools := []string{"read_data", "change_data", "files"}
-		if strings.Contains(s, `"query"`) && !strings.Contains(s, `"read_data"`) {
+		tools := []string{groups[0].Name, "change_data", "files"}
+		if strings.Contains(s, `"query"`) && !strings.Contains(s, `"`+groups[0].Name+`"`) {
 			tools = []string{"query", "insert", "bucket_put"}
 		}
 		return calls([2]any{"create_chat", map[string]any{"title": "Dry agent " + fmt.Sprint(len(user)%97), "role": "You do the job the user asked for. Report what you did.",
