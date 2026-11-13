@@ -25,9 +25,17 @@ go run . -report results/<stamp>/runs.jsonl[,more/runs.jsonl]               # re
 ```
 
 Keys come from `../../.env` (`-env` points elsewhere, e.g. from a worktree,
-which has no `.env`). `models.yaml` lists the three reference models; it uses
-no reserve key. A run whose turn a provider error stopped (a quota, a 402)
-counts as failed, so `-resume` runs it again.
+which has no `.env`). `models.yaml` lists the models of the runs: Gemini,
+NVIDIA, and Anthropic Haiku 5.5 in gemma4:31b's place (`OLLAMA_API_KEY`
+returned 402, and the user chose Haiku for this spike). It uses no reserve
+key. To run Gemini on another key, point `-models-file` at a copy with a
+different `key_env` and the same provider name, so `-resume` matches the
+jobs. A run whose turn a provider error stopped (a quota, a 402) counts as
+failed, so `-resume` runs it again.
+
+Each batch writes `results/<model>/<stamp>/`: `runs.jsonl`, `results.md` and a
+transcript per run. `results/all.md` is the report over every model's
+`runs.jsonl`.
 
 ## Files
 
