@@ -46,8 +46,9 @@ lfm3:1.7b is the best local model we tested (SPIKE-038), and Liquid says it is m
 ### Part B: training (after SPIKE-044 settles the database agent's prompt and tools)
 6. **Notebook** in `spikes/046-sql-lora/`, for Google Colab:
    - Unsloth and TRL's `SFTTrainer`, LoRA on `LiquidAI/LFM3-1.7B` from Hugging Face (not Ollama's GGUF).
-   - On a T4 (the only GPU Colab offers on the AI Pro plan; L4 and A100 need Ultra): fp16 or 4-bit QLoRA, batch size 1 with gradient accumulation, gradient checkpointing for 4-8k-token examples, checkpoints saved to Drive every few hundred steps.
-   - If the T4 is too slow: Kaggle, or an L4 or A100 rented by the hour.
+   - On an L4 or A100 from a Colab account with compute units: bf16 LoRA, as the model was trained. Start on the L4, which costs fewer units an hour, and move to the A100 if a run doesn't fit in one session.
+   - Either way: gradient checkpointing for 4-8k-token examples, checkpoints saved to Drive every few hundred steps, and the runtime disconnected as soon as training ends, since units are spent while it is connected.
+   - Fallback on a T4 (free tier, or an account without units): fp16 or 4-bit QLoRA, batch size 1 with gradient accumulation. Kaggle is another fallback.
    - A Hugging Face token, if needed, in Colab's Secrets, never in the notebook.
 7. **Back to Ollama:** merge the LoRA, convert to GGUF and quantize to Q4_K_M, write a Modelfile with lfm3's chat template, and `ollama create jenab-lfm3-sql`.
 8. **Evaluation,** 3 reps each, base against tuned:
