@@ -1,0 +1,27 @@
+# SPIKE-044's models: the three reference models (DEVELOPMENT.md), and
+# Haiku 5.5 in gemma4:31b's place: OLLAMA_API_KEY returned 402 (no credit)
+# on 2026-11-12, and the user chose Haiku 5.5 for this spike's runs. Keys
+# come from ../../.env; no reserve key.
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
+  - name: ollama-cloud
+    kind: ollama
+    base_url: https://ollama.com/
+    key_env: OLLAMA_API_KEY
+    models:
+      - {id: gemma4:31b, context: 262144}
+  - name: nvidia
+    kind: openai_compatible
+    base_url: https://integrate.api.nvidia.com/v1/
+    key_env: NVIDIA_API_KEY
+    models:
+      - {id: mistralai/mistral-large-4-1t-a52b, context: 131072}
+  - name: anthropic
+    kind: anthropic
+    key_env: ANTHROPIC_API_KEY
+    models:
+      - {id: claude-haiku-5-5, context: 200000}
