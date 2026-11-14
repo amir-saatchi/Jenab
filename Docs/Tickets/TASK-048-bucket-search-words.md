@@ -86,7 +86,7 @@ Made on 2026-11-15, for the points the SPEC and SPIKE-033 left open.
 - **By the user:**
   - No project exists yet, so there is no first index to build for old projects.
   - The index holds no old versions.
-- **Recommended in the ticket session, at the user's request** (the user reviews them with the ticket):
+- **Recommended in the ticket session at the user's request, and accepted by the user:**
   - The index follows every write through one hook, right after the commit; a check at open repairs a crash.
   - `move` chunks again; the sweep and *Free now* free nothing in `index.db`.
   - The first 10 MB of a longer file is indexed.
