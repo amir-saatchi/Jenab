@@ -1,0 +1,23 @@
+# SPIKE-045's models: Gemini 3.5 Flash-Lite and NVIDIA's Mistral Large 4,
+# two of the reference models (DEVELOPMENT.md). gemma4:31b is paused: the
+# Ollama Cloud free plan ended, and its keys need credits. Haiku 5.5 is
+# listed for a paid run, which needs the user's OK first. Keys come from
+# ../../.env; no reserve key. To run Gemini on another key, copy this file
+# with a different key_env and the same provider name, so -resume matches.
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
+  - name: nvidia
+    kind: openai_compatible
+    base_url: https://integrate.api.nvidia.com/v1/
+    key_env: NVIDIA_API_KEY
+    models:
+      - {id: mistralai/mistral-large-4-1t-a52b, context: 131072}
+  - name: anthropic
+    kind: anthropic
+    key_env: ANTHROPIC_API_KEY
+    models:
+      - {id: claude-haiku-5-5, context: 200000}
