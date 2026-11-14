@@ -202,4 +202,4 @@ NVIDIA was left out as too slow. The tables are in
 
 ## Proposed SPEC 8.6 text
 
-In the ticket's Result section, with round 2's comparison. The decision is the user's.
+The user accepted it on 2026-11-14 as round 2 left it, without "don't repeat them". It is in SPEC 8.6, and in the ticket's Result section with round 2's comparison.

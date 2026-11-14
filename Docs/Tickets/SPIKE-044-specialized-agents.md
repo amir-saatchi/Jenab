@@ -1,6 +1,6 @@
 # SPIKE-044 — Specialized agents: tool groups and a custom prompt
 **Type:** Spike
-**Status:** Results in, two rounds. Groups work and single tools don't; the proposed text, rerun in round 2, raised precision and kept recall. The proposed SPEC 8.6 text below waits for the user's decision.
+**Status:** Done (decided 2026-11-14). The user accepted the proposed SPEC 8.6 text as round 2 left it, without "don't repeat them". It is in SPEC 8.6, with 3.1, 8.1 and the `chats` table (2.3) updated to match.
 **Gate:** 3
 **Needs:** —
 
@@ -125,7 +125,18 @@ Prompt tokens per request with the key's groups, against every group: Gemini 3,4
   - Gemini's agent with an English role wrote an English digest and failed. With a Persian role it passed.
   - Gemini's roles are one line, 40–64 tokens on average, and seldom say what to report. Haiku and NVIDIA repeat core rules in 20–67%.
 
-**Proposed SPEC 8.6 text** (a proposal; the user decides):
+**Decision** (2026-11-14): the user accepted the text below as round 2 left it. It is now in SPEC 8.6. Writing it in also settled these points:
+
+- **3.1:** the gating works within a chat's groups. A tool the gating left out still runs; one outside the groups gets the refusal.
+- **8.1 and 8.9:** `create_chat` gains `tools`.
+- **2.3:** the `chats` table gains `tool_groups`.
+- **8.6:**
+  - *Clear* keeps the groups.
+  - A subagent works within its parent's groups, so `subagent` can't get around them. This wasn't tested.
+  - Mother's row in the chat comparison changes: memory only, with schema and data work handed on.
+- **Phase 5:** the *Customize* panel, the refusal and Mother's groups.
+
+**SPEC 8.6 text** (proposed, then accepted):
 
 > **Agents.** A chat can be an agent: its own tool groups and a custom prompt, fixed when the chat starts.
 >
