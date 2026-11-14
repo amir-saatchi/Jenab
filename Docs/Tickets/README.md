@@ -52,7 +52,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-042](SPIKE-042-command-patterns.md) | Commands: patterns, approvals and output | Spike | Open (Phase 6) | 3 |
 | [SPIKE-043](SPIKE-043-windows-write-sandbox.md) | Windows write sandbox without admin rights | Spike | Open (Phase 6) | 3 |
 | [SPIKE-044](SPIKE-044-specialized-agents.md) | Specialized agents: tool groups and a custom prompt | Spike | Done (groups, decided 2026-11-14) | 3 |
-| [SPIKE-045](SPIKE-045-subscribe-and-publish.md) | Subscribe and publish between agents | Spike | Done (groups, decided 2026-11-14) | 3 |
+| [SPIKE-045](SPIKE-045-subscribe-and-publish.md) | Subscribe and publish between agents | Spike | Results in; the user decides | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
