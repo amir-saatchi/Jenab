@@ -422,6 +422,32 @@ func TestDelegationLine(t *testing.T) {
 	}
 }
 
+// SPIKE-045: the Section hook's text is in block 1 of the chats it names,
+// and nowhere else.
+func TestSectionHook(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	with := h.newChat(chat.Chat{Title: "With"})
+	without := h.newChat(chat.Chat{Title: "Without"})
+	const rule = "Publish what other chats depend on."
+	h.o.d.Section = func(ch chat.Chat) string {
+		if ch.ID == with.ID {
+			return rule
+		}
+		return ""
+	}
+	h.fp.Push(fake.Text("one"), fake.Text("two"))
+	h.turn(with.ID, "hi")
+	h.turn(without.ID, "hi")
+	calls := h.fp.Calls()
+	if sys := calls[0].System[0].Text; !strings.Contains(sys, rule) {
+		t.Errorf("block 1 lacks the section:\n%s", sys)
+	}
+	if sys := calls[1].System[0].Text; strings.Contains(sys, rule) {
+		t.Errorf("another chat's block 1 has the section:\n%s", sys)
+	}
+}
+
 // thinkingReply is an answer with its thinking.
 func thinkingReply(thought, text string) fake.Reply {
 	return fake.Reply{Events: []provider.Event{
