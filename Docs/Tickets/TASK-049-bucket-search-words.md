@@ -1,4 +1,4 @@
-# TASK-048 — Search the project's files by words
+# TASK-049 — Search the project's files by words
 **Type:** Task
 **Status:** Open
 **Gate:** 3
