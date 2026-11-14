@@ -169,9 +169,9 @@ func scoreRun(r runResult) score {
 		case useDocsVolume:
 			s.DocsVolume = strings.Contains(low, "volume")
 		case useReviewer:
-			// Only the notice has r_101 and the 503: the card doesn't show runs.
-			s.Reviewer = strings.Contains(t.Reply, "r_101") || strings.Contains(t.Reply, "503") || slices.ContainsFunc(r.Calls, func(c call) bool {
-				return c.Msg == useReviewer && c.Tool == "run_status" && strings.Contains(c.Args, "r_101")
+			// Only the notice has r_q7m2 and the 503: the card doesn't show runs.
+			s.Reviewer = strings.Contains(t.Reply, "r_q7m2") || strings.Contains(t.Reply, "503") || slices.ContainsFunc(r.Calls, func(c call) bool {
+				return c.Msg == useReviewer && c.Tool == "run_status" && strings.Contains(c.Args, "r_q7m2")
 			})
 		case useReporter:
 			s.Reporter = dropRe.MatchString(t.Draft) || dropRe.MatchString(t.Reply)

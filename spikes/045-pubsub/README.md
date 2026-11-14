@@ -20,7 +20,7 @@ The harness plays one scripted day on the app's real orchestrator
 
 The scripted user sends 14 messages from 09:00 to 16:00 (`script.go`), one in
 Persian. Each agent's first message is the turn it was created for. App
-events come in between: daily_btc fails at 10:00 (r_101, HTTP 503), the user
+events come in between: daily_btc fails at 10:00 (r_q7m2, HTTP 503), the user
 runs weekly_summary at 10:15, daily_btc succeeds at 12:00 and adds today's
 price (−6.4%). The schema agent's two changes (a column `volume`, a table
 `eth_prices`) are real migrations, so the project card changes as in the app.

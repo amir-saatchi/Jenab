@@ -88,8 +88,8 @@ func dryReply(req provider.Request) fake.Reply {
 		if first {
 			add("subscribe", map[string]any{"event": "pipeline_run", "filter": map[string]any{"outcome": "failed"}})
 		}
-		if strings.Contains(notices, "r_101") {
-			add("run_status", map[string]any{"run_id": "r_101"})
+		if strings.Contains(notices, "r_q7m2") {
+			add("run_status", map[string]any{"run_id": "r_q7m2"})
 		} else {
 			add("read_config", map[string]any{"id": "weekly_summary"})
 		}

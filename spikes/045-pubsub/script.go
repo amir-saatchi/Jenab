@@ -15,17 +15,17 @@ const (
 )
 
 // runDef is a pipeline run the app reports. Those with an At play in the
-// day as pipeline_run events; r_100 ran yesterday.
+// day as pipeline_run events; r_k3x9 ran yesterday.
 type runDef struct {
 	ID, Pipeline, Outcome, At, Status string
 }
 
 var runs = []runDef{
-	{"r_100", "daily_btc", "success", "", "success on 2026-11-11 at 08:00: all 7 steps ok; saved the price for 2026-11-11 (71,260.00) and 5 news items."},
-	{"r_101", "daily_btc", "failed", "10:00", "failed on 2026-11-12 at 10:00 at step price (http.get): HTTP 503 Service Unavailable from https://api.example.com/btc/daily, after 3 retries. " +
+	{"r_k3x9", "daily_btc", "success", "", "success on 2026-11-11 at 08:00: all 7 steps ok; saved the price for 2026-11-11 (71,260.00) and 5 news items."},
+	{"r_q7m2", "daily_btc", "failed", "10:00", "failed on 2026-11-12 at 10:00 at step price (http.get): HTTP 503 Service Unavailable from https://api.example.com/btc/daily, after 3 retries. " +
 		"The steps after it were skipped, so btc_prices has no row for 2026-11-12 and no news was saved."},
-	{"r_102", "weekly_summary", "success", "10:15", "success on 2026-11-12 at 10:15 (started by the user from the page): all 6 steps ok; saved summaries/2026-11-12.md."},
-	{"r_103", "daily_btc", "success", "12:00", "success on 2026-11-12 at 12:00: all 7 steps ok; saved the price for 2026-11-12 (66,700.00) and 5 news items."},
+	{"r_b4t8", "weekly_summary", "success", "10:15", "success on 2026-11-12 at 10:15 (started by the user from the page): all 6 steps ok; saved summaries/2026-11-12.md."},
+	{"r_z1n6", "daily_btc", "success", "12:00", "success on 2026-11-12 at 12:00: all 7 steps ok; saved the price for 2026-11-12 (66,700.00) and 5 news items."},
 }
 
 func runStatus(id string) string {
@@ -72,7 +72,7 @@ type msgDef struct {
 var script = []msgDef{
 	{At: "09:00", To: "docs", First: true, Pub: pubRoutine, Text: "Please write docs/schema.md for the project's current tables."},
 	{At: "09:10", To: "schema", First: true, Pub: pubExtra, Text: "Add a column volume to btc_prices: the day's trading volume in USD, as a REAL."},
-	{At: "09:20", To: "reviewer", First: true, Pub: pubRoutine, Text: "Have a look at yesterday's daily_btc run, r_100, and tell me if anything looks off."},
+	{At: "09:20", To: "reviewer", First: true, Pub: pubRoutine, Text: "Have a look at yesterday's daily_btc run, r_k3x9, and tell me if anything looks off."},
 	{At: "09:30", To: "watcher", First: true, Pub: pubRoutine, Text: "How did BTC move in the newest prices?"},
 	{At: "09:40", To: "reporter", First: true, Pub: pubRoutine, Text: "Start this week's draft in summaries/draft.md with the prices so far."},
 	{At: "09:50", To: "entry", First: true, Pub: pubRoutine, Text: "Add two keywords to watch_keywords: halving and MiCA."},
@@ -90,7 +90,7 @@ var script = []msgDef{
 // turn after a notice.
 const (
 	useDocsVolume = 7  // the docs show volume (schema change at 2)
-	useReviewer   = 8  // the reviewer looks at r_101 (failed at 10:00)
+	useReviewer   = 8  // the reviewer looks at r_q7m2 (failed at 10:00)
 	useReporter   = 11 // the draft has today's drop (published at 9 in Part 2)
 	useDocsEth    = 13 // the docs show eth_prices (schema change at 10)
 	needMsg       = 9  // the price watcher's turn whose move crosses 5%

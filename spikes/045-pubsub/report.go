@@ -203,10 +203,10 @@ func report(runs []runResult) string {
 	})
 
 	b.WriteString("\n## Use\n\nAt the subscriber's next turn after the event. Docs (7): docs/schema.md shows `volume` after message 7 (schema change at 2). " +
-		"Reviewer (8): looks at the failed run r_101 (run_status, or names it or the 503). Reporter (11): the draft or reply has today's 6.4% drop " +
+		"Reviewer (8): looks at the failed run r_q7m2 (run_status, or names it or the 503). Reporter (11): the draft or reply has today's 6.4% drop " +
 		"(also reachable from btc_prices with a query). Docs (13): shows `eth_prices` after message 13 (change at 10). End: the last docs have both. " +
 		"In condition 1 only the project card has the schema changes, and nothing has the runs.\n\n")
-	b.WriteString("| Model | Condition | Runs | Docs (7) volume | Reviewer (8) r_101 | Reporter (11) drop | Docs (13) eth_prices | Docs at the end |\n|---|---|---|---|---|---|---|---|\n")
+	b.WriteString("| Model | Condition | Runs | Docs (7) volume | Reviewer (8) r_q7m2 | Reporter (11) drop | Docs (13) eth_prices | Docs at the end |\n|---|---|---|---|---|---|---|---|\n")
 	cells(all, func(m string, c int, xs []scored) {
 		n := len(xs)
 		fmt.Fprintf(&b, "| %s | %s | %d | %s | %s | %s | %s | %s |\n", m, condNames[c], n,
