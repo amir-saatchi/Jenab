@@ -1,6 +1,6 @@
 # SPIKE-047 — A headless browser with agent-browser
 **Type:** Spike
-**Status:** Open
+**Status:** Done (no-go for now)
 **Gate:** 3
 **Needs:** none
 
@@ -50,3 +50,12 @@ Its own module in `spikes/047-headless-browser/`, Windows 11 only.
 - Part A's checks and numbers are recorded, with what failed, including every request that got past the proxy.
 - A go or no-go for rendering in `fetch_page`. If go: the browser choice, SPEC text for 3.7 and 6.7, and a build ticket.
 - Part B's numbers if Part A is a go, and a short proposal for headless tasks.
+
+## Result
+Ran on 2026-11-14 (Part A only). **No-go for rendering in `fetch_page` for now**; the user accepted it and skipping Part B. No model requests were spent. The code is in [`spikes/047-headless-browser/`](../../spikes/047-headless-browser/README.md), the findings in its [`results.md`](../../spikes/047-headless-browser/results.md), the session report in [reports/SPIKE-047-report.md](reports/SPIKE-047-report.md).
+
+- **It can be made safe, with chrome-headless-shell only.** Behind a proxy that applies 6.7, with `--proxy-bypass-list=<-loopback>`, the only requests that got past were WebRTC STUN packets over UDP to loopback and the LAN. `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` closed that in the shell only; Chrome for Testing, Chrome and Edge ignore it, contact Google or Microsoft by themselves, and use 6–7 times the memory. `read <url>` goes around the proxy, and the action policy must be an allow list of internal action names (a deny list with category names left `eval` working). A kill-on-close job object leaves no process behind.
+- **The gain was nil on the corpus.** CoinMarketCap now sends its text in the HTML (23,460 characters through `fetch_page` today), Excalidraw is a canvas app, and the two news pages read the same either way. On the spike's own pages, 7 of 11 kinds rendered fully; shadow DOM, iframes, lazy sections and canvas need more, and consent walls and CAPTCHAs render into text that looks like a page.
+- **Cost:** a 126 MB download, a daemon with three local ports, 2–3 s and 80–670 MB private memory per page.
+- **Later:** count `needs_javascript` in real use; the second question (headless tasks in pipelines and on macOS and Linux) is the stronger reason to ship a browser. `results.md` section 5 lists what a build would need.
+
