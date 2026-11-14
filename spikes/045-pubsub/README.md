@@ -44,8 +44,8 @@ counted.
 ```
 go run . -dry -reps 1                                                          # no model: checks every path of the harness
 go run . -env D:/DEV/Burrow/.env -models gemini/gemini-3.5-flash-lite -reps 1   # one run per condition
-go run . -resume results/<model>/<stamp> -reps 3 -env D:/DEV/Burrow/.env       # runs that are missing or failed, up to 3 reps
-go run . -report results/<model>/<stamp>/runs.jsonl[,more/runs.jsonl]          # results.md again
+go run . -resume results/<model>/<stamp> -models <model> -reps 3 -env D:/DEV/Burrow/.env  # runs missing or failed, up to 3 reps (name the model, or every default model is queued)
+go run . -report results/<model>/<stamp>/runs.jsonl[,more/runs.jsonl]          # results.md again (results/all.md for several)
 ```
 
 Keys come from `../../.env` (`-env` points elsewhere, e.g. from a worktree,

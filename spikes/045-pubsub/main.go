@@ -65,6 +65,9 @@ func main() {
 			log.Fatal(err)
 		}
 		dst := filepath.Join(filepath.Dir(paths[0]), "results.md")
+		if len(paths) > 1 { // results/<model>/<stamp>/runs.jsonl, more → results/all.md
+			dst = filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(paths[0]))), "all.md")
+		}
 		if err := os.WriteFile(dst, []byte(report(runs)), 0o644); err != nil {
 			log.Fatal(err)
 		}
