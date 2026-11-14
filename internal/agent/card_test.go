@@ -63,8 +63,23 @@ func cardOf(t *testing.T, req provider.Request) string {
 	return card
 }
 
-// The card is rebuilt at once after a migration in the turn, and not
-// after a plain insert: the insert's row shows at the next cut (3.1).
+// cardNotes are the notes of req that bring a new project card.
+func cardNotes(req provider.Request) []string {
+	var out []string
+	for _, m := range req.Messages {
+		for _, p := range m.Parts {
+			if n := p.Notice; n != nil && strings.HasPrefix(n.Text, "[the project card changed") {
+				out = append(out, n.Text)
+			}
+		}
+	}
+	return out
+}
+
+// After a migration in the turn the new card comes at once, as a note at
+// the end: the card block stays until the next cut, and so does the
+// note. A plain insert brings no note: its row shows at the next cut
+// (3.1, TASK-047).
 func TestCardAfterMigration(t *testing.T) {
 	h := newHarness(t, t.TempDir(), "", testSettings(), cardTools()...)
 	defer h.stop()
@@ -84,11 +99,17 @@ func TestCardAfterMigration(t *testing.T) {
 	if !strings.Contains(cards[0], "Tables: none yet.") {
 		t.Errorf("before the migration:\n%s", cards[0])
 	}
-	if !strings.Contains(cards[1], "- prices (0 rows): date TEXT NOT NULL, close REAL; key (date)") {
-		t.Errorf("after the migration:\n%s", cards[1])
-	}
-	if cards[2] != cards[1] || cards[3] != cards[1] {
-		t.Errorf("after the insert the card changed:\n%s\n---\n%s", cards[2], cards[3])
+	for i := range calls {
+		if cards[i] != cards[0] {
+			t.Errorf("request %d changed the card block:\n%s", i+1, cards[i])
+		}
+		notes := cardNotes(calls[i])
+		if i == 0 && len(notes) != 0 || i > 0 && len(notes) != 1 {
+			t.Fatalf("request %d: card notes %q", i+1, notes)
+		}
+		if i > 0 && !strings.Contains(notes[0], "- prices (0 rows): date TEXT NOT NULL, close REAL; key (date)") {
+			t.Errorf("request %d, after the migration:\n%s", i+1, notes[0])
+		}
 	}
 }
 
@@ -128,13 +149,14 @@ func TestCardAfterMigrationInOtherChat(t *testing.T) {
 	if card := cardOf(t, calls[0]); !strings.Contains(card, "Tables: none yet.") {
 		t.Errorf("chat A, turn 1:\n%s", card)
 	}
-	if card := cardOf(t, calls[3]); !strings.Contains(card, "- prices (0 rows)") {
-		t.Errorf("chat A, turn 2:\n%s", card)
+	if notes := cardNotes(calls[3]); len(notes) != 1 || !strings.Contains(notes[0], "- prices (0 rows)") {
+		t.Errorf("chat A, turn 2: %q", notes)
 	}
 }
 
 // A card that fails leaves the turn alone: the request goes without the
-// card, or with the old one. It isn't tried again in the same turn, and
+// card, or with the one the model has. A card that works later comes as a
+// note. It isn't tried again in the same turn, and
 // the error is logged once until a card works again.
 func TestCardFailure(t *testing.T) {
 	var fail atomic.Bool
@@ -176,18 +198,23 @@ func TestCardFailure(t *testing.T) {
 	if len(calls) != 7 {
 		t.Fatalf("%d requests, want 7", len(calls))
 	}
-	cards := make([]string, len(calls))
+	notes := make([][]string, len(calls))
 	for i, req := range calls {
-		cards[i] = cardOf(t, req)
+		if card := cardOf(t, req); card != "" {
+			t.Errorf("request %d has a card block: the cut's card failed", i+1)
+		}
+		notes[i] = cardNotes(req)
 	}
-	if cards[0] != "" || cards[1] != "" || !strings.Contains(cards[2], "Tables: none yet.") || cards[3] != cards[2] {
-		t.Errorf("turns 1 to 3: %q", cards[:4])
+	if len(notes[0]) != 0 || len(notes[1]) != 0 || len(notes[2]) != 1 || !strings.Contains(notes[2][0], "Tables: none yet.") {
+		t.Errorf("turns 1 to 3: %q", notes[:3])
 	}
-	if cards[4] != cards[2] || cards[5] != cards[2] {
-		t.Errorf("after the migration, with the card failing: %q", cards[4:6])
+	for i := 3; i < 6; i++ {
+		if !slices.Equal(notes[i], notes[2]) {
+			t.Errorf("request %d, with the card failing: %q", i+1, notes[i])
+		}
 	}
-	if !strings.Contains(cards[6], "- prices (0 rows)") {
-		t.Errorf("in the next turn:\n%s", cards[6])
+	if len(notes[6]) != 2 || !strings.Contains(notes[6][1], "- prices (0 rows)") {
+		t.Errorf("in the next turn: %q", notes[6])
 	}
 	if n := builds.Load(); n != 5 {
 		t.Errorf("%d card builds, want 5: one in each turn", n)

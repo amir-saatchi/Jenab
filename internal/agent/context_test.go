@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/provider/fake"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/tool"
@@ -116,7 +118,9 @@ func TestBlockOneFollowsTools(t *testing.T) {
 	}
 }
 
-// Block 1 has today's date, and a cut on a new day changes it.
+// Block 1 has today's date. A new day with nothing else changed keeps
+// block 1 and the window, and the new date comes as a note; the next cut
+// puts it into block 1 (TASK-047).
 func TestDateAtCut(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h := newHarness(t, t.TempDir(), "", testSettings())
@@ -128,13 +132,69 @@ func TestDateAtCut(t *testing.T) {
 		h.turn(c.ID, "and now?") // no cut: the date stays
 		time.Sleep(24 * time.Hour)
 		day2 := today(time.Now())
-		h.turn(c.ID, "and today?")
+		h.turn(c.ID, "and today?") // idle, but nothing else changed: no cut
+		h.o.mu.Lock()
+		h.o.chats[key{h.pid, c.ID}].win.last = time.Time{} // as after a restart: the next turn cuts
+		h.o.mu.Unlock()
+		h.turn(c.ID, "and after a restart?")
+		calls := h.fp.Calls()
 		var got []bool
-		for _, req := range h.fp.Calls() {
+		for _, req := range calls {
 			got = append(got, strings.Contains(req.System[0].Text, day1))
 		}
-		if !slices.Equal(got, []bool{true, true, false}) || day1 == day2 || !strings.Contains(h.fp.Calls()[2].System[0].Text, day2) {
+		if !slices.Equal(got, []bool{true, true, true, false}) || day1 == day2 || !strings.Contains(calls[3].System[0].Text, day2) {
 			t.Errorf("day 1 in block 1: %v; day 2 %q", got, day2)
+		}
+		if tx := texts(calls[2].Messages); !slices.Contains(tx, "user: [the date changed: "+day2+"]") || turnsOf(calls[2].Messages)[0] != 1 {
+			t.Errorf("the new day's request: %q", tx)
+		}
+		if tx := texts(calls[3].Messages); slices.ContainsFunc(tx, func(s string) bool { return strings.Contains(s, "the date changed") }) {
+			t.Errorf("after the cut the note stays: %q", tx)
+		}
+	})
+}
+
+// Between cuts the system blocks and the tools stay as they are, and the
+// messages only grow at the end: a migration's card and a new day come as
+// notes (3.1, TASK-047). The one change to the tools is a tool that waits
+// for the project's first table.
+func TestSteadyPrefix(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings(), append(cardTools(), waiting("rows", tool.WhenTables))...)
+		defer h.stop()
+		h.o.d.Card = realCard
+		c := h.newChat(chat.Chat{Title: "Prices"})
+		h.fp.Push(fake.ToolCall("c1", "migrate", struct{}{}), fake.ToolCall("c2", "rows", struct{}{}), fake.Text("made"))
+		h.turn(c.ID, "make a table")
+		time.Sleep(24 * time.Hour) // the cache expired, and it's a new day
+		h.fp.Push(fake.ToolCall("c3", "add", struct{}{}), fake.Text("added"))
+		h.turn(c.ID, "add a price")
+		time.Sleep(24 * time.Hour) // another day: block 1 still has the first
+		h.turn(c.ID, "and today?")
+		calls := h.fp.Calls()
+		if len(calls) != 6 {
+			t.Fatalf("%d requests, want 6", len(calls))
+		}
+		for i := 1; i < len(calls); i++ {
+			prev, req := calls[i-1], calls[i]
+			if !reflect.DeepEqual(req.System, prev.System) {
+				t.Errorf("request %d changed the system blocks", i+1)
+			}
+			if i > 1 && !slices.Equal(toolNames(req), toolNames(prev)) {
+				t.Errorf("request %d changed the tools: %q, then %q", i+1, toolNames(prev), toolNames(req))
+			}
+			if len(req.Messages) < len(prev.Messages) || !reflect.DeepEqual(req.Messages[:len(prev.Messages)], prev.Messages) {
+				t.Errorf("request %d changed earlier messages:\n%q\n%q", i+1, texts(prev.Messages), texts(req.Messages))
+			}
+		}
+		if slices.Contains(toolNames(calls[0]), "rows") || !slices.Contains(toolNames(calls[1]), "rows") {
+			t.Errorf("a tool that waits for a table didn't join at the first table: %q, then %q", toolNames(calls[0]), toolNames(calls[1]))
+		}
+		tx := texts(calls[4].Messages)
+		card := slices.IndexFunc(tx, func(s string) bool { return strings.HasPrefix(s, "user: [the project card changed") })
+		date := slices.IndexFunc(tx, func(s string) bool { return strings.HasPrefix(s, "user: [the date changed") })
+		if card < 0 || date < card || !strings.Contains(tx[card], "- prices (0 rows)") {
+			t.Errorf("the notes: %q", tx)
 		}
 	})
 }
@@ -307,7 +367,10 @@ func TestChatToolsHook(t *testing.T) {
 	ran := 0
 	noop := func(s tool.Spec) tool.Tool {
 		s.Description, s.Schema = "Test.", json.RawMessage(`{"type": "object"}`)
-		return tool.Func(s, func(context.Context, *tool.Env, struct{}) (tool.Result, error) { ran++; return tool.Result{Text: "ran"}, nil })
+		return tool.Func(s, func(context.Context, *tool.Env, struct{}) (tool.Result, error) {
+			ran++
+			return tool.Result{Text: "ran"}, nil
+		})
 	}
 	h := newHarness(t, t.TempDir(), "", testSettings(),
 		noop(tool.Spec{Name: "subagent", Background: true}), noop(tool.Spec{Name: "save_view", Areas: tool.Views}), noop(tool.Spec{Name: "lookup"}))
@@ -357,4 +420,68 @@ func TestDelegationLine(t *testing.T) {
 	if strings.Count(got, "\n") != strings.Count(strings.TrimSpace(delegatePrompt), "\n")+1 {
 		t.Fatalf("lines lost or added:\n%s", got)
 	}
+}
+
+// thinkingReply is an answer with its thinking.
+func thinkingReply(thought, text string) fake.Reply {
+	return fake.Reply{Events: []provider.Event{
+		{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartThinking, Thinking: &chat.Thinking{Text: thought, Signature: "sig"}}},
+		{Kind: provider.EventPart, Part: &chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: text}}},
+		fake.Done(provider.StopEnd, chat.Usage{Input: 10, Output: 5}),
+	}}
+}
+
+// The thinking of turns before a cut is left out of the requests after
+// it, for every model: it was made with another start (3.8, TASK-047).
+// Their text stays, and so does the thinking of turns after the cut.
+func TestThinkingBeforeCut(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.fp.Push(thinkingReply("first thought", "one"), thinkingReply("second thought", "two"), thinkingReply("third thought", "three"), fake.Text("four"))
+	h.turn(c.ID, "one")
+	h.turn(c.ID, "two")
+	h.o.mu.Lock()
+	h.o.chats[key{h.pid, c.ID}].win.last = time.Time{} // as after a restart: the next turn cuts
+	h.o.mu.Unlock()
+	h.turn(c.ID, "three")
+	h.turn(c.ID, "four")
+	calls := h.fp.Calls()
+	want := [][]string{
+		{"user: one"},
+		{"user: one", "assistant: thinking first thought", "assistant: one", "user: two"},
+		{"user: one", "assistant: one", "user: two", "assistant: two", "user: three"},
+		{"user: one", "assistant: one", "user: two", "assistant: two", "user: three", "assistant: thinking third thought", "assistant: three", "user: four"},
+	}
+	for i, req := range calls {
+		if got := texts(req.Messages); !slices.Equal(got, want[i]) {
+			t.Errorf("request %d: %q", i+1, got)
+		}
+	}
+}
+
+// The plain harness keeps block 1 on a new day and sends the date as a
+// note (TASK-047).
+func TestPlainDate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHarness(t, t.TempDir(), "", testSettings())
+		defer h.stop()
+		h.o.d.Plain = true
+		c := h.newChat(chat.Chat{Title: "Coins"})
+		h.turn(c.ID, "hi")
+		time.Sleep(24 * time.Hour)
+		day2 := today(time.Now())
+		h.turn(c.ID, "and today?")
+		h.turn(c.ID, "and now?")
+		calls := h.fp.Calls()
+		for i := 1; i < len(calls); i++ {
+			if !reflect.DeepEqual(calls[i].System, calls[0].System) {
+				t.Errorf("request %d changed block 1", i+1)
+			}
+		}
+		want := []string{"user: hi", "assistant: ok", "user: and today?", "user: [the date changed: " + day2 + "]", "assistant: ok", "user: and now?"}
+		if got := texts(calls[2].Messages); !slices.Equal(got, want) {
+			t.Errorf("the third request: %q", got)
+		}
+	})
 }

@@ -350,35 +350,41 @@ Every request of the main agent is assembled in this order, from most stable to 
 6. History window (3.6)
 7. Current turn
 
-Provider prompt caches reuse the longest unchanged beginning of a request. The rule that follows: **between window cuts, a request only grows at the end.** Blocks 2–6 are rewritten only at a cut (3.6); *Refresh memory* (3.5) also ends with one. There is one exception where correctness wins:
+Provider prompt caches reuse the longest unchanged beginning of a request, and newer Claude models drop earlier thinking when it changed (3.8). The rule that follows: **between window cuts, a request only grows at the end.** Blocks 1–5 and the tool list are built at a cut and kept until the next one (TASK-047). The one exception is the tool list at the project's first table (below). *Refresh memory* (3.5) also ends with a cut.
 
-- A schema, view or pipeline change refreshes the project card immediately.
-
-Anything else that changes in between (another chat edits memory, a pipeline run finishes, this chat edits memory) is added as a short notice to the current turn and folded into its block at the next cut:
+Anything that changes in between is added at the end as a short note and folded into its block at the next cut:
 
 ```
 [memory updated by another chat: preferences → prices in EUR]
 [run daily_btc finished 08:00: success, 6 rows inserted]
 [user opened page bitcoin: from_date = 2026-07-01]
+[the project card changed; this one replaces the one before]
+[the project card changed: there is none now]
+[the date changed: Today is Tuesday, 2026-10-06, in the user's time zone (UTC+03:30).]
+[this is the last request of this turn: answer with what you have, without tools]
 ```
+
+A schema, view or pipeline change sends the card note, followed by the new card. The last request of a turn (8.3) sends the last line. A note stays in its place in every request until the cut, so the next request still starts the same. Card, date and last-request notes aren't stored: a restart starts with a cut, which builds the blocks fresh.
 
 For providers with explicit cache control (Anthropic), cache points are placed after block 5 and at the end of the latest message.
 
 Block 1 (TASK-011):
-- **Date:** today's date and the user's time zone, as a UTC offset, since Windows has no IANA name for it. It has no time, so it changes only on a new day, and it is built at each cut. A cut comes after 5 minutes idle (3.6), so a new day almost always starts with one.
+- **Date:** today's date and the user's time zone, as a UTC offset, since Windows has no IANA name for it. It has no time, so it changes only on a new day. It is built at each cut; a new day between cuts comes as a note.
 - **Only what the tools can do:** lines about a kind of work come only with the tools that do it. The prompt rule for requests with several parts (8.3) comes with a tool that starts background work, and Mother's delegation guidance (8.6) with `create_chat`. The first line names a project's tables, pipelines and views only when a tool for each is registered, and says the others aren't in this version yet, so the model doesn't build them from files. A tool says which of them it works on (TASK-014).
 - **When no tool fits:** one line, the same for every model: tell the user so and offer what the tools can do; a saved file doesn't run or update itself; don't make up data no tool gave; don't describe screens, menus or steps the model can't see (TASK-014).
 - **Fewer rounds** (TASK-033): one line asks for calls that don't need each other's results in the same message. The line on answering with a write (8.3) comes with a tool that can carry an answer.
 
-**Tool list** (TASK-033): a tool is in the requests only once the project or the chat has what it works on, decided at a cut, so the list changes only where blocks 2–5 may:
-- `query` and `describe_table` once the project has a table. They also join at the migration that makes the first one, like the project card.
+**Tool list** (TASK-033, TASK-047): a tool is in the requests only once the project or the chat has what it works on. This is decided at a cut and kept until the next one:
+- `query` and `describe_table` once the project has a table. They also join at the migration that makes the first one, like the project card: the one change to the list between cuts, once in a project's life. Offered before that, `query` led mistral to make a table for a note (TASK-047).
 - `search_history` and `read_messages` once the chat has turns before its window or the project has another chat; `list_chats` once there is another chat besides Mother.
 - `bucket_list`, `bucket_read` and `bucket_delete` once the bucket holds something outside `cache/`. `read_ref` and `search_ref` (3.7) are always there.
 - `insert` is always offered: gating it lost day 1's insert in 4 of 6 runs.
 - This gating works within the chat's tool groups (8.6).
   - A tool the gating left out still runs if the model calls it.
   - A tool outside the chat's groups doesn't run: the call gets the refusal (8.6).
-  - When the project can't be read, every tool of the chat's groups is offered.
+  - When the project can't be read, every tool of the chat's groups that is on is offered.
+- A tool switched on or off in Settings (8.10) is added or left out from the next turn, which cuts. Within a turn the list stays; a call to a tool that is off is refused.
+- Both refusals apply. A call to a tool outside the chat's groups gets the group refusal first. A call to a tool in its groups that is off gets the Settings refusal.
 
 ### 3.2 Project card
 
@@ -479,8 +485,9 @@ context:
 
 - The current turn is always complete.
 - Previous turns in the window contain user and assistant text in full and tool results as previews (3.7).
-- **Cut:** when the window passes `history_max_turns` or `history_max_tokens`, it is reduced to the last `history_min_turns` turns in one step. At the same cut, tool results of previous turns become stubs and blocks 2–5 are refreshed. *Refresh memory* also ends with a cut. So do a rewind and its undo (8.3): blocks 2–5 are rebuilt with the notes and skills the rewind left.
-- If the chat was idle long enough for the provider's cache to expire (5 minutes), a due cut happens on the next turn, since the cache is lost anyway. The first turn after the app starts also cuts, for the same reason.
+- **Cut:** when the window passes `history_max_turns` or `history_max_tokens`, it is reduced to the last `history_min_turns` turns in one step. At the same cut, tool results of previous turns become stubs and blocks 2–5 are refreshed. *Refresh memory* also ends with a cut. So do a rewind and its undo (8.3): blocks 2–5 are rebuilt with the notes and skills the rewind left. So does a tool switch in Settings (8.10), at the next turn.
+- **Thinking:** at a cut, the thinking parts of the turns before it leave the window, for every model. Their texts and tool calls stay. Every provider takes this: Anthropic would drop them anyway (3.8), OpenAI's function calls don't refer to reasoning items, and Gemini's calls carry their own signature (TASK-047).
+- If the chat was idle long enough for the provider's cache to expire (5 minutes), the next turn cuts only when a cut would build other blocks 1–5 (the date aside) or another tool list: changed memory, a new schema version, another chat list in Mother, a loaded skill or a tool switch. Otherwise the window stays as it is, and a new day comes as a note (3.1). The card counts as the same while the schema version is, so its row counts stay "as of" the last cut. The first turn after the app starts always cuts.
 - After the first cut, the context includes a line such as: `This chat has 38 earlier turns. Use search_history or read_messages.`
 - **History cards** (TASK-027): after a cut, at a turn's first request, Go adds cards for earlier turns before the window that the user's message points to. `search_history` and `read_messages` stay for what cards miss.
   - **Words:** the message's words as history search reads them: normalized (2.3), lower case, letters, digits and marks, two characters or more, each once, at most 32. A word counts for nothing when 1/8 or more of the project's text parts have it (counted against at least 160 parts), or more than 1/4 of the chat's earlier turns. This is the same for every language; there is no word list.
@@ -552,9 +559,9 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
   - Thinking blocks are sent back unchanged, signature included, before their `tool_use`. On Anthropic, only when the request has a thinking setting (below).
   - OpenAI's Responses API is used with `store: false`; its reasoning comes back encrypted and is sent back the same way. Its newest models take tools only there. A catalog model that reasons gets `reasoning: {summary: "auto"}` when thinking is on, so its thinking shows. A `refusal` part is kept as the answer's text, with a `refused` stop (TASK-008).
 - **Anthropic thinking:** a catalog model that thinks gets `adaptive` thinking with summarized text. A model marked `thinking_budget` in the catalog (Claude Haiku 4.5) gets `enabled` with a budget of half `max_tokens`, at least 1,024 tokens and always below `max_tokens`; when that can't be, thinking is off. Unknown models get the API's default. Changing these settings between requests invalidates the prompt cache.
-  - **Changed context:** newer Claude models (Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.1 and 5.2) refuse a thinking block whose system prompt, tools or earlier messages changed since it was made. Jenab changes them at cuts, when a migration rebuilds the card or the tool list (3.1, 3.6), and when it trims the current turn. So adaptive thinking always carries `block_binding.prefix_mismatch_behavior: "drop_block"` with the `thinking-binding-controls-2026-08-01` beta: the API leaves out the first stale block and every thinking block after it, for that request, and goes on. Budget thinking gets neither: those models don't check (TASK-046).
+  - **Changed context:** newer Claude models (Haiku 5.5, Sonnet 5.5, Opus 5.5, Fable 5.1 and 5.2) refuse a thinking block whose system prompt, tools or earlier messages changed since it was made. Jenab changes them only at cuts, where it has already left out the thinking before the cut (3.6), once when the project's first table adds its tools (3.1), and when it trims the current turn or makes stubs of a series (3.7). So adaptive thinking always carries `block_binding.prefix_mismatch_behavior: "drop_block"` with the `thinking-binding-controls-2026-08-01` beta: the API leaves out the first stale block and every thinking block after it, for that request, and goes on. Budget thinking gets neither: those models don't check (TASK-046).
   - A request without a thinking setting (unknown model, thinking off, no room for a budget) sends no earlier thinking blocks; leaving all of them out is always valid. Jenab never removes a block from the middle itself.
-  - The `thinking_dropped` entries of `input_transformations` in `message_start` are counted as the request's dropped thinking blocks, in the trace and the scenario runner, not stored. Other types and reasons are ignored, and no error text is matched. A dropped block is lost reasoning, so the prefix should change as little as possible.
+  - The `thinking_dropped` entries of `input_transformations` in `message_start` are counted as the request's dropped thinking blocks, with the first one's path, in the trace and the scenario runner, not stored. The runner also counts **breaks**: requests that drop thinking at a new place, keyed by the system blocks, the tool names and the first dropped path, so one stale block dropped again in every later request is one break. Other types and reasons are ignored, and no error text is matched. A dropped block is lost reasoning, so the prefix should change as little as possible.
 - **Caching and usage:**
   - Cache points follow 3.1.
   - Cache write and read tokens are stored with the message.
@@ -2142,7 +2149,7 @@ Each bad field gives its own error, naming the file and the field.
 An agent can read and use one window of another app, through [agent-desktop](https://github.com/vercel-labs/agent-desktop) (Apache-2.0), which reads the accessibility tree and acts on elements by reference. v1 is narrow: one window the user picks, in a turn the user started and is watching.
 
 **When it is there:**
-- Off by default. A Settings switch turns it on: "Let agents use other apps' windows". While it is off, the tools are not offered.
+- Off by default. A Settings switch turns it on: "Let agents use other apps' windows". While it is off, the tools are not offered. A switch takes effect at the next turn, with a cut (3.6); within a turn a tool switched off stays in the list, and a call to it is refused.
 - Only in turns the user started in a chat. Never in pipelines, scheduled runs, subagents or turns the app started.
 - Windows only in v1.
 

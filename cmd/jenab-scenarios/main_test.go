@@ -118,22 +118,28 @@ func TestUsageWatch(t *testing.T) {
 	if j, ok := p.(provider.JSONMode); !ok || !j.SendsSchema() {
 		t.Error("the wrapper lost the backend's JSON mode")
 	}
-	for range 2 {
-		for range p.Stream(context.Background(), provider.Request{Model: "m"}) {
+	// Two requests of one conversation drop the same block: one break. A
+	// third, of another conversation, is a second; a fourth, of the first
+	// with a new system block, a third.
+	ask := func(text, sys string) provider.Request {
+		return provider.Request{Model: "m", System: []provider.Block{{Text: sys}}, Messages: []chat.Message{{Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}}}}
+	}
+	for _, req := range []provider.Request{ask("a", "s"), ask("a", "s"), ask("b", "s"), ask("a", "t")} {
+		for range p.Stream(context.Background(), req) {
 		}
 	}
 	lines := strings.Split(strings.TrimSpace(log.String()), "\n")
-	if len(lines) != 2 {
+	if len(lines) != 4 {
 		t.Fatalf("the log %q", log.String())
 	}
 	var c usageCall
 	if err := json.Unmarshal([]byte(lines[0]), &c); err != nil {
 		t.Fatal(err)
 	}
-	if c.Model != "m" || c.Input != 10 || c.CacheRead != 900 || c.CacheWrite != 90 || c.Output != 50 || c.Thought != 20 || c.Dropped != 3 || c.Stop != "end" {
+	if c.Model != "m" || c.Input != 10 || c.CacheRead != 900 || c.CacheWrite != 90 || c.Output != 50 || c.Thought != 20 || c.Dropped != 3 || c.DropPath != "messages.1.content.0" || c.Conv == "" || c.Prefix == "" || c.Stop != "end" {
 		t.Errorf("the log line %+v", c)
 	}
-	if s := tally.take(); s != "2 requests, input 20, cache read 1800, cache write 180, output 100 (thinking 40), thinking blocks dropped 6 in 2 requests" {
+	if s := tally.take(); s != "4 requests, input 40, cache read 3600, cache write 360, output 200 (thinking 80), thinking blocks dropped 12 in 4 requests, 3 breaks" {
 		t.Errorf("take: %q", s)
 	}
 	if s := tally.take(); s != "0 requests, input 0, cache read 0, cache write 0, output 0" {
@@ -153,7 +159,7 @@ func (f *fake) Stream(_ context.Context, req provider.Request) iter.Seq2[provide
 				return
 			}
 		}
-		yield(provider.Event{Kind: provider.EventDone, Stop: provider.StopEnd, Usage: &chat.Usage{Input: 10, CacheRead: 900, CacheWrite: 90, Output: 50, Thought: 20, ThinkingDropped: 3}}, nil)
+		yield(provider.Event{Kind: provider.EventDone, Stop: provider.StopEnd, Usage: &chat.Usage{Input: 10, CacheRead: 900, CacheWrite: 90, Output: 50, Thought: 20, ThinkingDropped: 3, ThinkingDropPath: "messages.1.content.0"}}, nil)
 	}
 }
 

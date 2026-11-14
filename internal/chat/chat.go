@@ -60,6 +60,11 @@ type Usage struct {
 	// changed or they came from another model (Anthropic, SPEC 3.8). It
 	// is not stored yet.
 	ThinkingDropped int `json:"thinking_dropped,omitempty"`
+	// ThinkingDropPath is where the first of those blocks was in the
+	// request, such as "messages.3.content.0". A stale block is left out
+	// again in each later request at the same place, so one break shows
+	// as one path (TASK-047). Not stored either.
+	ThinkingDropPath string `json:"thinking_drop_path,omitempty"`
 }
 
 // Message is one message with its parts (SPEC 2.3). A turn is one user

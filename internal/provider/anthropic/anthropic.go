@@ -192,20 +192,23 @@ type transformation struct {
 	Path   string `json:"path"`
 }
 
-// dropped counts the thinking blocks the API left out of the request.
-// Types and reasons it doesn't know are skipped: later checks add values.
-func dropped(ts []transformation) int {
-	n := 0
+// dropped counts the thinking blocks the API left out of the request,
+// and gives the first one's path. Types and reasons it doesn't know are
+// skipped: later checks add values.
+func dropped(ts []transformation) (n int, first string) {
 	for _, t := range ts {
 		if t.Type != "thinking_dropped" {
 			continue
 		}
 		switch t.Reason {
 		case "prefix_binding_mismatch", "model_binding_mismatch", "organization_binding_mismatch":
+			if n == 0 {
+				first = t.Path
+			}
 			n++
 		}
 	}
-	return n
+	return n, first
 }
 
 // add takes the fields u reports; message_delta repeats some of them.
@@ -259,7 +262,7 @@ func (b *backend) Stream(ctx context.Context, req provider.Request) iter.Seq2[pr
 			switch ev.Type {
 			case "message_start":
 				ev.Message.Usage.add(&u)
-				u.ThinkingDropped = dropped(ev.Message.InputTransformations)
+				u.ThinkingDropped, u.ThinkingDropPath = dropped(ev.Message.InputTransformations)
 			case "content_block_start":
 				o := &open{kind: ev.ContentBlock.Type, id: ev.ContentBlock.ID, name: ev.ContentBlock.Name}
 				o.data.WriteString(ev.ContentBlock.Data)

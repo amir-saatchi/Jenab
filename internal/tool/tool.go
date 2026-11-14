@@ -55,8 +55,9 @@ type Spec struct {
 	Answers bool
 	// When: the tool is in a chat's requests only while the project or
 	// the chat has what it works on (TASK-033); 0 is always. The agent
-	// decides at a cut, and for WhenTables at a schema change too, so
-	// the tool list changes only where block 2-5 may (3.1).
+	// decides at a cut and keeps the list until the next one (3.1); a
+	// WhenTables tool also joins at the migration that makes the first
+	// table (TASK-047).
 	When When
 	// On, if set, says whether the tool is turned on now, such as desktop
 	// control by its setting (8.10). A tool that is off isn't offered or

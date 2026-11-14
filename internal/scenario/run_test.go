@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/provider"
@@ -554,5 +555,32 @@ func TestLoadRefresh(t *testing.T) {
 		if _, err := Load(writeSet(t, map[string]string{"_set.yaml": "title: T\n", "a.yaml": body})); err == nil {
 			t.Errorf("loaded:\n%s", body)
 		}
+	}
+}
+
+// A break is a request that drops thinking at a new place: a new start
+// (system blocks or tools) or a new first dropped block. The same stale
+// block dropped again behind the same start is the same break.
+func TestBreaks(t *testing.T) {
+	q := func(sys, path string, dropped int) agent.RequestTrace {
+		return agent.RequestTrace{
+			Req:   provider.Request{System: []provider.Block{{Text: sys}}},
+			Usage: chat.Usage{ThinkingDropped: dropped, ThinkingDropPath: path},
+		}
+	}
+	rec := &record{requests: []agent.RequestTrace{
+		q("a", "", 0),
+		q("b", "messages.1.content.0", 2), // block 1 changed: 1
+		q("b", "messages.1.content.0", 3), // the same: still 1
+		q("c", "messages.1.content.0", 3), // block 1 changed again: 2
+		q("c", "", 0),
+		q("c", "messages.1.content.0", 1), // after a clean request: 3
+		q("c", "messages.5.content.0", 1), // further on: 4
+	}}
+	if n := rec.breaks(); n != 4 {
+		t.Errorf("%d breaks, want 4", n)
+	}
+	if n := rec.dropRequests(); n != 5 {
+		t.Errorf("%d drop requests, want 5", n)
 	}
 }

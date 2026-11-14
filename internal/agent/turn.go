@@ -46,16 +46,17 @@ type runner struct {
 
 // turn is one turn's state.
 type turn struct {
-	n        int
-	ch       chat.Chat
-	set      config.Settings
-	model    string // "provider/id"
-	provider string
-	window   int // the model's context window; 0 if unknown
-	requests int
-	seen     id.Message // the newest user message in the last request
-	bad      int        // requests in a row whose tool calls all failed to run
-	trace    *TurnTrace // nil with the developer tools off
+	n         int
+	ch        chat.Chat
+	set       config.Settings
+	model     string // "provider/id"
+	provider  string
+	window    int // the model's context window; 0 if unknown
+	requests  int
+	seen      id.Message // the newest user message in the last request
+	bad       int        // requests in a row whose tool calls all failed to run
+	lastNoted bool       // the last request's line is in the window's notes
+	trace     *TurnTrace // nil with the developer tools off
 
 	// The number check (SPIKE-032), with Deps.Grounding on.
 	said         []string // the answers' text since the last check
