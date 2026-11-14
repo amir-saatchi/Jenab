@@ -2,7 +2,7 @@
 **Type:** Spike
 **Status:** Open (Phase 5)
 **Gate:** 3
-**Needs:** SPIKE-044 (agents are built the way it decides); SPIKE-034 round 2 (sub-sessions and the `Deps.Notices` hook, on branch `claude/spike-034-topics-1fc440` until merged)
+**Needs:** SPIKE-044 (agents are built the way it decides, now SPEC 8.6) and SPIKE-034 round 2 (sub-sessions and the `Deps.Notices` hook). Both are merged into `main`.
 
 ## Question
 Agents in a project need to hear about what happens elsewhere: a schema change, a pipeline run, a result another agent found. Three questions:

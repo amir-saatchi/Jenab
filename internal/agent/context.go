@@ -527,6 +527,11 @@ func (r *runner) block1(t *turn) string {
 			b.WriteString("\n\n" + s) // SPIKE-028, spike-only
 		}
 	}
+	if f := r.o.d.Section; f != nil {
+		if s := strings.TrimSpace(f(t.ch)); s != "" {
+			b.WriteString("\n\n" + s) // SPIKE-045, spike-only
+		}
+	}
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))
 		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {

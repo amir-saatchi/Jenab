@@ -116,6 +116,11 @@ type Deps struct {
 	// guidance (8.6), added after its first item. Spike-only: the app
 	// leaves it empty, and the guidance stays as it is.
 	DelegateLine string
+	// Section is SPIKE-045's prompt section: text added to block 1 of
+	// chat ch, after the prompt rule, such as condition 5's publish rule.
+	// Like block 1, it changes only at cuts. Spike-only: the app leaves
+	// it nil.
+	Section func(ch chat.Chat) string
 }
 
 // UserMessage is what the user sends. Images are already in the bucket.
