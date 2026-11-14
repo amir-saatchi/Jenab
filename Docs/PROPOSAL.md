@@ -216,7 +216,7 @@ Phases are defined by what must work at the end, not by dates.
 
 **Phase 4 — Pipelines and scheduling.** Pipeline runner, v1 step catalog including bucket steps, API connections, validation and dry runs, pipeline security rules, scheduler with catch-up, run log, notifications, background mode; the read-only workspace tools. *Done when:* the Bitcoin pipeline runs daily for a week unattended, including across laptop sleep, with every run visible in the log.
 
-**Phase 5 — Public release.** More providers, subagent tool, `create_chat` and `send_to_chat` for the Mother chat, MCP client, documentation, example projects, installer builds. *Done when:* a new user can install the app and reproduce the Bitcoin example in under ten minutes with keyless data providers (feeds and news APIs) and their own LLM key.
+**Phase 5 — Public release.** More providers, subagent tool, `create_chat` and `send_to_chat` for the Mother chat, chats with tool groups and their own prompt, subscriptions and channels between chats (SPEC 8.6, SPIKE-044 and SPIKE-045), MCP client, documentation, example projects, installer builds. *Done when:* a new user can install the app and reproduce the Bitcoin example in under ten minutes with keyless data providers (feeds and news APIs) and their own LLM key.
 
 **Phase 6 — Code (after the release).** File editing in the workspace with diffs and per-turn undo; then running commands, after a spike on approvals, process control and prompt injection. *Done when:* the agent can fix a failing test in a linked repository, with every file change undoable and every command approved.
 

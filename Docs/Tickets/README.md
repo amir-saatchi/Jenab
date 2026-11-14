@@ -9,7 +9,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-001](SPIKE-001-sqlite-driver.md) | SQLite driver capabilities | Spike | Done | 2 |
 | [SPIKE-002](SPIKE-002-library-survey.md) | Library survey | Spike | Done | 2 |
 | [SPIKE-003](SPIKE-003-wails-version.md) | Wails v2 vs v3 | Spike | Done | 2 |
-| [SPIKE-004](SPIKE-004-sleep-and-catch-up.md) | Sleep/wake detection and catch-up | Spike | In progress (Windows decided; macOS open) | 2 |
+| [SPIKE-004](SPIKE-004-sleep-and-catch-up.md) | Sleep/wake detection and catch-up | Spike | Done (Windows decided; macOS needs a Mac) | 2 |
 | [SPIKE-005](SPIKE-005-expr-sandbox.md) | expr-lang sandbox | Spike | Done | 2 |
 | [SPIKE-006](SPIKE-006-keychain-background.md) | Keychain in background mode | Spike | In progress (Windows decided; macOS open) | 2 |
 | [SPIKE-007](SPIKE-007-sql-guard.md) | SQL guard without an authorizer | Spike | Done | 2 |
@@ -100,6 +100,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-045](TASK-045-stopped-call-wording.md) | Say when a stopped call may have run | Task | Open | 3 |
 | [TASK-046](TASK-046-thinking-binding.md) | Thinking blocks after the context changes | Task | Done | 3 |
 | [TASK-047](TASK-047-steady-prefix.md) | Keep the start of each request the same | Task | Done | 3 |
+| [TASK-048](TASK-048-runner-quota-stop.md) | The scenario runner stops a model when its quota is gone | Task | Open | 3 |
 
 ## Phase 1
 

@@ -113,10 +113,12 @@ On Windows, CI builds with `CGO_ENABLED=0`, so a dependency that needs cgo fails
 
 ## Reference models
 
-Spikes and tests run on three models (the first two decided in SPIKE-030, the third on 2026-11-10):
+Spikes and tests run on three models (the first decided in SPIKE-030, the second on 2026-11-10, the third on 2026-11-15):
 - **Gemini `gemini-3.5-flash-lite`**, the main one. It is fast and has a full JSON-schema mode. The free tier allows about 1,500 requests a day, reset at midnight Pacific time, and Google may use free-tier prompts.
-- **Ollama Cloud `gemma4:31b`**, for the Ollama backend. **Paused:** Ollama Cloud's free plan ended on 2026-11-09, and gemma4:31b now needs credits ([MODELS](MODELS.md#not-working-now)). Until a replacement is chosen, the Ollama backend is covered only by local Ollama (SPIKE-038's `lfm3:1.7b`).
 - **NVIDIA `mistralai/mistral-large-4-1t-a52b`**, for the `openai_compatible` kind, which most providers use. NVIDIA's free endpoints allow about 40 requests a minute; requests are slower (about 9 s) and sometimes hang, so runs need a timeout. On the scenario suite it passed as many runs as `gemini-3.5-flash-lite` ([GEMINI-BASELINE-report](Tickets/reports/GEMINI-BASELINE-report.md)).
+- **Anthropic `claude-haiku-5-5`**, for the `anthropic` kind. It is fast (about 2 s a request) and thinks by default. It is paid: a full suite pass cost about $0.11 ([HAIKU-PASS-report](Tickets/reports/HAIKU-PASS-report.md)), so live runs need the user's OK and a cap.
+
+Ollama Cloud's `gemma4:31b` was the third, for the Ollama backend, until 2026-11-15: Ollama removed its free tier ([MODELS](MODELS.md#not-working-now)). The Ollama backend is now checked with local Ollama only (SPIKE-038's `lfm3:1.7b`). Older reports still have gemma4:31b's numbers.
 
 A failure on any other model is recorded, not worked around. Fixes are made the same way for every model (SPEC 1).
 
