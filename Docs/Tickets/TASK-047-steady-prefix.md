@@ -1,6 +1,6 @@
 # TASK-047 — Keep the start of each request the same
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-046
 
@@ -36,3 +36,19 @@ Change the start as little as possible, the same way for every model.
 - Go tests show the system blocks staying the same between cuts, with card, tool and date changes as messages.
 - The before/after numbers for steps 1 and 7, in the report.
 - SPEC updated.
+
+## Result
+Done on 2026-11-14. SPEC 3.1, 3.6, 3.8 and 8.10 have the rules.
+
+- **The change:** blocks 1–5 and the tool list stay as the cut built them. A new card, a new date and the last-request line come as notes at the end, and stay in place until the next cut. An idle return cuts only when something in the blocks or the tool list changed. At a cut, the thinking of earlier turns is left out, for every model. The runner counts breaks, not only dropped blocks. All of it is in `internal/agent`; the provider layer only reports the first dropped block's path.
+- **Kept:** `query` and `describe_table` still join at the project's first table. Offered from the start, `query` made mistral build a notes table instead of calling `bucket_put` (missing-features F6).
+- **Haiku 5.5:** read share in the bench sets went from about 70 % to 84–96 %. Dropped thinking went from 235–661 blocks (8–14 breaks) to 0–4 blocks (0–1 break). Bench cost fell 10–57 %. All 6 sets passed after. Spend $0.461 of the $1.00 cap.
+- **mistral-large-4 (NVIDIA):** read share in the bench sets went from 67–72 % to 85–95 %, and uncached input fell 39–78 %. Every set passes on the final code except schema-design (1/3; the before binary failed the same column naming) and refresh-memory R1 (0/2, as in the baseline). bench-bitcoin needed a rerun after an NVIDIA outage.
+- **Open:**
+  - In-turn trim and series stubs (3.7) still change earlier messages of a very long turn.
+  - The first table changes the tool list once: 1 break, 2–4 dropped blocks on Haiku.
+  - The plain harness now takes a new day as a note too; it only matters in runs that cross midnight.
+  - The card's row counts can be older than before, until the next cut.
+  - Most numbers come from one run per binary.
+
+The session's report: [reports/TASK-047-report.md](reports/TASK-047-report.md).

@@ -56,6 +56,14 @@ func TestRequestCap(t *testing.T) {
 		t.Errorf("ends with %q", got[len(got)-2:])
 	}
 	validHistory(t, ms)
+	// The line stays in the window, where it was, so the next turn's
+	// request only grows at the end (TASK-047).
+	h.fp.Push(fake.Text("ok"))
+	h.turn(c.ID, "go on")
+	next := h.fp.Calls()[3].Messages
+	if len(next) < len(calls[2].Messages) || !slices.Equal(texts(next[:len(calls[2].Messages)]), texts(calls[2].Messages)) {
+		t.Errorf("the next turn changed the last request's messages: %q", texts(next))
+	}
 }
 
 // The last answer's text is enough: a call next to it is closed, with no
@@ -384,10 +392,19 @@ func TestCutAfterIdle(t *testing.T) {
 		if got := turnsOf(h.fp.Calls()[5].Messages); !slices.Equal(got, []int{1, 2, 3, 4, 5, 6}) {
 			t.Errorf("before the cache expired: turns %v", got)
 		}
+		// Nothing in the system blocks changed: the window stays
+		// (TASK-047).
 		time.Sleep(cacheIdle + time.Second)
 		h.turn(c.ID, "seven")
-		if got := turnsOf(h.fp.Calls()[6].Messages); !slices.Equal(got, []int{4, 5, 6, 7}) {
-			t.Errorf("after the cache expired: turns %v", got)
+		if got := turnsOf(h.fp.Calls()[6].Messages); !slices.Equal(got, []int{1, 2, 3, 4, 5, 6, 7}) {
+			t.Errorf("after the cache expired, nothing changed: turns %v", got)
+		}
+		// Memory changed: the cut goes ahead.
+		h.edit("goals", "Track prices.", 0)
+		time.Sleep(cacheIdle + time.Second)
+		h.turn(c.ID, "eight")
+		if got := turnsOf(h.fp.Calls()[7].Messages); !slices.Equal(got, []int{5, 6, 7, 8}) {
+			t.Errorf("after the cache expired, memory changed: turns %v", got)
 		}
 	})
 }

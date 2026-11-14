@@ -408,7 +408,9 @@ func TestUnusedSkillLeavesAtTheCut(t *testing.T) {
 			t.Fatalf("after turn 2: %q", got)
 		}
 		h.fp.Push(fake.Text("three"))
-		time.Sleep(cacheIdle + time.Second)
+		h.o.mu.Lock()
+		h.o.chats[key{h.pid, c.ID}].win.last = time.Time{} // as after a restart: idle alone keeps a steady window (TASK-047)
+		h.o.mu.Unlock()
 		h.turn(c.ID, "three") // a cut that keeps turn 2 only: views was used there
 		if got := h.chat(c.ID).Skills; !slices.Equal(got, []string{"role", "views"}) {
 			t.Errorf("after turn 3: %q", got)

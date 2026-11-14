@@ -11,6 +11,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/tool"
 )
@@ -38,51 +39,97 @@ var promptNames = strings.NewReplacer("{app}", appinfo.Name, "{mother}", appinfo
 const cacheIdle = 5 * time.Minute
 
 // window is a chat's history window (3.6). Between cuts it only grows at
-// the end, so provider caches keep working (3.1).
+// the end, so provider caches and the model's thinking keep working
+// (3.1): the system blocks and the tools stay as the cut set them, and a
+// change reaches the model as a note at the end.
 type window struct {
-	start     int                // the first turn in the window; 0 before the first cut
-	stubBelow int                // tool results of turns before this are stubs
-	stubbed   map[string]bool    // tool calls whose results in-turn trimming made stubs
-	chatList  string             // Mother's chat list, refreshed at cuts (8.6)
-	system    []provider.Block   // blocks 1–5, built at cuts
-	mem       map[string]memSeen // memory sections as the chat has seen them, by target; set at cuts (3.3)
-	schema    int                // the schema version the project card was built at
-	cardFail  int                // the turn whose card failed: it is tried again in the next turn
-	skills    map[string]bool    // the skills in block 1, from the last cut
-	tools     []tool.Tool        // the tools in the requests, set at cuts (TASK-033); nil for all
-	toolsAt   int                // the schema version tools was set at, while a tool waits for a table; -1 for none
-	last      time.Time          // the last request
-	fired     map[int]bool       // turns whose number check fired (SPIKE-032)
-	tainted   []taint            // numbers the chat's write calls saved without a source, and where (SPIKE-032)
-	cards     map[int]chat.Part  // history cards by the turn whose message has them, kept until a cut drops the turn (3.6); a part without text for none
-	carded    map[int][]int      // the turns those cards show
+	start      int                // the first turn in the window; 0 before the first cut
+	stubBelow  int                // tool results of turns before this are stubs
+	thinkBelow int                // thinking of turns before this is left out: it was made with another start (TASK-047)
+	stubbed    map[string]bool    // tool calls whose results in-turn trimming made stubs
+	chatList   string             // Mother's chat list, refreshed at cuts (8.6)
+	system     []provider.Block   // blocks 1–5, built at cuts and not changed until the next one
+	day        string             // the date line in block 1
+	date       string             // the date line the model has, in block 1 or a note
+	notes      []winNote          // what changed since the cut, in the order it was told (TASK-047)
+	mem        map[string]memSeen // memory sections as the chat has seen them, by target; set at cuts (3.3)
+	schema     int                // the schema version of the project card the model has, in block 4 or a note
+	cardFail   int                // the turn whose card failed: it is tried again in the next turn
+	skills     map[string]bool    // the skills in block 1, from the last cut
+	tools      []tool.Tool        // the tools in the requests, set at cuts (TASK-033); nil for all
+	tablesAt   int                // the schema version at the cut while tools wait for a first table; -1 when none wait
+	switches   map[string]bool    // the tools with a Settings switch and whether each was on at the cut (8.10)
+	last       time.Time          // the last request
+	fired      map[int]bool       // turns whose number check fired (SPIKE-032)
+	tainted    []taint            // numbers the chat's write calls saved without a source, and where (SPIKE-032)
+	cards      map[int]chat.Part  // history cards by the turn whose message has them, kept until a cut drops the turn (3.6); a part without text for none
+	carded     map[int][]int      // the turns those cards show
+}
+
+// winNote is a message the app adds to the window between cuts: a new
+// project card, a new date, the last request's line. It isn't stored; it
+// goes after the message it was added after in every request until the
+// next cut, which folds what it says into the system blocks. A restart
+// starts with a cut, so nothing is lost.
+type winNote struct {
+	after id.Message // the last message when it was added
+	msg   chat.Message
+}
+
+// withNotes is ms with the window's notes in their places.
+func withNotes(ms []chat.Message, ns []winNote) []chat.Message {
+	if len(ns) == 0 {
+		return ms
+	}
+	out := make([]chat.Message, 0, len(ms)+len(ns))
+	j := 0
+	for _, m := range ms {
+		for j < len(ns) && ns[j].after < m.ID {
+			out = append(out, ns[j].msg)
+			j++
+		}
+		out = append(out, m)
+	}
+	for _, n := range ns[j:] {
+		out = append(out, n.msg)
+	}
+	return out
 }
 
 // cutIfDue cuts the window at the start of a turn when it has passed
-// history_max_turns or history_max_tokens, or when the cache has expired.
-// A chat with no request yet in this process (after a restart or Clear)
-// cuts too: its cache is gone as well. The system blocks are built at a
-// cut and kept until the next one (3.1), so a role change takes effect
-// then.
+// history_max_turns or history_max_tokens, or when a tool was turned on
+// or off. A chat with no request yet in this process (after a restart or
+// Clear) cuts too: its cache is gone. After the cache expired (idle), it
+// cuts only when something the system blocks or the tool list hold has
+// changed; otherwise the window and its prefix stay, and a new date comes
+// as a note (TASK-047). The system blocks are built at a cut and kept
+// until the next one (3.1), so a role change takes effect then.
 func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	if r.o.d.Plain {
 		return r.plainWindow(ctx, t)
 	}
 	w := &r.cs.win
 	c := t.set.Context
-	due := r.cs.takeCut() || w.last.IsZero() || r.o.d.Now().Sub(w.last) > cacheIdle
+	due := r.cs.takeCut() || w.last.IsZero() || w.system == nil || r.switched(t)
 	if !due {
 		ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n-1)
 		if err != nil {
 			return err
 		}
-		prev := shape(withCards(ms, w.cards), w)
+		prev := shape(withNotes(withCards(ms, w.cards), w.notes), w)
 		due = t.n-w.start > c.HistoryMaxTurns || provider.EstimateTokens(provider.Request{Messages: prev}) > c.HistoryMaxTokens
+	}
+	if !due && r.o.d.Now().Sub(w.last) > cacheIdle {
+		steady, err := r.steady(ctx, t)
+		if err != nil {
+			return err
+		}
+		due = !steady
 	}
 	if !due {
 		return nil
 	}
-	w.start, w.stubBelow, w.stubbed = max(1, t.n-c.HistoryMinTurns), t.n, map[string]bool{}
+	w.start, w.stubBelow, w.thinkBelow, w.stubbed, w.notes = max(1, t.n-c.HistoryMinTurns), t.n, t.n, map[string]bool{}, nil
 	w.dropCards()
 	r.dropSkills(ctx, t)
 	if t.ch.Kind == chat.KindMother {
@@ -96,7 +143,7 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	if err != nil {
 		return err
 	}
-	w.system, w.schema = sys, schema
+	w.system, w.schema, w.day, w.date = sys, schema, today(r.o.d.Now()), today(r.o.d.Now())
 	r.offerTools(ctx, t)
 	w.skills = map[string]bool{}
 	for _, name := range t.ch.Skills {
@@ -107,17 +154,64 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 	return nil
 }
 
+// steady reports whether a cut now would build the same system blocks,
+// but for the date, and the same tool list (TASK-047). The project card
+// counts as the same while the schema version is: its counts are "as of"
+// the cut anyway (3.2). Anything else that changed, such as memory, the
+// notes, a loaded skill or Mother's chat list, lets the cut go ahead.
+func (r *runner) steady(ctx context.Context, t *turn) (bool, error) {
+	w := &r.cs.win
+	if w.schema == noCard {
+		return false, nil
+	}
+	if r.o.d.Card != nil {
+		v, err := r.p.DB.SchemaVersion(ctx)
+		if err != nil || v != w.schema {
+			return false, nil
+		}
+	}
+	card := ""
+	if i := slices.IndexFunc(w.system, func(b provider.Block) bool { return b.Name == cardBlock }); i >= 0 {
+		card = w.system[i].Text
+	}
+	if t.ch.Kind == chat.KindMother {
+		list, err := r.chatList(ctx)
+		if err != nil {
+			return false, err
+		}
+		if list != w.chatList {
+			return false, nil
+		}
+	}
+	sys, _ := r.blocks(ctx, t, card)
+	sys[0].Text = strings.Replace(sys[0].Text, today(r.o.d.Now()), w.day, 1)
+	if !slices.Equal(sys, w.system) {
+		return false, nil
+	}
+	return slices.Equal(toolNamesOf(r.toolList(ctx, t)), toolNamesOf(w.tools)), nil
+}
+
 // request builds one request: the system blocks, the window and the
-// current turn. The last request of a turn keeps the tools, so the cached
-// prefix holds, but asks for an answer without calls (8.3).
+// current turn, with the window's notes. The last request of a turn keeps
+// the tools, so the cached prefix holds, but asks for an answer without
+// calls (8.3); its line stays in the window as a note.
 func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Request, error) {
 	w := &r.cs.win
 	plain := r.o.d.Plain
+	var changes []chat.Part
 	if !plain {
-		r.refreshCard(ctx, t)
-		r.refreshTools(ctx, t)
+		changes = r.cardChange(ctx, t)
+		r.joinTableTools(ctx, t)
 		r.memoryNotices(ctx, t)
 		r.spikeNotices(ctx, t)
+	}
+	if d := today(r.o.d.Now()); w.date != "" && d != w.date {
+		changes = append(changes, notePart(dateNote(d)))
+		w.date = d
+	}
+	if last && !t.lastNoted {
+		changes = append(changes, chat.Part{Kind: chat.PartText, Text: &chat.Text{Text: lastRequest}})
+		t.lastNoted = true
 	}
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
@@ -128,10 +222,14 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 			t.seen = m.ID
 		}
 	}
+	if len(changes) > 0 && len(ms) > 0 {
+		w.notes = append(w.notes, winNote{after: ms[len(ms)-1].ID, msg: chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser, Parts: changes}})
+	}
 	if !plain {
 		r.findCards(ctx, t, ms)
 		ms = withCards(ms, w.cards)
 	}
+	ms = withNotes(ms, w.notes)
 	msgs := shape(ms, w)
 	if !plain && r.trim(t, msgs) {
 		msgs = shape(ms, w)
@@ -142,17 +240,35 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		tools = r.o.d.Tools.For(t.ch.Kind)
 	}
 	for _, tl := range tools {
-		if tl.Spec().IsOn() { // a switch applies from the next request (8.10)
+		// Jenab reads a switch at the cut, plain at each request (8.10).
+		if !plain && w.tools != nil || tl.Spec().IsOn() {
 			req.Tools = append(req.Tools, toolDef(tl))
 		}
 	}
 	if last {
 		req.ToolChoice = provider.ToolsNone
-		req.Messages = append(req.Messages, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser,
-			Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: lastRequest}}}})
 	}
 	w.last = r.o.d.Now()
 	return req, nil
+}
+
+// notePart is a note's notice part. The model reads it; the chat doesn't
+// store it.
+func notePart(text string) chat.Part {
+	return chat.Part{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: chat.NoticeReminder, Text: text}}
+}
+
+// dateNote tells the model the day changed since block 1 was built
+// (TASK-047). The same for every model (1).
+func dateNote(today string) string { return "[the date changed: " + today + "]" }
+
+// cardNote is a project card that changed since block 4 was built, such
+// as after a migration (3.1, TASK-047). The same for every model (1).
+func cardNote(card string) string {
+	if card == "" {
+		return "[the project card changed: there is none now]"
+	}
+	return "[the project card changed; this one replaces the one before]\n" + card
 }
 
 // Plain's window (Deps.Plain): it drops the oldest turns once the
@@ -164,16 +280,18 @@ const (
 )
 
 // plainWindow is the plain chat harness's window (Deps.Plain): every
-// turn from the first, tool results as they came, and block 1 alone,
-// built again when the date changes, as a chat app's system prompt has
-// today's date. Only when the history nears the model's window are the
-// oldest turns dropped, with no summary and no line about them.
+// turn from the first, tool results as they came, and block 1 alone with
+// the date of the first turn, as a chat app's system prompt has today's
+// date. Block 1 is built again when the role or the loaded skills change;
+// a new day comes as a note (TASK-047). Only when the history nears the
+// model's window are the oldest turns dropped, with no summary and no
+// line about them; the thinking before that point is left out then.
 func (r *runner) plainWindow(ctx context.Context, t *turn) error {
 	w := &r.cs.win
 	w.start = max(w.start, 1)
-	sys := []provider.Block{{Text: r.block1(t), Name: "System prompt", Cache: true}}
-	if w.system == nil || w.system[0].Text != sys[0].Text {
-		w.system = sys
+	text := r.block1(t)
+	if now := today(r.o.d.Now()); w.system == nil || w.system[0].Text != strings.Replace(text, now, w.day, 1) {
+		w.system, w.day, w.date = []provider.Block{{Text: text, Name: "System prompt", Cache: true}}, now, now
 	}
 	if t.window <= 0 {
 		return nil
@@ -184,7 +302,7 @@ func (r *runner) plainWindow(ctx context.Context, t *turn) error {
 	}
 	size := func(from int) int {
 		var keep []chat.Message
-		for _, m := range ms {
+		for _, m := range withNotes(ms, w.notes) {
 			if m.Turn >= from {
 				keep = append(keep, m)
 			}
@@ -197,6 +315,8 @@ func (r *runner) plainWindow(ctx context.Context, t *turn) error {
 	for w.start < t.n && float64(size(w.start)) > plainKeep*float64(t.window) {
 		w.start++
 	}
+	w.thinkBelow = t.n
+	w.notes = slices.DeleteFunc(w.notes, func(n winNote) bool { return n.msg.Turn < w.start })
 	return nil
 }
 
@@ -225,6 +345,14 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 		switch m.Role {
 		case chat.RoleAssistant:
 			closeOpen()
+			// Thinking made before the last cut was made with another
+			// start of the request: no provider needs it, and some leave
+			// it out again in every request (3.8, TASK-047).
+			if m.Turn < w.thinkBelow && slices.ContainsFunc(m.Parts, isThinking) {
+				if m.Parts = slices.DeleteFunc(slices.Clone(m.Parts), isThinking); len(m.Parts) == 0 {
+					continue
+				}
+			}
 			from = m
 			for _, p := range m.Parts {
 				if p.ToolCall != nil {
@@ -285,6 +413,8 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 	closeOpen()
 	return out
 }
+
+func isThinking(p chat.Part) bool { return p.Thinking != nil }
 
 // newestOfSeries is the call id of each series' newest result in ms.
 func newestOfSeries(ms []chat.Message) map[string]string {
@@ -351,11 +481,18 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 // Mother's chat list and the session notes. The cache point is after the
 // last block.
 func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
+	card, schema, _ := r.card(ctx, t)
+	blocks, seen := r.blocks(ctx, t, card)
+	r.cs.win.mem = seen
+	return blocks, schema, nil
+}
+
+// blocks are blocks 1–5 with the given card, and the memory sections
+// they show.
+func (r *runner) blocks(ctx context.Context, t *turn, card string) ([]provider.Block, map[string]memSeen) {
 	blocks := []provider.Block{{Text: r.block1(t), Name: "System prompt, role and skills"}}
 	mem, seen := r.memoryBlocks(ctx)
 	blocks = append(blocks, mem...)
-	r.cs.win.mem = seen
-	card, schema, _ := r.card(ctx, t)
 	if card != "" {
 		blocks = append(blocks, provider.Block{Text: card, Name: cardBlock})
 	}
@@ -370,7 +507,7 @@ func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, er
 		blocks = append(blocks, provider.Block{Text: earlierTurns(n), Name: "Earlier turns"})
 	}
 	blocks[len(blocks)-1].Cache = true
-	return blocks, schema, nil
+	return blocks, seen
 }
 
 // block1 is block 1 (3.1): the system prompt with today's date, the role,
@@ -512,43 +649,31 @@ func (r *runner) cardWorks() {
 	r.o.mu.Unlock()
 }
 
-// refreshCard rebuilds the project card in the window's system blocks
-// when a migration has run since it was built, by this chat or another:
-// the one change between cuts that doesn't wait for the next one (3.1).
-// Plain writes leave it alone, so the cached prefix holds. When the card
-// fails, the old block stays and the next turn tries again.
-func (r *runner) refreshCard(ctx context.Context, t *turn) {
+// cardChange is a note part with the project card when a migration has
+// run since the model got the card, by this chat or another: the system
+// blocks stay as they are, so the cached prefix and the model's thinking
+// hold (3.1, TASK-047). Plain writes leave it alone; the card's counts
+// are "as of" the cut. When the card fails, nothing is told and the next
+// turn tries again.
+func (r *runner) cardChange(ctx context.Context, t *turn) []chat.Part {
 	w := &r.cs.win
 	if r.o.d.Card == nil || w.system == nil || w.cardFail == t.n {
-		return
+		return nil
 	}
 	v, err := r.p.DB.SchemaVersion(ctx)
 	if err != nil {
 		r.cardFailed(ctx, t, err)
-		return
+		return nil
 	}
 	if v == w.schema {
-		return
+		return nil
 	}
 	card, v, ok := r.card(ctx, t)
 	if !ok {
-		return
+		return nil
 	}
-	// A new slice, as the traces of earlier requests hold the old one.
-	sys := slices.Clone(w.system)
-	i := slices.IndexFunc(sys, func(b provider.Block) bool { return b.Name == cardBlock })
-	switch {
-	case i >= 0 && card == "":
-		sys = slices.Delete(sys, i, i+1)
-	case i >= 0:
-		sys[i].Text = card
-	case card != "":
-		sys = slices.Insert(sys, afterMemory(sys), provider.Block{Text: card, Name: cardBlock})
-	}
-	for j := range sys {
-		sys[j].Cache = j == len(sys)-1
-	}
-	w.system, w.schema = sys, v
+	w.schema = v
+	return []chat.Part{notePart(cardNote(card))}
 }
 
 // areaText is how block 1 names each area (tool.AreaNames' order).

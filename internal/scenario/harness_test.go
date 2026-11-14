@@ -59,7 +59,7 @@ func TestHarnesses(t *testing.T) {
 		Models: ScriptedModels(script), Script: script, Harnesses: []string{HarnessJenab, HarnessPlain}, Temp: t.TempDir(),
 		Deps: func(d *agent.Deps) { deps = append(deps, d) },
 		Settings: func(c *config.Settings) {
-			c.Context.HistoryMaxTurns = 8 // no cut but a day's
+			c.Context.HistoryMaxTurns = 8 // no cut by turns
 		},
 	})
 	if err != nil {
@@ -92,13 +92,14 @@ func TestHarnesses(t *testing.T) {
 		}
 	}
 	// The plain harness grows: each turn's first request is larger than
-	// the last. Jenab's day cut drops Monday's turns from Tuesday's.
+	// the last. Jenab grows too: a new day alone doesn't cut, it comes as
+	// a note (TASK-047).
 	p, j := rep.Runs[1].TurnStats, rep.Runs[0].TurnStats
 	if !(p[0].Estimate < p[1].Estimate && p[1].Estimate < p[2].Estimate) {
 		t.Errorf("plain doesn't grow: %+v", p)
 	}
-	if !(j[2].Estimate < j[1].Estimate) {
-		t.Errorf("jenab didn't cut on the new day: %+v", j)
+	if !(j[1].Estimate < j[2].Estimate) {
+		t.Errorf("jenab cut on the new day: %+v", j)
 	}
 	md := rep.Markdown(nil)
 	for _, want := range []string{"## Side by side", "### Per turn", "scripted/script · plain"} {

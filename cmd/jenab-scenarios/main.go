@@ -457,12 +457,15 @@ type usageCall struct {
 	Stop       string  `json:"stop,omitempty"`
 	Error      string  `json:"error,omitempty"`
 	Dropped    int     `json:"thinking_dropped,omitempty"` // earlier thinking blocks the provider left out (TASK-046)
+	DropPath   string  `json:"thinking_drop_path,omitempty"`
+	Conv       string  `json:"conv,omitempty"`   // a hash of the request's first user message: requests of one window share it
+	Prefix     string  `json:"prefix,omitempty"` // a hash of the system blocks and tool names (scenario.Prefix)
 }
 
 func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
 	return func(yield func(provider.Event, error) bool) {
 		start := time.Now()
-		call := usageCall{Time: start.UTC().Format(time.RFC3339), Model: req.Model}
+		call := usageCall{Time: start.UTC().Format(time.RFC3339), Model: req.Model, Conv: firstUser(req.Messages), Prefix: scenario.Prefix(req)}
 		for ev, err := range c.Provider.Stream(ctx, req) {
 			switch {
 			case err != nil:
@@ -471,7 +474,7 @@ func (c counted) Stream(ctx context.Context, req provider.Request) iter.Seq2[pro
 				call.Stop = string(ev.Stop)
 				if u := ev.Usage; u != nil {
 					call.Input, call.CacheRead, call.CacheWrite, call.Output, call.Thought = u.Input, u.CacheRead, u.CacheWrite, u.Output, u.Thought
-					call.Dropped = u.ThinkingDropped
+					call.Dropped, call.DropPath = u.ThinkingDropped, u.ThinkingDropPath
 				}
 			}
 			if !yield(ev, err) {
@@ -490,6 +493,11 @@ type usageTally struct {
 	sum  usageCall
 	n    int
 	drop int // requests with a dropped thinking block
+	// breaks are the places where earlier thinking was lost: by the
+	// request's conversation, its start and the first dropped block's
+	// path. A stale block left out again at the same place is one break
+	// (TASK-047).
+	breaks map[string]bool
 }
 
 func (t *usageTally) add(c usageCall) {
@@ -504,6 +512,10 @@ func (t *usageTally) add(c usageCall) {
 	t.sum.Dropped += c.Dropped
 	if c.Dropped > 0 {
 		t.drop++
+		if t.breaks == nil {
+			t.breaks = map[string]bool{}
+		}
+		t.breaks[c.Conv+" "+c.Prefix+" "+c.DropPath] = true
 	}
 	if t.log != nil {
 		line, _ := json.Marshal(c)
@@ -521,9 +533,9 @@ func (t *usageTally) take() string {
 		out += fmt.Sprintf(" (thinking %d)", s.Thought)
 	}
 	if s.Dropped > 0 {
-		out += fmt.Sprintf(", thinking blocks dropped %d in %d requests", s.Dropped, t.drop)
+		out += fmt.Sprintf(", thinking blocks dropped %d in %d requests, %d breaks", s.Dropped, t.drop, len(t.breaks))
 	}
-	t.sum, t.n, t.drop = usageCall{}, 0, 0
+	t.sum, t.n, t.drop, t.breaks = usageCall{}, 0, 0, nil
 	return out
 }
 

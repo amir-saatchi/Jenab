@@ -3,12 +3,14 @@ package scenario
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"slices"
 	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
@@ -272,6 +274,46 @@ func (rec *record) usage() chat.Usage {
 		u.ThinkingDropped += q.Usage.ThinkingDropped
 	}
 	return u
+}
+
+// breaks counts the places where earlier thinking was lost: a request
+// that drops thinking and whose start (Prefix) or first dropped block
+// isn't the one of the request before it. A stale block left out again
+// in the next request, at the same place behind the same start, is the
+// same break (TASK-047). A request whose texts the trace let go keeps
+// the start of the one before it.
+func (rec *record) breaks() int {
+	n, prev, start := 0, "", ""
+	for _, q := range rec.requests {
+		if !q.Dropped {
+			start = Prefix(q.Req)
+		}
+		key := ""
+		if q.Usage.ThinkingDropped > 0 {
+			if key = start + " " + q.Usage.ThinkingDropPath; key != prev {
+				n++
+			}
+		}
+		prev = key
+	}
+	return n
+}
+
+// Prefix is a hash of a request's system blocks and tool names: the
+// start a provider caches. Two requests with the same Prefix differ only
+// in their messages.
+func Prefix(req provider.Request) string {
+	h := fnv.New64a()
+	for _, b := range req.System {
+		h.Write([]byte(b.Text))
+		h.Write([]byte{0})
+	}
+	h.Write([]byte{1})
+	for _, t := range req.Tools {
+		h.Write([]byte(t.Name))
+		h.Write([]byte{0})
+	}
+	return fmt.Sprintf("%016x", h.Sum64())
 }
 
 // dropRequests counts the requests with a dropped thinking block.

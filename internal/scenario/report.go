@@ -65,9 +65,11 @@ type Run struct {
 
 	// ThinkingDropped is how many earlier thinking blocks the provider
 	// left out of the chat's requests, in DropRequests of them (TASK-046).
-	// A stale block is counted again in each later request.
+	// A stale block is counted again in each later request; Breaks counts
+	// it once (TASK-047).
 	ThinkingDropped int `json:"thinking_dropped,omitempty"`
 	DropRequests    int `json:"thinking_drop_requests,omitempty"`
+	Breaks          int `json:"thinking_breaks,omitempty"`
 
 	// MemoryTokens and NotesTokens are the sizes at the end, as the caps
 	// count them: user and project memory, and the session notes.

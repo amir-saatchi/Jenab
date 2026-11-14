@@ -612,11 +612,12 @@ func TestBindingOnTheWire(t *testing.T) {
 		first   string
 		beta    string
 		dropped int
+		path    string
 	}{
-		{"adaptive", earlier(opus, true), withDrops, bindingBeta, 3},
-		{"adaptive, nothing dropped", earlier(opus, true), strings.Replace(start, `"stop_reason":null,`, `"stop_reason":null,"input_transformations":[],`, 1), bindingBeta, 0},
-		{"budget", earlier(haiku, true), start, "", 0},
-		{"unknown model", earlier(nil, true), start, "", 0},
+		{"adaptive", earlier(opus, true), withDrops, bindingBeta, 3, "messages.1.content.0"},
+		{"adaptive, nothing dropped", earlier(opus, true), strings.Replace(start, `"stop_reason":null,`, `"stop_reason":null,"input_transformations":[],`, 1), bindingBeta, 0, ""},
+		{"budget", earlier(haiku, true), start, "", 0, ""},
+		{"unknown model", earlier(nil, true), start, "", 0, ""},
 	}
 	for _, tt := range tests {
 		s := newServer(t, 200, answer(tt.first))
@@ -628,7 +629,7 @@ func TestBindingOnTheWire(t *testing.T) {
 			t.Errorf("%s: anthropic-beta = %q, want %q", tt.name, got, tt.beta)
 		}
 		d := evs[len(evs)-1]
-		if d.Kind != provider.EventDone || d.Usage.ThinkingDropped != tt.dropped || d.Usage.Output != 9 {
+		if d.Kind != provider.EventDone || d.Usage.ThinkingDropped != tt.dropped || d.Usage.ThinkingDropPath != tt.path || d.Usage.Output != 9 {
 			t.Errorf("%s: done = %+v, usage %+v", tt.name, d, d.Usage)
 		}
 	}
