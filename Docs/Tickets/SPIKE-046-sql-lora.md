@@ -21,7 +21,7 @@ lfm3:1.7b is the best local model we tested (SPIKE-038), and Liquid says it is m
 ## Rules
 - **Model-neutral (SPEC 1, 3.9):** the tuned model gets the same prompts, tools, loop and configs as every model. Nothing in the app knows about it. The user picks it in the model picker like any other model; it is never preset or suggested by the app.
 - **Training data is synthetic:** made from fixtures and scripted requests only, never real chats. No names, account IDs or user-name paths in the data, the notebook or a published model.
-- **Teachers:** open-weight reference models whose licenses allow training on their outputs (gemma4:31b, mistral-large-4). Not Claude or OpenAI models, whose terms restrict it.
+- **Teachers:** open-weight models whose licenses, and whose provider's terms, allow training on their outputs. First choice: mistral-large-4 on NVIDIA (a reference model), once NVIDIA's free-endpoint terms and the model's license are checked. gemma4:31b is out since Ollama Cloud's free plan ended (2026-11-09); `gemma-4-26b-a4b-it` on the Gemini API works with tools, but the Gemini API's terms need the same check. Not Claude, OpenAI or Gemini models, whose terms restrict training competing models on their outputs. Claude Haiku 5.5 may still run the held-out set as a ceiling, since nothing is trained on those runs.
 - **License:** read the LFM Open License v1.0 before publishing a tuned model anywhere. Training and using it locally comes first.
 - **Keys:** the keys cleared for scenario runs only. Ask before using the reserve keys or the Anthropic key.
 - Keep the PC awake during long local runs. One local model loaded at a time; don't pull or update models without asking.
