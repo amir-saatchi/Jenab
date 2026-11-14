@@ -1,6 +1,6 @@
 # SPIKE-045 — Subscribe and publish between agents
 **Type:** Spike
-**Status:** Ran (2026-11-14). The proposed SPEC 8.6 text in the Result waits for the user's decision.
+**Status:** Done (decided 2026-11-15). The user accepted the proposed SPEC 8.6 text. It is in SPEC 8.6, with 2.3, 3.1, 8.1 and 8.9 updated to match.
 **Gate:** 3
 **Needs:** SPIKE-044 (agents are built the way it decides, now SPEC 8.6) and SPIKE-034 round 2 (sub-sessions and the `Deps.Notices` hook). Both are merged into `main`.
 
@@ -149,9 +149,19 @@ The reporter's use measure (the draft has today's 6.4% drop) was 100% in every c
 - Giving `publish` only to chats with a channel to publish on.
 - Wake-up turns.
 
-**Decision:** waits for the user. Proposed text below.
+**Decision** (2026-11-15): the user accepted the text below. It is now in SPEC 8.6 as *Subscriptions and channels*. Writing it in also settled these points:
 
-**SPEC 8.6 text** (proposed):
+- **8.1, 8.6 and 8.9:** `create_chat` gains `subscriptions` and `publishes`. 8.1's tool table gains `publish` and `read_report`, which come with channels, not with a group.
+- **8.6:**
+  - The *Customize* panel holds the chat's subscriptions and channels.
+  - *Only Mother sends* still holds: a report reaches subscribers as a notice, which starts no turn.
+  - The chat comparison says a chat can publish on its channels.
+  - The text adds two short lines on why, from the results.
+- **3.1:** block 5 holds the chat's subscriptions and channels, and the notes example gains a `schema_changed` notice.
+- **2.3:** `chats` gains `publishes`. New tables: `subscriptions`, `channels` and `reports`.
+- **Phase 5:** subscriptions and channels.
+
+**SPEC 8.6 text** (proposed, then accepted):
 
 > **Subscriptions and channels** (SPIKE-045)
 >

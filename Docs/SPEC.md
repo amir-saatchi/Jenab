@@ -151,12 +151,15 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 
 | Table | Holds |
 |---|---|
-| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `tool_groups` (the chat's tool groups, fixed when it starts, 8.6), `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
+| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `tool_groups` (the chat's tool groups, fixed when it starts, 8.6), `publishes` (the channels it publishes on, 8.6), `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
 | `messages` | ID, chat_id, turn number, role (`user`, `assistant`, `tool`), model, token counts, created_at |
 | `message_parts` | message_id, seq, type (`text`, `thinking`, `tool_call`, `tool_result`, `image`, `notice`, `approval`, `question` (8.8), `quote`), content, `ref` to a bucket object for large outputs, preview |
 | `session_notes` | chat_id, content (the agent's notes), summary (written by *Refresh memory*), revision, updated_at (3.4) |
 | `review_chunks` | Results of *Refresh memory* per message range (3.5) |
 | `role_changes` | Each role change: before, after, source and time (8.6) |
+| `subscriptions` | chat_id, the event (`schema_changed`, `pipeline_run`) or `channel:<name>`, the filter as JSON, created_by (`user` or `message:<id>` of Mother's `create_chat` call), created_at (8.6) |
+| `channels` | The project's channels: name, the one-line description, created_at (8.6) |
+| `reports` | Reports published on channels: ID, channel, chat_id, message_id of the `publish` call, title, body, created_at (8.6) |
 | `rewinds` | Each rewind (8.3): the turn the chat went back to, the last turn that left, the notice it wrote, the notes, skills and *Refresh memory* progress it replaced (for its undo), and the time |
 | `rewound_messages` | The messages a rewind took out, with their parts as JSON, token counts and times; out of the chat, the context and `messages_fts` |
 | `turn_state` | Per chat and turn, the session notes and loaded skills as they were before the turn first changed them, so a rewind can put them back |
@@ -346,7 +349,7 @@ Every request of the main agent is assembled in this order, from most stable to 
 2. User memory
 3. Project memory
 4. Project card (3.2), plus the chat list in the Mother chat (8.6)
-5. Session notes (3.4)
+5. Session notes (3.4), plus the chat's subscriptions and channels (8.6)
 6. History window (3.6)
 7. Current turn
 
@@ -357,6 +360,7 @@ Anything that changes in between is added at the end as a short note and folded 
 ```
 [memory updated by another chat: preferences → prices in EUR]
 [run daily_btc finished 08:00: success, 6 rows inserted]
+[schema_changed by chat "Schema agent": btc_prices + column volume REAL]
 [user opened page bitcoin: from_date = 2026-07-01]
 [the project card changed; this one replaces the one before]
 [the project card changed: there is none now]
@@ -1655,7 +1659,8 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | `task_status(id)` | Status of a background task; a finish notice follows, so there is no need to poll (8.3) |
 | `ask_user(questions)` | Ask the user 1–4 questions with options; the turn waits for the answer (8.8) |
 | `list_chats()` | IDs, titles, roles and status of the project's chats (8.6) |
-| `create_chat(title, role, message, skills, tools)`, `send_to_chat(chat_id, message)` | Mother chat only: start a chat with a role and its tool groups, or continue one; returns a task ID (8.6) |
+| `create_chat(title, role, message, skills, tools, subscriptions, publishes)`, `send_to_chat(chat_id, message)` | Mother chat only: start a chat with a role, its tool groups, its subscriptions and the channels it publishes on, or continue one; returns a task ID (8.6) |
+| `publish(channel, title, body)`, `read_report(id)` | Publish a report on one of the project's channels, or read one; they come with the chat's channels, not with a tool group (8.6) |
 | `load_skill(name, file)` | Load a skill, or one of its extra files, into this chat (8.9) |
 
 ### 8.2 Schema agent
@@ -1865,9 +1870,10 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 
   - `bucket_search` (4.9) joins Files when it is built.
   - MCP (8.7), desktop control (8.10) and the later code tools (8.5) get their groups when they are built.
+  - `publish` and `read_report` come with channels, not with a group (*Subscriptions and channels*, below).
 - **Who picks:**
-  - **The user:** in the *Customize* panel when a chat starts. It holds the custom prompt and the groups, each shown with the prompt sections it adds. The panel starts from every group. The core rules can't be turned off.
-  - **Mother:** with `create_chat`'s `tools`, a list of group names. She picks what the job needs.
+  - **The user:** in the *Customize* panel when a chat starts. It holds the custom prompt and the groups, each shown with the prompt sections it adds. The panel starts from every group. The core rules can't be turned off. It also holds the chat's subscriptions and the channels it publishes on (below).
+  - **Mother:** with `create_chat`'s `tools`, a list of group names. She picks what the job needs, and sets `subscriptions` and `publishes` the same way (below).
 - **Fixed at the start:** a chat's groups don't change in v1, so no history holds calls to a tool the chat no longer has. Adding groups later can come after v1.
 - **Refusal:** a call to a tool outside the chat's groups doesn't run. It returns:
   > "`<tool>` isn't one of this chat's tools: it is in the `<Group>` group (`<its one line>`), which this chat doesn't have. A chat's tools are fixed when it starts. Tell the user what you can't do here, or ask them."
@@ -1893,7 +1899,7 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   - She can't change data, build or run, or use the web. She hands that work to a chat that can.
   - She has `read_config` and `run_status`, so she can answer questions about pipelines and runs herself.
 - **Tools** (only Mother has them):
-  - `create_chat(title, role, message, skills, tools)`: a new chat with a role, optionally the skills it needs (8.9), its tool groups, and a first message.
+  - `create_chat(title, role, message, skills, tools, subscriptions, publishes)`: a new chat with a role, optionally the skills it needs (8.9), its tool groups, its subscriptions and the channels it publishes on (below), and a first message.
     - `role`'s description: "The chat's custom prompt, at most 500 tokens, in the user's language. Say what the chat is for, how it works and what it reports back. The system prompt already has the general rules."
     - `tools` lists group names, each with its one line in the schema.
   - `send_to_chat(chat_id, message)`: continue an existing chat
@@ -1909,13 +1915,13 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 | Lives | As long as the project | Until archived | One task |
 | Context | Project card, memory, chat list, own history | Role, project card, memory, own history | The task and its inputs |
 | Tools | Read, Files, Memory, `create_chat`, `send_to_chat` | Its groups, fixed when it starts | Within the parent's groups, so `subagent` doesn't get around them; no memory, schema or subagent tools (8.1) |
-| Sends to other chats | Yes | No | No |
+| Sends to other chats | Yes | No; it can publish on its channels (below) | No |
 | Changes memory or schema | Memory only; she hands schema and data work on | With its groups | No |
 | Starts subagents | Yes | Yes | No |
 | Use it for | Overview and directing work | A lasting job, or work the user wants to follow | One-off work, e.g. reading 20 pages |
 
 **Rules**
-- **Only Mother sends.** Other chats answer only through the finish notice. They can't send to other chats, so messages can't loop.
+- **Only Mother sends.** Other chats answer only through the finish notice. They can't send to other chats, so messages can't loop. A report on a channel reaches its subscribers as a notice, which starts no turn (below).
 - **Subagents** (not chats, so they have no row in `chats`):
   - **One level:** a subagent can't start another subagent.
   - **Transcript:** a subagent's own messages are not written to `chats.db`, so `search_history` doesn't find them. When it ends, its transcript is stored in the bucket as JSON, and the parent's `tool_result` points to it with `ref` (3.7). The parent turn shows its steps from there, and so does the turn inspector (8.4).
@@ -1935,11 +1941,48 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   - Known gap: some models do a role chat's job themselves instead of sending it. That costs tokens but is safe. It is rechecked before Phase 5 with a frontier model and each chat's full role in the chat list.
 - **Later idea, not planned:** a read-only `list_activity()` tool with the details of all running work in the project. It is added only if the Phase 5 scenario runs show that Mother chooses worse without it, since every tool costs tokens in each request and invites polling (SPIKE-023).
 
+**Subscriptions and channels** (SPIKE-045)
+
+A **subscription** is a standing rule held by the app: when an event of type E, matching filter F, happens, it is delivered to chat C as a notice.
+
+- **Delivery.**
+  - The notice is written into C's history when C's next turn starts, like a memory-changed notice (3.6). It is one line, at most 1,000 characters, and says what changed and who changed it.
+  - Each event reaches a chat once, and never the chat that caused it.
+  - A notice starts no turn in v1, so nothing can loop.
+  - In SPIKE-045, agents with a notice acted on it in the same turn, unasked: the docs agent added a new column, and the reviewer looked into a failed run. With only the project card, neither did. A notice costs a line, far less than the search an agent does without it.
+- **App events (v1).** The app publishes them; no model chooses to.
+  - `schema_changed`, filtered by table, e.g. `[schema_changed by chat "Schema agent": btc_prices + column volume REAL]`.
+  - `pipeline_run`, filtered by pipeline and by outcome (`success` or `failed`), e.g. `[pipeline_run by app: daily_btc failed at step price: HTTP 503 from api.example.com, run r_q7m2 at 10:00]`.
+  - A filter left out matches any.
+- **Who subscribes.**
+  - **The user,** in the *Customize* panel, next to the groups: an event and its filter, or a channel.
+  - **Mother,** with `create_chat`'s `subscriptions`, from the job: e.g. a reviewer gets `pipeline_run` with outcome `failed`. This wasn't tested; the Phase 5 scenario runs check it.
+  - Subscriptions can change later in the panel. Unlike groups, they leave no tool calls in the history.
+  - Agents have no `subscribe` tool: in SPIKE-045 they made a third of the needed subscriptions, late and with the wrong filters.
+- **Block 5** lists the chat's subscriptions, built at cuts (3.1).
+- **Channels.** A fixed list per project, each with a one-line description, made in the setup or in the project settings. Agents publish reports on them:
+  - **The tools:** `publish(channel, title, body)` and `read_report(id)`. They come with channels, not with a tool group.
+    - A chat has `publish` only when it publishes on a channel. That is set like a subscription: by the user in the panel, or by Mother in `create_chat`'s `publishes`.
+    - A chat subscribed to a channel has `read_report`.
+  - **Unknown channels:** a call to a channel that doesn't exist is refused, with the channel list.
+  - **The notice:** subscribers get the title, e.g. `[alerts by chat "Price watcher": BTC dropped 6.40% on 2026-11-12 · report rp_4, read it with read_report]`.
+  - **The prompt section,** only with `publish`: "Before you end a turn whose work changed something another chat depends on, publish it on its channel. Don't publish routine work."
+  - **Block 5** lists the chat's channels, with the last 20 titles of each, built at cuts.
+  - **Why `publish` only where a channel is set:** in SPIKE-045 every chat had `publish`. With the section and the list, every needed report was made, but the noise and the extra reports all came from chats whose job publishes nothing. Without the list, models guessed channel names or didn't publish at all.
+- **Later: wake-up turns.** A notice that starts a turn, for events that can't wait (a failed run for a reviewer). It needs its own guards before it is built:
+  - own events skipped (already the rule);
+  - a hop limit on chains, where a turn started by a notice publishes and wakes another chat;
+  - a token budget per chain;
+  - a per-subscription *wake* switch, off by default.
+
+  Turns started this way are system-started turns (8.3). They count against the background tasks and `system_turn_max_tokens`.
+
 **Phases:**
 - **Phase 1:** titles, roles, and the pinned Mother chat with its chat list.
 - **Phase 5:**
   - `create_chat` and `send_to_chat`, with the subagent tool.
   - Tool groups: the *Customize* panel, the refusal, and Mother's own groups.
+  - Subscriptions and channels: the two app events, delivery as notices, the panel's subscriptions and channels, `create_chat`'s `subscriptions` and `publishes`, and `publish` and `read_report`.
 
 ### 8.7 MCP servers
 
@@ -2107,7 +2150,7 @@ Each bad field gives its own error, naming the file and the field.
   2. **`load_skill(name)`:** the agent loads a skill when it needs one. The text arrives as the tool result, never cut to a preview (3.7), and ends with the list of extra files. `load_skill(name, file)` returns an extra file like any tool result; it doesn't count as a loaded skill.
   3. **`load_with`:** the first call to one of those tools in a chat also loads the skill, if it isn't loaded yet, and adds its text to the tool's result, also when the call failed. Over the limit it is skipped without an error. It is a safety net for models that don't load a skill on their own, and costs nothing when they do.
      - When `request_schema_change` touches dependent pipelines or views, it also loads `pipelines` and `config-guide`.
-  4. **Roles:** a chat can start with skills. Mother passes them in `create_chat(title, role, message, skills, tools)` (8.6), and the user can add them from the chat header. `skills` is optional: the new chat has its own skill list, so it can load a skill Mother missed.
+  4. **Roles:** a chat can start with skills. Mother passes them in `create_chat(title, role, message, skills, tools, subscriptions, publishes)` (8.6), and the user can add them from the chat header. `skills` is optional: the new chat has its own skill list, so it can load a skill Mother missed.
 - **Staying loaded:**
   - The chat's loaded skills are stored in `chats.skills`.
   - At the next cut of the history window (3.6), they move into block 1, after the role, so they survive cuts. Block 1 changes only at cuts, which keeps the cache valid in between.

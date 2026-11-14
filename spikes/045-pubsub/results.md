@@ -164,7 +164,7 @@ channel.
 
 ## Decision
 
-The proposed SPEC 8.6 text is in the [ticket's Result](../../Docs/Tickets/SPIKE-045-subscribe-and-publish.md#result). It waits for the user's decision.
+The proposed SPEC 8.6 text is in the [ticket's Result](../../Docs/Tickets/SPIKE-045-subscribe-and-publish.md#result). The user accepted it on 2026-11-15, and it is in SPEC 8.6 as *Subscriptions and channels*.
 
 ## Limits
 
