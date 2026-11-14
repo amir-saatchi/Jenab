@@ -16,13 +16,14 @@ import (
 // exception: a tool that needs a table joins at the migration that makes
 // the project's first one (joinTableTools). Offered before, query led a
 // model to make a table for a note (TASK-047). Tools left out stay
-// callable: a call to one runs as usual. When the project can't be read,
-// every tool that is on is offered.
+// callable: a call to one runs as usual, unless Deps.ChatTools leaves it
+// out of the chat's tools (SPIKE-044), which narrows the list first. When
+// the project can't be read, every tool of the chat that is on is offered.
 func (r *runner) offerTools(ctx context.Context, t *turn) {
 	w := &r.cs.win
 	w.tools, w.switches, w.tablesAt = r.toolList(ctx, t), r.switches(t), -1
 	have := toolNamesOf(w.tools)
-	for _, tl := range r.o.d.Tools.For(t.ch.Kind) {
+	for _, tl := range r.o.chatTools(t.ch) {
 		if s := tl.Spec(); s.When&tool.WhenTables != 0 && s.IsOn() && !slices.Contains(have, s.Name) {
 			if v, err := r.p.DB.SchemaVersion(ctx); err == nil {
 				w.tablesAt = v
@@ -51,7 +52,7 @@ func (r *runner) joinTableTools(ctx context.Context, t *turn) {
 	}
 	var tools []tool.Tool
 	have := toolNamesOf(w.tools)
-	for _, tl := range r.o.d.Tools.For(t.ch.Kind) {
+	for _, tl := range r.o.chatTools(t.ch) {
 		if s := tl.Spec(); slices.Contains(have, s.Name) || s.When&tool.WhenTables != 0 && s.IsOn() {
 			tools = append(tools, tl)
 		}
@@ -74,9 +75,11 @@ func (r *runner) switches(t *turn) map[string]bool {
 	return out
 }
 
-// toolList is the tools a cut would offer now (offerTools).
+// toolList is the tools a cut would offer now (offerTools): the chat's
+// tools (chatTools), then those that are on, then those whose tool.When
+// the project or the chat has.
 func (r *runner) toolList(ctx context.Context, t *turn) []tool.Tool {
-	all := slices.DeleteFunc(slices.Clone(r.o.d.Tools.For(t.ch.Kind)), func(tl tool.Tool) bool { return !tl.Spec().IsOn() })
+	all := slices.DeleteFunc(r.o.chatTools(t.ch), func(tl tool.Tool) bool { return !tl.Spec().IsOn() }) // the chat's groups first (SPIKE-044), then the switches
 	if all == nil {
 		all = []tool.Tool{} // not nil: nil is every tool
 	}
@@ -133,4 +136,34 @@ func toolNamesOf(ts []tool.Tool) []string {
 // window's list was set. The change applies at the next turn, with a cut.
 func (r *runner) switched(t *turn) bool {
 	return !maps.Equal(r.switches(t), r.cs.win.switches)
+}
+
+// chatTools is the tools chat ch gets: every tool of its kind, or those
+// Deps.ChatTools names (SPIKE-044, spike-only).
+func (o *Orchestrator) chatTools(ch chat.Chat) []tool.Tool {
+	all := o.d.Tools.For(ch.Kind)
+	if o.d.ChatTools == nil {
+		return all
+	}
+	names, _ := o.d.ChatTools(ch)
+	if names == nil {
+		return all
+	}
+	return slices.DeleteFunc(all, func(tl tool.Tool) bool { return !slices.Contains(names, tl.Spec().Name) })
+}
+
+// refusal is the error for a call to a tool chat ch doesn't have under
+// Deps.ChatTools (SPIKE-044, spike-only), or "" when the call may run.
+func (o *Orchestrator) refusal(ch chat.Chat, name string) string {
+	if o.d.ChatTools == nil {
+		return ""
+	}
+	names, refuse := o.d.ChatTools(ch)
+	if names == nil || slices.Contains(names, name) {
+		return ""
+	}
+	if refuse != nil {
+		return refuse(name)
+	}
+	return name + " is not one of this chat's tools"
 }

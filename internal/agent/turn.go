@@ -645,6 +645,9 @@ func (r *runner) runTool(ctx context.Context, t *turn, tm *toolMsg, msg id.Messa
 	if !ok || tl.Spec().Mother && t.ch.Kind != chat.KindMother {
 		return result("there is no tool named " + c.Name), true
 	}
+	if msg := r.o.refusal(t.ch, c.Name); msg != "" { // SPIKE-044, spike-only
+		return result(msg), true
+	}
 	if !tl.Spec().IsOn() {
 		return result(c.Name + " is turned off in Settings"), false
 	}

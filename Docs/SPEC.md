@@ -151,7 +151,7 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 
 | Table | Holds |
 |---|---|
-| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
+| `chats` | ID, kind (`mother` / `chat`), title, title_fixed, role, `tool_groups` (the chat's tool groups, fixed when it starts, 8.6), `skills` (8.9), `model` (3.9), default_page, created_by (a source as in 2.5: `app` for the Mother chat, `user`, or `message:<id>` of Mother's `create_chat` call), created_at, archived, `memory_reviewed_up_to` (3.5) (8.6); `ui_state` with the chat's layout (5.9); `seq`, which goes up with every change to the chat, for snapshot plus sequence (a session-notes save is counted by the tool result written right after it) |
 | `messages` | ID, chat_id, turn number, role (`user`, `assistant`, `tool`), model, token counts, created_at |
 | `message_parts` | message_id, seq, type (`text`, `thinking`, `tool_call`, `tool_result`, `image`, `notice`, `approval`, `question` (8.8), `quote`), content, `ref` to a bucket object for large outputs, preview |
 | `session_notes` | chat_id, content (the agent's notes), summary (written by *Refresh memory*), revision, updated_at (3.4) |
@@ -379,8 +379,12 @@ Block 1 (TASK-011):
 - `search_history` and `read_messages` once the chat has turns before its window or the project has another chat; `list_chats` once there is another chat besides Mother.
 - `bucket_list`, `bucket_read` and `bucket_delete` once the bucket holds something outside `cache/`. `read_ref` and `search_ref` (3.7) are always there.
 - `insert` is always offered: gating it lost day 1's insert in 4 of 6 runs.
-- A tool left out still runs if the model calls it. When the project can't be read, every tool that is on is offered.
+- This gating works within the chat's tool groups (8.6).
+  - A tool the gating left out still runs if the model calls it.
+  - A tool outside the chat's groups doesn't run: the call gets the refusal (8.6).
+  - When the project can't be read, every tool of the chat's groups that is on is offered.
 - A tool switched on or off in Settings (8.10) is added or left out from the next turn, which cuts. Within a turn the list stays; a call to a tool that is off is refused.
+- Both refusals apply. A call to a tool outside the chat's groups gets the group refusal first. A call to a tool in its groups that is off gets the Settings refusal.
 
 ### 3.2 Project card
 
@@ -1651,7 +1655,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | `task_status(id)` | Status of a background task; a finish notice follows, so there is no need to poll (8.3) |
 | `ask_user(questions)` | Ask the user 1–4 questions with options; the turn waits for the answer (8.8) |
 | `list_chats()` | IDs, titles, roles and status of the project's chats (8.6) |
-| `create_chat(title, role, message, skills)`, `send_to_chat(chat_id, message)` | Mother chat only: start or continue a chat; returns a task ID (8.6) |
+| `create_chat(title, role, message, skills, tools)`, `send_to_chat(chat_id, message)` | Mother chat only: start a chat with a role and its tool groups, or continue one; returns a task ID (8.6) |
 | `load_skill(name, file)` | Load a skill, or one of its extra files, into this chat (8.9) |
 
 ### 8.2 Schema agent
@@ -1832,24 +1836,52 @@ A project can link one folder on disk, for example a git repository. In v1 the a
   - pipelines never run commands
 - **Not planned:** parity with dedicated coding agents (language servers, worktrees, hooks).
 
-### 8.6 Mother chat and chat roles
+### 8.6 Mother chat, chat roles and agents
 
-Every project has one **Mother chat**: the project's home, which directs the other chats. Other chats can have a **role**: a lasting job such as *Reviewer* or *ETH tracker*.
+Every project has one **Mother chat**: the project's home, which directs the other chats. Other chats can have a **role**: a lasting job such as *Reviewer* or *ETH tracker*. Every chat also has **tool groups**, fixed when it starts. A chat with a role and only the groups its job needs is an **agent** (SPIKE-044).
 
 **Titles and roles**
 - **Title:** one field.
   - It is generated at first, and stays fixed once the user or Mother sets it.
   - Titles are unique within a project, so `@Reviewer` works in the UI. Tools use chat IDs.
-- **Role:** optional text, at most 500 tokens, added after the system prompt (3.1, block 1). A change takes effect at the next cut of the history window (3.6), since block 1 changes only at cuts.
-  - It says what the chat is for and how it works, e.g. "Review every new pipeline for cost and missing error handling."
+- **Role:** the chat's custom prompt, optional, at most 500 tokens, added after the system prompt (3.1, block 1). A change takes effect at the next cut of the history window (3.6), since block 1 changes only at cuts.
+  - It says what the chat is for, how it works and what it reports back, e.g. "Review every new pipeline for cost and missing error handling. Reply with the problems, most important first, each with its fix."
+  - It is in the user's language. The language of the role carries into the chat's output: in SPIKE-044 an English role for a Persian request gave an English digest.
   - The user or Mother writes it. A change is recorded like a memory edit, with undo.
 - **Default page:** optional. A role chat can open with a page, e.g. the *ETH tracker* with the ETH page (5.9).
+
+**Tool groups** (SPIKE-044)
+- **Groups:** a chat has the tools of its groups, narrowed further by the usual gating (3.1). Block 1's lines follow its tools (3.1), and the core rules are always in.
+
+  | Group | Tools | Its one line (in `create_chat` and the *Customize* panel) |
+  |---|---|---|
+  | Read | `query`, `describe_table`, `read_config`, `run_status`, `open_page` | read the project's tables, views, pages, pipelines and runs |
+  | Change data | `insert`, `request_schema_change` | add rows and ask the schema agent for tables or columns |
+  | Build and run | `save_view`, `save_page`, `save_pipeline`, `validate`, `dry_run`, `run_pipeline` | build, check and run views, pages and pipelines |
+  | Files | `bucket_*`, `list_files`, `read_file`, `search_code` | the project's files (the bucket) and the linked folder |
+  | Web | `web_search`, `fetch_page`, `read_feed`, `save_link`, `call_api`, `connect_api` | search and read the web, feeds and APIs |
+  | Memory | `update_memory` | edit user and project memory |
+  | Always on | `ask_user`, `update_session_notes`, `search_history`, `read_messages`, `read_ref`, `search_ref`, `list_chats`, `load_skill`, `task_status`, `subagent` | |
+
+  - `bucket_search` (4.9) joins Files when it is built.
+  - MCP (8.7), desktop control (8.10) and the later code tools (8.5) get their groups when they are built.
+- **Who picks:**
+  - **The user:** in the *Customize* panel when a chat starts. It holds the custom prompt and the groups, each shown with the prompt sections it adds. The panel starts from every group. The core rules can't be turned off.
+  - **Mother:** with `create_chat`'s `tools`, a list of group names. She picks what the job needs.
+- **Fixed at the start:** a chat's groups don't change in v1, so no history holds calls to a tool the chat no longer has. Adding groups later can come after v1.
+- **Refusal:** a call to a tool outside the chat's groups doesn't run. It returns:
+  > "`<tool>` isn't one of this chat's tools: it is in the `<Group>` group (`<its one line>`), which this chat doesn't have. A chat's tools are fixed when it starts. Tell the user what you can't do here, or ask them."
+
+  In Mother's chat the last sentence is "Hand the work to a chat that has it, with send_to_chat or create_chat."
+  - A chat only sees its own tools, so the reference models never hit the refusal in SPIKE-044. It is a safety net.
+  - When it did fire, for Mother trying a tool she lacks, she handed the work on.
+- **Groups, not single tools:** with single tools in `create_chat`, Mother picked as well but tried tools she lacks. With groups she never did (SPIKE-044).
 
 **Mother chat**
 - **Place:** created with the project, pinned at the top of the chat list in its own colour.
   - The colour is a gradient of the `purple`, `blue` and `green` tones (5.11): a border on Mother's chat row and composer, and a filled tile in the rail while a page is open (5.12).
   - The gradient turns slowly while Mother is in a turn, and stays still when the OS asks for reduced motion. It can't be archived or deleted, only cleared.
-  - *Clear* (on any chat) removes the messages, session notes and review results. The chat keeps its title, role, loaded skills (8.9) and model. It works between turns, and the next turn starts a fresh window.
+  - *Clear* (on any chat) removes the messages, session notes and review results. The chat keeps its title, role, tool groups, loaded skills (8.9) and model. It works between turns, and the next turn starts a fresh window.
   - A rewind to the start (8.3) is like *Clear* with undo, but it also puts the notes and skills back to how they were before the first turn. A role's skills stay.
 - **Context:** the project card is followed by a **chat list** (3.1, block 4):
   - ID, title, the first line of the role, status (idle / in a turn / waiting for the user), the number of its background tasks still running (8.3), last activity, and the first lines of the session notes.
@@ -1857,8 +1889,13 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   - Phase 1 row: `- c_07 "ETH tracker". Role: Track ETH. Status: idle. Last activity: 2026-10-05 14:02. Notes: Daily at 9.` The list is built at cuts, so the cache holds between them; archived chats are left out.
   - It is refreshed at cuts, like the project card; changes in between arrive as notices.
 - **Notices:** scheduled-run notices and failure notifications are also shown in Mother.
+- **Mother's groups:** Read, Files and Memory, plus `create_chat` and `send_to_chat`.
+  - She can't change data, build or run, or use the web. She hands that work to a chat that can.
+  - She has `read_config` and `run_status`, so she can answer questions about pipelines and runs herself.
 - **Tools** (only Mother has them):
-  - `create_chat(title, role, message, skills)`: a new chat with a role, optionally the skills it needs (8.9), and a first message
+  - `create_chat(title, role, message, skills, tools)`: a new chat with a role, optionally the skills it needs (8.9), its tool groups, and a first message.
+    - `role`'s description: "The chat's custom prompt, at most 500 tokens, in the user's language. Say what the chat is for, how it works and what it reports back. The system prompt already has the general rules."
+    - `tools` lists group names, each with its one line in the schema.
   - `send_to_chat(chat_id, message)`: continue an existing chat
   - Both return a task ID right away, like a background subagent (8.3). When the target chat's turn ends, Mother gets the finish notice with its last reply.
 
@@ -1871,8 +1908,9 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 | The user can write in it | Yes | Yes | No |
 | Lives | As long as the project | Until archived | One task |
 | Context | Project card, memory, chat list, own history | Role, project card, memory, own history | The task and its inputs |
+| Tools | Read, Files, Memory, `create_chat`, `send_to_chat` | Its groups, fixed when it starts | Within the parent's groups, so `subagent` doesn't get around them; no memory, schema or subagent tools (8.1) |
 | Sends to other chats | Yes | No | No |
-| Changes memory or schema | Yes | Yes | No |
+| Changes memory or schema | Memory only; she hands schema and data work on | With its groups | No |
 | Starts subagents | Yes | Yes | No |
 | Use it for | Overview and directing work | A lasting job, or work the user wants to follow | One-off work, e.g. reading 20 pages |
 
@@ -1887,8 +1925,9 @@ Every project has one **Mother chat**: the project's home, which directs the oth
 - **Busy chats:** if the target chat is in a turn, the message waits until the turn ends.
 - **Reading:** every chat can still read the others with `list_chats`, `search_history(scope: project)` and `read_messages`.
 - **Model-neutral:** the guidance on when to delegate is part of Mother's system prompt and is the same for every model (1).
-- **Delegation guidance v1** (SPIKE-023), in Mother's system prompt only with `create_chat` (3.1):
+- **Delegation guidance v1** (SPIKE-023, SPIKE-044), in Mother's system prompt only with `create_chat` (3.1):
   - Answer yourself when the project card, the chat list or a quick tool call is enough.
+  - You can't change data, build or run, or use the web. Work that needs them goes to a chat that has them: send it to one, or create one with only the groups the job needs.
   - If an existing chat's role covers the job, send it there with `send_to_chat`, with the context it needs: what to do, which pipeline, view or data, and what to report back.
   - Create a chat with a role only for a lasting job: something done again and again, or that the user wants to follow.
   - For long one-off work, e.g. summarising many pages, use a background subagent.
@@ -1896,7 +1935,11 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   - Known gap: some models do a role chat's job themselves instead of sending it. That costs tokens but is safe. It is rechecked before Phase 5 with a frontier model and each chat's full role in the chat list.
 - **Later idea, not planned:** a read-only `list_activity()` tool with the details of all running work in the project. It is added only if the Phase 5 scenario runs show that Mother chooses worse without it, since every tool costs tokens in each request and invites polling (SPIKE-023).
 
-**Phases:** titles, roles, and the pinned Mother chat with its chat list in Phase 1; `create_chat` and `send_to_chat` in Phase 5, with the subagent tool.
+**Phases:**
+- **Phase 1:** titles, roles, and the pinned Mother chat with its chat list.
+- **Phase 5:**
+  - `create_chat` and `send_to_chat`, with the subagent tool.
+  - Tool groups: the *Customize* panel, the refusal, and Mother's own groups.
 
 ### 8.7 MCP servers
 
@@ -2064,7 +2107,7 @@ Each bad field gives its own error, naming the file and the field.
   2. **`load_skill(name)`:** the agent loads a skill when it needs one. The text arrives as the tool result, never cut to a preview (3.7), and ends with the list of extra files. `load_skill(name, file)` returns an extra file like any tool result; it doesn't count as a loaded skill.
   3. **`load_with`:** the first call to one of those tools in a chat also loads the skill, if it isn't loaded yet, and adds its text to the tool's result, also when the call failed. Over the limit it is skipped without an error. It is a safety net for models that don't load a skill on their own, and costs nothing when they do.
      - When `request_schema_change` touches dependent pipelines or views, it also loads `pipelines` and `config-guide`.
-  4. **Roles:** a chat can start with skills. Mother passes them in `create_chat(title, role, message, skills)` (8.6), and the user can add them from the chat header. `skills` is optional: the new chat has its own skill list, so it can load a skill Mother missed.
+  4. **Roles:** a chat can start with skills. Mother passes them in `create_chat(title, role, message, skills, tools)` (8.6), and the user can add them from the chat header. `skills` is optional: the new chat has its own skill list, so it can load a skill Mother missed.
 - **Staying loaded:**
   - The chat's loaded skills are stored in `chats.skills`.
   - At the next cut of the history window (3.6), they move into block 1, after the role, so they survive cuts. Block 1 changes only at cuts, which keeps the cache valid in between.

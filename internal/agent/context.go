@@ -237,7 +237,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 	req := provider.Request{Model: t.model, System: w.system, Messages: msgs, Thinking: true, Image: r.image}
 	tools := w.tools
 	if plain || tools == nil {
-		tools = r.o.d.Tools.For(t.ch.Kind)
+		tools = r.o.chatTools(t.ch)
 	}
 	for _, tl := range tools {
 		// Jenab reads a switch at the cut, plain at each request (8.10).
@@ -513,9 +513,9 @@ func (r *runner) blocks(ctx context.Context, t *turn, card string) ([]provider.B
 // block1 is block 1 (3.1): the system prompt with today's date, the role,
 // the loaded skills and the skill list.
 func (r *runner) block1(t *turn) string {
-	tools := r.o.d.Tools.For(t.ch.Kind)
+	tools := r.o.chatTools(t.ch)
 	var b strings.Builder
-	b.WriteString(base(tools))
+	b.WriteString(baseOf(r.o.d.Tools.For(t.ch.Kind), tools))
 	if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Background }) {
 		b.WriteString("\n\n" + r.o.rule())
 	}
@@ -530,7 +530,7 @@ func (r *runner) block1(t *turn) string {
 	if t.ch.Kind == chat.KindMother {
 		b.WriteString("\n\n" + promptNames.Replace(strings.TrimSpace(motherPrompt)))
 		if slices.ContainsFunc(tools, func(tl tool.Tool) bool { return tl.Spec().Name == "create_chat" }) {
-			b.WriteString("\n\n" + strings.TrimSpace(delegatePrompt))
+			b.WriteString("\n\n" + delegation(r.o.d.DelegateLine))
 		}
 	}
 	b.WriteString("\n\n" + today(r.o.d.Now()))
@@ -682,9 +682,15 @@ var areaText = []string{"tables in a local database", "pipelines that fetch data
 // base is the system prompt's start. It names the parts of a project the
 // tools work on, and says the others aren't in this version, so the model
 // doesn't build them from files (TASK-014).
-func base(tools []tool.Tool) string {
+func base(tools []tool.Tool) string { return baseOf(tools, tools) }
+
+// baseOf is base with the areas of the registered tools and the other
+// lines of the chat's own: they differ only under Deps.ChatTools
+// (SPIKE-044), where a chat without a pipeline tool is still told the
+// project has pipelines.
+func baseOf(registered, tools []tool.Tool) string {
 	var has tool.Areas
-	for _, tl := range tools {
+	for _, tl := range registered {
 		has |= tl.Spec().Areas
 	}
 	var parts, missing []string
@@ -809,4 +815,24 @@ func (r *runner) image(ctx context.Context, ref string) ([]byte, error) {
 	}
 	defer rc.Close()
 	return io.ReadAll(rc)
+}
+
+// delegation is Mother's delegation guidance, with SPIKE-044's line after
+// its first item when the hook sets one.
+func delegation(line string) string {
+	g := strings.TrimSpace(delegatePrompt)
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return g
+	}
+	i := strings.Index(g, "\n- ")
+	if i < 0 {
+		return g + "\n- " + line
+	}
+	j := strings.Index(g[i+1:], "\n")
+	if j < 0 {
+		return g + "\n- " + line
+	}
+	j += i + 1
+	return g[:j] + "\n- " + line + g[j:]
 }
