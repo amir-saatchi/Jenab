@@ -41,7 +41,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-031](SPIKE-031-thoughts-graph.md) | Thoughts-Graph: a how-to task as a graph of model calls | Spike | Done | 3 |
 | [SPIKE-032](SPIKE-032-made-up-numbers.md) | Catch made-up numbers and let the model correct them | Spike | Done | 3 |
 | [SPIKE-033](SPIKE-033-semantic-recall.md) | Semantic recall: find earlier messages and file passages by meaning | Spike | Done | 3 |
-| [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Deferred | 3 |
+| [SPIKE-034](SPIKE-034-topics.md) | Topics: threads inside a chat, with their own notes and history | Spike | Deferred (rounds 1–2 done on gemma, ministral and Gemini) | 3 |
 | [SPIKE-035](SPIKE-035-plan-first.md) | Plan first, as an approval check | Spike | Done (dropped for v1) | 3 |
 | [SPIKE-036](SPIKE-036-plan-feature.md) | A plan the agent keeps, when the task needs one | Spike | Open (later) | 3 |
 | [SPIKE-037](SPIKE-037-live-answer.md) | A live answer, and earlier turns as answers only | Spike | Done (live answer yes; window kept) | 3 |
@@ -52,7 +52,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-042](SPIKE-042-command-patterns.md) | Commands: patterns, approvals and output | Spike | Open (Phase 6) | 3 |
 | [SPIKE-043](SPIKE-043-windows-write-sandbox.md) | Windows write sandbox without admin rights | Spike | Open (Phase 6) | 3 |
 | [SPIKE-044](SPIKE-044-specialized-agents.md) | Specialized agents: tool groups and a custom prompt | Spike | Done (groups, decided 2026-11-14) | 3 |
-| [SPIKE-045](SPIKE-045-subscribe-and-publish.md) | Subscribe and publish between agents | Spike | Results in; the user decides | 3 |
+| [SPIKE-045](SPIKE-045-subscribe-and-publish.md) | Subscribe and publish between agents | Spike | Open (Phase 5) | 3 |
+| [SPIKE-046](SPIKE-046-sql-lora.md) | A LoRA for the database agent on lfm3:1.7b | Spike | Open (Part A now; Part B after SPIKE-044) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |

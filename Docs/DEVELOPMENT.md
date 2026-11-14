@@ -115,7 +115,7 @@ On Windows, CI builds with `CGO_ENABLED=0`, so a dependency that needs cgo fails
 
 Spikes and tests run on three models (the first two decided in SPIKE-030, the third on 2026-11-10):
 - **Gemini `gemini-3.5-flash-lite`**, the main one. It is fast and has a full JSON-schema mode. The free tier allows about 1,500 requests a day, reset at midnight Pacific time, and Google may use free-tier prompts.
-- **Ollama Cloud `gemma4:31b`**, for the Ollama backend. Ollama Cloud uses monthly credits; the free plan runs 1 request at a time.
+- **Ollama Cloud `gemma4:31b`**, for the Ollama backend. **Paused:** Ollama Cloud's free plan ended on 2026-11-09, and gemma4:31b now needs credits ([MODELS](MODELS.md#not-working-now)). Until a replacement is chosen, the Ollama backend is covered only by local Ollama (SPIKE-038's `lfm3:1.7b`).
 - **NVIDIA `mistralai/mistral-large-4-1t-a52b`**, for the `openai_compatible` kind, which most providers use. NVIDIA's free endpoints allow about 40 requests a minute; requests are slower (about 9 s) and sometimes hang, so runs need a timeout. On the scenario suite it passed as many runs as `gemini-3.5-flash-lite` ([GEMINI-BASELINE-report](Tickets/reports/GEMINI-BASELINE-report.md)).
 
 A failure on any other model is recorded, not worked around. Fixes are made the same way for every model (SPEC 1).

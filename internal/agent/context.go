@@ -117,6 +117,7 @@ func (r *runner) request(ctx context.Context, t *turn, last bool) (provider.Requ
 		r.refreshCard(ctx, t)
 		r.refreshTools(ctx, t)
 		r.memoryNotices(ctx, t)
+		r.spikeNotices(ctx, t)
 	}
 	ms, _, err := r.p.Chats.Messages(ctx, t.ch.ID, w.start, t.n)
 	if err != nil {
@@ -418,14 +419,51 @@ const notesBlockName = "Session notes"
 // the cut. The chat's own edits until the next cut are in its turns as
 // tool calls, so they need no notice; Refresh memory ends with a cut
 // (3.5). Like memory, the notes are best effort: a failure is logged and
-// leaves the block out.
+// leaves the block out. Deps.Notes, when set, gives the block instead
+// (SPIKE-034, spike-only).
 func (r *runner) notesBlock(ctx context.Context, t *turn) string {
+	if f := r.o.d.Notes; f != nil {
+		s, err := f(ctx, r.p, t.ch)
+		if err != nil {
+			r.o.d.Log.Error("agent: building the notes block", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+			return ""
+		}
+		return strings.TrimSpace(s)
+	}
 	n, err := r.p.Chats.Notes(ctx, t.ch.ID)
 	if err != nil {
 		r.o.d.Log.Error("agent: reading the session notes", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
 		return ""
 	}
 	return tool.NotesBlock(n)
+}
+
+// NoticeSessionUpdate is a sub-session's reply sent up to its parent
+// through Deps.Notices (SPIKE-034 round 2, spike-only).
+const NoticeSessionUpdate chat.NoticeKind = "session_update"
+
+// spikeNotices writes Deps.Notices' notices into turn t, as one user
+// message like the memory-changed notices. It is best effort.
+func (r *runner) spikeNotices(ctx context.Context, t *turn) {
+	f := r.o.d.Notices
+	if f == nil {
+		return
+	}
+	ns, err := f(ctx, r.p, t.ch)
+	if err != nil {
+		r.o.d.Log.Error("agent: reading the spike's notices", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+		return
+	}
+	if len(ns) == 0 {
+		return
+	}
+	parts := make([]chat.Part, len(ns))
+	for i := range ns {
+		parts[i] = chat.Part{Kind: chat.PartNotice, Notice: &ns[i]}
+	}
+	if _, err := r.o.write(ctx, r.cs, r.p, chat.Message{Chat: t.ch.ID, Turn: t.n, Role: chat.RoleUser, Parts: parts}); err != nil {
+		r.o.d.Log.Error("agent: writing the spike's notices", "project", r.cs.key.p, "chat", r.cs.key.c, "err", err)
+	}
 }
 
 // noCard is the schema version of a card that failed, so the next turn
