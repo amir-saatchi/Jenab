@@ -1,0 +1,9 @@
+# Gemini on the reserve key GEMINI_API_KEY_III, which the user cleared for
+# SPIKE-045's last Gemini runs after GEMINI_API_KEY's 500 a day ran out
+# (2026-11-14). Same provider name as models.yaml, so -resume matches.
+providers:
+  - name: gemini
+    kind: gemini
+    key_env: GEMINI_API_KEY_III
+    models:
+      - {id: gemini-3.5-flash-lite, context: 1048576}
