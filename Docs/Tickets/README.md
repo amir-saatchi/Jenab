@@ -102,6 +102,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-047](TASK-047-steady-prefix.md) | Keep the start of each request the same | Task | Done | 3 |
 | [TASK-048](TASK-048-runner-quota-stop.md) | The scenario runner stops a model when its quota is gone | Task | Open | 3 |
 | [TASK-049](TASK-049-bucket-search-words.md) | Search the project's files by words (`bucket_search`, R-128) | Task | Open | 3 |
+| [TASK-050](TASK-050-settings-findings.md) | Find Project settings and the project's memory | Task | Open | 3 |
+| [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Open | 3 |
 
 ## Phase 1
 
@@ -148,7 +150,7 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-11](P2-11-refresh-memory.md) | Refresh memory | P2-09, P2-10 | Done |
 | [P2-12](P2-12-export.md) | Export a project | P1-04 | Done |
 | [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Done |
-| [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | In progress |
+| [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | Done |
 
 ## Notes
 

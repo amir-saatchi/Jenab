@@ -708,6 +708,22 @@ export interface Usage {
      * reports it. It is not stored yet.
      */
     "thought"?: number;
+
+    /**
+     * ThinkingDropped is how many earlier thinking blocks the provider
+     * left out of the request because the conversation before them
+     * changed or they came from another model (Anthropic, SPEC 3.8). It
+     * is not stored yet.
+     */
+    "thinking_dropped"?: number;
+
+    /**
+     * ThinkingDropPath is where the first of those blocks was in the
+     * request, such as "messages.3.content.0". A stale block is left out
+     * again in each later request at the same place, so one break shows
+     * as one path (TASK-047). Not stored either.
+     */
+    "thinking_drop_path"?: string;
 }
 
 /**

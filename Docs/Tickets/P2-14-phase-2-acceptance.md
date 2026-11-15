@@ -1,6 +1,6 @@
 # P2-14 — Phase 2 acceptance
 **Type:** Task
-**Status:** In progress
+**Status:** Done
 **Gate:** 3 (Phase 2)
 **Needs:** P2-01 to P2-13
 
@@ -21,7 +21,7 @@ Check Phase 2's "done when" in the built app (PROPOSAL 9): the agent creates and
 - The scenario passes on both reference models with 3 reps, and the manual run in the built app is recorded.
 
 ## Result
-The scenario passes on all three reference models (2026-11-14 and 2026-11-15). The manual run in the built app is still open. Report: [P2-14-report](reports/P2-14-report.md).
+Done on 2026-11-15. The scenario passes on all three reference models, and the manual run in the built app passed. Report: [P2-14-report](reports/P2-14-report.md).
 
 - **Scenario:** `scenarios/phase2-acceptance`, `P2_schema_memory`, 9 turns in two chats on a new project.
   - The first chat makes the Bitcoin table through the schema agent, adds three days by hand and saves the goal to project memory.
@@ -44,6 +44,10 @@ The scenario passes on all three reference models (2026-11-14 and 2026-11-15). T
 - **N-08:** a 5,000-row upsert takes 136–171 ms, and its undo 120–174 ms (target 1 s).
 - **N-20:** SPIKE-007's 63 cases and the attack, resource and byte-sweep tests pass. Layer 1 takes 1.6 µs, layer 2 78 µs.
 - **Benchmark (P2-13, TASK-033):** Jenab is as accurate as plain. After TASK-033, flash-lite uses 19,981 tokens a turn against plain's 9,760. It is cheaper per turn on long chats from turn 14, but not summed within three weeks.
-- **Open:**
-  - The manual run in the built app, with screenshots of the memory chip, the migration card and *Undo turn*. The steps are in the report.
-  - `TestPhase2Acceptance` in CI, once the billing lock is lifted.
+- **Built app (2026-11-15, the user, Haiku 5.5, build 5735016):** passed. The screenshots stay with the user, since they show the data folder's path.
+  - Turn 1: `update_memory` saved the goal to project memory, with the chip `Memory updated: goals` and its *Undo* and *Edit*. The schema agent made `btc_prices`.
+  - Turn 3: the card "Apply a schema change that deletes data?" was approved. The 3 Bitcoin rows moved to `prices` as `BTC`, and `btc_prices` was dropped.
+  - After a restart, a new chat answered the three questions (sent as one message) with `query`, `describe_table`, the card and memory: 92,115, 93,480 on 2026-11-11, `prices` keyed `(coin, date)`, and the goal. No history tool. In a second try, the model first tried `sqlite_master`, as in the live runs.
+  - The two insert messages were sent as one, so one turn inserted 5 rows. *Undo turn* took out those 5 ("turn 2 was undone: 5 rows in prices") and kept chat 1's rows; *Redo turn* appeared. The last question got "no Ethereum days", which is right. The two-turn case is covered by the 9 live runs.
+- **Findings:** TASK-050 (the UI: Project settings is hard to find, *Settings → Memory* doesn't say it's for every project, and the schema tool's row shows a raw ref) and TASK-051 (the `query` tool's text sends models to `sqlite_master` and `describe_table`).
+- **Open:** `TestPhase2Acceptance` in CI, once the billing lock is lifted.
