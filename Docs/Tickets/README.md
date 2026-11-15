@@ -104,6 +104,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-049](TASK-049-bucket-search-words.md) | Search the project's files by words (`bucket_search`, R-128) | Task | Open | 3 |
 | [TASK-050](TASK-050-settings-findings.md) | Find Project settings and the project's memory | Task | Open | 3 |
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Open | 3 |
+| [TASK-052](TASK-052-provider-select.md) | Pick the provider from a list in *Add provider* | Task | Open | 3 |
 
 ## Phase 1
 
