@@ -1,0 +1,42 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/phase2-acceptance/_offline.yaml scenarios/phase2-acceptance
+# The replies of a run that passes, in order: the main agent's and, inside
+# request_schema_change, the schema agent's. The calls reach the real
+# tools, database and memory; the runner approves the migration card,
+# restarts the app and presses Undo turn. TestPhase2Acceptance runs it.
+scenarios:
+  P2_schema_memory:
+    # Turn 1: the goal to project memory, then the table.
+    - calls: [{name: update_memory, args: {scope: project, section: goals, content: "Find out whether buying a fixed 50 USD every Monday beats buying only after a 5 % drop.", expected_revision: 0}}]
+    - calls: [{name: request_schema_change, args: {goal: "A table of daily Bitcoin closes in USD, typed in by hand: one row per date."}}]
+    - calls:
+        - name: apply_migration
+          args:
+            plan: "A btc_prices table, one row per day with the close in USD."
+            steps:
+              - {op: create_table, table: btc_prices, columns: [{name: date, type: TEXT}, {name: price, type: REAL}], primary_key: [date]}
+    - text: I made btc_prices (date, price) and saved your goal to project memory.
+    # Turn 2: the three days, with the answer on the write.
+    - calls: [{name: insert, args: {table: btc_prices, rows: [{date: "2026-11-10", price: 91250}, {date: "2026-11-11", price: 93480}, {date: "2026-11-12", price: 92115}], answer: "Added the three closes."}}]
+    # Turn 3: Ethereum, on a card the runner approves.
+    - calls: [{name: request_schema_change, args: {goal: "Track Ethereum too: move btc_prices into prices(coin, date, price) with the key (coin, date) and coin BTC on the old rows, then drop btc_prices."}}]
+    - calls:
+        - name: apply_migration
+          args:
+            plan: "Widen btc_prices into a general prices table keyed by coin and date; the Bitcoin rows keep their data."
+            steps:
+              - {op: widen_table, table: btc_prices, column: {name: coin, type: TEXT}, value: "'BTC'", to: prices}
+    - text: Done. The prices are in one prices table keyed by coin and date, with the three Bitcoin days kept; btc_prices is gone.
+    # Turn 4, a new chat after the restart: a query.
+    - calls: [{name: query, args: {sql: "SELECT date, price FROM prices WHERE coin = 'BTC' ORDER BY date"}}]
+    - text: The Bitcoin close on 2026-11-12 was 92,115 USD. The highest so far was 93,480 USD, on 2026-11-11.
+    # Turn 5: the schema, from the project card.
+    - text: The project has one table, prices (coin, date, price). Its key is (coin, date).
+    # Turn 6: the goal, from project memory.
+    - text: Your goal is to find out whether buying a fixed 50 USD every Monday beats buying only after a 5 % drop.
+    # Turns 7 and 8: rows by hand.
+    - calls: [{name: insert, args: {table: prices, rows: [{coin: ETH, date: "2026-11-10", price: 3140}, {coin: ETH, date: "2026-11-11", price: 3205}, {coin: ETH, date: "2026-11-12", price: 3188}], answer: "Added the three Ethereum closes."}}]
+    - calls: [{name: insert, args: {table: prices, rows: [{coin: BTC, date: "2026-11-13", price: 94020}, {coin: ETH, date: "2026-11-13", price: 3251}], answer: "Added both closes for 2026-11-13."}}]
+    # Turn 9, after Undo turn on turn 7.
+    - calls: [{name: query, args: {sql: "SELECT date, price FROM prices WHERE coin = 'ETH' ORDER BY date"}}]
+    - text: Only 2026-11-13 is left for Ethereum, at 3,251 USD; the three earlier days were undone.

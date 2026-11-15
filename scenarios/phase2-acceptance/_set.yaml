@@ -1,0 +1,16 @@
+# P2-14: Phase 2 acceptance (PROPOSAL 9). The agent creates and evolves a
+# schema from a conversation, and a new chat answers questions about the
+# earlier work using only queries and memory.
+#
+# A new, empty project. The first chat makes the Bitcoin table through the
+# schema agent, adds three days by hand and saves the goal to memory; then
+# "also track Ethereum" asks on a migration card, which the runner
+# approves. The app restarts, and a new chat answers from the tables, the
+# project card and memory, with no history search. It adds Ethereum by hand
+# in two turns, and Undo turn on the first reverts only its rows.
+#
+# No fake tools: the real data tools, request_schema_change and
+# update_memory. The checks read the project's database at the end.
+title: Bitcoin tracker
+project_card: true
+today: 2026-11-15   # the day after the last price

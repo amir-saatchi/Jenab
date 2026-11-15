@@ -1,0 +1,90 @@
+id: P2_schema_memory
+title: A schema made and widened in one chat, then a new chat after a restart, and Undo turn
+tests: ["design", "by_hand", "goal", "migration", "rows", "prices", "schema", "recall", "no_history", "undo"]
+context: main
+why: >
+  Turn 1 makes a table of daily closes through request_schema_change and
+  saves the goal to project memory with update_memory; turn 2 inserts the
+  three days. Turn 3 is request_schema_change: one prices(coin, date,
+  price) table with the key (coin, date), the old table gone, on an
+  approved migration card, every BTC row kept. After the restart a new
+  chat answers from query, the project card and memory, with no
+  search_history, read_messages or list_chats. Turns 7 and 8 insert rows;
+  Undo turn on turn 7 takes its three Ethereum rows out and leaves turn 8's
+  and the Bitcoin rows.
+messages:
+  # Chat 1: the schema from a conversation, rows by hand, the goal.
+  - text: >
+      New project. I want to track the daily Bitcoin closing price in USD,
+      which I'll type in by hand for now. My goal: find out whether buying
+      a fixed 50 USD every Monday beats buying only after a 5 % drop. Make
+      the table I need, and keep that goal in mind for every chat in this
+      project.
+  - text: >
+      Here are the first closes: 2026-11-10 91,250; 2026-11-11 93,480;
+      2026-11-12 92,115. Please add them.
+  - text: >
+      Also track Ethereum. Move the prices into one general table
+      prices(coin, date, price), keeping every Bitcoin row (coin 'BTC'),
+      and drop the old table once nothing needs it.
+  # The app restarts; a new chat in the same project.
+  - text: What was the Bitcoin close on 2026-11-12, and which day had the highest Bitcoin close so far?
+    restart: true
+    new_chat: true
+  - text: Which tables does this project have, and what is the key of the prices table?
+  - text: Remind me, what is the goal of this project?
+  # Two turns of rows by hand; Undo turn on the first.
+  - text: 'Add the first Ethereum closes: 2026-11-10 3,140; 2026-11-11 3,205; 2026-11-12 3,188.'
+  - text: 'And 2026-11-13: Bitcoin 94,020, Ethereum 3,251.'
+  - undo: 7
+  - text: Which Ethereum days are in the table now, with their closes?
+asserts:
+  # 1. The table made through the schema agent, the rows by hand, the goal
+  # in memory.
+  - {type: tool_called, test: design, tool: request_schema_change, turn: "1", result_match: '^\[request_schema_change: applied'}
+  - {type: tool_called, test: by_hand, tool: insert, turn: "2", result_match: '^Inserted \d+ rows? into'}
+  - {type: memory_contains, test: goal, match: '(?is)monday.*(5\s?%|5 percent|five percent|drop|dip)|(5\s?%|5 percent|five percent|drop|dip).*monday'}
+  - {type: tool_called, test: info, tool: update_memory, turn: "1", args_match: '"scope":\s*"project"'}
+  # 2. "Also track Ethereum": an approved migration card, one prices table
+  # with the key (coin, date), the old table gone, and every row kept
+  # (the end state, after turn 8's rows and the undo of turn 7's).
+  - {type: tool_called, test: migration, tool: request_schema_change, turn: "3", result_match: '^\[request_schema_change: applied'}
+  - {type: approval_shown, test: migration, turn: "3", match: '(?s)^migration: .*\nanswer: once$'}
+  - {type: db_query, test: migration, query: "SELECT group_concat(name) FROM (SELECT name FROM pragma_table_info('prices') WHERE pk > 0 ORDER BY pk)", match: '^coin,date$'}
+  - {type: db_query, test: migration, query: "SELECT count(*) FROM sqlite_schema s WHERE s.type = 'table' AND s.name <> 'prices' AND s.name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND s.name NOT LIKE '\\_jenab\\_%' ESCAPE '\\' AND EXISTS (SELECT 1 FROM pragma_table_info(s.name) WHERE name LIKE '%price%' OR name LIKE '%close%')", match: '^0$'}
+  - {type: db_query, test: rows, query: "SELECT group_concat(date || '=' || price, ';') FROM (SELECT date, price FROM prices WHERE upper(coin) IN ('BTC', 'BITCOIN') ORDER BY date)", match: '^2026-11-10=91250(\.0)?;2026-11-11=93480(\.0)?;2026-11-12=92115(\.0)?;2026-11-13=94020(\.0)?$'}
+  # 3-4. After the restart, a new chat: prices from a query, the schema
+  # from the card, the goal from memory; no history search.
+  - {type: tool_called, test: prices, tool: query, turn: "4"}
+  - {type: answer_contains, test: prices, turn: "4", final: true, match: '92[,.\s\x{a0}\x{202f}]?115'}
+  - {type: answer_contains, test: prices, turn: "4", final: true, match: '(?i)2026-11-11|\b11 nov|nov\w*\.? 11\b|11/11|11\.11\.'}
+  - {type: answer_contains, test: schema, turn: "5", final: true, match: '(?i)\bprices\b'}
+  - {type: answer_contains, test: schema, turn: "5", final: true, match: '(?i)\bcoin\b'}
+  - {type: answer_contains, test: schema, turn: "5", final: true, match: '(?i)\bdate\b'}
+  - {type: answer_contains, test: recall, turn: "6", final: true, match: '(?i)monday'}
+  - {type: answer_contains, test: recall, turn: "6", final: true, match: '(?i)5\s?%|5 percent|five percent|drop|dip'}
+  - {type: tool_not_called, test: no_history, tool: search_history, turn: "4"}
+  - {type: tool_not_called, test: no_history, tool: read_messages, turn: "4"}
+  - {type: tool_not_called, test: no_history, tool: list_chats, turn: "4"}
+  - {type: tool_not_called, test: no_history, tool: search_history, turn: "5"}
+  - {type: tool_not_called, test: no_history, tool: read_messages, turn: "5"}
+  - {type: tool_not_called, test: no_history, tool: list_chats, turn: "5"}
+  - {type: tool_not_called, test: no_history, tool: search_history, turn: "6"}
+  - {type: tool_not_called, test: no_history, tool: read_messages, turn: "6"}
+  - {type: tool_not_called, test: no_history, tool: list_chats, turn: "6"}
+  - {type: tool_not_called, test: info, tool: update_memory, turn: "6"}
+  # 5. Undo turn on turn 7 reverts its 3 Ethereum rows and nothing else:
+  # turn 8's two rows and the Bitcoin rows stay.
+  - {type: tool_called, test: undo, tool: insert, turn: "7", result_match: '^Inserted \d+ rows? into prices'}
+  - {type: tool_called, test: undo, tool: insert, turn: "8", result_match: '^Inserted \d+ rows? into prices'}
+  - {type: notice_shown, test: undo, match: '^turn_undone: \[turn \d+ was undone: 3 rows in prices[\],;]'}
+  - {type: db_query, test: undo, query: "SELECT group_concat(date || '=' || price, ';') FROM (SELECT date, price FROM prices WHERE upper(coin) IN ('ETH', 'ETHEREUM') ORDER BY date)", match: '^2026-11-13=3251(\.0)?$'}
+  - {type: db_query, test: undo, query: "SELECT count(*) FROM prices", match: '^5$'}
+  # After the undo the chat reads the table as it is.
+  - {type: answer_contains, test: undo, turn: "9", final: true, match: '3[,.\s\x{a0}\x{202f}]?251'}
+  - {type: answer_lacks, test: info, turn: "9", final: true, match: '3[,.\s\x{a0}\x{202f}]?(140|205|188)\b'}
+  # Reported only.
+  - {type: db_query, test: info, query: "SELECT group_concat(name, ', ') FROM (SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite%' AND substr(name, 1, 7) <> '_jenab_' ORDER BY name)", match: '.'}
+  - {type: max_calls, test: info, tool: request_schema_change, n: 2}
+  - {type: max_turns, test: info, n: 9}
+  - {type: no_turn_failed, test: info}

@@ -114,7 +114,7 @@ On Windows, CI builds with `CGO_ENABLED=0`, so a dependency that needs cgo fails
 ## Reference models
 
 Spikes and tests run on three models (the first decided in SPIKE-030, the second on 2026-11-10, the third on 2026-11-15):
-- **Gemini `gemini-3.5-flash-lite`**, the main one. It is fast and has a full JSON-schema mode. The free tier allows about 1,500 requests a day, reset at midnight Pacific time, and Google may use free-tier prompts.
+- **Gemini `gemini-3.5-flash-lite`**, the main one. It is fast and has a full JSON-schema mode. The free tier allows 500 requests a day, reset at midnight Pacific time, and Google may use free-tier prompts.
 - **NVIDIA `mistralai/mistral-large-4-1t-a52b`**, for the `openai_compatible` kind, which most providers use. NVIDIA's free endpoints allow about 40 requests a minute; requests are slower (about 9 s) and sometimes hang, so runs need a timeout. On the scenario suite it passed as many runs as `gemini-3.5-flash-lite` ([GEMINI-BASELINE-report](Tickets/reports/GEMINI-BASELINE-report.md)).
 - **Anthropic `claude-haiku-5-5`**, for the `anthropic` kind. It is fast (about 2 s a request) and thinks by default. It is paid: a full suite pass cost about $0.11 ([HAIKU-PASS-report](Tickets/reports/HAIKU-PASS-report.md)), so live runs need the user's OK and a cap.
 

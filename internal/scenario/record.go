@@ -73,6 +73,8 @@ type record struct {
 	// turnSecs are each turn's seconds, from its message to the chat's
 	// next idle.
 	turnSecs map[int]float64
+	// undos are what the undo messages did.
+	undos []string
 	// harness is the run's: jenab or plain, or "" for the app's.
 	harness string
 	sc      *Scenario
@@ -113,7 +115,7 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	for _, s := range sent {
 		index[s.id] = s.index
 	}
-	rec := &record{sc: r.sc, harness: r.harness, turnSecs: map[int]float64{}}
+	rec := &record{sc: r.sc, harness: r.harness, turnSecs: map[int]float64{}, undos: r.undos}
 	for _, m := range ms {
 		calls := slices.ContainsFunc(m.Parts, func(p chat.Part) bool { return p.ToolCall != nil })
 		msg, scripted := index[m.ID]
@@ -435,6 +437,12 @@ func (rec *record) transcript() string {
 		}
 	}
 	rec.groundTranscript(&b)
+	if len(rec.undos) > 0 {
+		b.WriteString("\n## Undo\n\n")
+		for _, u := range rec.undos {
+			fmt.Fprintf(&b, "- %s\n", u)
+		}
+	}
 	if len(rec.db) > 0 {
 		b.WriteString("\n## Database at the end\n")
 		for _, a := range rec.sc.Asserts {

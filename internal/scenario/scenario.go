@@ -262,6 +262,11 @@ type HistoryTurn struct {
 // chat (3.5), once the chat is idle; the next message waits for its end,
 // and its card, if any, is saved.
 //
+// With Undo it is no message but Undo turn (2.6) on that turn of the
+// record, counted as the asserts count it, once the chat is idle. Its
+// conflicts or nothing to undo are recorded, not a run error: the turn
+// then keeps its rows, which the checks see.
+//
 // With Day (YYYY-MM-DD) the runner's clock moves to that day before the
 // message, and stays there for the messages after it: block 1's date
 // follows at the next cut, and the chat cuts as after a night, since the
@@ -272,6 +277,7 @@ type Message struct {
 	Restart bool      `yaml:"restart"`
 	NewChat bool      `yaml:"new_chat"`
 	Refresh bool      `yaml:"refresh"`
+	Undo    int       `yaml:"undo"`
 	Day     string    `yaml:"day"`
 	day     time.Time
 }
@@ -704,6 +710,16 @@ func (s *Set) loadScenario(path string) (*Scenario, error) {
 		}
 	}
 	for i, m := range sc.Messages {
+		if m.Undo != 0 {
+			if m.Text != "" || m.At != nil || m.NewChat || m.Refresh || m.Restart || m.Day != "" {
+				return nil, fmt.Errorf("messages[%d]: an undo has no text, at, new_chat, refresh, restart or day", i)
+			}
+			// Each message before it is a turn at most.
+			if n := len(sc.History) + i; m.Undo < 0 || m.Undo > n {
+				return nil, fmt.Errorf("messages[%d]: undo %d is not one of the %d turns before it at most", i, m.Undo, n)
+			}
+			continue
+		}
 		if m.Refresh {
 			if m.Text != "" || m.At != nil || m.NewChat {
 				return nil, fmt.Errorf("messages[%d]: a refresh has no text, at or new_chat", i)

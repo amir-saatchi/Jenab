@@ -206,6 +206,9 @@ type run struct {
 	cid   id.Chat   // the chat under test now
 	chats []id.Chat // the chats under test, in order: more with a new_chat message
 
+	// undos say what each undo message did, for the transcript.
+	undos []string
+
 	// requests counts every request the providers got, traced or not,
 	// such as Refresh memory's and titles'.
 	requests atomic.Int64
@@ -583,6 +586,12 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 		if !m.day.IsZero() {
 			r.day.Store(&m.day)
 		}
+		if m.Undo != 0 {
+			if err := r.undo(ctx, m.Undo); err != nil {
+				return out, fmt.Errorf("message %d: undo turn %d: %w", i+1, m.Undo, err)
+			}
+			continue
+		}
 		if m.Refresh {
 			if err := r.o.Refresh(ctx, r.pid, r.cid, agent.RefreshOptions{}); err != nil {
 				return out, fmt.Errorf("message %d: refresh: %w", i+1, err)
@@ -596,6 +605,50 @@ func (r *run) send(ctx context.Context) ([]sent, error) {
 		out = append(out, sent{index: i, id: mid, at: time.Since(start)})
 	}
 	return out, idle()
+}
+
+// undo runs Undo turn on the record's turn: the chat under test that
+// holds it, at that chat's own turn. Conflicts, and a turn with nothing to
+// undo, are recorded; the turn's rows then stay, for the checks to see.
+func (r *run) undo(ctx context.Context, turn int) error {
+	p, err := r.pm.Open(ctx, r.pid)
+	if err != nil {
+		return err
+	}
+	base := 0
+	var c id.Chat
+	for _, ch := range r.chats {
+		ms, _, err := p.Chats.Messages(ctx, ch, 1, 0)
+		if err != nil {
+			p.Release()
+			return err
+		}
+		if n := turnsIn(ms); turn <= base+n {
+			c = ch
+			break
+		} else {
+			base += n
+		}
+	}
+	p.Release()
+	if c == "" {
+		return fmt.Errorf("the chats have %d turns", base)
+	}
+	res, err := r.o.UndoTurn(ctx, r.pid, c, agent.UndoRequest{Turn: turn - base})
+	switch {
+	case errors.Is(err, store.ErrNothingToUndo):
+		r.undos = append(r.undos, fmt.Sprintf("Undo turn %d: nothing to undo", turn))
+		return nil
+	case err != nil:
+		return err
+	case len(res.Conflicts) > 0:
+		r.undos = append(r.undos, fmt.Sprintf("Undo turn %d: not done, %d conflicts", turn, len(res.Conflicts)))
+	case !res.Done:
+		r.undos = append(r.undos, fmt.Sprintf("Undo turn %d: not done", turn))
+	default:
+		r.undos = append(r.undos, fmt.Sprintf("Undo turn %d: done, %s", turn, res.Summary))
+	}
+	return nil
 }
 
 // nextChat makes the next chat under test, for a new_chat message.
