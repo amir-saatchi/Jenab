@@ -1,7 +1,7 @@
 // Package files is the bucket's screens on MyGo (SPEC 5.12): the Files
 // tab of the right sidebar and a file opened in the main area, as
-// frontend/src/shell's files-panel and file-view. The files are read
-// through the services (state.Files), not the Wails app's /objects route.
+// the React app's shell/files-panel and file-view. The files are read
+// through the services (state.Files), not the React app's /objects route.
 package files
 
 import (

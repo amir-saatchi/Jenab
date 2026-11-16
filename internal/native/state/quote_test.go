@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/quote.test.ts. The chip's test ports with
+// Ported from the React app's state/quote.test.ts. The chip's test ports with
 // the composer (Part B).
 
 import (

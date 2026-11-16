@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,8 +12,7 @@ import (
 // The text samples of SPIKE-048 item 9: each is a chat "Sample NN" whose
 // answer is the sample as Markdown, with the sample also in the composer
 // as a draft. -samples seeds them and takes a picture of each chat in the
-// app (and with -native in the native one), at the same content size, so
-// the two can be laid side by side.
+// app, at the same window size each time.
 
 var samples = []string{
 	// 1 Persian
@@ -61,94 +59,42 @@ var samples = []string{
 
 func sampleTitle(i int) string { return fmt.Sprintf("Sample %02d", i+1) }
 
-// setSamplesJS opens a sample chat and puts its sample in the composer, as
-// typing would, through React's setter.
-func setDraftJS(text string) string {
-	return fmt.Sprintf(`(() => {
-  const c = window.__bench.composer();
-  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(c, %s);
-  c.dispatchEvent(new Event("input", { bubbles: true }));
-  c.blur();
-  return true;
-})()`, jsString(text))
-}
-
 const shotW, shotH = 1280, 800
 
-// runSamples pictures each sample chat in the Wails app, and in the native
-// app when native is set.
-func runSamples(o options, native string, h home) error {
+// runSamples pictures each sample chat in the app.
+func runSamples(o options, exe string, h home) error {
 	ctx := context.Background()
 	dir := filepath.Join(o.out, "samples")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	if native != "" {
-		a, err := startNative(native, h, filepath.Join(o.out, "native-samples.log"))
-		if err != nil {
-			return err
-		}
-		defer a.quit()
-		if err := a.until(ctx, "the projects", 30*time.Second, func(s benchState) bool { return s.Loaded }); err != nil {
-			return err
-		}
-		a.call(ctx, "POST", "/size", url.Values{"w": {fmt.Sprint(shotW)}, "h": {fmt.Sprint(shotH)}}, nil)
-		a.call(ctx, "POST", "/front", nil, nil)
-		a.call(ctx, "POST", "/open", url.Values{"title": {""}}, nil)
-		if err := a.until(ctx, "the Mother chat", 20*time.Second, func(s benchState) bool { return s.Open != "" }); err != nil {
-			return err
-		}
-		for i, s := range samples {
-			if err := a.call(ctx, "POST", "/open", url.Values{"title": {sampleTitle(i)}, "draft": {s}}, nil); err != nil {
-				return err
-			}
-			time.Sleep(800 * time.Millisecond)
-			p, _ := filepath.Abs(filepath.Join(dir, fmt.Sprintf("native-%02d.png", i+1)))
-			if err := a.call(ctx, "POST", "/shot", url.Values{"path": {p}}, nil); err != nil {
-				return err
-			}
-		}
-		if err := a.quit(); err != nil {
-			return err
-		}
-		fmt.Println("native samples in", dir)
-	}
-	a, err := launch(ctx, o.app, h, filepath.Join(o.out, "app-samples.log"))
+	a, err := startNative(exe, h, filepath.Join(o.out, "native-samples.log"))
 	if err != nil {
 		return err
 	}
 	defer a.quit()
-	if _, err := a.startup(ctx); err != nil {
+	if err := a.until(ctx, "the projects", 30*time.Second, func(s benchState) bool { return s.Loaded }); err != nil {
 		return err
 	}
-	if err := a.page.eval(ctx, setupJS, nil); err != nil {
-		return err
-	}
-	if err := a.page.call(ctx, "Emulation.setDeviceMetricsOverride", map[string]any{"width": shotW, "height": shotH, "deviceScaleFactor": 0, "mobile": false}, nil); err != nil {
+	a.call(ctx, "POST", "/size", url.Values{"w": {fmt.Sprint(shotW)}, "h": {fmt.Sprint(shotH)}}, nil)
+	a.call(ctx, "POST", "/front", nil, nil)
+	a.call(ctx, "POST", "/open", url.Values{"title": {""}}, nil)
+	if err := a.until(ctx, "the Mother chat", 20*time.Second, func(s benchState) bool { return s.Open != "" }); err != nil {
 		return err
 	}
 	for i, s := range samples {
-		if err := a.page.eval(ctx, switchJS(sampleTitle(i)), nil); err != nil {
-			return err
-		}
-		if err := a.page.eval(ctx, setDraftJS(s), nil); err != nil {
+		if err := a.call(ctx, "POST", "/open", url.Values{"title": {sampleTitle(i)}, "draft": {s}}, nil); err != nil {
 			return err
 		}
 		time.Sleep(800 * time.Millisecond)
-		var shot struct {
-			Data string `json:"data"`
-		}
-		if err := a.page.call(ctx, "Page.captureScreenshot", map[string]any{"format": "png"}, &shot); err != nil {
-			return err
-		}
-		b, err := base64.StdEncoding.DecodeString(shot.Data)
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("chromium-%02d.png", i+1)), b, 0o644); err != nil {
+		p, _ := filepath.Abs(filepath.Join(dir, fmt.Sprintf("native-%02d.png", i+1)))
+		if err := a.call(ctx, "POST", "/shot", url.Values{"path": {p}}, nil); err != nil {
 			return err
 		}
 	}
-	fmt.Println("Chromium samples in", dir)
-	return a.quit()
+	if err := a.quit(); err != nil {
+		return err
+	}
+	fmt.Println("samples in", dir)
+	return nil
 }

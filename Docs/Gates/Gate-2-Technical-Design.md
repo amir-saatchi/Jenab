@@ -10,7 +10,7 @@ The technical decisions and libraries, each with a short reason, and the UI desi
 |---|---|---|---|
 | SQLite driver | `modernc.org/sqlite` v1.59.0 | Most widely used cgo-free driver, with FTS5; the guards cover its looser defaults | [SPIKE-001](../Tickets/SPIKE-001-sqlite-driver.md) |
 | Library survey | The "Recommended" column, as changed by the spikes | One tested choice for every need | [SPIKE-002](../Tickets/SPIKE-002-library-survey.md) |
-| Desktop shell | Wails v3, pinned to `v3.0.0-beta.26`, normal OS frame. Replaced by MyGo (below); the Wails app ships until TASK-061 | Built-in tray, autostart and notifications; the only freeze seen was frameless | [SPIKE-003](../Tickets/SPIKE-003-wails-version.md) |
+| Desktop shell | Wails v3, pinned to `v3.0.0-beta.26`, normal OS frame. Replaced by MyGo (below); TASK-061 removed the Wails app | Built-in tray, autostart and notifications; the only freeze seen was frameless | [SPIKE-003](../Tickets/SPIKE-003-wails-version.md) |
 | Sleep and catch-up | One-minute wall-clock check, plus `PowerRegisterSuspendResumeNotification` | Minute check fired within 1.5 s of every wake; Wails' sleep/wake events never arrived on Modern Standby | [SPIKE-004](../Tickets/SPIKE-004-sleep-and-catch-up.md) (Windows) |
 | Expressions | `expr-lang/expr` behind Jenab's sandbox | Only listed syntax, limits on size and nesting, 1 s watchdog | [SPIKE-005](../Tickets/SPIKE-005-expr-sandbox.md) |
 | Secrets | `zalando/go-keyring`, no caching | 0.1 ms per read, at most 2,560 bytes, works with the screen locked | [SPIKE-006](../Tickets/SPIKE-006-keychain-background.md) (Windows) |
@@ -26,8 +26,8 @@ The technical decisions and libraries, each with a short reason, and the UI desi
 | Scripts | `go.starlark.net` in a child process: `db.query` through the parent; memory capped by a Job Object on Windows, a soft limit plus the parent's check elsewhere | Step, time and memory limits all enforced on Windows | [SPIKE-016](../Tickets/SPIKE-016-starlark-sandbox.md) |
 | Local model | `qwen3.5:4b` on Ollama only for short tool-loop tests | 14/15 tool tasks, but about 4 tokens/s; Ollama cuts long prompts silently | [SPIKE-017](../Tickets/SPIKE-017-local-model-ollama.md) |
 | Development models | Ollama Cloud `nemotron-3-ultra` + `gemma4:31b`; backup Z.ai `glm-4.5-flash` | 11/11 and 10/11 tool tasks; a 32k prompt answered in under 4 s | [SPIKE-018](../Tickets/SPIKE-018-cloud-models.md) |
-| App updates | Wails `pkg/updater` + Jenab's fail-closed signature check, per-user install, watchdog. In the native app, MyGo's signed updater (`mygo.Updater`), checked against these rules in TASK-059 | About 0.25 s downtime; every bad release rejected | [SPIKE-019](../Tickets/SPIKE-019-self-update.md) |
-| Frontend | React + TypeScript, TanStack Table, Recharts, shadcn/ui, Zustand, Bun. Replaced by the native UI (next row); bug fixes only until TASK-061 removes it | Confirmed by the user | [SPIKE-002](../Tickets/SPIKE-002-library-survey.md) |
+| App updates | Wails `pkg/updater` + Jenab's fail-closed signature check, per-user install, watchdog. Replaced by MyGo's signed updater (`mygo.Updater`), checked against these rules in TASK-059 | About 0.25 s downtime; every bad release rejected | [SPIKE-019](../Tickets/SPIKE-019-self-update.md) |
+| Frontend | React + TypeScript, TanStack Table, Recharts, shadcn/ui, Zustand, Bun. Replaced by the native UI (next row); TASK-061 removed it | Confirmed by the user | [SPIKE-002](../Tickets/SPIKE-002-library-survey.md) |
 | Desktop UI | [MyGo](https://github.com/egoist/mygo) v0.9.1 (MIT, pure Go, GPU-drawn, no webview), the only UI library; Jenab's kit and Go stores on it (UI layer, below) | Against the Wails app on the same PC: start to the shell drawn 177–540 ms (Wails 760–823 ms), a 200-message chat opened 4 times faster, key to screen max 24.1 ms at 1,000 tokens/s (Wails 51.1 ms), memory with the chat open 186 MB (Wails 531 MB); 19 of 20 text samples like Chromium; Narrator reads the chat. Go decided by the user on 2026-11-16 | [SPIKE-048](../Tickets/SPIKE-048-native-ui-mygo.md) |
 | Web search | No keyless web search: Tavily or Brave with the user's key, or the user's SearXNG; keyless feeds, Wikipedia, Hacker News, GDELT as separate sources | No allowed keyless search worked (public SearXNG 0/16, DuckDuckGo has no web API); crypto feeds gave 5/5 relevant, dated items | [SPIKE-020](../Tickets/SPIKE-020-keyless-search.md) |
 | Config writing | Save through tools, full error lists with paths, 4 repair rounds; model-neutral guide and schemas | 50 % valid on the first try, 81 % after repairs; peak request 15k tokens | [SPIKE-021](../Tickets/SPIKE-021-models-write-configs.md) |
@@ -48,28 +48,27 @@ The technical decisions and libraries, each with a short reason, and the UI desi
 - The MCP client: SDK, tool style, approvals and real servers, before Phase 5 ([SPIKE-024](../Tickets/SPIKE-024-mcp-client.md), SPEC 8.7).
 
 ## UI layer (SPIKE-048)
-The desktop UI moves from React in WebView2 (Wails v3) to MyGo, decided on 2026-11-16. Both apps build the same services, so a backend change lands once and both get it. The rules are in SPEC 5.8, and the code in [CODE-OUTLINE](../Code-Design/CODE-OUTLINE.md) 9 and 10.
+The desktop UI moved from React in WebView2 (Wails v3) to MyGo, decided on 2026-11-16; TASK-061 removed the Wails app. The rules are in SPEC 5.8, and the code in [CODE-OUTLINE](../Code-Design/CODE-OUTLINE.md) 2, 9 and 10.
 
 ```
-cmd/desktop            Wails app (until TASK-061)     cmd/desktop-native   MyGo app
-   internal/webui      the Wails layer                       |
-        \                                                   /
-         internal/app services (Project, Chat, Settings, Bucket, System, Dev)
-         and the Publisher, without Wails or MyGo
+cmd/desktop            the app, on MyGo: the window, the tray, notifications, the updater
                                       |
-                       internal/native/state   Go stores; the native Publisher
-                                      |         applies events here, on the UI thread
+         internal/app services (Project, Chat, Settings, Bucket, System, Dev)
+         and the Publisher, without MyGo
+                                      |
+                       internal/native/state   Go stores; the Publisher's events
+                                      |         are applied here, on the UI thread
                        internal/native/kit     Jenab's components on MyGo's ui
                                       |
-          internal/native/{shell,chat,settings,files,dev}   screens
+          internal/native/{shell,chat,settings,files,projects,dev}   screens
 
-internal/lifecycle: the lock (one of the two apps at a time), the quit order and the start-up error box, for both apps
+internal/lifecycle: the lock (one copy at a time), the quit order and the start-up error box
 ```
 
 - **Screens use only the kit and the stores.** They never import `github.com/egoist/mygo/ui`; a test checks the imports. The kit holds the theme, the fonts, the right-to-left defaults and the fixes for MyGo's bugs, so a change in MyGo's API before its v1 touches only the kit.
-- **The stores are plain Go,** used on the UI thread only and tested without a window. They are ported from `frontend/src/state` with their tests.
+- **The stores are plain Go,** used on the UI thread only and tested without a window. They were ported from the React app's stores, with their tests.
 - **Right-to-left text, not a mirrored layout.** The window stays left to right; each paragraph, input, list, table and quote takes the direction of its text.
-- **Same repository, same `main`.** Each port ticket (TASK-054 to TASK-061) gets its own short branch. Until TASK-061, the React frontend gets bug fixes only, and new screens and features are built in the native app. `settings`, `files` and `dev` come with TASK-055, TASK-056 and TASK-058.
+- **Same repository, same `main`.** Each port ticket (TASK-054 to TASK-061) got its own short branch. `settings`, `files` and `dev` came with TASK-055, TASK-056 and TASK-058.
 - **MyGo** is pinned in `go.mod` (v0.9.1) and needs Go 1.27.3. It is pre-v1 and changes fast, so a move to a new version is its own step, with the kit's tests.
 
 ## Design

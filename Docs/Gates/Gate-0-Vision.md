@@ -6,7 +6,7 @@ What we build and why, on one page. Details are in [PROPOSAL.md](../PROPOSAL.md)
 
 ## Content
 
-**What.** An open-source desktop agent harness (Go + Wails) where every project has its own folder and database, and the agent uses the database as structured working memory.
+**What.** An open-source desktop agent harness (Go, with a native UI) where every project has its own folder and database, and the agent uses the database as structured working memory.
 
 **Problem.** Today's harnesses keep knowledge in the chat. That wastes tokens, gets less accurate as chats grow, leaves no lasting result, and handles recurring work poorly ([PROPOSAL §2](../PROPOSAL.md#2-problem)).
 

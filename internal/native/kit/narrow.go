@@ -4,7 +4,7 @@ import "github.com/egoist/mygo/ui"
 
 // The narrow window (SPEC 5.12, TASK-062): below NarrowWidth the rail and
 // both sidebars open as overlays and a docked chat as a drawer, as
-// frontend/src/hooks/use-mobile.ts and shadcn's Sheet do.
+// the React app's hooks/use-mobile.ts and shadcn's Sheet do.
 
 // NarrowWidth is the window's width below which it is narrow, in DIPs.
 const NarrowWidth = 900

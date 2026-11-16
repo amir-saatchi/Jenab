@@ -12,7 +12,7 @@ import (
 )
 
 // The formatting helpers of the developer tools, ported from
-// frontend/src/dev/format.ts with its tests.
+// the React app's dev/format.ts with its tests.
 
 // Num is a whole number with group separators: 7,412.
 func Num(n int64) string {

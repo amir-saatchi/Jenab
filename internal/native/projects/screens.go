@@ -1,7 +1,7 @@
 // Package projects is the project screens on MyGo (SPEC 3.9, 5.12): new
 // project and the welcome page, a project's settings with its approval
 // level and private-network exceptions, and the exports of a project and
-// of a chat, as frontend/src/shell's new-project, welcome,
+// of a chat, as the React app's shell/new-project, welcome,
 // project-settings, folder-warning, private-hosts, export-project,
 // export-chat and chat-menu. It uses the kit and the stores only.
 package projects

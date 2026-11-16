@@ -202,7 +202,7 @@ No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the work
 - **Message before change:** message IDs are ULIDs made in Go. Before a tool call writes to `project.db`, the assistant message and its `tool_call` part are written to `chats.db`. A crash can then leave a message without a change, which is harmless, but never a change pointing to a missing message, which would break *Undo turn*. In SPIKE-008, the reverse order left a dangling entry in 11 of 20 crashes.
 - **Reply to part of a message** (TASK-019): a user message may start with one `quote` part: the quoted text, the source message's ID, its turn and role, and whether it was cut.
   - Only a user or assistant message of the same chat can be quoted. A quote alone isn't a message: it needs text or an image.
-  - The text is cut at 4,000 bytes, at a character, in the frontend and in Go alike.
+  - The text is cut at 4,000 bytes, at a character, in the UI's stores and in the agent alike.
   - Quote text is indexed like text, so history search finds the reply.
 - **Rewind** (TASK-018): a rewind (8.3) moves the later turns' messages to `rewound_messages` in one transaction. Deleting their parts takes them out of `messages_fts`, so history search, `read_messages` and the substring scan no longer find them. *Undo rewind* writes them back with their IDs and indexes them again.
   - Usage (3.9) still counts their tokens: they were spent.
@@ -289,12 +289,12 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 
 ### 2.8 App updates (SPIKE-019)
 
-The native app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind `internal/update` (TASK-059). The Wails app never got an updater or an installer: SPIKE-019 tried Wails `pkg/updater`, and the differences from that plan are listed below.
+The app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind `internal/update` (TASK-059). SPIKE-019 tried Wails `pkg/updater` for the earlier Wails app; the rules below are the MyGo updater's.
 
-- **Version** (TASK-037): one version, in semantic versioning, set in `VERSION` at the repository root and stamped into the build with the git commit. Settings → General shows it on an *About* line, `Jenab 0.1.0-dev (d449b7e)`, with the Go and Wails versions under it and a copy button for bug reports. The first log line of each start names the version and the commit. The updater compares this version with the latest release's. `0.1.0` comes when Phase 1 and Phase 2 acceptance pass.
-- **Install:** `task build:native` makes a per-user NSIS installer. It installs into `%LOCALAPPDATA%\Programs\Jenab`, so updating needs no admin rights, adds a Start menu entry and an entry under Apps with the publisher "Jenab", and closes a running Jenab first. MyGo's updater doesn't touch that entry, so at each start the app writes its version into it, if the entry points at the app's own folder (TASK-062). The uninstaller removes the program only: settings, projects and keys stay.
+- **Version** (TASK-037): one version, in semantic versioning, set in `mygo.json` (`version`), with the git commit from Go's build info. Settings → General shows it on an *About* line, `Jenab 0.1.0-dev (d449b7e)`, with the Go version and the OS under it and a copy button for bug reports. The first log line of each start names the version and the commit. The updater compares this version with the latest release's. `0.1.0` comes when Phase 1 and Phase 2 acceptance pass.
+- **Install:** `go tool mygo build` makes a per-user NSIS installer. It installs into `%LOCALAPPDATA%\Programs\Jenab`, so updating needs no admin rights, adds a Start menu entry and an entry under Apps with the publisher "Jenab", and closes a running Jenab first. MyGo's updater doesn't touch that entry, so at each start the app writes its version into it, if the entry points at the app's own folder (TASK-062). The uninstaller removes the program only: settings, projects and keys stay.
 - **Feed:** the build writes `update-<os>-<arch>.json` (version, date, archive URL, size, signature) next to the archive `jenab-<version>-<os>-<arch>.tar.gz`. The feed URL and the public key are in `mygo.json` (`updates`); the private key is given to the build in `MYGO_UPDATER_PRIVATE_KEY` and is never in the repository. A build without them can't update itself, and Settings says so. The release key and feed come before the first public release (Phase 5).
-- **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. On Linux the webview is WebKitGTK. The native app's macOS and Linux builds come with TASK-060.
+- **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. The macOS and Linux builds come with TASK-060.
 - **Fail closed:**
   - A release must carry an ed25519 signature that verifies against the public key built into the app. A manifest without one is refused at the check. MyGo checks it on every install; nothing turns it off.
   - The archive's size must match the manifest's.
@@ -755,8 +755,7 @@ cache_max_size: 500MB      # cache/ is trimmed least-recently-read first
 - Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". In chat, a link written as a link, bare, or alone in inline code opens the object in the Files panel (5.12); in the user's own message, only a bare link does. A link to another project or to a missing object says so and opens nothing.
 - **In tables, object-reference columns store the key only**, not the full link, so data stays valid when a project is imported under a new ID. The schema agent marks such columns in `_jenab_columns` with `kind: object_ref`. A write with a key that does not exist fails.
 - **Loading objects:**
-  - **Native app (MyGo):** there is no webview, so there is no route. A screen reads an object's bytes in the same process, through the services (`BucketService`), which lease the project, never through `file://` paths. A link opens the object in the file view (5.12) with the chat in the dock. A type the file view doesn't show offers *Open with the system app* instead, with the rules of 4.7. The bytes come from `NativeBucket.Read`, at most the first 1 MB of a text file (TASK-056). MyGo has no audio or video player yet, so the native app offers *Open with the system app* for those too.
-  - **Wails app** (until TASK-061): the frontend loads objects through a Wails asset handler route, `/objects/<project_id>/<key>`, never through `file://` paths. The headers in 4.7 apply to this route.
+  - There is no webview, so there is no route. A screen reads an object's bytes in the same process, through the services (`BucketService`), which lease the project, never through `file://` paths. A link opens the object in the file view (5.12) with the chat in the dock. A type the file view doesn't show offers *Open with the system app* instead, with the rules of 4.7. The bytes come from `NativeBucket.Read`, at most the first 1 MB of a text file (TASK-056). MyGo has no audio or video player yet, so the app offers *Open with the system app* for those too.
 
 ### 4.6 Saved links
 
@@ -873,7 +872,7 @@ SELECT count(*) FROM (<query>)
 An `ORDER BY` inside a table query is ignored and produces a validation warning. If the count query hits the timeout, the table shows "many rows" instead of a total.
 
 **Transfer and rendering** (SPIKE-022):
-- Pages go from Go to the frontend as column names plus array rows, not objects. That is 36 % smaller: a 500-row page is about 83 KB and takes about 10 ms.
+- Rows reach a page as column names plus array rows, not objects. In SPIKE-022 that was 36 % smaller: a 500-row page was about 83 KB and took about 10 ms.
 - The table renders virtual rows. It scrolled 10,000 rows × 12 columns at 60 fps.
 
 **Formats:** `text`, `number`, `currency`, `percent`, `date`, `datetime`, `url`, `boolean`, `badge`, `image`, `file`. `image` and `file` expect a bucket key and show a thumbnail or a download link. Format options go in `format_options`, e.g. `{ currency: USD, decimals: 2 }`.
@@ -967,62 +966,36 @@ The same "already running" rule as in 5.5 applies.
 - View queries cannot reference `_jenab_*` tables.
 - After a migration, open views re-validate their queries on next load. A view that no longer validates shows an error state and is marked in the project card. This should be rare, since the schema agent updates dependents in the same migration.
 
-### 5.8 Frontend rules (SPIKE-022, SPIKE-048)
+### 5.8 UI rules (SPIKE-022, SPIKE-048)
 
-The desktop UI moves from React in WebView2 (Wails v3) to a native UI drawn on the GPU with [MyGo](https://github.com/egoist/mygo) (SPIKE-048, decided on 2026-11-16). MyGo is pinned in `go.mod`, and it is the only UI library: no other component library.
+The desktop UI is native, drawn on the GPU with [MyGo](https://github.com/egoist/mygo) (SPIKE-048, decided on 2026-11-16). It replaced React in WebView2 (Wails v3) with TASK-061. MyGo is pinned in `go.mod`, and it is the only UI library: no other component library.
 
-- **Two apps until TASK-061:**
-  - `cmd/desktop-native` is the native app; `cmd/desktop` is the Wails app, which still ships. Both build the same services (`internal/app`) and take the same lock, so only one of them runs at a time.
-  - The React frontend (`frontend/`) gets bug fixes only. A new screen or feature is built in the native app. Pages and pipelines (5.9, 6.10) are built in the native app only.
-  - TASK-061 switches to the native app and removes Wails, `frontend/` and Bun. The React rules at the end of this section go with them.
+- **The app:** `cmd/desktop` builds the services (`internal/app`), then the stores and the screens (`internal/native`), and opens the window.
 - **The kit and the stores:**
   - **The kit** (`internal/native/kit`) is Jenab's components on MyGo's `ui`: the theme (5.11), the fonts, the right-to-left defaults, and the fixes for MyGo's bugs. Each of these is done once, there, and a change in MyGo's API before its v1 touches only the kit.
   - **The stores** (`internal/native/state`) hold what the screens show, in plain Go, with no MyGo. They are read and changed on the UI thread only, so they need no locks. Work that waits, such as a service call, runs in a goroutine and posts its result back to the UI thread (`state.Post`, made from MyGo's `Window.Update`). Their tests run without a window and are the spec.
-  - **Screens** (`internal/native/{shell,chat,…}`) draw with the kit and read and change the stores. Besides those two, they use only the Go side's own types (`app`, `chat`, `id` and the like). They never import `github.com/egoist/mygo/ui` or its packages: `TestOnlyTheKitImportsMyGoUI` walks the repository and fails on any such import outside the kit. `cmd/desktop-native` may import `github.com/egoist/mygo` itself, for the app, the window, the tray and notifications.
+  - **Screens** (`internal/native/{shell,chat,…}`) draw with the kit and read and change the stores. Besides those two, they use only the Go side's own types (`app`, `chat`, `id` and the like). They never import `github.com/egoist/mygo/ui` or its packages: `TestOnlyTheKitImportsMyGoUI` walks the repository and fails on any such import outside the kit. `cmd/desktop` may import `github.com/egoist/mygo` itself, for the app, the window, the tray and notifications.
   - **A MyGo bug** is fixed or worked around in the kit and reported upstream, with the issue linked in the code.
   - **Every kit component has a headless test** (`ui.NewTester`): in light and dark, reached by the keyboard, found by its accessible label, and with right-to-left text in it.
-- **Events:** the services send every live update through one `Publisher` (`internal/app`). The native app's `Publisher` posts each event to the stores on the UI thread through `Window.Update`, which returns without waiting, so the services never wait on the UI. A mailbox keeps the events sent before the window exists and posts them in order once it does.
+- **Events:** the services send every live update through one `Publisher` (`internal/app`). The `Publisher` posts each event to the stores on the UI thread through `Window.Update`, which returns without waiting, so the services never wait on the UI. A mailbox keeps the events sent before the window exists and posts them in order once it does.
 - **Streaming chat:**
-  - Go coalesces tokens into at most one delta per chat every ~16 ms (`agent`), for both apps. Sending never blocks, so a faster producer would only grow memory and latency.
-  - The native app applies each delta to the stores as it comes; MyGo draws at most one frame per screen refresh, so there is no frame buffer of its own.
+  - Go coalesces tokens into at most one delta per chat every ~16 ms (`agent`). Sending never blocks, so a faster producer would only grow memory and latency.
+  - The app applies each delta to the stores as it comes; MyGo draws at most one frame per screen refresh, so there is no frame buffer of its own.
   - A part that is streaming is shown with MyGo's `markdown.Stream` (through `kit.Markdown`), which parses only the text appended since the last frame. A finished part is shown with `markdown.View`.
   - The thread is a virtual list (`kit.List`, MyGo's `ui.List`) that builds only the rows in view and follows the newest message until the user scrolls up.
   - The thread's Markdown views share one selection, so a drag copies across messages.
   - Measured in SPIKE-048 on the SPIKE-022 PC: at 1,000 tokens/s, 59.8 fps with no frame over 33 ms, and a key press reached the screen within 24.1 ms. A 200-message chat showed its first rows in about 14 ms.
-- **Right-to-left text** (both apps): the SPEC supports right-to-left text, not a mirrored layout (11).
+- **Right-to-left text:** the SPEC supports right-to-left text, not a mirrored layout (11).
   - The window stays left to right: `kit.Root` lays it out left to right whatever the OS language is, and MyGo's layout mirroring stays off.
   - Each paragraph, input, table cell and quote takes the direction of its first strong character, as `dir="auto"` does (`kit.RightToLeft`), so a Persian line starts on the right, also next to English. Arabic and Persian digits are weak.
   - A Markdown list or table whose direction differs from the text around it is laid out in its own direction: a Persian table's columns run right to left, and a Persian item has its marker on the right. A list that mixes directions takes each item's own.
   - Code blocks stay left to right, with tab stops every 2 columns; other text has tab stops every 4.
-  - The rules on quotes, answers and the user's own message below apply to the native app too.
-  - **Font:** as below. The kit embeds Geist, Geist Mono and Vazirmatn as variable TTF files and registers them with MyGo (`kit.RegisterFonts`).
-- **Known gap:** MyGo on Windows misplaces or drops some Arabic harakat inside words ([egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925), fixed upstream; TASK-054 moves to the release with the fix).
-
-**The Wails app (React), until TASK-061.** Measured in WebView2 on a mid-range laptop.
-
-- **Streaming chat:**
-  - Go coalesces tokens into at most one Wails event per stream every ~16 ms. Wails `Emit` never blocks, so a faster producer would only grow memory and latency.
-  - The frontend buffers tokens outside React and renders once per animation frame.
-  - Finished Markdown blocks are memoised; only the last block is parsed again.
-  - With these rules the chat held 60 fps at 100 and at 1,000 tokens/s. One React update per token dropped to 32 fps at 100 tokens/s, and typing lagged up to 2.6 s.
-  - Markdown uses `react-markdown` + `remark-gfm` (tables, strikethrough, task lists) + `rehype-highlight`, which is safe by default. `marked` + DOMPurify is the fallback if memory or bundle size matters.
-  - **Markdown styling:** shadcn Typeset, one CSS file kept in the repo. It never restyles blocks already on screen when a new one arrives, and it takes colours from the theme tokens (5.11).
-    - The `typeset-chat` preset is used for messages, and a roomier preset for page text blocks (5.9).
-    - Tool chips, approval cards and question forms inside a message use `not-typeset`.
-    - Wide Markdown tables are wrapped in `typeset-scroll` and scroll sideways.
-- **Opening a chat** must not block: the history renders virtualised or with `content-visibility: auto`. 200 plain messages took 265–750 ms.
-- **Loading:** Recharts and the Markdown renderer load lazily. The shell alone is about 89 KB gzip, and everything together is about 318 KB.
-- **Channels:** tokens, progress and notices use Wails events; they stayed in order with no loss up to about 10,000 per second. High-rate channels such as logs may use Wails GoStream, which has backpressure.
-- **Perf checks** use frame times and Long Animation Frames, not the `longtask` API, which missed all of the streaming jank.
-- **Right-to-left text:**
-  - Every message, Markdown block, input, table cell and page text block gets `dir="auto"`, so Persian, Arabic or Hebrew text runs right to left, also next to English.
-  - Text inside these elements aligns with `text-align: start`, so right-to-left text starts on the right.
-  - A quote, in the composer's chip and above a sent message, has `dir="auto"` with its bar on the start side, so a right-to-left quote keeps its direction (TASK-019).
+  - A quote, in the composer's chip and above a sent message, takes its own direction, with its bar on the start side, so a right-to-left quote keeps its direction (TASK-019).
   - An answer takes the chat column's width, so each paragraph lines up on its own start edge: a right-to-left one on the right, a left-to-right one on the left.
-  - The user's own message is shown as typed, not as Markdown. Only bare `jenab://` links in it become links, opening the file as in answers (4.5). A link runs left to right on its own (`dir="ltr"`), so it doesn't change the direction of the text around it.
-  - Markdown lists, list items and tables get an explicit `dir` from their first strong character, so an item that differs from its list keeps its bullet. `dir="auto"` can't do this, and CSS `:dir()` is rewritten by the build (Lightning CSS).
-  - **Font:** Geist has no Arabic-script glyphs, so Vazirmatn (OFL) is bundled right after it. Persian then looks the same on every OS; Latin text stays Geist.
+  - The user's own message is shown as typed, not as Markdown. Only bare `jenab://` links in it become links, opening the file as in answers (4.5). A link runs left to right on its own, so it doesn't change the direction of the text around it.
+  - **Font:** Geist has no Arabic-script glyphs, so Vazirmatn (OFL) comes right after it. Persian then looks the same on every OS; Latin text stays Geist. The kit embeds Geist, Geist Mono and Vazirmatn as variable TTF files and registers them with MyGo (`kit.RegisterFonts`).
   - The UI itself stays English and left to right. Only the text is handled.
+- **Known gap:** MyGo on Windows misplaces or drops some Arabic harakat inside words ([egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925), fixed upstream; TASK-054 moves to the release with the fix).
 
 ### 5.9 Pages
 
@@ -1090,7 +1063,7 @@ rows:
   - Data blocks (saved views): `table`, `chart`, `stat`, `form`.
   - Page blocks: `heading`, `text`, `card`, `filter`, `button`, `image`.
 - The page screen looks the type up in a registry. A new block type is added by registering one unit, with no change to pages.
-- Pages are built in the native app only (5.8), so blocks have no React components. The component is built from the kit like any other, with a headless test, and it takes its colours from the tokens and tones (5.11).
+- A block's component is built from the kit like any other, with a headless test, and it takes its colours from the tokens and tones (5.11).
 - More types are expected later, e.g. kanban, tabs and lists. Each one uses tones (5.11), not colours.
 
 **`stat`** shows one number:
@@ -1107,18 +1080,13 @@ rows:
 ### 5.11 Theme
 
 - **Setting:** Light, Dark or System (the default, following the OS). Set in *Settings → Appearance* and stored in `config.yaml` (`ui.theme`).
-- **How it works (native app):**
-  - The kit holds the tokens: `kit.Light` and `kit.Dark` (`internal/native/kit/theme.go`), the colours `frontend/src/index.css` names for shadcn/ui (background, foreground, card, primary, muted, accent, destructive, border, input, ring and the sidebar's), with the tones below. `kit.Theme` maps them to MyGo's theme, and `kit.Root` sets it on every frame for the window's appearance.
+- **How it works:**
+  - The kit holds the tokens: `kit.Light` and `kit.Dark` (`internal/native/kit/theme.go`), the colours shadcn/ui names in the mockups' `index.css` (background, foreground, card, primary, muted, accent, destructive, border, input, ring and the sidebar's), with the tones below. `kit.Theme` maps them to MyGo's theme, and `kit.Root` sets it on every frame for the window's appearance.
   - The setting goes to MyGo as the theme source (`kit.SetThemeSource`): light, dark, or System, which follows the OS. A change, or an OS change with System, applies at the next frame.
   - Blocks, charts, code highlighting and the chat all take their colours from the tokens through the kit; screens never name a colour.
   - The theme source is set from the saved setting before the window opens, so the first frame is drawn in the theme.
-- **How it works (Wails app, until TASK-061):**
-  - shadcn/ui colours are CSS variables, switched by a `dark` class on the root. A change applies at once, without a reload. With System, an OS change applies at once too.
-  - Blocks, charts (Recharts reads the same variables), code highlighting and the chat all use these variables.
-  - The window background is set from the saved theme before the first paint, so there is no white flash at start. The OS window frame follows the theme where the platform allows it.
-  - The kit's tokens and `index.css` must stay the same while both apps ship.
 - **Tones:** configs never contain colours or CSS. They can only name a tone: `neutral`, `blue`, `green`, `amber`, `red` or `purple`.
-  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`), with the values of `index.css`. The kit's `contrast_test.go` checks its colours, in light and dark, with the pairs and threshold of `contrast.test.ts`, so the check stays when TASK-061 removes `frontend/`.
+  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`). The kit's `contrast_test.go` checks its text colours against that threshold, in light and dark.
   - Validation rejects anything else, such as hex colours.
   - So every page the agent builds looks right in both themes.
 - **Charts:** series take the tones in a fixed order. Changes (`stat.change`) are green or red.
@@ -1128,10 +1096,10 @@ rows:
 
 Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 
-**In the native app** (5.8), the frame is `internal/native/shell`, built from the kit's frame pieces, and the rules below hold for both apps:
+The frame is `internal/native/shell`, built from the kit's frame pieces (5.8):
 - **Kit pieces:** `kit.Root` (the window, left to right), `kit.Rail` (56 px, on the start edge) with `kit.RailTile` (a bar on the start edge marks the open one), `kit.SidePanel` (the chat list, 256 px), `kit.Bar` (a screen's top bar, 56 px high), `kit.Main` (the main area, a landmark for assistive technology), `kit.List` (virtual lists), `kit.Dialog` and `kit.Toasts`. The rail and the side panel take the sidebar tokens (5.11).
 - **What it has now** (SPIKE-048, TASK-056): the rail (projects, *New project*, *Waiting*, Settings, and the project's chats while the chat list is hidden), the chat list, the main area with the chat, a file in the main area with the chat in the dock (`kit.Split`), the right sidebar with the Files tab (`kit.Tree`), and the bottom bar with work, provider pauses and memory. While the developer tools are on, the rail has *Developer tools*, which opens the turn inspector and *Runtime* (8.4, TASK-058). Settings came with TASK-055, and project settings uses its frame (`kit.SettingsLayout`, TASK-062). Below 900 px (TASK-062, `shell/narrow.go`): the rail and the chat list open as an overlay from ☰ on the start edge, the right sidebar from *Pages* on the end edge (`kit.Sheet`), a docked chat opens as a 448 px drawer over the file from *Chat*, a page without a chat gets a header with ☰, the settings list narrows to 176 px, and the bottom bar is hidden. The bottom bar's commands, pipelines and context use come with the screens they belong to.
-- **Not yet in the native app:** the dot on the chat button for new activity (the Wails app has none either), and the chat row's ⋯ always shown below 900 px. An overlay gives the focus to its first control as it opens, as MyGo's dialogs do, where the Wails app keeps it off. MyGo names the dock's divider "Divider" for assistive technology, and the kit can't rename it in v0.9.1.
+- **Not yet:** the dot on the chat button for new activity, and the chat row's ⋯ always shown below 900 px. An overlay gives the focus to its first control as it opens, as MyGo's dialogs do. MyGo names the dock's divider "Divider" for assistive technology, and the kit can't rename it in v0.9.1.
 - **Project screens** (TASK-057, `internal/native/projects`): the welcome page, *New project*, project settings (the folder warning, the approval level, private-network exceptions, *Export*), the project and chat exports, the chat menu in the header and on each chat row, the project menu on the chat list's title, and the chats in the rail while the list is hidden. Storage and the workspace folder aren't on project settings yet.
 - **Closing the window hides it,** and the app keeps running for the chats still working. A tray icon shows the window again and has *Quit*; the rail has *Quit Jenab* too. A second launch shows the running window. The window's size and place are saved and come back at the next start.
 
@@ -1158,7 +1126,7 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 - **Files tab:** one folder of the bucket at a time, with a path bar back to the top. A folder opens in place; a long one loads 100 entries at a time as the list scrolls. `cache/` isn't listed with the user's folders: it is last, as *App cache* (fetched pages and long tool results, 4.4). Rows show a file's original name or page title from its metadata, in any script, under its key.
   - A file opens in the main area with the chat in the dock. Text and Markdown show as in the chat, and images, audio and video play; other types show their name, type and size. Below, its versions (4.3): size, who and when. Old versions are listed, not opened.
   - Each file has *Copy link*, *Open with the system app* (4.7) when its type allows, and *Delete*. A delete is a change by `user` and can be undone from its notice while the change is in the undo window (2.6, 4.4).
-- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page. *General* ends with *About*: the version, the commit, and the Go and Wails versions, with a copy button (2.8). Under the pages, a group with the open project's name (the project of the chat used last) has *Project settings*. *Memory* is user memory: it says it is for every project, and links to the open project's memory (3.3).
+- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page. *General* ends with *About*: the version, the commit, the Go version and the OS, with a copy button (2.8). Under the pages, a group with the open project's name (the project of the chat used last) has *Project settings*. *Memory* is user memory: it says it is for every project, and links to the open project's memory (3.3).
 - **Project settings:** one scrolling page, titled with the project's name, with the cloud-sync warning (2.1) when it applies, the workspace folder (8.5), storage ("Kept for undo" with *Free now*, the cache and lifecycle rules, 4.4), the approval level (8.8), allowed hosts and private-network exceptions (6.7), and *Export* (2.1).
   - **Private-network exceptions** (TASK-036): the hosts whose requests may reach this computer or the local network without asking, each with *Remove*, and a field to add one ("A name or an address, without http://, a path or a port"). A card's *Allow in this project* adds to it. One line says what it allows.
 - **Window size:** at least 640 × 480 px.
@@ -1199,7 +1167,7 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 - **Wall-clock check** (SPIKE-004):
   - The scheduler compares the wall clock with the job times every minute. Job times are never long timers, since those don't follow clock changes.
   - On Windows the minute check fires within 1.5 s of waking. The process does not run during Modern Standby.
-  - It also checks on resume events from `PowerRegisterSuspendResumeNotification`. Wails' sleep and wake events are not used, because they don't arrive on Modern Standby.
+  - It also checks on resume events from `PowerRegisterSuspendResumeNotification`, which arrive on Modern Standby too.
   - Suspend and resume times are logged, so a late run can show when the laptop was asleep.
 - **Catch-up:** `catch_up: once` (default) means that if one or more scheduled times were missed in the last 24 hours (app closed, laptop asleep), the pipeline runs once as soon as possible, with trigger `catch_up`. With `catch_up: skip`, missed times are recorded as `skipped`.
 - **One run per pipeline at a time.** A scheduled or catch-up run that starts while the previous one is still running is recorded as `skipped`. A manual or form-triggered run is rejected with a message and not queued. Different pipelines in the same project can run in parallel; only their writes are serialized (section 7).
@@ -1490,7 +1458,7 @@ Agreed in the Gate-2 low-fidelity review (screens 06 and 06-A).
   - The selected step shows its settings, its output preview with secrets redacted (6.6) and a ref to the full output.
   - *Revert run* undoes one run's changes (2.6).
 - **Read-only:** the page never edits a pipeline. Changes go through the agent, as with pages.
-- **Build:** plain React and CSS in v1, because v1 pipelines have no branches. A diagram library (React Flow) comes only with parallel branches (§11).
+- **Build:** kit components in v1 (5.8), with no diagram library, because v1 pipelines have no branches. A diagram library comes only with parallel branches (§11).
 - **Later:** the same flow in the approval card of a scheduled pipeline.
 
 ---
@@ -1501,7 +1469,7 @@ A project is used by many things at once: several chats, subagents, the schema a
 
 ### 7.1 Core rule
 
-**Nothing that must stay responsive waits on the database.** The UI, the agent loop and the scheduler never call SQLite directly. They send requests to the project's data layer and receive results asynchronously (Go channels internally, Wails events to the frontend).
+**Nothing that must stay responsive waits on the database.** The UI, the agent loop and the scheduler never call SQLite directly. They send requests to the project's data layer and receive results asynchronously (Go channels internally, `Publisher` events to the UI's stores, 5.8).
 
 ### 7.2 Connections per database file
 
@@ -2300,7 +2268,7 @@ An agent can read and use one window of another app, through [agent-desktop](htt
 - Pinned to 1.2.0 (TASK-039), envelope version 2.6. Jenab never starts an agent-desktop session, so its cursor overlay (opt-in per session) never draws, and the runner drops every `AGENT_DESKTOP_*` variable, so one set outside can't turn it on. agent-desktop's own MCP server (`agent-desktop mcp`) is not used: its tools have none of these rules (8.7).
 - No console window. A call is killed after 15 s, or 30 s for a session's first snapshot.
 - Its state folder is `agent-desktop` under Jenab's fixed app folder (`%LOCALAPPDATA%\Jenab`, next to the settings and logs), not the data folder, which can be moved or synced. Jenab makes it with access for the user and SYSTEM only, and refuses to start agent-desktop if the folder inherits access or grants anyone else (Administrators allowed).
-- The program goes next to `jenab.exe` (`build/agent-desktop/` has its license, NOTICE and version); it is not in git.
+- The program goes next to `Jenab.exe` (`build/agent-desktop/` has its license, NOTICE and version); it is not in git.
 - **Help:** the `desktop` skill (8.9) comes with the tools.
 - The same tools and rules for every model (1).
 
@@ -2571,7 +2539,7 @@ All errors are returned together, each with its path, so the LLM can fix everyth
 ## 11. Not in v1
 
 - A built-in keyless web search (SPIKE-020: none that is allowed worked)
-- UI code written by the LLM (HTML, CSS, React); pages are configs only (5.9)
+- UI code written by the LLM; pages are configs only (5.9)
 - A drag-and-drop page editor (the user asks the agent to change a page)
 - A translated UI or a mirrored right-to-left layout; only right-to-left text is supported (5.8)
 - `http.post`, and connection auth other than a key in a header or query (e.g. OAuth)

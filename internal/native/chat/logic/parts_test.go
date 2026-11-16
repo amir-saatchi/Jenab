@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/parts.test.ts: what its assertions check
+// Ported from the React app's chat/parts.test.ts: what its assertions check
 // about text. The MemoryNote ones check markup only (a <p>, dir="auto",
 // nothing for no note) and have no text to port.
 

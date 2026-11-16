@@ -18,10 +18,8 @@ import (
 	"time"
 )
 
-// The native mode (-native) measures cmd/desktop-native built with the
-// bench tag (SPIKE-048 Part B) as the default mode measures the Wails app,
-// with the same user folder, seed and fake model, so the numbers sit side
-// by side. The app has no measuring code: MyGo logs each frame with
+// The run measures cmd/desktop built with the bench tag (SPIKE-048 Part
+// B). The app has no measuring code: MyGo logs each frame with
 // MYGO_FRAME_STATS=all, the bench build stamps the log with microseconds
 // and adds marks (open, opened, key), and a loopback port drives it.
 

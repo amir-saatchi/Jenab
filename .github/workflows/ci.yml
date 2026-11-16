@@ -21,8 +21,8 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     env:
-      # Windows builds need no C compiler (N-51), so cgo stays off there.
-      # Wails uses cgo on macOS (Cocoa) and Linux (GTK), and -race needs it.
+      # The app needs no C compiler (N-51; MyGo needs no cgo), so cgo stays
+      # off on Windows. -race needs it, so it is on elsewhere.
       CGO_ENABLED: ${{ startsWith(matrix.os, 'windows') && '0' || '1' }}
     defaults:
       run:
@@ -33,27 +33,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Linux packages
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
-
-      # The Go build embeds frontend/dist, so the frontend is built first.
-      - name: Frontend
-        working-directory: frontend
-        run: |
-          bun install --frozen-lockfile
-          bun run build
-          bun test
-
-      # The committed bindings must match the Go services (P1-13).
-      - name: Bindings
-        if: runner.os == 'Linux'
-        run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.26
-          wails3 task check:bindings
 
       - name: Format
         if: runner.os == 'Linux'

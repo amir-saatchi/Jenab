@@ -1,6 +1,6 @@
 # TASK-061 — Switch to the native app and remove Wails
 **Type:** Task
-**Status:** In progress (proof passed; removal next)
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-054 (not its item 3, the MyGo release with the harakat fix), TASK-055, TASK-056, TASK-057, TASK-058, TASK-059, TASK-062
 
@@ -26,8 +26,18 @@ When the native app has every screen, it becomes Jenab, and the Wails app, the R
 
 ## Result
 
+### Removal
+Part 2, scope items 2 to 5: **done** on 2026-11-17. Report: [reports/TASK-061-removal-report.md](reports/TASK-061-removal-report.md).
+
+- **Commits:** the removal is one commit, `282dd2a`. The version stamp, the docs and the comments are a second, `c7380af`. A third, `9f02ceb`, fixes a Settings line that still named `task build:native`; the release check found it.
+- **Removed:** `cmd/desktop` (the Wails app), `internal/webui`, `frontend/` (bindings included), the Wails module (`go mod tidy`), `build/config.yml`, `build/windows/` (only Wails' syso step read it), `Taskfile.yml` and `VERSION`. The bench lost its WebView2 mode and `-native`; `-app` names the bench build.
+- **Renamed:** `cmd/desktop-native` is `cmd/desktop`; `mygo.json`'s `main` follows.
+- **Version:** `mygo.json` is the one place. The root package `jenab` embeds it, and `internal/version` reads the number from it. The commit and the modified flag come from Go's build info. `-X` still overrides.
+- **Checks:** `go build`, `go vet` and `go test ./...` pass. `go tool mygo build` built `Jenab.exe` and the installer from `cmd/desktop`, with VCS stamping on. A bench-tag build through the same pipeline showed *Jenab 0.1.0-dev (9f02ceb)* under *About*. `go tool mygo dev` started the app and quit with it. The bench held the app for 10 s.
+- **Left:** comments in the services (`internal/app`, `internal/bucket`, `internal/project`) still name Wails; the rule kept the services unchanged. Decision records (QUESTIONS, the Gates, PROPOSAL's roadmap) keep their history. `mockups/` still uses Bun; it is not part of the build.
+
 ### Proof
-Part 1, scope item 1: **passed.** The acceptance runs pass, and the user's manual run of the native app passed on 2026-11-17. Nothing was removed or renamed yet; items 2 to 4 come next. Report: [reports/TASK-061-proof-report.md](reports/TASK-061-proof-report.md).
+Part 1, scope item 1: **passed.** The acceptance runs pass, and the user's manual run of the native app passed on 2026-11-17. Report: [reports/TASK-061-proof-report.md](reports/TASK-061-proof-report.md).
 
 - **Acceptance runs (2026-11-16, main at `ae309c1`):** `scenarios/phase2-acceptance`, `P2_schema_memory`, `-reps 3`, as P2-14 ran it, on the two models the user picked.
 

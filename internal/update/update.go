@@ -2,7 +2,7 @@
 // newer version at start and every 6 hours, as the user chose (automatic,
 // notify only, off), installs each version once, and restarts the app
 // when nothing is in progress. The feed, the signature check and the swap
-// of the app's files are the Updater's: cmd/desktop-native gives MyGo's
+// of the app's files are the Updater's: cmd/desktop gives MyGo's
 // mygo.Updater (TASK-059). This package has no UI and no MyGo.
 package update
 

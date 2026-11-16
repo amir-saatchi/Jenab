@@ -1,5 +1,5 @@
 // Package shell is the window's frame on MyGo (SPEC 5.12): the rail, the
-// chat list and the main area, as frontend/src/shell's app-shell, rail,
+// chat list and the main area, as the React app's shell/app-shell, rail,
 // chat-sidebar and chat-view. The dock, the right sidebar and the bottom bar are
 // TASK-056's (dock.go).
 package shell

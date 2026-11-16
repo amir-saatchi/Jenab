@@ -13,7 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/sysmem"
 )
 
-// The bottom bar (SPEC 5.12): frontend/src/shell/bottom-bar.tsx's texts
+// The bottom bar (SPEC 5.12): the React app's shell/bottom-bar.tsx's texts
 // and hooks/use-poll.ts.
 
 // StatusAPI is what the bottom bar reads: SystemService.Memory and

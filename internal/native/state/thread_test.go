@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/thread.test.ts. Its tests of rows,
+// Ported from the React app's state/thread.test.ts. Its tests of rows,
 // copyText, lastNotice, firstRows and splitJoining belong to @/chat/rows,
 // which ports with the chat screen (Part B).
 

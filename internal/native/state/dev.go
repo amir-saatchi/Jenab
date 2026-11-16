@@ -31,7 +31,7 @@ type TurnRef struct {
 // Key is the turn's key among the turns.
 func (r TurnRef) Key() string { return fmt.Sprintf("%s/%s#%d", r.Project, r.Chat, r.Turn) }
 
-// Dev is the developer tools' store (frontend/src/dev/inspector.tsx and
+// Dev is the developer tools' store (the React app's dev/inspector.tsx and
 // runtime.tsx): the turns recorded, the turn the inspector shows, the
 // runtime, and a context block's text.
 //

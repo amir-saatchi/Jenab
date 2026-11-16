@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/rewind-text.test.ts.
+// Ported from the React app's chat/rewind-text.test.ts.
 
 import (
 	"reflect"

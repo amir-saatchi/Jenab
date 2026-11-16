@@ -27,7 +27,7 @@ const (
 
 // home is a fresh user folder for the app: LOCALAPPDATA, APPDATA,
 // USERPROFILE and the temp folder point into it, so the app has its own
-// settings, projects and WebView2 profile, and never sees the user's.
+// settings and projects, and never sees the user's.
 type home struct {
 	dir    string
 	gemini string // a Gemini model the settings connect (-gemini), or ""

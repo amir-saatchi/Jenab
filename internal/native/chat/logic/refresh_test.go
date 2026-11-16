@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/refresh.test.ts.
+// Ported from the React app's chat/refresh.test.ts.
 
 import (
 	"strings"

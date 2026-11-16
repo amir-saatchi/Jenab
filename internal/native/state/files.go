@@ -14,7 +14,7 @@ import (
 )
 
 // Keys, folders and links of a project's bucket (SPEC 4.1, 4.5), for the
-// Files panel and the chat's jenab:// links: frontend/src/lib/files.ts.
+// Files panel and the chat's jenab:// links: the React app's lib/files.ts.
 
 // Cache is the app's own folder: fetched pages and long tool outputs. The
 // panel lists it apart, as *App cache* (SPEC 5.12).

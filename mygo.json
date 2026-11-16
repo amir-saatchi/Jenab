@@ -6,6 +6,6 @@
   "publisher": "Jenab",
   "license": "Apache-2.0",
   "icon": "build/appicon.png",
-  "main": "./cmd/desktop-native",
+  "main": "./cmd/desktop",
   "out": "bin/native"
 }

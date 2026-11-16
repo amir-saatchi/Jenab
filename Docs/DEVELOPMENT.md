@@ -1,85 +1,55 @@
 # Development setup
 
-How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.md](Code-Design/QUESTIONS.md) (Q1) and [CODE-OUTLINE](Code-Design/CODE-OUTLINE.md).
+How to build, run and test Jenab. The code layout is in [CODE-OUTLINE](Code-Design/CODE-OUTLINE.md); [QUESTIONS.md](Code-Design/QUESTIONS.md) (Q1) has the first map, from the Wails days.
 
-**Two desktop apps until TASK-061** (SPEC 5.8):
-- `cmd/desktop-native`, the native app on [MyGo](https://github.com/egoist/mygo), with no webview. New screens and features are built here.
-- `cmd/desktop`, the Wails app with the React frontend in `frontend/`. It still ships, and it gets bug fixes only.
-
-Both build the same services and take the same lock, so only one runs at a time. TASK-061 switches to the native app and removes Wails, `frontend/` and Bun. Every step below marked *(Wails)* goes then.
+The app is `cmd/desktop`, a native app on [MyGo](https://github.com/egoist/mygo) with no webview (SPEC 5.8). Its screens are in `internal/native`.
 
 ## Tools
 
 | Tool | Version | Notes |
 |---|---|---|
 | Go | 1.27.3 or newer | `go.mod` needs Go 1.27.3; with `GOTOOLCHAIN=auto` (the default) Go downloads it on the first build |
-| Bun | 1.3 or newer | *(Wails)* for the frontend; not npm (the lock file is `bun.lock`) |
-| Git | any recent | |
-| Wails CLI (`wails3`) | `v3.0.0` | *(Wails)* the same version as the library in `go.mod` |
+| Git | any recent | the build takes the commit from it |
 
-**Per platform:**
-
-- **Windows 11:** nothing else. Neither app needs a C compiler (N-51); MyGo is pure Go, and WebView2 comes with Windows.
-- **macOS** *(Wails)*: the Xcode Command Line Tools (`xcode-select --install`). Wails uses cgo for its Cocoa layer.
-- **Linux (beta)** *(Wails)*: a C compiler, `pkg-config`, GTK 4 and WebKitGTK 6.0. On Ubuntu 24.04 or Debian 13:
-  ```bash
-  sudo apt install build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
-  ```
-  On Fedora: `gtk4-devel` and `webkitgtk6.0-devel`.
-
-MyGo comes through `go.mod`, pinned (v0.9.1); there is nothing to install. The native app runs on Windows only for now; macOS and Linux come with TASK-060.
-
-*(Wails)* Install the Wails CLI with Go:
-
-```bash
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
-```
-
-It has [Task](https://taskfile.dev) built in, so `wails3 task <name>` runs the tasks in [`Taskfile.yml`](../Taskfile.yml). No separate Task install is needed.
+- MyGo comes through `go.mod`, pinned (v0.9.1), and its CLI is a `tool` there, so `go tool mygo` needs no install.
+- No C compiler is needed (N-51): MyGo is pure Go. No Node, Bun or other JavaScript tool is needed either.
+- The app runs on Windows 11 only for now; macOS and Linux come with TASK-060.
 
 ## Build and run
 
-### The native app
-
 ```bash
-go run ./cmd/desktop-native
+go run ./cmd/desktop
 ```
 
-- It builds the services as the Wails app does and uses the same data folder, settings and keychain entries. The Wails app takes the same lock, so quit one before starting the other.
+To rebuild and restart the app on every Go change:
+
+```bash
+go tool mygo dev
+```
+
+- It uses the normal data folder, settings and keychain entries. Only one copy runs at a time (the app lock).
 - Closing the window only hides it. Quit from the tray icon's menu or with *Quit Jenab* on the rail.
-- To build the release and its installer (Windows):
-
-  ```bash
-  wails3 task build:native
-  ```
-
-  It runs `go tool mygo build`, which reads `mygo.json` and writes `bin/native/windows-amd64/Jenab.exe` and `jenab-setup-<version>-amd64.exe`. The exe is built with `-trimpath` and `-H windowsgui`, with the icon, version info and manifest, and the version and commit of `internal/version`. The first build downloads NSIS 3.13 into `%LOCALAPPDATA%\mygo` (MyGo pins its SHA-256).
-- The installer installs per user into `%LOCALAPPDATA%\Programs\Jenab`, adds a Start menu entry and an entry under Apps, and closes a running Jenab first. `/S` installs silently, `/D=<folder>` picks the folder. The uninstaller removes the program only; settings, projects and keys stay.
-- `mygo.json` has no `updates` block yet, so release builds can't update themselves; Settings says so. With `updates` (the feed URL and the public key) and the private key in `MYGO_UPDATER_PRIVATE_KEY`, the build also writes the signed update archive and `update-windows-amd64.json`. Never commit a private key.
 - For a scratch user folder, point `LOCALAPPDATA`, `APPDATA` and `USERPROFILE` (Windows) at a temporary folder. `USERPROFILE` matters: the default data folder is `%USERPROFILE%\Jenab`, and the start-up scan reads it.
 
-### The Wails app *(Wails)*
+### The release and its installer
 
-| Command | What it does |
-|---|---|
-| `wails3 task dev` | runs the app with hot reload: Vite serves the UI, and the Go side rebuilds and restarts on save |
-| `wails3 task build` | builds `bin/jenab.exe` (`bin/jenab` on macOS and Linux) for production |
-| `wails3 task build DEV=true` | a dev build: no minifying, and the dev tools work |
-| `wails3 task build:native` | Windows: builds the native app's release and its installer into `bin/native/windows-amd64` (TASK-059) |
-| `wails3 task run` | runs the built app |
-| `wails3 task bindings` | regenerates `frontend/bindings` after a service or event changes |
-| `wails3 task check:bindings` | fails if the committed bindings differ from fresh ones (CI runs it) |
-| `wails3 task test` | `go vet` and `go test` |
-| `wails3 task bench` | Windows: builds the app with the `bench` tag and measures it (`cmd/jenab-bench`, P1-18) |
+```bash
+go tool mygo build
+```
 
-- The Go build embeds `frontend/dist`. `wails3 task build` builds the frontend and the bindings first.
-- `frontend/bindings` is generated but committed, so the frontend builds without Go. Commit it with the Go change that made it.
-- The frontend uses `@wailsio/runtime`, pinned to the same version as the Wails library. Upgrade both together.
-- `wails3 task dev` serves Vite on port 9245; set `WAILS_VITE_PORT` to change it.
-- On Windows, the build adds the icon and manifest from `build/windows` through a `.syso` file in `cmd/desktop` (git-ignored).
-- **Version:** set in `VERSION` at the repository root (semantic versioning, e.g. `0.1.0-dev`). `wails3 task build`, `dev` and `bench` stamp it into `internal/version` with the git short commit, and with "modified" when tracked files had changes. A build without the Taskfile, such as `go run ./cmd/desktop`, says `dev`. `build/config.yml`, `build/windows/info.json` (four numbers for Windows' fixed versions, e.g. `0.1.0.0`), `frontend/package.json` and `mygo.json` carry the same number; `go test ./internal/version` fails when one differs. To bump it, edit `VERSION` and those four files, then tag the release commit `vX.Y.Z`.
+- It reads `mygo.json` and writes `bin/native/windows-amd64/Jenab.exe` and `jenab-setup-<version>-amd64.exe`.
+- The exe is built with `-trimpath` and `-H windowsgui`. MyGo makes its icon (from `build/appicon.png`), version info and manifest from `mygo.json`.
+- The first build downloads NSIS into `%LOCALAPPDATA%\mygo`. MyGo pins its version and SHA-256.
+- The installer installs per user into `%LOCALAPPDATA%\Programs\Jenab`, adds a Start menu entry and an entry under Apps, and closes a running Jenab first. `/S` installs silently, `/D=<folder>` picks the folder. The uninstaller removes the program only; settings, projects and keys stay.
+- `mygo.json` has no `updates` block yet, so release builds can't update themselves; Settings says so. With `updates` (the feed URL and the public key) and the private key in `MYGO_UPDATER_PRIVATE_KEY`, the build also writes the signed update archive and `update-windows-amd64.json`. Never commit a private key.
 
-Without the CLI, `go run ./cmd/desktop` still works after `bun run build` in `frontend`.
+### The version
+
+- `mygo.json`'s `version` is the one place the version is set (semantic versioning, e.g. `0.1.0-dev`). The root package `jenab` (`jenab.go`) embeds `mygo.json`, and `internal/version` reads the number from it.
+- The commit and the "modified" flag come from Go's build info (`vcs.revision`, shortened to 7, and `vcs.modified`). `go build` and `go tool mygo build` stamp them in a git checkout. `go test` builds carry no VCS info, so there the commit is empty.
+- `-ldflags -X github.com/amir-saatchi/jenab/internal/version.number=…` (and `.commit`, `.modified`) still override them, e.g. through `MYGO_LDFLAGS`.
+- `go test ./internal/version` checks that the version is a semantic version, that `mygo.json`'s identifier matches `internal/appinfo`, and that its publisher is the app's name.
+- To bump the version, edit `version` in `mygo.json`, then tag the release commit `vX.Y.Z`.
 
 ## Tests
 
@@ -88,7 +58,7 @@ go vet ./...
 go test ./...
 ```
 
-- `./...` skips `spikes/` and any `node_modules` (the `ignore` block in `go.mod`). Each spike is its own module; run it from its folder.
+- `./...` skips `spikes/` (the `ignore` block in `go.mod`). Each spike is its own module; run it from its folder.
 - `-race` needs cgo, so it runs in CI on macOS and Linux. On Windows, use WSL or leave it to CI.
 - The test layers (unit, fuzz, integration, spike regressions, scenarios) are in QUESTIONS.md Q34–35.
 
@@ -101,56 +71,36 @@ go test ./internal/native/...
 ```
 
 - **Kit components** are tested headless with MyGo's `ui.NewTester` (`kit.NewTester` for the screens' tests, which can't import `ui`). Each component's test builds it in a light and a dark window, finds it by its accessible label, checks that Tab reaches it (or passes over it), and shows right-to-left text in it. A new kit component comes with such a test.
-- **The kit's own checks:** the layout isn't mirrored in a right-to-left window, the fonts draw their weights, code tab stops, lists and tables take their direction, and `TestOnlyTheKitImportsMyGoUI`, which fails on any import of `github.com/egoist/mygo/ui` outside the kit.
-- **The stores** (`internal/native/state`) and the chat's logic (`internal/native/chat/logic`) are tested without a window. Their tests are the TypeScript tests, ported.
+- **The kit's own checks:** the layout isn't mirrored in a right-to-left window, the fonts draw their weights, code tab stops, lists and tables take their direction, the colours' contrast, and `TestOnlyTheKitImportsMyGoUI`, which fails on any import of `github.com/egoist/mygo/ui` outside the kit.
+- **The stores** (`internal/native/state`) and the chat's logic (`internal/native/chat/logic`) are tested without a window.
 - **Screens** (`shell`, `chat`) are tested headless against `statetest.Fake`, in-memory services.
 - On Windows the tester draws text through DirectWrite, as the window does. It sees text and access names, not pixels: a glyph drawn wrong passes.
 
-### The Wails app's tests *(Wails)*
-
-The frontend tests (the stores, the formatting and the contrast check) run with Bun, in `frontend`:
-
-```bash
-bun test
-```
-
-To check the UI in a normal browser against the real Go side, build the server mode and open `http://127.0.0.1:9310`:
-
-```bash
-go build -tags server -o bin/jenab-server.exe ./cmd/desktop
-WAILS_SERVER_HOST=127.0.0.1 WAILS_SERVER_PORT=9310 bin/jenab-server.exe
-```
-
-It uses your real data folder. For a scratch one, point `LOCALAPPDATA` and `USERPROFILE` (Windows) or `HOME` somewhere else.
-
-Windows reserves blocks of ports for Hyper-V, WSL and Docker, and they can move after a restart. If the server says "An attempt was made to access a socket in a way forbidden by its access permissions", the port is in one: list them with `netsh interface ipv4 show excludedportrange protocol=tcp` and pick another.
-
 ### The bench
 
-`wails3 task bench` *(Wails)* measures the built app: start-up, idle memory, opening a chat of 200 messages, streaming while you type, and memory with ten answers at once. It uses its own user folder and a local fake model, so no keys are needed, and writes a report to `bin/bench`. A build with the `bench` tag opens WebView2's DevTools port when `JENAB_DEVTOOLS_PORT` is set; shipped builds don't. Keep the app's window visible and leave the machine alone during a run (about 3 minutes).
-
-**The native app (`-native`):** build `cmd/desktop-native` with the `bench` tag, then point the bench at it:
+The bench measures the app: start-up, idle memory, opening a chat of 200 messages, streaming while you type, and memory with ten answers at once. Build the app with the `bench` tag, then run the bench (Windows only):
 
 ```bash
-go build -tags bench -o bin/jenab-native-bench.exe ./cmd/desktop-native
+go build -tags bench -o bin/jenab-bench-app.exe ./cmd/desktop
 ```
 
 ```bash
-go run ./cmd/jenab-bench -native bin/jenab-native-bench.exe
+go run ./cmd/jenab-bench -app bin/jenab-bench-app.exe
 ```
 
-- It uses the same seed, user folder and fake model as the Wails runs, and takes the frame times from MyGo's `MYGO_FRAME_STATS=all`. `-rate` sets the fake model's tokens a second (100 by default).
-- The bench build stamps its log in microseconds, adds marks to it, and serves a loopback port the bench drives. It keeps keys in memory (`JENAB_BENCH_KEY_<PROVIDER>`), never in the keychain. The release build has no bench code.
-- `-samples` pictures the 20 text samples (Persian, English, mixed, code, tables, lists) in both apps, for comparing with Chromium; it needs `bin/jenab-bench-app.exe` from `wails3 task bench` too.
-- `-hold 10m` keeps the native app open on a chat (`-hold-chat`) for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests. `-dev-tools` with `-hold` turns the developer tools on, and the fake model answers a message with "use a tool" in it with two `query` calls first, one of them failing. While it holds, the port takes `/state`, `/open`, `/send`, `/key`, `/front`, `/size` (the window's size, for the narrow layout under 900 px), `/shot` and `/quit`, and `POST /file?path=<file>` uploads a file into the open chat's project and opens it, with the chat in the dock.
+- It uses its own user folder and a local fake model, so no keys are needed, and writes a report to `bin/bench`. It takes the frame times from MyGo's `MYGO_FRAME_STATS=all`. `-rate` sets the fake model's tokens a second (100 by default).
+- Keep the app's window visible and leave the machine alone during a run: a hidden window gets fewer frames.
+- The bench build stamps its log in microseconds, adds marks to it, and serves a loopback port the bench drives (`JENAB_BENCH_PORT`). It keeps keys in memory (`JENAB_BENCH_KEY_<PROVIDER>`), never in the keychain. The release build has no bench code.
+- `-samples` pictures the 20 text samples (Persian, English, mixed, code, tables, lists).
+- `-hold 1m` keeps the app up on a scratch profile, on a chat (`-hold-chat`), for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests. `-dev-tools` with `-hold` turns the developer tools on, and the fake model answers a message with "use a tool" in it with two `query` calls first, one of them failing. While it holds, the port takes `/state`, `/open`, `/send`, `/key`, `/front`, `/size` (the window's size, for the narrow layout under 900 px), `/shot` and `/quit`, and `POST /file?path=<file>` uploads a file into the open chat's project and opens it, with the chat in the dock.
 - Screenshots in `bin/bench` can hold user-name paths; don't commit them.
 
-### Testing updates and the installer (native app)
+### Testing updates and the installer
 
 Test updates only against a local feed, never the public one, and keep test keys outside the repo.
 
 1. Make a key pair in a scratch folder: `go tool mygo keygen -o <scratch>/keys`.
-2. Copy `mygo.json` into a folder under `bin/` and give it a test version, `"main": "github.com/amir-saatchi/jenab/cmd/desktop-native"`, an absolute `icon`, and `"updates": {"publicKey": "<the .pub>", "url": "https://updates.invalid/jenab", "deltas": 0}`.
+2. Copy `mygo.json` into a folder under `bin/` and give it a test version, `"main": "github.com/amir-saatchi/jenab/cmd/desktop"`, an absolute `icon`, and `"updates": {"publicKey": "<the .pub>", "url": "https://updates.invalid/jenab", "deltas": 0}`.
 3. Build each version with the bench tag and the private key:
 
    ```bash
@@ -175,14 +125,7 @@ go run ./cmd/jenab-fakesite
 
 ## CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request, on Windows, macOS and Linux:
-
-1. builds the frontend and runs `bun test` *(Wails)*
-2. the bindings check *(Wails)*, `go fmt` check (Linux), `go vet`
-3. `go test`, with `-race` on macOS and Linux
-4. builds `cmd/desktop` *(Wails)*
-
-`go test` covers the native UI's tests. CI doesn't build `cmd/desktop-native` yet; TASK-060 adds it, with macOS and Linux.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and every pull request, on Windows, macOS and Linux: the `go fmt` check (Linux), `go vet`, and `go test`, with `-race` on macOS and Linux. `go test` covers the native UI's tests.
 
 On Windows, CI builds with `CGO_ENABLED=0`, so a dependency that needs cgo fails there.
 
@@ -209,5 +152,4 @@ A failure on any other model is recorded, not worked around. Fixes are made the 
 
 - Sign off every commit with `git commit -s` ([CONTRIBUTING](../CONTRIBUTING.md)).
 - `.gitattributes` normalizes line endings, so Windows and macOS checkouts give the same diffs.
-- MyGo is pinned in `go.mod` (v0.9.1). It is pre-v1 and releases often, so a move to a new version is its own change: it touches only `internal/native/kit` and `cmd/desktop-native` (CODE-OUTLINE 10), and the kit's tests must pass. Ask before downloading a new version.
-- *(Wails)* Wails is pinned to `v3.0.0`. Since v3.0.0 Wails releases weekly (v3.1.0, v3.2.0, ...). An upgrade touches only `internal/webui` and `internal/update` (CODE-OUTLINE 1); test it on all three platforms.
+- MyGo is pinned in `go.mod` (v0.9.1). It is pre-v1 and releases often, so a move to a new version is its own change: it touches only `internal/native/kit` and `cmd/desktop` (CODE-OUTLINE 10), and the kit's tests must pass. Ask before downloading a new version.

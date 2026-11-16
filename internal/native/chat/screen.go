@@ -1,5 +1,5 @@
 // Package chat is the chat screen on MyGo (SPIKE-048 Part B): the thread
-// of one chat and its composer, as frontend/src/chat's thread-view,
+// of one chat and its composer, as the React app's chat/thread-view,
 // parts, cards, rewind, undo and composer. It reads the stores and acts
 // through state.Actions; what it shows is built with the kit. The pure
 // rules it shares with the React app are in package logic.

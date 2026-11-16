@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/thread-store.test.ts.
+// Ported from the React app's state/thread-store.test.ts.
 
 import (
 	"context"

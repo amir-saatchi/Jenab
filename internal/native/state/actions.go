@@ -106,7 +106,7 @@ func (a *Actions) SetModel(p id.Project, c id.Chat, model string, then func(erro
 
 // SetLevel sets the project's approval level from the chat's composer
 // (SPEC 8.8): strict, standard or auto. On success it is the opened
-// project's level too, as the Wails composer keeps it.
+// project's level too, as the React composer kept it.
 func (a *Actions) SetLevel(p id.Project, c id.Chat, level string, then func(error)) {
 	done(a, func(ctx context.Context) error { return a.api.SetLevel(ctx, p, c, level) }, then)
 }

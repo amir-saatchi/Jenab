@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/chats.test.ts.
+// Ported from the React app's state/chats.test.ts.
 
 import (
 	"testing"

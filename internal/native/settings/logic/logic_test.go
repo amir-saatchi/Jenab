@@ -1,7 +1,7 @@
 package logic
 
-// Ported from frontend/src/settings/format.test.ts,
-// frontend/src/chat/provider-choice.test.ts and memory.test.ts; the rest
+// Ported from the React app's settings/format.test.ts,
+// chat/provider-choice.test.ts and memory.test.ts; the rest
 // covers what the React pages did inline.
 
 import (
@@ -67,7 +67,7 @@ func TestBaseURLPlaceholdersAreFound(t *testing.T) {
 }
 
 func TestTheAboutLineNamesTheVersionAndTheCommit(t *testing.T) {
-	v := version.Info{Version: "0.1.0-dev", Commit: "d449b7e", Go: "go1.26.10", Wails: "v3.0.0", OS: "windows/amd64"}
+	v := version.Info{Version: "0.1.0-dev", Commit: "d449b7e", Go: "go1.26.10", OS: "windows/amd64"}
 	if got := VersionLine(v); got != "Jenab 0.1.0-dev (d449b7e)" {
 		t.Error(got)
 	}
@@ -81,12 +81,7 @@ func TestTheAboutLineNamesTheVersionAndTheCommit(t *testing.T) {
 	if got := VersionLine(d); got != "Jenab dev" {
 		t.Error(got)
 	}
-	if got := BuildLine(v); got != "Go 1.26.10, Wails v3.0.0, windows/amd64" {
-		t.Error(got)
-	}
-	n := v
-	n.Wails = ""
-	if got := BuildLine(n); got != "Go 1.26.10, windows/amd64" {
+	if got := BuildLine(v); got != "Go 1.26.10, windows/amd64" {
 		t.Error(got)
 	}
 }

@@ -72,11 +72,11 @@ A user creates a project and writes: *"Every day, get the Bitcoin price and the 
 
 ## 5. Architecture
 
-The application is a Go desktop app built with Wails. The formats and storage are defined in `SPEC.md`; the component diagram is in `app_structure.svg`.
+The application is a Go desktop app with a native UI on MyGo (SPIKE-048). The formats and storage are defined in `SPEC.md`; the component diagram is in `app_structure.svg`.
 
 | Layer | Components |
 |---|---|
-| Frontend (webview) | Left sidebar (projects, chats); main area with the chat, or an open page with the chat docked beside it; right sidebar (pages; Files and Links); block registry (table, chart, stat, form; heading, text, card, filter, button, image); light and dark theme |
+| UI (native) | Left sidebar (projects, chats); main area with the chat, or an open page with the chat docked beside it; right sidebar (pages; Files and Links); block registry (table, chart, stat, form; heading, text, card, filter, button, image); light and dark theme |
 | Orchestration | Orchestrator (owns each turn, change log, undo), context builder (project card, memory, history window), main agent in each chat, Mother chat that directs chats with roles, schema agent, subagents |
 | Execution | Tool registry, pipeline runner, scheduler; a sandboxed Starlark escape hatch later |
 | Data | Async data layer: one writer goroutine and a read-only pool per database file, WAL mode; object store for the bucket |
@@ -100,8 +100,8 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 
 | Need | Choice |
 |---|---|
-| Desktop shell | Wails v3 (Go), pinned to an exact tag, with the normal OS window frame (SPIKE-003) |
-| Frontend | React + TypeScript, shadcn/ui (Radix base), Zustand, TanStack Table, Recharts; Bun for installs and scripts. Tokens drawn once per frame, large charts downsampled, charts and Markdown loaded lazily (SPIKE-022) |
+| Desktop shell | MyGo (pure Go, no webview), pinned in `go.mod`, with the normal OS window frame (SPIKE-048). It replaced Wails v3 (SPIKE-003) in TASK-061 |
+| UI | Jenab's component kit on MyGo, drawn on the GPU, with Go stores; streaming Markdown parses only the new text (SPIKE-048). React + TypeScript (SPIKE-022) until TASK-061 |
 | SQLite driver | `modernc.org/sqlite` (pure Go, no cgo) |
 | History search | SQLite FTS5 (`unicode61`, with Go text normalization for German and Persian; SPIKE-011) |
 | Object store | Local folder behind a small interface (`gocloud.dev/blob` style), so S3-compatible backends can be added later |
@@ -111,7 +111,7 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 | Web pages to text | `readeck/go-readability/v2` + `html-to-markdown/v2` (SPIKE-015) |
 | Expressions in pipelines | `expr-lang/expr` (SPIKE-005) |
 | Script escape hatch (later) | `go.starlark.net`, run in a child process with a memory cap (SPIKE-016) |
-| App updates | Wails `pkg/updater` (endpoint provider) with our own fail-closed ed25519 check, per-user install (SPIKE-019) |
+| App updates | MyGo's signed updater (`mygo.Updater`), fail closed, per-user NSIS install (SPIKE-019, TASK-059) |
 | Secrets | `zalando/go-keyring` (SPIKE-006) |
 | MCP client | To be chosen in SPIKE-024 (the official Go SDK is the first candidate) |
 
@@ -119,7 +119,7 @@ The application is a Go desktop app built with Wails. The formats and storage ar
 
 ## 6. Key design decisions
 
-**Views are configs, not code.** Generic components plus a validated config are safer, cheaper and more reliable than LLM-written React, and the agent can edit them without breaking the app.
+**Views are configs, not code.** Generic components plus a validated config are safer, cheaper and more reliable than LLM-written UI code, and the agent can edit them without breaking the app.
 
 **One owner for the schema.** Only the schema agent changes the schema. Each migration runs in one transaction together with the updates to the views, pipelines and forms that depend on it, and is committed only if all of them still validate. SQLite's DDL is transactional, so a failed check leaves no trace. The schema agent returns `applied`, `rejected` with a reason, or `needs_approval` for destructive changes such as dropping a column. A snapshot is taken before every approved destructive change.
 

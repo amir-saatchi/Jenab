@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/settings.test.ts.
+// Ported from the React app's state/settings.test.ts.
 
 import (
 	"context"

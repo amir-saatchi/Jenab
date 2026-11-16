@@ -1,6 +1,6 @@
 package state
 
-// Ported from frontend/src/state/nav.test.ts.
+// Ported from the React app's state/nav.test.ts.
 
 import (
 	"reflect"

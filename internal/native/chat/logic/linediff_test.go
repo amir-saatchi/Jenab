@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/line-diff.test.ts.
+// Ported from the React app's chat/line-diff.test.ts.
 
 import (
 	"fmt"

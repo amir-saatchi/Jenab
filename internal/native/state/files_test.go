@@ -10,7 +10,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 )
 
-// frontend/src/shell/files.test.ts, ported.
+// the React app's shell/files.test.ts, ported.
 
 const (
 	projP id.Project = "01JABCDEFGHJKMNPQRSTVWXYZ0"
