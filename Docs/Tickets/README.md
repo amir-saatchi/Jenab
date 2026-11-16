@@ -107,7 +107,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Done | 3 |
 | [TASK-052](TASK-052-provider-select.md) | Pick the provider from a list in *Add provider* | Task | Done | 3 |
 | [TASK-053](TASK-053-native-ui-docs.md) | The SPEC and design docs for the native UI | Task | Done | 3 |
-| [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | In progress (item 3 waits for MyGo with #1929) | 3 |
+| [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | Done, except item 3 (follows a MyGo release with #1929; not a blocker) | 3 |
 | [TASK-055](TASK-055-native-settings.md) | Settings in the native app | Task | Done | 3 |
 | [TASK-056](TASK-056-native-files-and-dock.md) | The files panel, the file view and the dock in the native app | Task | Done | 3 |
 | [TASK-057](TASK-057-native-project-screens.md) | Project screens in the native app | Task | Done | 3 |

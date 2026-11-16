@@ -1,6 +1,6 @@
 # TASK-054 — Close the native chat's gaps
 **Type:** Task
-**Status:** In progress (item 3 waits for a MyGo release with #1929)
+**Status:** Done, except item 3, which follows a MyGo release (not a blocker)
 **Gate:** 3
 **Needs:** SPIKE-048
 
@@ -34,7 +34,7 @@ Items 1, 2, 4, 5 and 6 are done, on MyGo v0.9.1. Item 3 is open. The report: [re
 
 - **1. Approvals picker:** done. The composer's *Approvals* menu has *Strict*, *Standard* and *Auto*, each with its hint as a subtitle. It reads and sets the opened project's level through `Actions.SetLevel`. The headless test works by mouse and by keyboard, in light and dark.
 - **2. Times:** done. `kit.Clock`, `kit.ShortTime` and `kit.MediumDate` follow Windows' regional formats: "01:11 PM" or "13:11", as in the Wails app. They are tested with US, British, Persian and 24-hour US formats.
-- **3. MyGo with the harakat fix:** open. [egoist/mygo#1929](https://github.com/egoist/mygo/pull/1929) is not merged, and v0.9.2 doesn't have it, so MyGo stays at v0.9.1. This item waits for a release with #1929: then move to it, after asking, and picture sample 19 again.
+- **3. MyGo with the harakat fix:** open. [egoist/mygo#1929](https://github.com/egoist/mygo/pull/1929) was merged on 2026-11-16 (06b69ea), but no release has it yet; v0.9.2 doesn't, so MyGo stays at v0.9.1. This item waits for a release with #1929: then move to it, after asking, and picture sample 19 again. It is not a blocker (decided 2026-11-16): TASK-061 doesn't wait for it.
 - **4. Part A's open items:** done in the kit, with nothing to file upstream.
   - **The sidebar:** MyGo v0.9.1 still fills a focused, chosen item with the accent. The kit paints it sidebar-accent, and a pixel test checks it.
   - **Text fields:** `Tester.Texts` still leaves out their text, by design; it is in `AccessInfo.Value` and `Placeholder`. `kit.Shows` reads it there.

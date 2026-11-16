@@ -2,7 +2,7 @@
 **Type:** Task
 **Status:** Open
 **Gate:** 3
-**Needs:** TASK-054, TASK-055, TASK-056, TASK-057, TASK-058, TASK-059, TASK-062
+**Needs:** TASK-054 (not its item 3, the MyGo release with the harakat fix), TASK-055, TASK-056, TASK-057, TASK-058, TASK-059, TASK-062
 
 ## Goal
 When the native app has every screen, it becomes Jenab, and the Wails app, the React frontend and Bun leave the build.
