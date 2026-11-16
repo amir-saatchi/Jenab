@@ -294,3 +294,50 @@ func TestALongChatBuildsOnlyWhatShows(t *testing.T) {
 		t.Errorf("%d answers built of 100", n)
 	}
 }
+
+// A selection runs across messages and copies as plain text, as a
+// browser copies one; an answer's Copy copies its Markdown.
+func TestASelectionCopiesAcrossMessages(t *testing.T) {
+	x := open(t, false,
+		statetest.Text(1, jc.RoleUser, "first question"),
+		answer(1, text("the **first** answer")),
+		statetest.Text(2, jc.RoleUser, "second question"),
+		answer(2, text("the "+persian+" answer")))
+	all := x.tt.AccessAll()
+	from, to := -1, -1
+	for i, a := range all {
+		switch {
+		case a.Name == "first question":
+			from = i
+		case strings.Contains(a.Name, persian):
+			to = i
+		}
+	}
+	if from < 0 || to < 0 {
+		t.Fatalf("no first question or Persian answer in %q", x.tt.Texts())
+	}
+	// From the start of the first question to the end of the last answer,
+	// a left-to-right paragraph, as it starts with "the".
+	f, e := all[from].Bounds, all[to].Bounds
+	x.tt.Press(f.X+1, f.Y+f.H/2)
+	x.tt.Move(e.X+e.W-1, e.Y+e.H/2)
+	x.tt.Release(e.X+e.W-1, e.Y+e.H/2)
+	x.draw()
+	x.tt.Key(kit.Ctrl, kit.KeyC)
+	x.tt.Frame()
+	got := x.tt.Clipboard()
+	t.Logf("the selection copied %q", got)
+	for _, want := range []string{"first question", "the first answer", "second question", persian} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the copy %q has no %q", got, want)
+		}
+	}
+	if strings.Contains(got, "**") {
+		t.Errorf("the selection copied Markdown: %q", got)
+	}
+	clickLast(t, x.tt, "Copy")
+	x.draw()
+	if got := x.tt.Clipboard(); got != "the "+persian+" answer" {
+		t.Errorf("Copy copied %q", got)
+	}
+}

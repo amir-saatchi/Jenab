@@ -57,8 +57,12 @@ type Content = ui.Content
 func View(view func(c *Context)) *Content { return ui.View(view) }
 
 // TabSize is where text puts its tab stops, every 4 columns, as the
-// frontend's code blocks (tab-size: 4).
+// frontend's composer shows them. Code blocks use CodeTabSize.
 const TabSize = 4
+
+// CodeTabSize is where code blocks put their tab stops, every 2 columns,
+// as the frontend's code blocks (typeset.css, tab-size: 2).
+const CodeTabSize = 2
 
 // Root builds the window: Jenab's theme for the window's appearance, laid
 // out left to right (see Direction above), with tab stops every TabSize

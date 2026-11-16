@@ -13,7 +13,7 @@ const goCode = "```go\nfunc f() {\n\treturn 1\n}\n```\n"
 
 // MyGo v0.7.4 drew a tab as nothing; v0.8.1 and later draw it (#1217).
 // Without a tab size it advances as the system's text stack sets it; the
-// kit's Root and code blocks put stops every 4 columns.
+// kit's Root puts stops every 4 columns, its code blocks every 2.
 func TestMyGoDrawsTabs(t *testing.T) {
 	draw := func(src string) []byte {
 		var o markdown.Options
@@ -39,9 +39,9 @@ func TestMarkdownKeepsTabs(t *testing.T) {
 		var m Markdown
 		return window(t, false, func(c *Context) { m.View(c, src) }).Image().Pix
 	}
-	tab, spaces, none := draw(goCode), draw(strings.Replace(goCode, "\t", "    ", 1)), draw(strings.Replace(goCode, "\t", "", 1))
+	tab, spaces, none := draw(goCode), draw(strings.Replace(goCode, "\t", "  ", 1)), draw(strings.Replace(goCode, "\t", "", 1))
 	if !bytes.Equal(tab, spaces) || bytes.Equal(tab, none) {
-		t.Error("a tab in a code block does not draw as 4 spaces")
+		t.Error("a tab in a code block does not draw as 2 spaces, as the frontend's")
 	}
 }
 

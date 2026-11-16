@@ -27,7 +27,8 @@ type Screen struct {
 	// OnLink opens a link in an answer; nil does what MyGo does.
 	OnLink func(url string)
 
-	md     kit.Markdown
+	md     kit.Markdown // the thread's, sharing its selection
+	hello  kit.Markdown // the Mother chat's greeting, outside the thread
 	views  map[id.Chat]*view
 	open   map[string]*bool
 	cards  map[string]*card
@@ -38,7 +39,8 @@ type Screen struct {
 
 // New makes the chat screen on the stores.
 func New(st *state.Stores) *Screen {
-	return &Screen{st: st, views: map[id.Chat]*view{}, open: map[string]*bool{}, cards: map[string]*card{}, undos: map[string]*undo{}}
+	return &Screen{st: st, md: kit.Markdown{ShareSelection: true},
+		views: map[id.Chat]*view{}, open: map[string]*bool{}, cards: map[string]*card{}, undos: map[string]*undo{}}
 }
 
 func (s *Screen) now() time.Time {
@@ -269,7 +271,7 @@ func (s *Screen) empty(c *kit.Context, t *state.Thread, mother bool) {
 		title = "Mother"
 	}
 	kit.Message(c, "Jenab said", false, func() {
-		s.md.View(c, hello(title))
+		s.hello.View(c, hello(title))
 		kit.Row(c).Gap(8).Wrap().Children(func() {
 			for _, st := range logic.Starters {
 				if kit.Button(c, st, kit.Outline).Key(st).Clicked() {

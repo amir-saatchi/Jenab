@@ -110,7 +110,7 @@ func run() (err error) {
 	defer cancel()
 
 	live := app.NewSettings(paths.Settings, settings, problems)
-	secrets := secret.New(secret.OSKeyring(strings.ToLower(appinfo.Name)))
+	secrets := secret.New(newKeyring())
 	registry, err := store.OpenRegistry(ctx, paths.Registry)
 	if err != nil {
 		return err
@@ -219,6 +219,9 @@ func run() (err error) {
 		stores.WindowActive = func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() }
 		mailbox.Attach(win.Update)
 		sh.Start()
+		if benchHook != nil {
+			benchHook(stores, mailbox.Post, win)
+		}
 		// Closing the window only hides it, so the tray shows it again and
 		// quits.
 		if err := newTray(func() { show(win) }); err != nil {
@@ -264,6 +267,15 @@ func notifier(win func() *mygo.Window, pub *app.Publisher) func(app.Notification
 		return note.Show()
 	}
 }
+
+// benchHook is set by a build with the bench tag (bench.go), to let
+// cmd/jenab-bench drive the app.
+var benchHook func(*state.Stores, state.Post, *mygo.Window)
+
+// newKeyring is where the app keeps its secrets: the OS keychain, or in a
+// build with the bench tag a keyring in memory, so that the bench never
+// reads or writes the user's.
+var newKeyring = func() secret.Keyring { return secret.OSKeyring(strings.ToLower(appinfo.Name)) }
 
 //go:embed tray.png
 var trayIcon []byte
