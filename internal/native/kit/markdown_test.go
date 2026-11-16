@@ -11,41 +11,26 @@ import (
 
 const goCode = "```go\nfunc f() {\n\treturn 1\n}\n```\n"
 
-func TestExpandTabs(t *testing.T) {
-	for in, want := range map[string]string{
-		"":              "",
-		"none":          "none",
-		"\tx":           "    x",
-		"ab\tx":         "ab  x",
-		"abcd\tx":       "abcd    x",
-		"a\n\t\tb\tc":   "a\n        b   c",
-		"سلام\tx":       "سلام    x",
-		"\t\n\t":        "    \n    ",
-		"```\n\tx\n```": "```\n    x\n```",
-	} {
-		if got := ExpandTabs(in); got != want {
-			t.Errorf("ExpandTabs(%q) = %q, want %q", in, got, want)
-		}
-	}
-	// Appending to the text appends to what it expands to, as streaming
-	// needs.
-	for i := range len(goCode) {
-		if !strings.HasPrefix(ExpandTabs(goCode), ExpandTabs(goCode[:i])) {
-			t.Fatalf("expanding %q is not a prefix", goCode[:i])
-		}
-	}
-}
-
-// MyGo v0.7.4 draws a tab as nothing: code indented with a tab draws as
-// if not indented. When this fails, MyGo draws tabs, and the kit's fix can
-// go.
-func TestMyGoDropsTabs(t *testing.T) {
+// MyGo v0.7.4 drew a tab as nothing; v0.8.1 and later draw it (#1217).
+// Without a tab size it advances as the system's text stack sets it; the
+// kit's Root and code blocks put stops every 4 columns.
+func TestMyGoDrawsTabs(t *testing.T) {
 	draw := func(src string) []byte {
 		var o markdown.Options
 		return ui.NewTester(func(c *ui.Context) { markdown.View(c, src, &o) }, 600, 200).Image().Pix
 	}
-	if !bytes.Equal(draw("```\nx\n```\n"), draw("```\n\tx\n```\n")) {
-		t.Error("MyGo draws tabs now: drop ExpandTabs from the kit")
+	if bytes.Equal(draw("```\nx\n```\n"), draw("```\n\tx\n```\n")) {
+		t.Error("MyGo draws tabs as nothing again")
+	}
+}
+
+// Text in Root draws a tab to the next stop of 4 columns.
+func TestTextTabs(t *testing.T) {
+	draw := func(s string) []byte {
+		return window(t, false, func(c *Context) { Text(c, s).Font(FontMono) }).Image().Pix
+	}
+	if !bytes.Equal(draw("ab\tx"), draw("ab  x")) || bytes.Equal(draw("\tx"), draw("x")) {
+		t.Error("a tab in text does not draw to the next stop of 4 columns")
 	}
 }
 
@@ -90,7 +75,7 @@ func TestMarkdownStream(t *testing.T) {
 		tt.Advance(2e9)
 	}
 	shows(t, tt, "Copy code")
-	if !tt.HasText("    return 1") {
+	if !tt.HasText("\treturn 1") {
 		t.Errorf("texts %q", tt.Texts())
 	}
 	if err := tt.Click("Copy code"); err != nil {

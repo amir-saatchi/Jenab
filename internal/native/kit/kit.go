@@ -41,13 +41,12 @@ const (
 )
 
 // Row, Column, Box, Scroll and Text are MyGo's layout elements, for
-// screens to lay the kit's components out with. Text expands tabs, which
-// MyGo draws as nothing (see Markdown).
+// screens to lay the kit's components out with.
 func Row(c *Context) Element                            { return ui.Row(c) }
 func Column(c *Context) Element                         { return ui.Column(c) }
 func Box(c *Context) Element                            { return ui.Box(c) }
 func Scroll(c *Context) Element                         { return ui.Scroll(c) }
-func Text(c *Context, s string) Element                 { return ui.Text(c, ExpandTabs(s)) }
+func Text(c *Context, s string) Element                 { return ui.Text(c, s) }
 func Icon(c *Context, icon *SVG) Element                { return ui.Icon(c, icon) }
 func Local[T any](e Element, key any, init func() T) *T { return ui.Local(e, key, init) }
 
@@ -57,12 +56,17 @@ type Content = ui.Content
 // View is a window's content that view builds, each frame.
 func View(view func(c *Context)) *Content { return ui.View(view) }
 
+// TabSize is where text puts its tab stops, every 4 columns, as the
+// frontend's code blocks (tab-size: 4).
+const TabSize = 4
+
 // Root builds the window: Jenab's theme for the window's appearance, laid
-// out left to right (see Direction above), with fn's content filling it.
+// out left to right (see Direction above), with tab stops every TabSize
+// columns, and fn's content filling it.
 func Root(c *Context, fn func()) Element {
 	t := Theme(c.Theme().Dark)
 	c.SetTheme(t)
-	return ui.Column(c).Direction(ui.LeftToRight).Grow(1).AlignItems(ui.Stretch).Children(fn)
+	return ui.Column(c).Direction(ui.LeftToRight).Grow(1).AlignItems(ui.Stretch).TabSize(TabSize).Children(fn)
 }
 
 // Tokens is the tokens of the theme the window builds with now.

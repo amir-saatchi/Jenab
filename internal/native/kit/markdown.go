@@ -1,31 +1,23 @@
 package kit
 
 import (
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
-	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // Markdown shows a chat's Markdown in Jenab's theme. Keep one per message:
 // it keeps what the view knows of the text between frames.
 //
-// MyGo v0.7.4 draws a tab as nothing, in code blocks as in any text, so
-// indented Go code loses its indentation. The kit expands tabs to tab
-// stops of 4 columns before MyGo sees the text (ExpandTabs), and its code
-// blocks' Copy button copies the code with its tabs.
-//
-// Upstream: tab stops for text came in https://github.com/egoist/mygo/pull/1217
-// (for https://github.com/egoist/mygo/issues/1182), after v0.7.4. On a
-// MyGo with it, TestMyGoDropsTabs fails, and this fix can go.
+// Code blocks put tab stops every 4 columns (TabSize, from MyGo v0.8.1,
+// https://github.com/egoist/mygo/pull/1217): without it, a tab advances
+// as DirectWrite sets it, and v0.7.4 drew tabs as nothing.
 type Markdown struct {
 	// OnLink opens a link the user clicks; nil does what MyGo does.
 	OnLink func(url string)
 
-	opts     markdown.Options
-	src, out string // the last text and its tabs expanded
+	opts markdown.Options
 }
 
 // View shows src, Markdown that is complete.
@@ -43,10 +35,7 @@ func (m *Markdown) prepare(c *Context, src string) string {
 	m.opts.Theme = markdownTheme(c.Theme().Dark)
 	m.opts.OnLink = m.OnLink
 	m.opts.CodeBlock = m.codeBlock
-	if src != m.src {
-		m.src, m.out = src, ExpandTabs(src)
-	}
-	return m.out
+	return src
 }
 
 var markdownThemes [2]*markdown.Theme
@@ -71,12 +60,11 @@ func markdownTheme(dark bool) *markdown.Theme {
 }
 
 // codeBlock builds a code block as MyGo's DefaultCodeBlock does, in the
-// kit's colors, but its Copy button copies the code as written, with its
-// tabs.
+// kit's colors, with tab stops every 4 columns.
 func (m *Markdown) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 	k := TokensOf(c)
 	box := ui.Column(c).Direction(ui.LeftToRight).Background(k.Muted.Alpha(0.5)).Border(1, k.Border).
-		Radius(Radius).AlignSelf(ui.Stretch).Clip()
+		Radius(Radius).AlignSelf(ui.Stretch).Clip().TabSize(TabSize)
 	label := "Code"
 	if b.Language != "" {
 		label += ", " + b.Language
@@ -109,53 +97,8 @@ func (m *Markdown) copyButton(c *ui.Context, b *markdown.CodeBlockView) {
 		ui.Text(c, text).FontSize(11).TextColor(k.MutedForeground)
 	})
 	if btn.Clicked() {
-		code := b.Code()
-		if m.src != m.out {
-			code = m.written(b.Index)
-		}
-		c.WriteClipboard(code)
+		c.WriteClipboard(b.Code())
 		*copiedAt = c.Now()
 		c.After(2 * time.Second)
 	}
-}
-
-// written is code block i as the text has it, with its tabs. Expanding
-// tabs to stops of 4 leaves the blocks as they were (CommonMark reads tabs
-// as stops of 4 for block structure), so block i is the same block.
-func (m *Markdown) written(i int) string {
-	d := parser.New(parser.Default)
-	d.Set(m.src)
-	if i < d.Len() && d.Block(i).Kind == parser.CodeBlock {
-		return d.Lines(i)
-	}
-	e := parser.New(parser.Default)
-	e.Set(m.out)
-	return e.Lines(i)
-}
-
-// ExpandTabs replaces each tab with the spaces to the next tab stop, every
-// 4 columns from the start of its line. Text that grows by appending
-// expands to text that grows by appending, so streaming still works.
-func ExpandTabs(s string) string {
-	if !strings.Contains(s, "\t") {
-		return s
-	}
-	var b strings.Builder
-	b.Grow(len(s) + 16)
-	col := 0
-	for _, r := range s {
-		switch r {
-		case '\t':
-			n := 4 - col%4
-			b.WriteString("    "[:n])
-			col += n
-		case '\n':
-			b.WriteRune(r)
-			col = 0
-		default:
-			b.WriteRune(r)
-			col++
-		}
-	}
-	return b.String()
 }
