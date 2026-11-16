@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -26,14 +24,14 @@ type memCounters struct {
 }
 
 // treeMemory sums private bytes and working sets over root and every
-// process below it: the app and its WebView2 processes, as in SPIKE-022.
+// process below it, as in SPIKE-022.
 func treeMemory(root int) (memory, error) {
 	pids, err := tree(uint32(root))
 	if err != nil {
 		return memory{}, err
 	}
-	m := memory{ByTypeMB: map[string]float64{}}
-	for pid, name := range pids {
+	var m memory
+	for pid := range pids {
 		h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_VM_READ, false, pid)
 		if err != nil {
 			continue
@@ -51,48 +49,9 @@ func treeMemory(root int) (memory, error) {
 		m.Processes++
 		if pid == uint32(root) {
 			m.AppPrivateMB = priv
-		} else if strings.EqualFold(name, "msedgewebview2.exe") {
-			m.WebviewPrivateMB += priv
-			m.ByTypeMB[webviewType(pid)] += priv
 		}
 	}
 	return m, nil
-}
-
-// webviewType names a WebView2 process by its --type: browser, renderer,
-// gpu-process, or the utility's service, such as network.
-func webviewType(pid uint32) string {
-	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
-	if err != nil {
-		return "unknown"
-	}
-	defer windows.CloseHandle(h)
-	buf := make([]byte, 64<<10)
-	var n uint32
-	if windows.NtQueryInformationProcess(h, windows.ProcessCommandLineInformation, unsafe.Pointer(&buf[0]), uint32(len(buf)), &n) != nil {
-		return "unknown"
-	}
-	line := (*windows.NTUnicodeString)(unsafe.Pointer(&buf[0])).String()
-	arg := func(name string) string {
-		for _, f := range strings.Fields(line) {
-			if v, ok := strings.CutPrefix(f, name+"="); ok {
-				return strings.Trim(v, `"`)
-			}
-		}
-		return ""
-	}
-	switch t := arg("--type"); t {
-	case "":
-		return "browser"
-	case "utility":
-		sub := arg("--utility-sub-type")
-		if i := strings.IndexByte(sub, '.'); i > 0 {
-			sub = sub[:i]
-		}
-		return "utility " + sub
-	default:
-		return t
-	}
 }
 
 // tree is root and its descendants, by PID, with their exe names.
@@ -139,70 +98,4 @@ func started(pid int) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return time.Unix(0, c.Nanoseconds()), nil
-}
-
-var (
-	user32              = windows.NewLazySystemDLL("user32.dll")
-	procPostMessage     = user32.NewProc("PostMessageW")
-	procIsWindowVisible = user32.NewProc("IsWindowVisible")
-	procGetWindow       = user32.NewProc("GetWindow")
-)
-
-// closeApp asks the app to quit as the window's close button does: a
-// WM_CLOSE to its visible top-level windows. A WM_CLOSE to WebView2's
-// hidden windows too would end it before it saves its profile.
-func closeApp(pid int) error {
-	const wmClose, gwOwner = 0x0010, 4
-	var found []windows.HWND
-	cb := windows.NewCallback(func(h windows.HWND, _ uintptr) uintptr {
-		var p uint32
-		if _, err := windows.GetWindowThreadProcessId(h, &p); err != nil || p != uint32(pid) {
-			return 1
-		}
-		visible, _, _ := procIsWindowVisible.Call(uintptr(h))
-		owner, _, _ := procGetWindow.Call(uintptr(h), gwOwner)
-		if visible != 0 && owner == 0 {
-			found = append(found, h)
-		}
-		return 1
-	})
-	if err := windows.EnumWindows(cb, nil); err != nil {
-		return err
-	}
-	if len(found) == 0 {
-		return errors.New("the app has no window to close")
-	}
-	for _, h := range found {
-		procPostMessage.Call(uintptr(h), wmClose, 0, 0)
-	}
-	return nil
-}
-
-// treeWaiter opens the app's child processes, WebView2's among them, so
-// quit can wait until they have ended too. The next start would otherwise
-// join a WebView2 browser that is still shutting down, with its old
-// arguments.
-func treeWaiter(root int) func(time.Duration) error {
-	pids, _ := tree(uint32(root))
-	var hs []windows.Handle
-	for pid := range pids {
-		if pid == uint32(root) {
-			continue
-		}
-		if h, err := windows.OpenProcess(windows.SYNCHRONIZE, false, pid); err == nil {
-			hs = append(hs, h)
-		}
-	}
-	return func(d time.Duration) error {
-		deadline := time.Now().Add(d)
-		var err error
-		for _, h := range hs {
-			ms := max(0, time.Until(deadline).Milliseconds())
-			if ev, _ := windows.WaitForSingleObject(h, uint32(ms)); ev != windows.WAIT_OBJECT_0 && err == nil {
-				err = errors.New("the app's child processes didn't end in time")
-			}
-			windows.CloseHandle(h)
-		}
-		return err
-	}
 }

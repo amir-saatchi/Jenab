@@ -6,7 +6,6 @@
 *.exe
 *.syso
 bin/
-.task/
 node_modules/
 dist/
 *.tsbuildinfo

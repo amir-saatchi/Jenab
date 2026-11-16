@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.yaml.in/yaml/v3"
-
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
@@ -28,45 +26,9 @@ func TestFilesMatchVERSION(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := strings.TrimSpace(string(b))
-	m := semver.FindStringSubmatch(want)
-	if m == nil {
+	if !semver.MatchString(want) {
 		t.Fatalf("VERSION is %q, not a semantic version such as 0.1.0 or 0.1.0-dev", want)
 	}
-	// Windows' fixed file and product versions are four numbers.
-	four := m[1] + "." + m[2] + "." + m[3] + ".0"
-
-	var cfg struct {
-		Info struct {
-			Version string `yaml:"version"`
-		} `yaml:"info"`
-	}
-	readFile(t, "build/config.yml", yaml.Unmarshal, &cfg)
-	check(t, "build/config.yml info.version", cfg.Info.Version, want)
-
-	var info struct {
-		Fixed struct {
-			FileVersion    string `json:"file_version"`
-			ProductVersion string `json:"product_version"`
-		} `json:"fixed"`
-		Info map[string]map[string]string `json:"info"`
-	}
-	readFile(t, "build/windows/info.json", json.Unmarshal, &info)
-	check(t, "build/windows/info.json fixed.file_version", info.Fixed.FileVersion, four)
-	check(t, "build/windows/info.json fixed.product_version", info.Fixed.ProductVersion, four)
-	if len(info.Info) == 0 {
-		t.Error("build/windows/info.json has no info table")
-	}
-	for lang, table := range info.Info {
-		check(t, "build/windows/info.json info."+lang+".FileVersion", table["FileVersion"], want)
-		check(t, "build/windows/info.json info."+lang+".ProductVersion", table["ProductVersion"], want)
-	}
-
-	var pkg struct {
-		Version string `json:"version"`
-	}
-	readFile(t, "frontend/package.json", json.Unmarshal, &pkg)
-	check(t, "frontend/package.json version", pkg.Version, want)
-
 	// The native app's build (TASK-059) writes this version into the exe,
 	// the installer and the update manifest.
 	var mygo struct {
@@ -82,10 +44,8 @@ func TestFilesMatchVERSION(t *testing.T) {
 		t.Errorf("mygo.json identifier is %q; appinfo.Identifier is %q", mygo.Identifier, appinfo.Identifier)
 	}
 	// The repo is public: the exe and the installer name the app, not a
-	// person, as build/windows/info.json does.
-	for lang, table := range info.Info {
-		check(t, "mygo.json publisher (as build/windows/info.json info."+lang+".CompanyName)", mygo.Publisher, table["CompanyName"])
-	}
+	// person.
+	check(t, "mygo.json publisher", mygo.Publisher, appinfo.Name)
 }
 
 func readFile(t *testing.T, name string, unmarshal func([]byte, any) error, v any) {

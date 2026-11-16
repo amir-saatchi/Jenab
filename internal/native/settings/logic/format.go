@@ -108,13 +108,10 @@ func VersionLine(v version.Info) string {
 	return AppName + " " + v.Version + commit
 }
 
-// BuildLine is the rest of the build, for bug reports: the Go version,
-// the Wails version when the build has one, and the OS.
+// BuildLine is the rest of the build, for bug reports: the Go version
+// and the OS.
 func BuildLine(v version.Info) string {
 	parts := []string{"Go " + strings.TrimPrefix(v.Go, "go")}
-	if v.Wails != "" {
-		parts = append(parts, "Wails "+v.Wails)
-	}
 	if v.OS != "" {
 		parts = append(parts, v.OS)
 	}
