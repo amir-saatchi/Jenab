@@ -8,7 +8,7 @@ import (
 )
 
 // The dock, the right sidebar and the bottom bar (SPEC 5.9, 5.12):
-// frontend/src/shell's dock, right-sidebar and bottom-bar (TASK-056).
+// the React app's shell/dock, right-sidebar and bottom-bar (TASK-056).
 
 // chatArea is a chat, with what it has open next to it (app-shell.tsx's
 // ChatArea, dock.tsx's Dock): a file for now. With nothing open it is the

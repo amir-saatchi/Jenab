@@ -3,7 +3,7 @@ package kit
 import "github.com/egoist/mygo/ui"
 
 // The chat's pieces (SPEC 5.12, 8.3): the thread's rows and cards and the
-// composer, as frontend/src/components/ui's message, bubble, marker,
+// composer, as the React app's components/ui/message, bubble, marker,
 // card, item, attachment and input-group.
 
 // SmallButton is a small button, as shadcn's size="xs": 24 px high, small

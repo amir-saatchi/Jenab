@@ -22,7 +22,7 @@ import (
 )
 
 // The Files tab, a file in the main area with the chat docked, and the
-// bottom bar (TASK-056): frontend/src/shell's files-panel, file-view,
+// bottom bar (TASK-056): the React app's shell/files-panel, file-view,
 // dock and bottom-bar tests, ported.
 
 const (

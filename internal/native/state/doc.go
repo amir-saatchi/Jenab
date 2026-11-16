@@ -1,5 +1,5 @@
 // Package state holds the native app's stores (SPIKE-048): what
-// frontend/src/state holds for the React app, as plain Go. Their tests are
+// the React app's state code holds, as plain Go. Their tests are
 // ported with them and are the spec.
 //
 // # Threads

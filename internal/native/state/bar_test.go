@@ -13,7 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/sysmem"
 )
 
-// The bottom bar's texts: frontend/src/shell/format.test.ts, ported.
+// The bottom bar's texts: the React app's shell/format.test.ts, ported.
 
 func barItem(st chat.State) app.ChatItem { return app.ChatItem{State: st} }
 

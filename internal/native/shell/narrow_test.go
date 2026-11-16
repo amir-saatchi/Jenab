@@ -9,7 +9,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/native/state"
 )
 
-// TASK-062: the narrow places, as frontend/src/shell's under 900 px and
+// TASK-062: the narrow places, as the React app's shell under 900 px and
 // the composer's @max-sm/composer.
 
 // box is where the element a screen reader gets as name, or whose name

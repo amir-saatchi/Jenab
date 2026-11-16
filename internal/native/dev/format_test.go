@@ -8,7 +8,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 )
 
-// Ported from frontend/src/dev/format.test.ts.
+// Ported from the React app's dev/format.test.ts.
 
 func TestTimesAndSizesReadShort(t *testing.T) {
 	got := []string{Duration(38), Duration(1240), Duration(4000), Duration(184_000), Duration(120_000)}

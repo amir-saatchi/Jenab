@@ -1,6 +1,6 @@
 package state
 
-// The event handling of frontend/src/state/events.ts and the opening of
+// The event handling of the React app's state/events.ts and the opening of
 // shell/open.ts, which have no tests in the React app.
 
 import (

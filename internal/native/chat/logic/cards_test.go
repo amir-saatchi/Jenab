@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/cards.test.ts: what its assertions check
+// Ported from the React app's chat/cards.test.ts: what its assertions check
 // about text. Which buttons a pick card shows and in what order is
 // PickViewOf's (pick_test.go); "Other windows (1)", "Allow", "Show all
 // windows" and "overflow-y-auto" are the screen's markup.

@@ -1,11 +1,11 @@
 // Package dev is the developer tools on MyGo (SPEC 8.4): the turn
-// inspector and the runtime panel, as frontend/src/dev's inspector,
+// inspector and the runtime panel, as the React app's dev/inspector,
 // runtime and dev-page. They read state.Dev and show what they read with
 // the kit; the formatting helpers (format.ts) are ported here with their
 // tests.
 //
 // They are read-only, and every text the service returns has its secrets
-// redacted. The Wails app shows them as wide pages of Settings; here they
+// redacted. The React app showed them as wide pages of Settings; here they
 // open from the rail, as one page with the two tools, while the
 // developer tools are on.
 package dev

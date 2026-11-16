@@ -2,77 +2,86 @@ package version
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
+	"runtime/debug"
 	"testing"
 
+	"github.com/amir-saatchi/jenab"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
-
-// root is the repo root, from this package's folder.
-var root = filepath.Join("..", "..")
 
 // semver is a semantic version without build metadata, such as 0.1.0 or
 // 0.1.0-dev.
 var semver = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$`)
 
-// TestFilesMatchVERSION fails when a file that carries the version differs
-// from VERSION, the one place it is set.
-func TestFilesMatchVERSION(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join(root, "VERSION"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := strings.TrimSpace(string(b))
-	if !semver.MatchString(want) {
-		t.Fatalf("VERSION is %q, not a semantic version such as 0.1.0 or 0.1.0-dev", want)
-	}
-	// The native app's build (TASK-059) writes this version into the exe,
-	// the installer and the update manifest.
-	var mygo struct {
+// TestMyGoJSON checks mygo.json, the one place the version is set. The
+// release build (TASK-059) writes its version into the exe, the installer
+// and the update manifest.
+func TestMyGoJSON(t *testing.T) {
+	var c struct {
 		Version    string `json:"version"`
 		Publisher  string `json:"publisher"`
 		Identifier string `json:"identifier"`
 	}
-	readFile(t, "mygo.json", json.Unmarshal, &mygo)
-	check(t, "mygo.json version", mygo.Version, want)
+	if err := json.Unmarshal(jenab.MyGoJSON, &c); err != nil {
+		t.Fatalf("mygo.json: %v", err)
+	}
+	if !semver.MatchString(c.Version) {
+		t.Errorf("mygo.json's version is %q, not a semantic version such as 0.1.0 or 0.1.0-dev", c.Version)
+	}
 	// The app finds its Apps entry by the identifier the installer names
 	// it with (TASK-062).
-	if mygo.Identifier != appinfo.Identifier {
-		t.Errorf("mygo.json identifier is %q; appinfo.Identifier is %q", mygo.Identifier, appinfo.Identifier)
+	if c.Identifier != appinfo.Identifier {
+		t.Errorf("mygo.json's identifier is %q; appinfo.Identifier is %q", c.Identifier, appinfo.Identifier)
 	}
 	// The repo is public: the exe and the installer name the app, not a
 	// person.
-	check(t, "mygo.json publisher", mygo.Publisher, appinfo.Name)
-}
-
-func readFile(t *testing.T, name string, unmarshal func([]byte, any) error, v any) {
-	t.Helper()
-	b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
-	if err != nil {
-		t.Fatal(err)
+	if c.Publisher != appinfo.Name {
+		t.Errorf("mygo.json's publisher is %q; want the app's name, %q", c.Publisher, appinfo.Name)
 	}
-	if err := unmarshal(b, v); err != nil {
-		t.Fatalf("%s: %v", name, err)
+	if got := Get().Version; got != c.Version {
+		t.Errorf("Get().Version = %q; want mygo.json's %q", got, c.Version)
 	}
 }
 
-func check(t *testing.T, where, got, want string) {
-	t.Helper()
-	if got != want {
-		t.Errorf("%s is %q; want %q, from VERSION", where, got, want)
-	}
-}
-
-func TestGetWithoutFlags(t *testing.T) {
+func TestGetInATest(t *testing.T) {
+	// A test binary has no VCS stamp, and the tests set no -X flags.
 	i := Get()
-	if i.Version != "dev" || i.Commit != "" || i.Modified {
-		t.Errorf("Get() = %+v; want version dev and no commit", i)
+	if i.Commit != "" || i.Modified {
+		t.Errorf("Get() = %+v; want no commit", i)
 	}
 	if i.Go == "" || i.OS == "" {
 		t.Errorf("Get() = %+v; want the Go version and the OS", i)
+	}
+}
+
+func TestConfigVersion(t *testing.T) {
+	for in, want := range map[string]string{
+		`{"version": "0.2.0"}`: "0.2.0",
+		`{"name": "Jenab"}`:    "dev",
+		`not json`:             "dev",
+	} {
+		if got := configVersion([]byte(in)); got != want {
+			t.Errorf("configVersion(%s) = %q; want %q", in, got, want)
+		}
+	}
+}
+
+func TestVCS(t *testing.T) {
+	for _, c := range []struct {
+		in       []debug.BuildSetting
+		commit   string
+		modified bool
+	}{
+		{nil, "", false},
+		{[]debug.BuildSetting{{Key: "vcs", Value: "git"}, {Key: "vcs.revision", Value: "d449b7e1f2a3b4c5d6e7f8091a2b3c4d5e6f7a8b"}, {Key: "vcs.modified", Value: "false"}}, "d449b7e", false},
+		{[]debug.BuildSetting{{Key: "vcs.revision", Value: "d449b7e1f2a3"}, {Key: "vcs.modified", Value: "true"}}, "d449b7e", true},
+		{[]debug.BuildSetting{{Key: "vcs.revision", Value: "abc"}}, "abc", false},
+	} {
+		commit, modified := vcs(c.in)
+		if commit != c.commit || modified != c.modified {
+			t.Errorf("vcs(%v) = %q, %v; want %q, %v", c.in, commit, modified, c.commit, c.modified)
+		}
 	}
 }
 

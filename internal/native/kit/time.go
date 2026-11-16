@@ -10,7 +10,7 @@ import (
 // Times and dates are written in the user's regional formats, as Windows
 // is set (MyGo's Context.Region, from the user's time format), in the
 // app's language, English: "01:11 PM" with a 12-hour clock, "13:11" with a
-// 24-hour one. The Wails app writes them with toLocaleTimeString and
+// 24-hour one. The React app wrote them with toLocaleTimeString and
 // toLocaleDateString; these give the same strings. A frame follows a
 // change of the settings.
 
@@ -18,7 +18,7 @@ import (
 // SetRegion as the user does in Windows' settings.
 type Region = i18n.Region
 
-// Clock writes t's hour and minute with two digits each, as the Wails app
+// Clock writes t's hour and minute with two digits each, as the React app
 // shows a message's time, a card's answer and a rewind (toLocaleTimeString
 // with hour and minute "2-digit"): "01:11 PM" or "13:11". t is written in
 // its own zone.
@@ -26,7 +26,7 @@ func Clock(c *Context, t time.Time) string {
 	return formatTime(c, t, i18n.DateOptions{Skeleton: "jjmm"})
 }
 
-// ShortTime writes t's time in the short style, as the Wails app's
+// ShortTime writes t's time in the short style, as the React app's
 // "Last active" and notes lines (timeStyle "short"): "1:11 PM" or "13:11".
 func ShortTime(c *Context, t time.Time) string {
 	return formatTime(c, t, i18n.DateOptions{Time: i18n.ShortStyle})

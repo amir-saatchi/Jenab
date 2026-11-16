@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/pick.test.ts.
+// Ported from the React app's chat/pick.test.ts.
 
 import (
 	"fmt"

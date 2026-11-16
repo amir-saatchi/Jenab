@@ -1,5 +1,5 @@
 // Package logic holds the chat screen's logic that draws nothing
-// (SPIKE-048): what frontend/src/chat computes for the React app, as plain
+// (SPIKE-048): what the React app's chat code computes, as plain
 // Go, on the Go types the services return. Their tests are ported with
 // them and are the spec.
 //

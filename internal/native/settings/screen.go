@@ -1,5 +1,5 @@
 // Package settings is the native Settings screen (TASK-055), ported from
-// frontend/src/settings and shell/settings-view.tsx: General with About,
+// the React app's settings and shell/settings-view.tsx: General with About,
 // Memory, Appearance, Models with the limits, Usage, Desktop (Windows)
 // and Developer, as one scrolling page beside a page list. It imports the
 // kit and the stores only; its pure logic is in settings/logic.

@@ -8,7 +8,7 @@ import (
 
 // The kit's text colors meet WCAG AA, 4.5:1, on the fills they are drawn
 // on, in the light and the dark theme. These are the pairs and the
-// threshold of frontend/src/contrast.test.ts, which this test keeps when
+// threshold of the React app's contrast.test.ts, which this test keeps when
 // the frontend goes (SPEC 5.11). The colors are those the kit draws, in
 // 8-bit sRGB, where the web app's test computes them from oklch.
 

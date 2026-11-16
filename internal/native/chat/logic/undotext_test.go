@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/undo-text.test.ts.
+// Ported from the React app's chat/undo-text.test.ts.
 
 import (
 	"reflect"

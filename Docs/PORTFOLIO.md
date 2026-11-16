@@ -33,18 +33,18 @@
   - Skills the agent loads when a task needs them, and a Mother chat per project with chat roles
   - Settings for models, keys and token usage (with a chart), plus a turn inspector and runtime panel for developers
   - Project export as one folder
-- **My role:** Solo: product idea, specification, architecture, Go backend, React UI, test tooling and all the model experiments.
+- **My role:** Solo: product idea, specification, architecture, Go backend, the React UI and then the native Go UI, test tooling and all the model experiments.
 - **Most challenging part and how I solved it:** Making one agent work the same way on very different models (Claude, GPT, Gemini, Gemma, GLM, local Qwen) with **no per-model prompts**. Each API breaks in its own way: tool-call IDs, thinking blocks, refusals, context overflow, JSON arguments that don't parse, streams that stall during long tool calls. All of that is handled in the provider layer, and the prompts, tools and loop stay the same for every model. To prove it works and to stop it from breaking again, I built a **scenario runner**. It replays scripted conversations on real models, checks tool calls, approvals, database state and token and cache use, and compares the results with an earlier report. It can also run offline from scripted replies. The risky decisions were settled first in **37 short spikes**: SQLite crash safety, a SQL guard without an authorizer, sandboxes, keychains in background mode, sleep and wake catch-up, FTS5 for German and Persian, structured output, MCP, and semantic recall.
 
 ## 4. Tech stack
 
 | Layer | Technologies |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui (Radix), Zustand, Recharts, react-markdown + remark-gfm, Geist and Vazirmatn fonts, Bun |
+| UI | Native Go UI on MyGo (pure Go, drawn on the GPU, no webview) with Jenab's own component kit, Geist and Vazirmatn fonts. It replaced a React 19 + shadcn/ui frontend on Wails v3 |
 | Backend | Go 1.26: agent loop, provider layer, tools, scheduler design; anthropic-sdk-go, openai-go, go-readability, html-to-markdown, jsonschema, YAML |
-| Desktop | Wails v3 |
+| Desktop | MyGo: the window, tray, notifications, signed self-update and a per-user NSIS installer |
 | Database | SQLite through modernc.org/sqlite (pure Go, no cgo), WAL mode, one writer and parallel readers per database, FTS5 search tuned for German and Persian |
-| Hosting / DevOps | Local desktop app. Taskfile builds, GitHub Actions CI (currently blocked by a billing lock), staticcheck. Self-update through the Wails updater was tested in a spike. |
+| Hosting / DevOps | Local desktop app. Builds with Go's own tools (`go tool mygo build`), GitHub Actions CI (currently blocked by a billing lock), staticcheck. |
 | Auth / payments / other APIs | OS keychain (go-keyring) for API keys; Tavily or SearXNG for web search; MCP client (official go-sdk) designed for Phase 5 |
 
 ## 5. AI / LLM details (only for AI projects)

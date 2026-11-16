@@ -24,7 +24,7 @@ var Tones = []Tone{Neutral, Blue, Green, Amber, Red, Purple}
 // meets WCAG AA on the background and on the soft fill, in both themes.
 type ToneColors struct{ Text, Soft Color }
 
-// Tokens is a theme's colors, as frontend/src/index.css names them for
+// Tokens is a theme's colors, as the React app's index.css names them for
 // shadcn/ui, and the tones.
 type Tokens struct {
 	Background, Foreground           Color

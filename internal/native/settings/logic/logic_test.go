@@ -1,7 +1,7 @@
 package logic
 
-// Ported from frontend/src/settings/format.test.ts,
-// frontend/src/chat/provider-choice.test.ts and memory.test.ts; the rest
+// Ported from the React app's settings/format.test.ts,
+// chat/provider-choice.test.ts and memory.test.ts; the rest
 // covers what the React pages did inline.
 
 import (

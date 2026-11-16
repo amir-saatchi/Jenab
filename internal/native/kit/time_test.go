@@ -7,7 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// Times follow the user's regional formats, as the Wails app's
+// Times follow the user's regional formats, as the React app's
 // toLocaleTimeString does, and a frame follows a change of them. The
 // stamps are plain text, so the test has no keyboard step: a message's
 // time is read with its message.

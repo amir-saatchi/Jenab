@@ -1,6 +1,6 @@
 package logic
 
-// Ported from the rows tests of frontend/src/state/thread.test.ts. Two of
+// Ported from the rows tests of the React app's state/thread.test.ts. Two of
 // them build their messages with the thread store (withPart); here the
 // messages are written as the store leaves them.
 

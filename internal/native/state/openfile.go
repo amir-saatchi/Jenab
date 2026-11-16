@@ -7,7 +7,7 @@ import (
 )
 
 // Opening, deleting and linking files (SPEC 4.5, 5.12):
-// frontend/src/shell/open-file.ts.
+// the React app's shell/open-file.ts.
 
 // OpenFile opens a file in the main area with the chat in the dock, and
 // shows its folder in the Files panel.

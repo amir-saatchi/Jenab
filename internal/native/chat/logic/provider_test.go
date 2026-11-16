@@ -1,6 +1,6 @@
 package logic
 
-// The placeholders cases are ported from frontend/src/settings/format.test.ts;
+// The placeholders cases are ported from the React app's settings/format.test.ts;
 // freeName and the first pick have no test in the React app.
 
 import (

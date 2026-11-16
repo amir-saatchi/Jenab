@@ -1,6 +1,6 @@
 package logic
 
-// Ported from frontend/src/chat/notes.test.ts.
+// Ported from the React app's chat/notes.test.ts.
 
 import (
 	"strings"

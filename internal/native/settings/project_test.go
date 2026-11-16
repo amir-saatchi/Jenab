@@ -17,7 +17,7 @@ import (
 // settings-layout.tsx.
 
 // withProjectMemory gives the project a memory and its settings the
-// memory section, as cmd/desktop-native does.
+// memory section, as cmd/desktop does.
 func withProjectMemory(x *fixture) {
 	x.f.SetAdmin(statetest.ProjectAdmin{Hosts: map[id.Project][]string{}, Memory: map[id.Project]app.MemoryView{
 		x.project: {Scope: "project", Cap: 4000, Tokens: 40, Sections: []store.MemorySection{

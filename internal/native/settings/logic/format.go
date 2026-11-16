@@ -1,7 +1,6 @@
-// Package logic is the Settings screen's pure logic, ported from
-// frontend/src/settings (format.ts, desktop.tsx's helpers) and
-// frontend/src/chat/provider-choice.ts with their tests: no MyGo, no
-// stores.
+// Package logic is the Settings screen's pure logic, ported from the
+// React app's settings code (format.ts, desktop.tsx's helpers) and
+// chat/provider-choice.ts with their tests: no MyGo, no stores.
 package logic
 
 import (

@@ -170,6 +170,7 @@ type benchState struct {
 	// TASK-059: the build, every project, whether the window is shown and
 	// focused, and the updater.
 	Version  string      `json:"version"`
+	Build    string      `json:"build"` // TASK-061: with the commit, as About shows it
 	Projects []string    `json:"projects"`
 	Shown    bool        `json:"shown"`
 	Focused  bool        `json:"focused"`
@@ -184,7 +185,8 @@ func (b *bench) project() (id.Project, bool) {
 }
 
 func (b *bench) state(w http.ResponseWriter, r *http.Request) {
-	s := benchState{Version: version.Get().Version, Update: updateState()}
+	v := version.Get()
+	s := benchState{Version: v.Version, Build: v.String(), Update: updateState()}
 	b.ui(func() {
 		s.Loaded = b.st.Projects.Loaded
 		for _, p := range b.st.Projects.List {
