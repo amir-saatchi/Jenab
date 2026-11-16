@@ -39,7 +39,8 @@ id, chat, config, limit, secret, logfile, sysmem
 
 - `agent` imports `pipeline`: Mother's chats and the finish notices need runs. `pipeline` never imports `agent`.
 - `view` and `pipeline` share a row and don't import each other; a form that starts a run goes through a small `view.Runs` interface.
-- `update` also imports Wails (`pkg/updater`), so a Wails upgrade touches `webui` and `update`.
+- `update` also imports Wails (`pkg/updater`), so a Wails upgrade touches `webui` and `update`. In the native app, MyGo's updater replaces it (TASK-059, SPEC 2.8).
+- In `native`, only `kit` imports MyGo's `ui`; the screens import `kit` and `state` (section 10).
 
 ## 2. `cmd/desktop`: start
 
@@ -80,7 +81,7 @@ func run(args []string) error {
     tools    := tool.NewRegistry()
     tool.AddBuiltins(tools, tool.Deps{Web: webc, Registry: registry, Secrets: secrets})
 
-    wapp   := app.New(app.Deps{Name: appName, Assets: assets, WebviewData: filepath.Join(paths.Root, "webview"), Log: log}) // first, so events can be sent
+    wapp   := webui.New(webui.Deps{Name: appName, Assets: assets, WebviewData: filepath.Join(paths.Root, "webview"), Log: log}) // first, so events can be sent
     runner := pipeline.New(pipeline.Deps{Projects: projects, Models: models, Gate: runs, Web: webc, Events: wapp.Publisher(), Log: log})
     tools.Add(runner.Tools()...)
     var traces *agent.Traces // the turn inspector's record (8.4), only with DevTools on at the start
@@ -101,6 +102,47 @@ func run(args []string) error {
 `wapp.OnShutdown` hides the window, then runs the function on Wails' `OnShutdown`. `wapp.OnStart` comes with the scheduler (Phase 3), over a Wails service startup hook.
 
 `lifecycle.Shutdown.Run` runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged. Past 10 s plus 2 s it calls `Exit` (nil: `os.Exit(1)`), for a step that ignores its deadline.
+
+`internal/lifecycle` is what both desktop apps do around the UI: `LockRoot` (one copy at a time, and only one of the two apps), `Shutdown` (above) and `Fatal`, the message box when the app can't start.
+
+### `cmd/desktop-native`: the MyGo app (SPIKE-048)
+
+The native app, which replaces `cmd/desktop` with TASK-061. It builds the services in the same order and takes the same lock; the differences are the UI layer and how events reach it.
+
+```go
+func main() {
+    sqlworker.IfWorker()                        // a query worker exits here, as in cmd/desktop
+    mygo.App.SetName(appinfo.Name)
+    if !mygo.App.RequestSingleInstanceLock() { return } // a second launch shows the running window
+    if err := run(); err != nil { lifecycle.Fatal(…); os.Exit(1) }
+}
+
+func run() error {
+    // paths, lifecycle.LockRoot, settings, log, registry, models … as in cmd/desktop
+    kit.RegisterFonts(); kit.SetThemeSource(settings.UI.Theme)
+    var mailbox state.Mailbox                   // keeps events sent before the window exists
+    var stores *state.Stores
+    pub := app.NewPublisher(func(name string, data any) { mailbox.Post(func() { stores.Apply(name, data) }) })
+    // projects, tools, orchestrator … with Events: pub
+    b := app.NewServices(app.Services{…, Events: pub, Notify: notifier(…), OpenFile: mygo.Shell.OpenPath})
+    stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System}, mailbox.Post)
+    sh := shell.New(stores, chat.New(stores), mailbox.Post)
+    mygo.App.WhenReady(func() {
+        win = mygo.NewWindow(mygo.WindowOptions{MinWidth: 640, MinHeight: 480, StateKey: "main", Content: kit.View(sh.View)})
+        win.OnClose(…)                          // hides the window unless the app is quitting
+        mailbox.Attach(win.Update)              // events now go to the UI thread
+        sh.Start(); newTray(…)                  // the tray shows the window and quits
+    })
+    err := mygo.App.Run()
+    lifecycle.Shutdown{…}.Run()
+    return err
+}
+```
+
+- **Notifications:** `mygo.NewNotification`; a click shows the window and sends `app:open`, as in the Wails app.
+- **Files:** attachments go through the upload route (`app.UploadHandler`), called in the same process, so both apps store files the same way.
+- **Not yet:** the screens for the developer tools (TASK-058). Like `cmd/desktop` today, it has no scheduler, pipelines or updater yet; the updater comes with TASK-059.
+- **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go`: microsecond log stamps, marks in the log, and a loopback port that `cmd/jenab-bench -native` drives. Secrets stay in memory (`newKeyring`). The release build has no bench code.
 
 ## 3. Bottom packages
 
@@ -300,7 +342,7 @@ func DetectMIME(head []byte, key string) string                     // from the 
 func Handler(open Opener) http.Handler                              // /objects/<project_id>/<key>, the 4.7 rules
 ```
 
-The index tables and the write order (4.3) are in `store`, which calls `bucket`. The handler is mounted on the Wails asset server in `app`.
+The index tables and the write order (4.3) are in `store`, which calls `bucket`. The handler is mounted on the Wails asset server in `webui`. The native app has no route: its screens read objects through the services (SPEC 4.5).
 
 ### `store`: databases, writers, readers (2, 7)
 
@@ -878,7 +920,7 @@ func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a age
 //   Runtime → the LLM-call slots, providers, and per open project its work and writers, with Stuck flags
 //   (work past its Limit, a write running over 30 s).
 // SystemService: Memory → sysmem.Reading{Total, Free, Level} for the bottom bar (ok, low or critical);
-//   Notify(Notification{Project, Chat, Title, Body}) → a desktop notification (Wails notifications);
+//   Notify(Notification{Project, Chat, Title, Body}) → a desktop notification (Services.Notify: Wails notifications, or MyGo's in the native app);
 //   a click shows the window and sends app:open with the chat.
 // Later tickets add files to Send, UndoTurn, PageService and PipelineService in the same style.
 
@@ -911,9 +953,56 @@ Every service method starts with `defer s.guard("what", &err)` (Q26). It recover
 
 The bindings are generated into `frontend/bindings` by `wails3 task bindings` and committed; CI fails if they are stale (DEVELOPMENT.md).
 
-## 10. `frontend`
+## 10. The UI: `native` and `frontend`
 
-React 19, Vite, Tailwind v4 and shadcn/ui (radix-nova), with Zustand for state. Tests run with `bun test`.
+Two UIs until TASK-061 (SPEC 5.8): `internal/native`, on MyGo, for `cmd/desktop-native`, and `frontend`, React in WebView2, for `cmd/desktop`. New screens and features go into `native`; `frontend` gets bug fixes only, and TASK-061 removes it with Wails and Bun.
+
+### `native` (SPIKE-048)
+
+MyGo (`github.com/egoist/mygo`, pinned in `go.mod`) is the only UI library. Only `kit` imports `github.com/egoist/mygo/ui`; `TestOnlyTheKitImportsMyGoUI` checks the whole repository. `cmd/desktop-native` imports `github.com/egoist/mygo` for the app, the window, the tray and notifications.
+
+```
+internal/native/
+  state/                the stores, plain Go with no MyGo: frontend/src/state ported with its tests
+    stores.go           Stores{Nav, Projects, Chats, Threads, Settings, Shell, Quotes, Actions, Toasts};
+                        Apply(name, data) takes the Publisher's events; notifications for a chat that starts waiting
+    doc.go              Post (run on the UI thread later; Window.Update in the app), Mailbox (keeps what is posted
+                        before the window exists)
+    nav.go              the place in the main area (5.12), back and forward, Ctrl+Tab
+    projects.go, chats.go   the projects, each project's chat list, and *Waiting*; one goroutine reloads chat lists
+    threads.go, thread.go   each open chat: the snapshot, then chat:part and chat:status; seq numbers and the missed-event reread (Q32)
+    stream.go           the answer streaming; each delta applied as it comes (the agent sends at most one every 16 ms)
+    settings.go         the settings view and its save queue, one edit at a time
+    shell.go, quote.go, actions.go   what is docked and hidden; the quote per chat; send, stop, retry, answer,
+                        undo and rewind, the model, attachments (Uploader)
+    statetest/          Fake: in-memory services, so screens are tested headless and measured without a provider
+  kit/                  Jenab's components on MyGo's ui (SPEC 5.8)
+    kit.go              Root (the window, left to right, tab stops), View, layout helpers, aliases of ui types
+    theme.go            Tokens (Light, Dark, from index.css), Tone and ToneColors, Theme → ui.Theme, SetThemeSource (5.11)
+    fonts.go, fonts/    Geist, Geist Mono and Vazirmatn as variable TTF files, RegisterFonts; versions and SHA-256 in fonts/README.md
+    icons.go, icons/    the Lucide icons the screens use (ISC)
+    dir.go              RightToLeft: a text's direction from its first strong character, as dir="auto"
+    markdown.go         Markdown{View, Stream}: code blocks (tab stops every 2, copy), lists and tables in their own
+                        direction (Options.Block), ShareSelection across a thread
+    frame.go            Rail, RailTile, SidePanel, Bar, Main, List (virtual), NavItem, Count, Dot (5.12)
+    button.go, input.go, overlay.go, sidebar.go, status.go, toast.go   Button (five variants), IconButton, TextInput,
+                        TextArea, Tooltip, MenuButton, Dialog, AlertDialog, Sidebar, Badge, Spinner, Alert, Empty, Toast
+    chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group
+    tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole
+  shell/                the frame (5.12): the rail, the chat list, the main area; no dock yet
+  chat/                 the chat screen: thread rows, parts, cards, the composer (5.8, 8.3, 8.8)
+    logic/              its pure logic, ported from frontend/src/chat with its tests: line diff, rewind and undo
+                        texts, rows, parts, cards, notes, refresh, the composer, the provider form's choices
+```
+
+- **Threads:** a store is touched on the UI thread only. Work that waits runs in a goroutine and posts back with `Post`; a method whose caller may wait returns a channel or takes a callback.
+- **Screens** import `kit`, `state` and the Go side's types (`app`, `chat`, `id`, `agent`, `store`), never MyGo. A screen is a type with a `View(c *kit.Context, …)` method, built every frame from the stores.
+- **Tests:** every kit component has a headless test (light and dark, focus, label, right-to-left text). The stores' tests and `chat/logic`'s are the ported TypeScript tests. `shell` and `chat` are tested headless against `statetest`.
+- **Coming:** `settings` (TASK-055), `files` and the dock (TASK-056), the project screens (TASK-057), `dev` (TASK-058), and pages and pipelines with their phases.
+
+### `frontend` (until TASK-061)
+
+React 19, Vite, Tailwind v4 and shadcn/ui (radix-nova), with Zustand for state. Tests run with `bun test`. Bug fixes only (above).
 
 ```
 src/

@@ -106,7 +106,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-050](TASK-050-settings-findings.md) | Find Project settings and the project's memory | Task | Done | 3 |
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Done | 3 |
 | [TASK-052](TASK-052-provider-select.md) | Pick the provider from a list in *Add provider* | Task | Done | 3 |
-| [TASK-053](TASK-053-native-ui-docs.md) | The SPEC and design docs for the native UI | Task | Open | 3 |
+| [TASK-053](TASK-053-native-ui-docs.md) | The SPEC and design docs for the native UI | Task | Done | 3 |
 | [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | Open | 3 |
 | [TASK-055](TASK-055-native-settings.md) | Settings in the native app | Task | Open | 3 |
 | [TASK-056](TASK-056-native-files-and-dock.md) | The files panel, the file view and the dock in the native app | Task | Open | 3 |
