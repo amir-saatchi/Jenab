@@ -6,7 +6,7 @@ How to build, run and test Jenab. The code layout is in [Code-Design/QUESTIONS.m
 
 | Tool | Version | Notes |
 |---|---|---|
-| Go | 1.26 or newer | `go.mod` pins the go1.26.10 toolchain; with `GOTOOLCHAIN=auto` (the default) Go downloads it on the first build |
+| Go | 1.27.3 or newer | `go.mod` needs Go 1.27.3; with `GOTOOLCHAIN=auto` (the default) Go downloads it on the first build |
 | Bun | 1.3 or newer | for the frontend; not npm (the lock file is `bun.lock`) |
 | Git | any recent | |
 | Wails CLI (`wails3`) | `v3.0.0` | the same version as the library in `go.mod` |
