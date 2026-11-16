@@ -189,6 +189,14 @@ func run() (err error) {
 		}
 		return paths
 	}
+	// The exports ask where to save off the UI thread (TASK-057).
+	stores.Exports.Save = func(r state.SaveRequest) (string, error) {
+		opts := mygo.SaveDialogOptions{Parent: win, Title: r.Title, DefaultPath: r.Name, CreateDirectories: true}
+		if r.Ext != "" {
+			opts.Filters = []mygo.FileFilter{{Name: r.FilterName, Extensions: []string{r.Ext}}}
+		}
+		return mygo.Dialog.Save(opts)
+	}
 	sh := shell.New(stores, chat.New(stores), mailbox.Post)
 	sh.Quit = mygo.App.Quit
 

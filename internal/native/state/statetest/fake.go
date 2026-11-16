@@ -46,6 +46,7 @@ type Fake struct {
 	rewinds  []int
 	stops    int
 	n        int
+	admin    ProjectAdmin // the project screens' part (fake_project.go)
 }
 
 // New makes an empty Fake.
@@ -127,6 +128,9 @@ func (p projects) List(context.Context) ([]app.ProjectItem, error) {
 func (projects) FolderWarning(context.Context) (*project.FolderWarning, error) { return nil, nil }
 
 func (p projects) Create(_ context.Context, name string) (app.OpenedProject, error) {
+	if err := p.f.Admin().CreateErr; err != nil {
+		return app.OpenedProject{}, err
+	}
 	pid, mother := p.f.AddProject(name)
 	return app.OpenedProject{ID: pid, Name: name, Mother: mother, Level: "standard"}, nil
 }

@@ -1,6 +1,6 @@
 # TASK-057 — Project screens in the native app
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-053
 
@@ -23,3 +23,13 @@ Port the project screens from `frontend/src/shell` to the native app, after SPIK
 - A live check: create a project, change its settings, export it and a chat.
 
 ## Result
+Done on 2026-11-16. Report: [TASK-057-report](reports/TASK-057-report.md).
+
+- **Screens:** a new package, `internal/native/projects`, has the welcome page, *New project*, project settings, the folder warning, private-network exceptions, the project and chat exports, and the project and chat menus. The rail got *Search* (disabled) and the chats while the list is hidden; the chat rows got their ⋯ menu.
+- **Stores:** `state.Hosts` and `state.Exports`, with the fake's services in `statetest`. The app's save dialog is `mygo.Dialog.Save`.
+- **Kit:** 12 new files: `Field`, `CheckField`, `PageTitle`, `Section`, `DetailRow`, `SegmentGroup`, `Progress`, `ItemRow`, `Path`, `TextLink`, `ActionButton`, `DialogText`, `DialogFooter`, `Locked`, `NavRow`, `MenuTitle`, `TileSpinner` and five icons. Each has a headless test in light and dark.
+- **Tests:** the frontend's tests for these screens are ported. 12 screen tests run in light and dark, and save 24 screenshots with `JENAB_SHOTS`. `go vet ./...` passes, and `go test ./...` passes except one timing test in `internal/scenario`, which passes alone.
+- **Live check:** a project was created, its level and hosts changed, then it was exported as a zip and as a folder, and its Mother chat as Markdown, through the Windows save dialog.
+- **Left over:**
+  - Project settings has its own frame until TASK-055's is merged.
+  - Right-to-left alignment in `TextInput` waits for a kit change.

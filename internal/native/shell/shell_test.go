@@ -78,7 +78,7 @@ func both(t *testing.T, test func(t *testing.T, x *fixture)) {
 
 func TestTheFrameOpensAProjectAndItsChats(t *testing.T) {
 	both(t, func(t *testing.T, x *fixture) {
-		shows(t, x.tt, "Choose a project", "Demo", "New project", "Settings", "Quit Jenab")
+		shows(t, x.tt, "Welcome to Jenab", "Demo", "New project", "Settings", "Quit Jenab")
 		if err := x.tt.Click("Demo"); err != nil {
 			t.Fatal(err)
 		}

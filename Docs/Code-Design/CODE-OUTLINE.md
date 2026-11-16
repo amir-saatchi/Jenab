@@ -976,6 +976,8 @@ internal/native/
     shell.go, quote.go, actions.go   what is docked and hidden; the quote per chat; send, stop, retry, answer,
                         undo and rewind, the model, attachments (Uploader)
     statetest/          Fake: in-memory services, so screens are tested headless and measured without a provider
+    hosts.go, exports.go   a project's private-network exceptions (HostProblem, one change at a time); the project
+                        and chat exports: the estimate, the save dialog (Exports.Save), progress, Stop (TASK-057)
   kit/                  Jenab's components on MyGo's ui (SPEC 5.8)
     kit.go              Root (the window, left to right, tab stops), View, layout helpers, aliases of ui types
     theme.go            Tokens (Light, Dark, from index.css), Tone and ToneColors, Theme → ui.Theme, SetThemeSource (5.11)
@@ -989,7 +991,13 @@ internal/native/
                         TextArea, Tooltip, MenuButton, Dialog, AlertDialog, Sidebar, Badge, Spinner, Alert, Empty, Toast
     chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group
     tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole
+    form.go, page.go, segmentgroup.go, progress.go, itemrow.go, path.go, textlink.go, actionbutton.go,
+    dialogparts.go, navrow.go, icons_project.go   the project screens' pieces (TASK-057): Field, CheckField,
+                        PageTitle, Section, DetailRow, SegmentGroup, Progress, ItemRow, Path, TextLink, ActionButton,
+                        DialogText, DialogFooter, Locked, NavRow, MenuTitle, TileSpinner; tester_pages.go: InView
   shell/                the frame (5.12): the rail, the chat list, the main area; no dock yet
+  projects/             the project screens (TASK-057): welcome, new project, project settings, the folder warning,
+                        private-network exceptions, the project and chat exports, the project and chat menus
   chat/                 the chat screen: thread rows, parts, cards, the composer (5.8, 8.3, 8.8)
     logic/              its pure logic, ported from frontend/src/chat with its tests: line diff, rewind and undo
                         texts, rows, parts, cards, notes, refresh, the composer, the provider form's choices
@@ -998,7 +1006,7 @@ internal/native/
 - **Threads:** a store is touched on the UI thread only. Work that waits runs in a goroutine and posts back with `Post`; a method whose caller may wait returns a channel or takes a callback.
 - **Screens** import `kit`, `state` and the Go side's types (`app`, `chat`, `id`, `agent`, `store`), never MyGo. A screen is a type with a `View(c *kit.Context, …)` method, built every frame from the stores.
 - **Tests:** every kit component has a headless test (light and dark, focus, label, right-to-left text). The stores' tests and `chat/logic`'s are the ported TypeScript tests. `shell` and `chat` are tested headless against `statetest`.
-- **Coming:** `settings` (TASK-055), `files` and the dock (TASK-056), the project screens (TASK-057), `dev` (TASK-058), and pages and pipelines with their phases.
+- **Coming:** `settings` (TASK-055), `files` and the dock (TASK-056), `dev` (TASK-058), and pages and pipelines with their phases.
 
 ### `frontend` (until TASK-061)
 

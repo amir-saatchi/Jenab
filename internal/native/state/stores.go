@@ -34,6 +34,12 @@ type API struct {
 	// Actions is what the chat screen asks of the chat service; nil when
 	// Chats has it too, as *app.ChatService does.
 	Actions ActionsAPI
+	// Hosts and Exports are what project settings and the exports ask;
+	// nil when Projects has them, and ChatExport when Chats has it, as
+	// the services do.
+	Hosts      HostsAPI
+	Exports    ExportsAPI
+	ChatExport ChatExportAPI
 }
 
 // Toast is a message for the window's toasts: a project notice, or an
@@ -60,6 +66,8 @@ type Stores struct {
 	Shell    *Shell
 	Quotes   Quotes
 	Actions  *Actions
+	Hosts    *Hosts
+	Exports  *Exports
 	// Toasts wait for the window to show them; the kit takes them with
 	// TakeToasts as it builds.
 	Toasts []Toast
@@ -96,6 +104,18 @@ func NewStores(api API, post Post) *Stores {
 		actions, _ = api.Chats.(ActionsAPI)
 	}
 	s.Actions = NewActions(actions, post, s.Error)
+	hosts, exports, chatExport := api.Hosts, api.Exports, api.ChatExport
+	if hosts == nil {
+		hosts, _ = api.Projects.(HostsAPI)
+	}
+	if exports == nil {
+		exports, _ = api.Projects.(ExportsAPI)
+	}
+	if chatExport == nil {
+		chatExport, _ = api.Chats.(ChatExportAPI)
+	}
+	s.Hosts = NewHosts(hosts, post, s.Error)
+	s.Exports = NewExports(exports, chatExport, post, s.Error)
 	go s.runReloads()
 	return s
 }
@@ -145,6 +165,10 @@ func (s *Stores) Apply(name string, data any) {
 	case app.EventOpen:
 		if o, ok := data.(app.Open); ok {
 			s.OpenProject(o.Project, o.Chat)
+		}
+	case app.EventExport:
+		if pr, ok := data.(project.ExportProgress); ok {
+			s.Exports.Event(pr)
 		}
 	case app.EventNotice:
 		if n, ok := data.(project.Notice); ok {
@@ -325,4 +349,8 @@ var (
 	_ ChatAPI     = (*app.ChatService)(nil)
 	_ SettingsAPI = (*app.SettingsService)(nil)
 	_ SystemAPI   = (*app.SystemService)(nil)
+
+	_ HostsAPI      = (*app.ProjectService)(nil)
+	_ ExportsAPI    = (*app.ProjectService)(nil)
+	_ ChatExportAPI = (*app.ChatService)(nil)
 )

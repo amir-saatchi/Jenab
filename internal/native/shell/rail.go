@@ -2,17 +2,16 @@ package shell
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 )
 
-// rail is the rail (rail.tsx): the projects, New project, Waiting, and
-// Settings at the bottom.
+// rail is the rail (rail.tsx): the projects, New project, Search (to
+// come), Waiting, the open project's chats while the chat list is hidden,
+// and Settings at the bottom.
 func (s *Shell) rail(c *kit.Context, place *state.Place) {
 	st := s.Stores
 	var open id.Project
@@ -26,10 +25,14 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 			}
 		}
 		if kit.Tooltip(kit.IconButton(c, kit.IconPlus, "New project", kit.Ghost), "New project").Clicked() {
-			s.newProject, s.name = true, ""
+			st.Shell.NewProject, st.Shell.LeftOverlay = true, false
 		}
 		kit.Separator(c, 24, false)
+		kit.Disable(kit.Tooltip(kit.IconButton(c, kit.IconSearch, "Search", kit.Ghost), "Search comes with a later version"), true)
 		s.waiting(c)
+		if place != nil && place.View == state.ViewChat && st.Shell.ChatHidden[state.ChatRef{Project: place.Project, Chat: place.Chat}] {
+			s.railChats(c, place.Project, place.Chat)
+		}
 		kit.Spacer(c)
 		kit.Disable(kit.Tooltip(kit.IconButton(c, kit.IconSchedules, "Schedules", kit.Ghost), "Schedules come with pipelines"), true)
 		settings := kit.Tooltip(kit.IconButton(c, kit.IconSettings, "Settings", kit.Ghost), "Settings")
@@ -89,19 +92,61 @@ func (s *Shell) projectName(p id.Project) string {
 	return s.Stores.Projects.Opened[p].Name
 }
 
-// chatList is the chat list beside the rail (chat-sidebar.tsx): the
-// project's name, New chat, and the chats with Mother first.
-func (s *Shell) chatList(c *kit.Context, p id.Project, open id.Chat) {
+// railChats is the open project's chats in the rail while the chat list
+// is hidden (RailChats): a tile each, Mother's with the diamond, a spinner
+// on a chat that works and a dot on one that waits, then New chat.
+func (s *Shell) railChats(c *kit.Context, p id.Project, open id.Chat) {
 	st := s.Stores
-	kit.SidePanel(c, "Chats", func() {
-		kit.Column(c).Padding(4, 8, 8, 8).Children(func() {
-			kit.Title(c, s.projectName(p))
-			for _, it := range st.Projects.List {
-				if it.ID == p && it.Folder != "" {
-					kit.Muted(c, it.Folder)
+	kit.Separator(c, 24, false)
+	kit.Scroll(c).Shrink(1).AlignSelf(kit.Stretch).Children(func() {
+		kit.Column(c).Gap(8).AlignItems(kit.Center).Children(func() {
+			for _, it := range state.Visible(st.Chats.ByProject[p]) {
+				ch := it.Chat
+				title := ch.Title
+				if title == "" {
+					title = "New chat"
+				}
+				mother := ch.Kind == chat.KindMother
+				active := ch.ID == open
+				tile := kit.RailTile(c, StatusLabel(title, it.State), active, func() {
+					if mother {
+						kit.IconFace(c, kit.IconDiamond)
+					} else {
+						kit.TileFace(c, state.Initials(title), false, active)
+					}
+					switch it.State {
+					case chat.StateWorking:
+						if !mother {
+							kit.TileSpinner(c, "Working")
+						}
+					case chat.StateWaiting:
+						kit.Dot(c, kit.Amber)
+					}
+				}).Key(string(ch.ID))
+				if tile.Clicked() {
+					st.OpenChat(p, ch.ID)
 				}
 			}
 		})
+	})
+	if kit.Tooltip(kit.IconButton(c, kit.IconPlus, "New chat", kit.Ghost), "New chat").Clicked() {
+		st.NewChat(p)
+	}
+}
+
+// chatList is the chat list beside the rail (chat-sidebar.tsx): the
+// project's name with its menu (Project settings, Export…), New chat,
+// and the chats with Mother first, each with its ⋯ menu.
+func (s *Shell) chatList(c *kit.Context, p id.Project, open id.Chat) {
+	st := s.Stores
+	kit.SidePanel(c, "Chats", func() {
+		folder := ""
+		for _, it := range st.Projects.List {
+			if it.ID == p {
+				folder = it.Folder
+			}
+		}
+		kit.MenuTitle(c, s.projectName(p), folder, "Project menu", func(m *kit.Menu) { s.Projects.ProjectMenu(m, p) })
 		if kit.Button(c, "New chat", kit.Outline).Clicked() {
 			st.NewChat(p)
 		}
@@ -122,6 +167,7 @@ func (s *Shell) chatList(c *kit.Context, p id.Project, open id.Chat) {
 }
 
 func (s *Shell) chatRow(c *kit.Context, p id.Project, ch chat.Chat, st chat.State, sub string, active bool) {
+	raw := ch.Title
 	title := ch.Title
 	if title == "" {
 		title = "New chat"
@@ -131,48 +177,31 @@ func (s *Shell) chatRow(c *kit.Context, p id.Project, ch chat.Chat, st chat.Stat
 	if st == chat.StateWaiting {
 		tone = kit.Amber
 	}
-	row := kit.NavItem(c, StatusLabel(title, st), active, func() {
+	face := func(menu bool) {
 		icon := kit.IconChat
 		if mother {
 			icon = kit.IconDiamond
 		}
 		kit.Icon(c, icon).Size(16, 16).Shrink(0)
 		kit.Lines(c, title, sub, tone)
-		switch {
-		case st == chat.StateWorking:
-			kit.SmallSpinner(c, "Working")
-		case st == chat.StateWaiting:
-			kit.Icon(c, kit.IconWarning).Size(16, 16).TextColor(kit.TokensOf(c).Tone(kit.Amber).Text)
-		case mother:
-			kit.Icon(c, kit.IconPin).Size(14, 14).TextColor(kit.TokensOf(c).MutedForeground)
+		// The row's ⋯ button takes the badge's place while it shows.
+		badge := kit.Box(c).Size(16, 16).Shrink(0).AlignItems(kit.Center).Justify(kit.Center)
+		if menu {
+			badge.Opacity(0)
 		}
-	}).Key(string(ch.ID))
-	if row.Clicked() {
-		s.Stores.OpenChat(p, ch.ID)
-	}
-}
-
-// newProjectDialog makes a project from a name (new-project.tsx).
-func (s *Shell) newProjectDialog(c *kit.Context) {
-	kit.Dialog(c, &s.newProject, "New project", func() {
-		kit.TextInput(c, &s.name, "Name").Placeholder("My project")
-		kit.Row(c).Gap(8).Justify(kit.End).Children(func() {
-			if kit.Button(c, "Cancel", kit.Outline).Clicked() {
-				s.newProject = false
-			}
-			name := strings.TrimSpace(s.name)
-			if kit.Disable(kit.Button(c, "Create project", kit.Default), name == "").Clicked() && name != "" {
-				s.newProject = false
-				st := s.Stores
-				st.Projects.Create(name, func(op app.OpenedProject, err error) {
-					if err != nil {
-						st.Error(err)
-						return
-					}
-					s.report(st.Projects.Load())
-					st.OpenChat(op.ID, op.Mother)
-				})
+		badge.Children(func() {
+			switch {
+			case st == chat.StateWorking:
+				kit.SmallSpinner(c, "Working")
+			case st == chat.StateWaiting:
+				kit.Icon(c, kit.IconWarning).Size(16, 16).TextColor(kit.TokensOf(c).Tone(kit.Amber).Text)
+			case mother:
+				kit.Icon(c, kit.IconPin).Size(14, 14).TextColor(kit.TokensOf(c).MutedForeground)
 			}
 		})
-	})
+	}
+	menu := func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch.ID, raw) }
+	if kit.NavRow(c, string(ch.ID), StatusLabel(title, st), active, "Chat menu: "+title, face, menu) {
+		s.Stores.OpenChat(p, ch.ID)
+	}
 }
