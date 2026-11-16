@@ -973,6 +973,10 @@ internal/native/
     threads.go, thread.go   each open chat: the snapshot, then chat:part and chat:status; seq numbers and the missed-event reread (Q32)
     stream.go           the answer streaming; each delta applied as it comes (the agent sends at most one every 16 ms)
     settings.go         the settings view and its save queue, one edit at a time
+    files.go, openfile.go, links.go   the bucket's folders and files read through the services (BucketAPI), paged
+                        100 at a time; opening, deleting with Undo and opening with the system app; jenab:// links
+                        in Markdown (MarkLinks, CodeLink) and in the user's text (SplitLinks) (4.5, 5.12)
+    bar.go              the bottom bar's readings every 2 s while the window shows: memory and provider pauses
     shell.go, quote.go, actions.go   what is docked and hidden; the quote per chat; send, stop, retry, answer,
                         undo and rewind, the model, attachments (Uploader)
     statetest/          Fake: in-memory services, so screens are tested headless and measured without a provider
@@ -989,7 +993,14 @@ internal/native/
                         TextArea, Tooltip, MenuButton, Dialog, AlertDialog, Sidebar, Badge, Spinner, Alert, Empty, Toast
     chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group
     tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole
-  shell/                the frame (5.12): the rail, the chat list, the main area; no dock yet
+    tree.go, split.go, tabs.go, pathbar.go, statusbar.go, endpanel.go, picture.go, linktext.go, item.go,
+    toastaction.go, clipboard.go   Tree, Split (the dock's divider), Tabs, PathBar, StatusBar, EndPanel (the right
+                        sidebar), Picture, LinkText and LinkBubble, Item, ToastAction, CopyText (TASK-056)
+  shell/                the frame (5.12): the rail, the chat list, the main area, the right sidebar and the bottom bar
+    dock.go             a file in the main area with the chat in a resizable dock; the right sidebar's tabs; the bottom
+                        bar; the project's chats in the rail while the chat list is hidden
+  files/                the Files tab (a Tree of one folder, with a path bar) and the file view: Markdown and text,
+                        pictures, *Open with the system app* for the rest, and the versions (4.5, 5.12)
   chat/                 the chat screen: thread rows, parts, cards, the composer (5.8, 8.3, 8.8)
     logic/              its pure logic, ported from frontend/src/chat with its tests: line diff, rewind and undo
                         texts, rows, parts, cards, notes, refresh, the composer, the provider form's choices
@@ -998,7 +1009,7 @@ internal/native/
 - **Threads:** a store is touched on the UI thread only. Work that waits runs in a goroutine and posts back with `Post`; a method whose caller may wait returns a channel or takes a callback.
 - **Screens** import `kit`, `state` and the Go side's types (`app`, `chat`, `id`, `agent`, `store`), never MyGo. A screen is a type with a `View(c *kit.Context, …)` method, built every frame from the stores.
 - **Tests:** every kit component has a headless test (light and dark, focus, label, right-to-left text). The stores' tests and `chat/logic`'s are the ported TypeScript tests. `shell` and `chat` are tested headless against `statetest`.
-- **Coming:** `settings` (TASK-055), `files` and the dock (TASK-056), the project screens (TASK-057), `dev` (TASK-058), and pages and pipelines with their phases.
+- **Coming:** `settings` (TASK-055), the project screens (TASK-057), `dev` (TASK-058), and pages and pipelines with their phases.
 
 ### `frontend` (until TASK-061)
 

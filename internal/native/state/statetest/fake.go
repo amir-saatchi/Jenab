@@ -46,6 +46,8 @@ type Fake struct {
 	rewinds  []int
 	stops    int
 	n        int
+	// Bucket is the projects' files and the bottom bar's readings.
+	Bucket FakeBucket
 }
 
 // New makes an empty Fake.
@@ -56,7 +58,7 @@ func New() *Fake {
 
 // API is the stores' services, all of them f.
 func (f *Fake) API() state.API {
-	return state.API{Projects: projects{f}, Chats: f, Settings: f, System: f, Actions: f}
+	return state.API{Projects: projects{f}, Chats: f, Settings: f, System: f, Actions: f, Bucket: bucket{f}, Status: status{f}}
 }
 
 // AddProject adds a project with its Mother chat and returns both.

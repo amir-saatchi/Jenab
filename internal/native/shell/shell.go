@@ -1,6 +1,7 @@
 // Package shell is the window's frame on MyGo (SPEC 5.12): the rail, the
 // chat list and the main area, as frontend/src/shell's app-shell, rail,
-// chat-sidebar and chat-view. It has no dock (SPIKE-048 Part B).
+// chat-sidebar and chat-view. The dock, the right sidebar and the bottom bar are
+// TASK-056's (dock.go).
 package shell
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/native/files"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 )
@@ -23,6 +25,9 @@ type ChatScreen interface {
 type Shell struct {
 	Stores *state.Stores
 	Chat   ChatScreen
+	// Files shows the bucket: the Files tab and a file opened next to the
+	// chat (TASK-056); nil shows no files.
+	Files *files.Screen
 	// Post runs work on the UI thread, as the stores' does.
 	Post state.Post
 	// Quit ends the app, as the tray's Quit does; nil hides the button.
@@ -36,7 +41,7 @@ type Shell struct {
 
 // New makes the shell's view.
 func New(stores *state.Stores, screen ChatScreen, post state.Post) *Shell {
-	return &Shell{Stores: stores, Chat: screen, Post: post}
+	return &Shell{Stores: stores, Chat: screen, Files: files.New(stores), Post: post}
 }
 
 // Start loads what the window shows first, on the UI thread.
@@ -46,6 +51,7 @@ func (s *Shell) Start() {
 	s.report(st.Settings.Load())
 	s.report(st.Settings.LoadModels())
 	s.report(st.Chats.LoadWaiting())
+	st.Bar.Start()
 }
 
 func (s *Shell) report(done <-chan error) {
@@ -67,16 +73,25 @@ func (s *Shell) View(c *kit.Context) {
 			case t.Warning:
 				kind = kit.ToastWarning
 			}
+			if t.Action != "" {
+				kit.ToastAction(c, t.Text, t.Detail, t.Action, t.OnAction)
+				continue
+			}
 			kit.Toast(c, t.Text, kind, t.Sticky)
 		}
 		place := s.Stores.Nav.Current()
-		kit.Row(c).Grow(1).AlignItems(kit.Stretch).Children(func() {
+		chatOpen := place != nil && place.View == state.ViewChat
+		kit.Row(c).Grow(1).MinHeight(0).AlignItems(kit.Stretch).Children(func() {
 			s.rail(c, place)
-			if place != nil && place.View == state.ViewChat && !s.Stores.Shell.ChatHidden[state.ChatRef{Project: place.Project, Chat: place.Chat}] {
+			if chatOpen && !s.Stores.ListHidden() {
 				s.chatList(c, place.Project, place.Chat)
 			}
 			kit.Main(c, func() { s.main(c, place) })
+			if chatOpen {
+				s.rightSidebar(c, place.Project)
+			}
 		})
+		s.bottomBar(c, place)
 		s.newProjectDialog(c)
 		kit.Toasts(c)
 	})
@@ -98,7 +113,7 @@ func (s *Shell) main(c *kit.Context, place *state.Place) {
 	case place == nil:
 		center(c, func() { kit.Empty(c, kit.IconChat, "Choose a project", "Its chat opens here.", nil) })
 	case place.View == state.ViewChat:
-		s.chatView(c, place.Project, place.Chat)
+		s.chatArea(c, place.Project, place.Chat)
 	default:
 		// Settings and the developer tools are not part of the spike.
 		center(c, func() {
@@ -174,15 +189,14 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 // header is the chat's title bar (ChatHeader): the button hiding the chat
 // list, Mother's diamond, the title and its second line.
 func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool) {
-	ref := state.ChatRef{Project: p, Chat: ch}
-	hidden := s.Stores.Shell.ChatHidden[ref]
+	hidden := s.Stores.ListHidden()
 	kit.Bar(c, func() {
 		label, icon := "Hide the chat list", kit.IconSidebarClose
 		if hidden {
 			label, icon = "Show the chat list", kit.IconSidebarOpen
 		}
 		if kit.Tooltip(kit.IconButton(c, icon, label, kit.Ghost).Size(32, 32), label).Clicked() {
-			s.Stores.Shell.ChatHidden[ref] = !hidden
+			s.Stores.SetListHidden(!hidden)
 		}
 		if mother {
 			kit.Icon(c, kit.IconDiamond).Size(16, 16).Shrink(0)

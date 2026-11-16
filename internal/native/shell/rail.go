@@ -30,6 +30,9 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 		}
 		kit.Separator(c, 24, false)
 		s.waiting(c)
+		if place != nil && place.View == state.ViewChat && st.ListHidden() {
+			s.railChats(c, place.Project, place.Chat)
+		}
 		kit.Spacer(c)
 		kit.Disable(kit.Tooltip(kit.IconButton(c, kit.IconSchedules, "Schedules", kit.Ghost), "Schedules come with pipelines"), true)
 		settings := kit.Tooltip(kit.IconButton(c, kit.IconSettings, "Settings", kit.Ghost), "Settings")

@@ -34,6 +34,10 @@ type API struct {
 	// Actions is what the chat screen asks of the chat service; nil when
 	// Chats has it too, as *app.ChatService does.
 	Actions ActionsAPI
+	// Bucket is the project's files (TASK-056); nil shows none.
+	Bucket BucketAPI
+	// Status is what the bottom bar reads every 2 s; nil reads nothing.
+	Status StatusAPI
 }
 
 // Toast is a message for the window's toasts: a project notice, or an
@@ -43,6 +47,11 @@ type Toast struct {
 	Warning bool
 	Error   bool
 	Sticky  bool // until closed
+	// Detail is a second line; Action labels a button that runs OnAction
+	// on the UI thread, as Undo after a delete.
+	Detail   string
+	Action   string
+	OnAction func()
 }
 
 // reloadWait is how long a chat list waits before it is read again, so a
@@ -60,6 +69,8 @@ type Stores struct {
 	Shell    *Shell
 	Quotes   Quotes
 	Actions  *Actions
+	Files    *Files
+	Bar      *Bar
 	// Toasts wait for the window to show them; the kit takes them with
 	// TakeToasts as it builds.
 	Toasts []Toast
@@ -70,6 +81,7 @@ type Stores struct {
 
 	post    Post
 	system  SystemAPI
+	bucket  BucketAPI
 	states  map[id.Chat]chat.State // each busy chat's last state, to see when it starts to wait
 	reloads chan id.Project
 	stop    chan struct{}
@@ -96,12 +108,18 @@ func NewStores(api API, post Post) *Stores {
 		actions, _ = api.Chats.(ActionsAPI)
 	}
 	s.Actions = NewActions(actions, post, s.Error)
+	s.Files = NewFiles(api.Bucket, post)
+	s.bucket = api.Bucket
+	s.Bar = NewBar(api.Status, post)
 	go s.runReloads()
 	return s
 }
 
 // Close stops the stores' goroutine.
-func (s *Stores) Close() { close(s.stop) }
+func (s *Stores) Close() {
+	close(s.stop)
+	s.Bar.Stop()
+}
 
 // Error shows err in a toast.
 func (s *Stores) Error(err error) {
