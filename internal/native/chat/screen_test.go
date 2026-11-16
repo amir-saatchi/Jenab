@@ -92,7 +92,7 @@ func (x *fixture) delta(m id.Message, part int, kind jc.PartKind, text string) {
 func shows(t *testing.T, tt *kit.Tester, texts ...string) {
 	t.Helper()
 	for _, s := range texts {
-		if _, ok := tt.Find(s); !ok && !tt.HasText(s) {
+		if !kit.Shows(tt, s) {
 			t.Errorf("no %q in %q", s, tt.Texts())
 		}
 	}

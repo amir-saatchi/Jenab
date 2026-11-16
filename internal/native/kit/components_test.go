@@ -53,7 +53,7 @@ func TestTextInputAndTextArea(t *testing.T) {
 	}
 	themes(t, view, func(t *testing.T, tt *ui.Tester) {
 		name, notes = "", ""
-		shows(t, tt, "Name", "Notes")
+		shows(t, tt, "Name", "Notes", "Your name")
 		tabTo(t, tt, "Name")
 		tt.Type(persian)
 		tabTo(t, tt, "Notes")
@@ -61,6 +61,11 @@ func TestTextInputAndTextArea(t *testing.T) {
 		tt.Frame()
 		if name != persian || notes != "one\ttwo" {
 			t.Errorf("typed %q and %q", name, notes)
+		}
+		// What the fields hold shows, which MyGo's Texts leaves out.
+		shows(t, tt, persian, "one\ttwo")
+		if tt.HasText(persian) {
+			t.Log("MyGo's Texts now has a field's text: Shows can read it there")
 		}
 	})
 }
@@ -219,6 +224,27 @@ func TestSidebar(t *testing.T) {
 		shows(t, tt, "Chats", "Prices", persian, "Coins")
 		if err := tt.Click(persian); err != nil || selected != "b" {
 			t.Fatalf("click: %v, selected %q", err, selected)
+		}
+		tt.Frame()
+		// The item chosen is sidebar-accent gray while the sidebar has the
+		// focus too, as in the web app; MyGo would fill it with the accent.
+		k := &Light
+		if near(tt.Image().RGBAAt(799, 599), Dark.Background) {
+			k = &Dark
+		}
+		if r, ok := tt.Find("Prices"); ok {
+			// Between the icon and the text, as the badge is at the end.
+			x := int(r.X - 3)
+			if got := tt.Image().RGBAAt(x, int(r.Y+r.H/2)); !near(got, k.Sidebar) {
+				t.Errorf("an item not chosen is %v, want the sidebar %v", got, k.Sidebar)
+			}
+			// The Persian item below it, chosen.
+			b, _ := tt.Find(persian)
+			if got := tt.Image().RGBAAt(x, int(b.Y+b.H/2)); !near(got, k.SidebarAccent) {
+				t.Errorf("the item chosen, focused, is %v, want sidebar-accent %v", got, k.SidebarAccent)
+			}
+		} else {
+			t.Fatal("no Prices")
 		}
 		tt.Key(0, ui.KeyDown)
 		tt.Frame()

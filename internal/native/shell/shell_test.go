@@ -60,7 +60,7 @@ func (x *fixture) settle(cond func() bool) bool {
 func shows(t *testing.T, tt *kit.Tester, texts ...string) {
 	t.Helper()
 	for _, s := range texts {
-		if _, ok := tt.Find(s); !ok && !tt.HasText(s) {
+		if !kit.Shows(tt, s) {
 			t.Errorf("no %q in %q", s, tt.Texts())
 		}
 	}
