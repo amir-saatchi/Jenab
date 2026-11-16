@@ -99,6 +99,39 @@ func Pressed(tt *Tester, name string) (on, ok bool) {
 	return a.Checked, ok
 }
 
+// OffTheWindowButtonsMiddle names the controls in the window's title bar,
+// under the buttons WindowsButtons gives, whose middle is not the
+// buttons' middle, as every control of the bar's should be. A control
+// running past the bar, as the dock's divider, isn't in it.
+func OffTheWindowButtonsMiddle(tt *Tester) []string {
+	bar := windowsButtonsRoom
+	var off []string
+	for _, a := range tt.AccessAll() {
+		r := a.Bounds
+		if !a.Focusable || r.W <= 0 || r.H <= 0 || r.Y >= bar.Height || r.Y+r.H > bar.Height+1 {
+			continue
+		}
+		if mid := r.Y + r.H/2; mid < bar.Height/2-0.5 || mid > bar.Height/2+0.5 {
+			off = append(off, a.Name)
+		}
+	}
+	return off
+}
+
+// AccessInfo is what assistive technology gets of an element (Tester.AccessAll).
+type AccessInfo = ui.AccessInfo
+
+// Description is what assistive technology reads after the name of the
+// element named name, as its tooltip, and whether the window has one.
+func Description(tt *Tester, name string) (string, bool) {
+	for _, a := range tt.AccessAll() {
+		if a.Name == name {
+			return a.Description, true
+		}
+	}
+	return "", false
+}
+
 // UnderWindowButtons names the controls that lie under the buttons
 // WindowsButtons gives a window width wide, which none should.
 func UnderWindowButtons(tt *Tester, width int) []string {

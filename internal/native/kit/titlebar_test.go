@@ -49,6 +49,12 @@ func TestBarKeepsClearOfTheWindowButtons(t *testing.T) {
 		if under := UnderWindowButtons(tt, 800); len(under) > 0 {
 			t.Errorf("under the window's buttons: %q", under)
 		}
+		if off := OffTheWindowButtonsMiddle(tt); len(off) > 0 {
+			t.Errorf("not on the window buttons' middle: %q", off)
+		}
+		if r, _ := tt.Find("Files"); r.W != BarButton || r.H != BarButton {
+			t.Errorf("a toggle is %v × %v, want %v", r.W, r.H, BarButton)
+		}
 		if !HasRole(tt, "group", "Project sidebar") {
 			t.Error("the toggles are not a group named Project sidebar")
 		}
@@ -109,8 +115,9 @@ func TestControlsRoomIsEmptyWithoutWindowButtons(t *testing.T) {
 	}
 }
 
-// The side panel's head and the bar line up as one: as high, with their
-// rules on one line, and taller with taller window buttons.
+// The side panel's head and the bar line up as one: their rows as high
+// as the window's buttons and centered with them, with their rules on one
+// line under the buttons, and BarHeight with no buttons.
 func TestPanelHeadLinesUpWithTheBar(t *testing.T) {
 	clicked, files := "", false
 	for _, bar := range []ui.TitleBar{{}, windowsButtonsRoom, {Height: 64, Right: 120, Bottom: 64}} {
@@ -118,13 +125,17 @@ func TestPanelHeadLinesUpWithTheBar(t *testing.T) {
 		tt.SetTitleBar(bar)
 		head, _ := tt.Find("Demo")
 		title, _ := tt.Find(persian)
-		want := max(float32(BarHeight), bar.Height)
-		// Both titles are centered in their bars.
-		if mid := head.Y + head.H/2; mid < want/2-2 || mid > want/2+2 {
-			t.Errorf("title bar %v: the panel's title is centered at %v, want %v", bar, mid, want/2)
+		toggle, _ := tt.Find("Pages")
+		// The bar's row is the buttons' height; the rule is under it.
+		want := bar.Height + 1
+		if bar.Height == 0 {
+			want = BarHeight
 		}
-		if mid := title.Y + title.H/2; mid < want/2-2 || mid > want/2+2 {
-			t.Errorf("title bar %v: the bar's title is centered at %v, want %v", bar, mid, want/2)
+		mid := (want - 1) / 2
+		for name, r := range map[string]ui.Rect{"the panel's title": head, "the bar's title": title, "a toggle": toggle} {
+			if m := r.Y + r.H/2; m < mid-0.5 || m > mid+0.5 {
+				t.Errorf("title bar %v: %s is centered at %v, want %v", bar, name, m, mid)
+			}
 		}
 		// The rules under them, at want-1 in the panel and in the bar: a
 		// row unlike the bar's face above it and the content under it.

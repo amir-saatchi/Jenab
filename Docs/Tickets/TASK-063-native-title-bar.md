@@ -47,3 +47,12 @@ Each item has headless tests in light and dark. A live check with the bench buil
 Gaps:
 - A spoken Narrator pass wasn't done; it needs someone to listen.
 - `ControlsRoom` doesn't handle macOS's buttons on the start side yet (TASK-060).
+
+Follow-up (2026-11-17): compact bar. The bar was 56 DIPs, much taller than Windows' 32 DIP buttons, so the tab icons sat lower than them.
+- The bar is now one line as high as the window's buttons, with a 1 DIP rule under them: 33 DIPs on Windows 11. Where the system keeps its title bar (macOS and Linux), it is 40.
+- The bar's buttons are 28 DIPs with 16 DIP icons (`kit.BarIconButton`, `BarToggle`), centered with Windows' buttons. Their focus ring sits on their edge, so it fits.
+- The chat list's head shows only the project's name and the chevron. The folder is the name's tooltip, which screen readers read as its description.
+- The chat's header has no second line. The title is cut on one line, with all of it as its tooltip. The file view's header lost its second line too. The file's title or path is its tooltip.
+- The rail's top is an empty strip as high as the bar. It moves the window, and the tiles start under it.
+
+Headless tests check this in light and dark. A live check at 1280 and 800 px put the icons' centre within 0.5 px of the caption buttons' centre, in UI Automation.

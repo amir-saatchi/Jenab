@@ -36,12 +36,23 @@ var (
 // Rail is the rail down the window's start edge, 56 px wide in the
 // sidebar's colors (SPEC 5.12): fn builds its tiles and buttons, top to
 // bottom; a Spacer pushes those after it to the bottom. label names it.
+// Under the window's own title bar its top is an empty strip as high as
+// the bar, which moves the window as the bar does (TASK-063).
 func Rail(c *Context, label string, fn func()) Element {
 	k := TokensOf(c)
 	t := railTheme(c)
 	box := ui.Themed(c, t).Width(56).Shrink(0).Background(k.Sidebar).BorderColor(k.SidebarBorder).BorderEndWidth(1)
 	return box.Children(func() {
-		ui.Column(c).Grow(1).AlignItems(ui.Center).Gap(4).PaddingY(8).Role(ui.RoleNavigation).Label(label).Children(fn)
+		col := ui.Column(c).Grow(1).AlignItems(ui.Center).Gap(4).PaddingY(8).Role(ui.RoleNavigation).Label(label)
+		if c.TitleBar().Height > 0 {
+			col.Padding(0, 0, 8, 0)
+		}
+		col.Children(func() {
+			if c.TitleBar().Height > 0 {
+				ui.Box(c).Height(barHeight(c)).Shrink(0).AlignSelf(ui.Stretch).DragWindow()
+			}
+			fn()
+		})
 	})
 }
 
@@ -136,7 +147,8 @@ func Separator(c *Context, length float32, vertical bool) Element {
 	return s.Size(length, 1).MarginY(6)
 }
 
-// Bar is a screen's top bar, BarHeight high with a rule under it, as the
+// Bar is a screen's top bar, one row as high as the window's buttons
+// (barHeight) with a rule under it, as the
 // chat's header: fn builds its row. It is part of the window's title bar
 // (titlebar.go): its empty parts move the window and a double click on
 // them maximizes it, while its buttons take their clicks. The bar at the

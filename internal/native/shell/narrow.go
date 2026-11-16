@@ -43,7 +43,7 @@ func (s *Shell) pageHeader(c *kit.Context, title string) {
 		if kit.Narrow(c) {
 			s.openSidebar(c)
 		}
-		kit.Title(c, title)
+		kit.Title(c, title).Tooltip(title)
 		kit.Spacer(c)
 		kit.ControlsRoom(c)
 	})
@@ -51,7 +51,7 @@ func (s *Shell) pageHeader(c *kit.Context, title string) {
 
 // openSidebar is ☰, opening the rail with the chat list.
 func (s *Shell) openSidebar(c *kit.Context) {
-	if kit.IconButton(c, kit.IconMenu, "Open the sidebar", kit.Ghost).Size(32, 32).Clicked() {
+	if kit.BarIconButton(c, kit.IconMenu, "Open the sidebar").Clicked() {
 		s.Stores.Shell.LeftOverlay = true
 	}
 }

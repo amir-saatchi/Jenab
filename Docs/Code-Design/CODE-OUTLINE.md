@@ -934,7 +934,9 @@ internal/native/
   kit/                  Jenab's components on MyGo's ui (SPEC 5.8)
     kit.go              Root (the window, left to right, tab stops), View, layout helpers, aliases of ui types
     theme.go            Tokens (Light, Dark, from the mockups' index.css), Tone and ToneColors, Theme → ui.Theme, SetThemeSource (5.11)
-    titlebar.go         the window's title bar (TASK-063): BarHeight, ControlsRoom (the room for the window's buttons),
+    titlebar.go         the window's title bar (TASK-063): one line as high as the window's buttons (barHeight; BarHeight
+                        where the system keeps its own), BarButton and BarIconButton (28 DIPs), ControlsRoom (the room
+                        for the window's buttons),
                         BarToggle and BarGroup (the right sidebar's tab icons), PanelHead, PanelTitle, ThemeSourceOf
                         (also the window buttons' theme in cmd/desktop)
     fonts.go, fonts/    Geist, Geist Mono and Vazirmatn as variable TTF files, RegisterFonts; versions and SHA-256 in fonts/README.md
@@ -953,7 +955,8 @@ internal/native/
     settings.go         SettingsLayout and its pieces (TASK-055): the one frame of Settings and project settings;
                         its list is 224 px wide, 176 under 900 px
     tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole;
-                        WindowsButtons, Pressed and UnderWindowButtons for the title bar's tests
+                        WindowsButtons, Pressed, UnderWindowButtons, OffTheWindowButtonsMiddle and Description for the
+                        title bar's tests
     datatable.go, picker.go, lanes.go, titledcard.go, sharebar.go, linesview.go, linkbutton.go   the developer
                         tools' pieces: DataTable, Picker (a select), TimeAxis and Lane bars, TitledCard, ShareBar,
                         LinesView (a long text as a virtual list of lines), LinkButton
