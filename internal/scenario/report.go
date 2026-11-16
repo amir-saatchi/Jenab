@@ -22,9 +22,13 @@ type Report struct {
 	Models  []string  `json:"models"`
 	// Harnesses are the harnesses each model ran in (P2-13); empty is the
 	// app's alone.
-	Harnesses []string  `json:"harnesses,omitempty"`
-	Summary   []Summary `json:"summary"`
-	Runs      []Run     `json:"runs"`
+	Harnesses []string `json:"harnesses,omitempty"`
+	// QuotaStops are the models that stopped because the provider said
+	// the quota or credit is used up, and where: "at <scenario> r<rep>"
+	// in this set, or "earlier, at <set>, <scenario> r<rep>" (TASK-048).
+	QuotaStops map[string]string `json:"quota_stops,omitempty"`
+	Summary    []Summary         `json:"summary"`
+	Runs       []Run             `json:"runs"`
 }
 
 // Run is one scenario on one model. Error is a run that broke, such as a
@@ -70,6 +74,11 @@ type Run struct {
 	ThinkingDropped int `json:"thinking_dropped,omitempty"`
 	DropRequests    int `json:"thinking_drop_requests,omitempty"`
 	Breaks          int `json:"thinking_breaks,omitempty"`
+
+	// Quota is set when the provider said, in this run, that the daily
+	// quota or credit is used up; the model's later runs are skipped
+	// (TASK-048).
+	Quota bool `json:"quota,omitempty"`
 
 	// MemoryTokens and NotesTokens are the sizes at the end, as the caps
 	// count them: user and project memory, and the session notes.
@@ -171,6 +180,10 @@ type Summary struct {
 	CacheRange  Range   `json:"cache_read_range"`
 	Memory      int     `json:"max_memory_tokens,omitempty"`
 	Notes       int     `json:"max_notes_tokens,omitempty"`
+	// QuotaStop is where the model stopped because its provider said the
+	// quota or credit is used up, from Report.QuotaStops; "" when it
+	// didn't (TASK-048).
+	QuotaStop string `json:"quota_stop,omitempty"`
 }
 
 // Range is the least and the most of a share across reps.
@@ -210,10 +223,12 @@ func (rep *Report) summarize() {
 		s := Summary{Model: m, Checks: map[string]Rate{}, Tests: map[string]Rate{}, CacheRange: Range{Min: 1}}
 		var prompt, output, cached, turns, turnPrompt, turnFirst, reqs, peak int
 		var secs, turnSecs float64
+		model := ""
 		for _, r := range rep.Runs {
 			if r.Lane() != m {
 				continue
 			}
+			model = r.Model
 			if r.Skipped != "" {
 				s.Skipped++
 				continue
@@ -274,8 +289,30 @@ func (rep *Report) summarize() {
 		if rep.Reps >= spreadFrom {
 			s.Spread = rep.spread(m)
 		}
+		s.QuotaStop = rep.QuotaStops[model]
 		rep.Summary = append(rep.Summary, s)
 	}
+}
+
+// quotaRun is model's first run in which the provider said the quota or
+// credit is used up.
+func (rep *Report) quotaRun(model string) (Run, bool) {
+	for _, r := range rep.Runs {
+		if r.Quota && r.Model == model {
+			return r, true
+		}
+	}
+	return Run{}, false
+}
+
+// at names the run: its scenario and rep, and its harness when it has
+// one.
+func (r Run) at() string {
+	s := fmt.Sprintf("%s r%d", r.Scenario, r.Rep)
+	if r.Harness != "" {
+		s += " · " + r.Harness
+	}
+	return s
 }
 
 // spread is each rep's pass share of the runs and of each check, as the
@@ -512,7 +549,31 @@ func (rep *Report) Markdown(prev *Report) string {
 	if len(fails) > 0 {
 		b.WriteString("\n## Failures\n\n" + strings.Join(fails, "\n") + "\n")
 	}
+	rep.quotaMarkdown(&b)
 	return b.String()
+}
+
+// quotaMarkdown lists the models that stopped because the provider said
+// the quota or credit is used up: at which run, and how many runs were
+// skipped after it (TASK-048).
+func (rep *Report) quotaMarkdown(b *strings.Builder) {
+	var lines []string
+	for _, m := range rep.Models {
+		where, ok := rep.QuotaStops[m]
+		if !ok {
+			continue
+		}
+		n := 0
+		for _, r := range rep.Runs {
+			if r.Model == m && r.Skipped == QuotaSkip(m) {
+				n++
+			}
+		}
+		lines = append(lines, fmt.Sprintf("- %s: the provider said the quota or credit is used up %s. %d runs here were skipped.", m, where, n))
+	}
+	if len(lines) > 0 {
+		b.WriteString("\n## Stopped on quota\n\n" + strings.Join(lines, "\n") + "\n")
+	}
 }
 
 // label is a check's test label in brackets, for a failure's line; ""

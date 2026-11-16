@@ -41,6 +41,7 @@ func TestLine(t *testing.T) {
 		want string
 	}{
 		{scenario.Run{Skipped: "needs background"}, "skip (needs background)"},
+		{scenario.Run{Skipped: scenario.QuotaSkip("p/m")}, "skip (quota: p/m)"},
 		{scenario.Run{Error: "p: 429\ntoo many", Seconds: 1.25}, "broke after 1.2s: p: 429 too many"},
 		{scenario.Run{Seconds: 3, Asserts: []scenario.Result{{Type: "tool_called", Status: scenario.Fail}, {Type: "no_repeat", Test: "info", Status: scenario.Fail}}}, "fail in 3s: tool_called"},
 		{scenario.Run{Seconds: 61}, "pass in 1m1s"},
@@ -144,6 +145,24 @@ func TestUsageWatch(t *testing.T) {
 	}
 	if s := tally.take(); s != "0 requests, input 0, cache read 0, cache write 0, output 0" {
 		t.Errorf("take after take: %q", s)
+	}
+}
+
+// -usage-log: a model stopped on its quota is one line, apart from the
+// requests' lines and not in the totals (TASK-048).
+func TestUsageQuotaStop(t *testing.T) {
+	var log bytes.Buffer
+	tally := &usageTally{log: &log}
+	tally.stop("p/m", "Prices", scenario.Run{Scenario: "close", Rep: 3})
+	var q quotaLine
+	if err := json.Unmarshal(log.Bytes(), &q); err != nil || strings.Count(log.String(), "\n") != 1 {
+		t.Fatalf("the log %q: %v", log.String(), err)
+	}
+	if q.Model != "p/m" || q.QuotaStop != "Prices, close r3" || q.Time == "" {
+		t.Errorf("the line %+v", q)
+	}
+	if s := tally.take(); !strings.HasPrefix(s, "0 requests") {
+		t.Errorf("take: %q", s)
 	}
 }
 

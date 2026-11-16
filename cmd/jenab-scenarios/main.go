@@ -260,6 +260,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		}
 	}
 	fmt.Fprintf(w, "models: %s\n", strings.Join(models.Run, ", "))
+	quotas := &scenario.Quotas{} // a model stopped on its quota stays stopped in the later sets
 	for _, s := range ss {
 		var ids []string
 		if len(want) > 0 {
@@ -271,8 +272,14 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		rep, runErr := scenario.RunSet(ctx, s, scenario.Options{
 			Models: models, Backends: all, Reps: *reps, Scale: *scale, Timeout: *timeout,
 			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script, Grounding: ground,
-			Harnesses: split(*harness), Settings: override,
+			Harnesses: split(*harness), Settings: override, Quotas: quotas,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
+			QuotaStop: func(model string, at scenario.Run) {
+				fmt.Fprintf(w, "  %s: the provider says the quota or credit is used up; no more runs on it\n", model)
+				if tally != nil {
+					tally.stop(model, s.Title, at)
+				}
+			},
 		})
 		if rep == nil {
 			return runErr
@@ -297,7 +304,11 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			return err
 		}
 		for _, sum := range rep.Summary {
-			fmt.Fprintf(w, "  %s: %d/%d runs passed, %d broke, %d skipped\n", sum.Model, sum.Passed, sum.Runs, sum.Errors, sum.Skipped)
+			stop := ""
+			if sum.QuotaStop != "" {
+				stop = "; stopped on its quota " + sum.QuotaStop
+			}
+			fmt.Fprintf(w, "  %s: %d/%d runs passed, %d broke, %d skipped%s\n", sum.Model, sum.Passed, sum.Runs, sum.Errors, sum.Skipped, stop)
 		}
 		fmt.Fprintf(w, "  report: %s\n", md)
 		if tally != nil {
@@ -521,6 +532,26 @@ func (t *usageTally) add(c usageCall) {
 		line, _ := json.Marshal(c)
 		t.log.Write(append(line, '\n'))
 	}
+}
+
+// quotaLine is the usage-log line for a model stopped on its quota
+// (TASK-048): the requests on it end here.
+type quotaLine struct {
+	Time      string `json:"time"`
+	Model     string `json:"model"` // provider/id
+	QuotaStop string `json:"quota_stop"`
+}
+
+// stop writes that model stopped on its quota at the run at of set.
+func (t *usageTally) stop(model, set string, at scenario.Run) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.log == nil {
+		return
+	}
+	line, _ := json.Marshal(quotaLine{Time: time.Now().UTC().Format(time.RFC3339), Model: model,
+		QuotaStop: fmt.Sprintf("%s, %s r%d", set, at.Scenario, at.Rep)})
+	t.log.Write(append(line, '\n'))
 }
 
 // take returns the totals as a line and starts again from zero.

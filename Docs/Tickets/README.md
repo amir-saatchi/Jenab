@@ -101,7 +101,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-045](TASK-045-stopped-call-wording.md) | Say when a stopped call may have run | Task | Open | 3 |
 | [TASK-046](TASK-046-thinking-binding.md) | Thinking blocks after the context changes | Task | Done | 3 |
 | [TASK-047](TASK-047-steady-prefix.md) | Keep the start of each request the same | Task | Done | 3 |
-| [TASK-048](TASK-048-runner-quota-stop.md) | The scenario runner stops a model when its quota is gone | Task | Open | 3 |
+| [TASK-048](TASK-048-runner-quota-stop.md) | The scenario runner stops a model when its quota is gone | Task | Done | 3 |
 | [TASK-049](TASK-049-bucket-search-words.md) | Search the project's files by words (`bucket_search`, R-128) | Task | Open | 3 |
 | [TASK-050](TASK-050-settings-findings.md) | Find Project settings and the project's memory | Task | Done | 3 |
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Done | 3 |
