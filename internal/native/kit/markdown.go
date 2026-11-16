@@ -1,10 +1,13 @@
 package kit
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
+	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // Markdown shows a chat's Markdown in Jenab's theme. Keep one per message:
@@ -23,6 +26,12 @@ type Markdown struct {
 	ShareSelection bool
 
 	opts markdown.Options
+	// nested builds the tables, lists and items that block turns, sharing
+	// the selection of the view around them.
+	nested markdown.Options
+	// rtl holds the directions of the nested views being built, the
+	// innermost last.
+	rtl []bool
 }
 
 // View shows src, Markdown that is complete.
@@ -37,11 +46,142 @@ func (m *Markdown) Stream(c *Context, src string) Element {
 }
 
 func (m *Markdown) prepare(c *Context, src string) string {
-	m.opts.Theme = markdownTheme(c.Theme().Dark)
-	m.opts.OnLink = m.OnLink
+	th := markdownTheme(c.Theme().Dark)
+	for _, o := range []*markdown.Options{&m.opts, &m.nested} {
+		o.Theme, o.OnLink, o.CodeBlock, o.Block = th, m.OnLink, m.codeBlock, m.block
+	}
 	m.opts.ShareSelection = m.ShareSelection
-	m.opts.CodeBlock = m.codeBlock
+	m.nested.ShareSelection = true
 	return src
+}
+
+// block gives tables, lists and list items the direction of their first
+// strong character, as the frontend's dir={dirOf(node)} does (SPEC 5.8):
+// a Persian table's columns run right to left, and a Persian item has its
+// marker on the right. MyGo lays them out in the direction around them,
+// which the kit's Root keeps left to right, so one whose direction
+// differs is built again as Markdown of its own, in a column of its
+// direction. Its paragraphs still take their own text's direction.
+func (m *Markdown) block(c *ui.Context, d *parser.Document, i int) bool {
+	b := d.Block(i)
+	if b.Kind != parser.List && b.Kind != parser.Table {
+		return false
+	}
+	src := d.Source()
+	outer := len(m.rtl) > 0 && m.rtl[len(m.rtl)-1]
+	rtl := RightToLeft(src[b.Start:b.End])
+	if b.Kind == parser.Table {
+		if rtl == outer {
+			return false
+		}
+		return m.nestedBlock(c, rtl, src, b, "")
+	}
+	var items []*parser.Block
+	same := true
+	for j := range d.Children(i) {
+		it := d.Block(j)
+		items = append(items, it)
+		same = same && RightToLeft(src[it.Start:it.End]) == rtl
+	}
+	switch {
+	case same && rtl == outer:
+		return false
+	case same:
+		return m.nestedBlock(c, rtl, src, b, "")
+	}
+	// Items of both directions: each is a list of its own, numbered as
+	// it was, spaced as MyGo spaces items.
+	gap := markdownGap(c, b.Tight)
+	views := make([]func(), 0, len(items))
+	for k, it := range items {
+		number := ""
+		if b.Ordered {
+			number = strconv.Itoa(b.Number + k)
+		}
+		item, ok := dedent(src, it, number)
+		if !ok {
+			return false
+		}
+		views = append(views, func() {
+			el := m.nestedView(c, RightToLeft(src[it.Start:it.End]), item)
+			if k > 0 {
+				el.Margin(gap, 0, 0, 0)
+			}
+		})
+	}
+	ui.Column(c).AlignSelf(ui.Stretch).Children(func() {
+		for _, v := range views {
+			v()
+		}
+	})
+	return true
+}
+
+// nestedBlock builds block b of src as Markdown of its own in direction
+// rtl; it reports false, for MyGo to build the block, when b's lines
+// can't be taken out of what holds them.
+func (m *Markdown) nestedBlock(c *ui.Context, rtl bool, src string, b *parser.Block, number string) bool {
+	text, ok := dedent(src, b, number)
+	if !ok {
+		return false
+	}
+	m.nestedView(c, rtl, text)
+	return true
+}
+
+func (m *Markdown) nestedView(c *ui.Context, rtl bool, src string) ui.Element {
+	dir := ui.LeftToRight
+	if rtl {
+		dir = ui.RightToLeft
+	}
+	m.rtl = append(m.rtl, rtl)
+	defer func() { m.rtl = m.rtl[:len(m.rtl)-1] }()
+	return ui.Column(c).Direction(dir).AlignSelf(ui.Stretch).Children(func() { markdown.View(c, src, &m.nested) })
+}
+
+// dedent returns the lines of block b of src as Markdown that stands
+// alone: the lines after its first lose the indent of its first column.
+// number, when set, replaces an ordered item's number. It reports false
+// when a line doesn't start with that indent, as in a quote, where the
+// block can't be taken out.
+func dedent(src string, b *parser.Block, number string) (string, bool) {
+	col := b.Start - (strings.LastIndexByte(src[:b.Start], '\n') + 1)
+	text := strings.TrimRight(src[b.Start:b.End], "\n")
+	if number != "" {
+		n := 0
+		for n < len(text) && text[n] >= '0' && text[n] <= '9' {
+			n++
+		}
+		text = number + text[n:]
+	}
+	if col == 0 {
+		return text, true
+	}
+	indent := strings.Repeat(" ", col)
+	lines := strings.Split(text, "\n")
+	for k := 1; k < len(lines); k++ {
+		switch {
+		case strings.TrimSpace(lines[k]) == "":
+			lines[k] = ""
+		case strings.HasPrefix(lines[k], indent):
+			lines[k] = lines[k][col:]
+		default:
+			return "", false
+		}
+	}
+	return strings.Join(lines, "\n"), true
+}
+
+// markdownGap is the space MyGo puts between a list's items, in DIPs.
+func markdownGap(c *ui.Context, tight bool) float32 {
+	size := c.Theme().FontSize
+	if size == 0 {
+		size = 14
+	}
+	if tight {
+		return 0.25 * size // markdown.Theme's ItemSpacing
+	}
+	return 0.75 * size // its BlockSpacing
 }
 
 var markdownThemes [2]*markdown.Theme

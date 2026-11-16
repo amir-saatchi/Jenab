@@ -85,3 +85,61 @@ func TestMarkdownStream(t *testing.T) {
 		t.Errorf("copied %q", got)
 	}
 }
+
+// bounds finds the element a screen reader gets as name, in tt.
+func bounds(t *testing.T, tt *ui.Tester, name string) ui.Rect {
+	t.Helper()
+	for _, a := range tt.AccessAll() {
+		if a.Name == name {
+			return a.Bounds
+		}
+	}
+	var names []string
+	for _, a := range tt.AccessAll() {
+		names = append(names, a.Name)
+	}
+	t.Fatalf("no %q in %q", name, names)
+	return ui.Rect{}
+}
+
+// A table runs in the direction of its first strong character, as the
+// frontend's <table dir>: a Persian one's first column is on the right.
+// The window stays left to right.
+func TestMarkdownTablesTakeTheirDirection(t *testing.T) {
+	src := "| نام | سن | شهر |\n|---|---|---|\n| علی | ۳۲ | تهران |\n\n| Name | City |\n|---|---|\n| Sara | Berlin |\n"
+	var m Markdown
+	themes(t, func(c *Context) { m.View(c, src) }, func(t *testing.T, tt *ui.Tester) {
+		if name, city := bounds(t, tt, "نام"), bounds(t, tt, "شهر"); name.X <= city.X {
+			t.Errorf("the Persian table runs left to right: نام at %v, شهر at %v", name.X, city.X)
+		}
+		if name, city := bounds(t, tt, "Name"), bounds(t, tt, "City"); name.X >= city.X {
+			t.Errorf("the English table runs right to left: Name at %v, City at %v", name.X, city.X)
+		}
+	})
+}
+
+// A list item has its marker on its start side, as the frontend's
+// <li dir>: on the right of a Persian item, on the left of an English
+// one, also in one list, which keeps its numbers.
+func TestMarkdownListItemsTakeTheirDirection(t *testing.T) {
+	src := "- خرید نان\n- پرداخت قبض\n\n1. Open the project\n2. پروژه را باز کنید\n3. Run the tests\n"
+	var m Markdown
+	themes(t, func(c *Context) { m.View(c, src) }, func(t *testing.T, tt *ui.Tester) {
+		const width = 800
+		for _, s := range []string{"خرید نان", "پروژه را باز کنید"} {
+			if r := bounds(t, tt, s); r.X+r.W > width-20 || r.X+r.W < width/2 {
+				t.Errorf("%q ends at %v: its marker is not on the right", s, r.X+r.W)
+			}
+		}
+		for _, s := range []string{"Open the project", "Run the tests"} {
+			if r := bounds(t, tt, s); r.X < 15 || r.X > width/2 {
+				t.Errorf("%q starts at %v: its marker is not on the left", s, r.X)
+			}
+		}
+		for _, n := range []string{"1.", "2.", "3."} {
+			if !tt.HasText(n) {
+				t.Errorf("no number %q in %q", n, tt.Texts())
+			}
+		}
+	})
+}

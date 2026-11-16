@@ -296,11 +296,12 @@ func TestALongChatBuildsOnlyWhatShows(t *testing.T) {
 }
 
 // A selection runs across messages and copies as plain text, as a
-// browser copies one; an answer's Copy copies its Markdown.
+// browser copies one, with the items of a list the kit builds again for
+// their direction; an answer's Copy copies its Markdown.
 func TestASelectionCopiesAcrossMessages(t *testing.T) {
 	x := open(t, false,
 		statetest.Text(1, jc.RoleUser, "first question"),
-		answer(1, text("the **first** answer")),
+		answer(1, text("the **first** answer\n\n- خرید نان\n- an English item")),
 		statetest.Text(2, jc.RoleUser, "second question"),
 		answer(2, text("the "+persian+" answer")))
 	all := x.tt.AccessAll()
@@ -327,7 +328,7 @@ func TestASelectionCopiesAcrossMessages(t *testing.T) {
 	x.tt.Frame()
 	got := x.tt.Clipboard()
 	t.Logf("the selection copied %q", got)
-	for _, want := range []string{"first question", "the first answer", "second question", persian} {
+	for _, want := range []string{"first question", "the first answer", "خرید نان", "an English item", "second question", persian} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the copy %q has no %q", got, want)
 		}

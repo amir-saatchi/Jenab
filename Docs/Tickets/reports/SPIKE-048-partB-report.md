@@ -1,6 +1,6 @@
 # SPIKE-048 Part B report: the chat slice on MyGo
 
-**Branch:** `claude/spike-048-part-b-ff0909`, on top of Part A. Commits: 0a7bab9 (B1, MyGo v0.9.1), 79b1481 (B2, the kit's frame and chat pieces), 17fa09d (B3, the chat's pure logic), 7bc5daa (B4, the frame, the thread and the composer), then B5 (the bench, and the fixes the checks found) and the commit with this report. Nothing is pushed or merged.
+**Branch:** `claude/spike-048-part-b-ff0909`, on top of Part A. Commits: 0a7bab9 (B1, MyGo v0.9.1), 79b1481 (B2, the kit's frame and chat pieces), 17fa09d (B3, the chat's pure logic), 7bc5daa (B4, the frame, the thread and the composer), then ec161c7 (B5, the bench, and the fixes the checks found), 643ff7e (this report), and the commit that gives lists and tables their direction. Nothing is pushed or merged.
 **MyGo:** `github.com/egoist/mygo v0.9.1`, from the local module cache, as the user chose. No other dependency changed.
 **Downloads:** none.
 **Model requests:** one, to `gemini-3.5-flash-lite` with `GEMINI_API_KEY`. Every measurement used the fake model.
@@ -42,6 +42,17 @@
      - **Code blocks put tab stops every 2 columns**, as the frontend's `typeset.css` does (`tab-size: 2`). The kit's comment had said 4. The composer and other text stay at 4, as in the frontend.
      - **Ten icons had lost their first path** in B2: `send`, `pencil`, `sparkles`, `bell`, `file`, `file-text`, `folder-cog`, `package`, `pin` and `shield-check`. Send drew a slash, and *Edit and resend* drew a tick. They are now regenerated from `lucide-react` 1.48.0, the frontend's version. The Part A icons were already exact.
      - **A selection now runs across messages.** Each Markdown view had kept a selection of its own, so a drag across the thread copied the questions and times but skipped every answer. `kit.Markdown` gained `ShareSelection`, and the thread sets it (MyGo's `Options.ShareSelection`).
+6. **After the report, lists and tables take their direction** (the user's OK on the first condition). This happens in `kit.Markdown`, through MyGo's `Options.Block`:
+   - **`kit.RightToLeft`** finds a text's direction from its first strong character, as `dir="auto"` and the frontend's `textDir` do. Arabic and Persian digits are weak.
+   - **A table** whose direction differs from the text around it is built as a nested Markdown view in a column with that direction. Its columns then run right to left.
+   - **A list** whose items all share one direction is built the same way, as one nested view. A list that mixes directions is built one item per view, renumbered for ordered lists. This matches the frontend, which sets `dir` on each `li`. Each item's marker then sits on its start side.
+   - **What stays the same:** the window stays left to right, and nothing else in the layout is mirrored. Lists and tables that already match their surroundings go through MyGo's own path unchanged.
+   - **Selection:** the nested views share the outer view's selection (`ShareSelection`), so a drag still copies across them.
+   - **Tests:**
+     - `TestRightToLeft`;
+     - `TestMarkdownTablesTakeTheirDirection`: a Persian table puts نام right of شهر, and an English table puts Name left of City;
+     - `TestMarkdownListItemsTakeTheirDirection`: Persian items sit right and English items sit left, with the numbers kept.
+   - With the hook turned off, the two layout tests fail six times. `TestASelectionCopiesAcrossMessages` now copies across a mixed list too.
 
 ### The checks (item 9)
 
@@ -73,17 +84,21 @@ Notes on the table:
 
 **Text, 20 samples.** Both apps were pictured at 1280×800, at 125 % scale. Chromium means headless Edge for the font checks and the Wails app's WebView2 for the samples. Lines wrap at different places only because the Wails app shows the dock.
 
-- **Same as Chromium (16):**
+- **Same as Chromium (19):**
   - 1 to 10: Persian, English, mixed, digits, ZWNJ, brackets, the heading, quotes;
   - 11: Go code with tabs, after the tab fix;
   - 12 and 13: inline code and the English table;
+  - 14 to 16: the Persian table and the Persian and mixed lists, after the direction fix (item 6 above);
   - 17 and 18: the nested list, and links with an email;
   - 20: emphasis with an emoji.
 
   Every composer matches too.
-- **Different (4):**
-  - **14, a Persian table:** the columns run left to right. Chromium runs them right to left, since the frontend gives a table the direction of its first strong character (`dir={dirOf(node)}`).
-  - **15, a Persian bullet list, and 16, a mixed numbered list:** the markers stay on the left of Persian items. The frontend sets `dir` on each `li`, so Chromium puts them on the right.
+- **Fixed after the first run:** at first, 16 of 20 matched.
+  - **14:** the Persian table's columns ran left to right.
+  - **15 and 16:** the markers stayed on the left of Persian items.
+  - Chromium runs them right to left, because the frontend sets `dir` on the table and on each `li`.
+  - After the kit's fix, the samples were pictured again: the table's columns run right to left, and each Persian item has its marker on the right, as in Chromium. The other samples didn't change.
+- **Different (1):**
   - **19, Arabic harakat:** MyGo drops some marks: the fatha on ک, the sukun on ل after alef, and the kasra under ر. Tanvin (ـًا) and shadda draw. Headless Edge draws the kit's own Vazirmatn TTF correctly at weights 100, 400 and 900, so the font is fine and the fault is in MyGo's DirectWrite path.
 - **Style only:**
   - the quote's text is muted;
@@ -121,9 +136,9 @@ Notes on the table:
    - **Impact:** Persian text rarely carries harakat, but Arabic quotes, the Quran and taught Persian do.
    - **Fix:** the kit can't fix this.
 2. **Markdown lists and tables have no direction.**
-   - **What MyGo does:** `ui/markdown` lays a list item out as a row of marker and content, and a table in column order. Both always run left to right.
+   - **What MyGo does:** `ui/markdown` lays a list item out as a row of marker and content, and a table in column order. Both follow the layout's direction, which is left to right in a left-to-right window.
    - **No direct option:** `Options` has nothing for it.
-   - **Kit route:** the kit could build lists and tables itself through `Options.Block`, which MyGo asks first for each block. That is a fix for the kit, not yet made.
+   - **Kit route, now taken:** `Options.Block` is asked first for each block. The kit uses it to wrap such a block in a nested view with its own direction. This works, but it re-parses the block's source, and the hook can't reach the box MyGo builds. A per-block direction in MyGo would be simpler.
 3. **The tester draws through DirectWrite on Windows.** The headless tests therefore check the same text path as the window, which is good. The harakat bug, though, shows only in pixels: the tester's `Texts` and access names have every mark.
 4. **Frame stats have no input timestamps.** `MYGO_FRAME_STATS` logs each frame's duration and nothing else. Key-to-screen time needs the app's own marks plus the log's timestamps, so it has a one-frame upper bound.
 5. **From Part A, not rechecked on v0.9.1:**
@@ -142,7 +157,7 @@ None was filed: posting to a public tracker needs the user's OK.
 1. **Harakat on Windows.**
    - **Report:** some Arabic marks don't draw in `ui.Text` on Windows (DirectWrite), while go-text shapes them.
    - **Attach:** sample 19, the screenshot pair, and the go-text offsets.
-2. **Direction for Markdown lists and tables.** Each list item and table could take the direction of its first strong character, as `dir="auto"` does, or an option could set it.
+2. **Direction for Markdown lists and tables.** Each list item and table could take the direction of its first strong character, as `dir="auto"` does, or an option could set it. This one is optional now, since the kit handles it.
 3. **Input timestamps in frame stats.** Optional: a frame stat could carry the input event that started the frame. Measuring input latency would then need no app code.
 4. **From Part A,** if still present in v0.9.1:
    - the sidebar's selected-item colors;
@@ -161,8 +176,8 @@ Parts A and B together took about 2.5 hours. The user answered one question (the
 
 | | Code lines | Test lines | Tests |
 |---|---|---|---|
-| Kit (`internal/native/kit`), 109 exported functions, 41 icons | 1,391 | 957 | 28 |
-| Chat screen (`internal/native/chat`) | 1,786 | 343 | 8 |
+| Kit (`internal/native/kit`), 110 exported functions, 41 icons | 1,551 | 1,035 | 31 |
+| Chat screen (`internal/native/chat`) | 1,786 | 344 | 8 |
 | Chat logic (`internal/native/chat/logic`) | 1,598 | 1,068 | 47 |
 | Shell (`internal/native/shell`) | 426 | 196 | 4 |
 | Stores (`internal/native/state`) | 2,574 | 1,371 | 54 |
@@ -192,7 +207,7 @@ Each ticket also needs a person's review and a live run.
 
 ## 5. What's next
 
-1. **Kit: direction for lists and tables** through `Options.Block` (samples 14 to 16), then picture the samples again. With that done, 19 of 20 match.
+1. **Kit: direction for lists and tables.** Done: samples 14 to 16 now match, so 19 of 20 do.
 2. **Harakat:** file the upstream issue (with the OK) and wait for MyGo, or accept the gap. The kit can't draw them.
 3. **A person's checks:**
    - ten minutes of Narrator in the chat: reading messages, buttons and the composer, and hearing "Answer finished";
