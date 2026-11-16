@@ -106,6 +106,12 @@ func run() (err error) {
 	for _, p := range problems {
 		log.Warn("setting ignored", "problem", p.String())
 	}
+	// After an update the Apps entry still had the version installed.
+	if wrote, err := refreshAppsEntry(v.Version); err != nil {
+		log.Warn("app: apps entry", "err", err)
+	} else if wrote {
+		log.Info("app: apps entry", "version", v.Version)
+	}
 	if err := kit.RegisterFonts(); err != nil {
 		return err
 	}
@@ -227,6 +233,7 @@ func run() (err error) {
 	}
 	sh := shell.New(stores, chat.New(stores), mailbox.Post)
 	sh.Settings = settingsui.New(stores, mailbox.Post)
+	sh.Projects.ProjectMemory = settingsui.ProjectMemory(stores)
 	sh.Quit = mygo.App.Quit
 	sh.Dev = devtools.New(stores, state.NewDev(b.Dev, mailbox.Post))
 

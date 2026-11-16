@@ -34,7 +34,7 @@ func SmallSpinner(c *Context, label string) Element {
 func Disclosure(c *Context, label string, open *bool, outline bool, trigger, panel func()) Element {
 	k := TokensOf(c)
 	p := ui.CollapsibleBase(c, open)
-	t := p.Trigger.Height(24).PaddingX(8).Gap(6).Radius(Radius*0.6).AlignItems(ui.Center).FontSize(12).
+	t := p.Trigger.Height(24).PaddingX(8).Gap(6).Radius(Radius * 0.6).AlignItems(ui.Center).FontSize(12).
 		TextColor(k.MutedForeground).Label(label).AlignSelf(ui.Start).MaxWidthPercent(100)
 	if outline {
 		t.Border(1, k.Input)
@@ -94,7 +94,7 @@ func Message(c *Context, label string, end bool, fn func()) Element {
 // the direction of its words.
 func Bubble(c *Context, text string, outline bool) Element {
 	k := TokensOf(c)
-	b := ui.Box(c).Padding(10, 14).Radius(Radius*1.6).MaxWidthPercent(80)
+	b := ui.Box(c).Padding(10, 14).Radius(Radius * 1.6).MaxWidthPercent(80)
 	if outline {
 		b.Border(1, k.Border).BorderStyle(ui.BorderDashed)
 	} else {
@@ -170,7 +170,7 @@ func Record(c *Context, icon *SVG, tone Tone, fn func()) Element {
 // fn builds at its end.
 func Strip(c *Context, icon *SVG, tone Tone, text string, fn func()) Element {
 	k := TokensOf(c)
-	row := ui.Row(c).Gap(10).Padding(6, 10).Radius(Radius*0.8).Background(k.Muted).AlignItems(ui.Center).
+	row := ui.Row(c).Gap(10).Padding(6, 10).Radius(Radius * 0.8).Background(k.Muted).AlignItems(ui.Center).
 		FontSize(13).Role(ui.RoleStatus).Label(text)
 	return row.Children(func() {
 		if icon == nil {
@@ -241,7 +241,7 @@ func Attachment(c *Context, icon *SVG, name, line string, failed, busy bool) (re
 // removing it, which it reports.
 func QuoteChip(c *Context, who, text string) (removed bool) {
 	k := TokensOf(c)
-	box := ui.Row(c).Gap(8).Padding(6, 8).Radius(Radius*0.8).Background(k.Muted).AlignItems(ui.Start).
+	box := ui.Row(c).Gap(8).Padding(6, 8).Radius(Radius * 0.8).Background(k.Muted).AlignItems(ui.Start).
 		Role(ui.RoleGroup).Label("Replying to " + who)
 	box.Children(func() {
 		ui.Column(c).Gap(2).Grow(1).Shrink(1).Children(func() {
@@ -282,10 +282,10 @@ func InputGroup(c *Context, fn func()) Element {
 
 // ComposerText is the composer's text area, borderless in its group: it
 // grows with its text from 2 lines to about 10, and takes the direction of
-// its words. label names it.
+// its first strong letter, as dir="auto" (TextArea). label names it.
 func ComposerText(c *Context, value *string, label string) Element {
 	k := TokensOf(c)
-	return ui.TextArea(c, value).Label(label).Lines(2, 10).Padding(12, 12, 4, 12).FontSize(14).
+	return autoDirection(ui.TextArea(c, value), *value).Label(label).Lines(2, 10).Padding(12, 12, 4, 12).FontSize(14).
 		Background(ui.Transparent).BorderWidth(0).FocusRing(false).PlaceholderColor(k.MutedForeground)
 }
 
@@ -300,13 +300,45 @@ func MenuOn(e Element, build func(m *Menu)) Element { return e.PopoverMenuButton
 // after them, opening the menu build fills, as the composer's model and
 // approval pickers. name names it, for when label is not enough.
 func MenuButtonGhost(c *Context, icon *SVG, label, name string, build func(m *Menu)) Element {
-	b := button(c, Ghost).Height(32).PaddingX(8).Gap(6).FontSize(13).Label(name)
+	return MenuPicker(c, icon, label, name, 160, build)
+}
+
+// MenuPicker is MenuButtonGhost with its label at most maxLabel wide, cut
+// with an ellipsis, as a narrow composer has its model's name (max-w-24).
+// An empty label leaves the icon and the chevron, as a narrow composer
+// has its approvals' picker; name still names it.
+func MenuPicker(c *Context, icon *SVG, label, name string, maxLabel float32, build func(m *Menu)) Element {
+	// With little room the label gives way, cut with an ellipsis; the
+	// icons never do.
+	b := button(c, Ghost).Height(32).PaddingX(8).Gap(6).FontSize(13).Label(name).Shrink(0)
+	if label != "" {
+		b.Shrink(1).MinWidth(0)
+	}
 	b.Children(func() {
-		ui.Icon(c, icon).Size(14, 14)
-		ui.Text(c, label).SingleLine().MaxWidth(160)
-		ui.Icon(c, IconChevronDown).Size(14, 14)
+		ui.Icon(c, icon).Size(14, 14).Shrink(0)
+		if label != "" {
+			ui.Text(c, label).SingleLine().MaxWidth(maxLabel).Shrink(1).MinWidth(0)
+		}
+		ui.Icon(c, IconChevronDown).Size(14, 14).Shrink(0)
 	})
 	return b.PopoverMenuButton(build)
+}
+
+// Narrower reports whether e is narrower than w, as a CSS container query
+// (@container (max-width: w)) asks, so a box can lay itself out for the
+// room it has, as the composer in a narrow dock. It reads the width the
+// last frame laid e out at, false before the first; when the frame being
+// painted lays e out on the other side of w, as after the window or a
+// dock was resized, it asks for another frame, which reads the new width.
+func Narrower(c *Context, e Element, w float32) bool {
+	narrow := func(width float32) bool { return width > 0 && width < w }
+	was := narrow(e.LayoutBounds().W)
+	e.Draw(func(_ *ui.Painter, r ui.Rect) {
+		if narrow(r.W) != was {
+			c.Invalidate()
+		}
+	})
+	return was
 }
 
 // ComposerKeys has the composer's text area send with Enter and break the

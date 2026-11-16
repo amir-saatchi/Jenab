@@ -98,17 +98,31 @@ func (s *Shell) View(c *kit.Context) {
 		}
 		place := s.Stores.Nav.Current()
 		chatOpen := place != nil && place.View == state.ViewChat
+		// Below 900 px the rail and both sidebars are overlays and the
+		// bottom bar is hidden (app-shell.tsx).
+		narrow := kit.Narrow(c)
 		kit.Row(c).Grow(1).MinHeight(0).AlignItems(kit.Stretch).Children(func() {
-			s.rail(c, place)
-			if chatOpen && !s.Stores.ListHidden() {
+			if !narrow {
+				s.rail(c, place, chatOpen && s.Stores.ListHidden())
+			}
+			if !narrow && chatOpen && !s.Stores.ListHidden() {
 				s.chatList(c, place.Project, place.Chat)
 			}
-			kit.Main(c, func() { s.main(c, place) })
-			if chatOpen {
+			kit.Main(c, func() {
+				if narrow && !chatOpen {
+					s.pageHeader(c, PageTitle(place))
+				}
+				s.main(c, place)
+			})
+			if !narrow && chatOpen {
 				s.rightSidebar(c, place.Project)
 			}
 		})
-		s.bottomBar(c, place)
+		if narrow {
+			s.overlays(c, place, chatOpen)
+		} else {
+			s.bottomBar(c, place)
+		}
 		s.Projects.Dialogs(c)
 		kit.Toasts(c)
 	})
@@ -206,12 +220,16 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 // ⋯ menu at the end (chat-menu.tsx). raw is the chat's title as stored.
 func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool, raw string) {
 	hidden := s.Stores.ListHidden()
+	narrow := kit.Narrow(c)
 	kit.Bar(c, func() {
 		label, icon := "Hide the chat list", kit.IconSidebarClose
 		if hidden {
 			label, icon = "Show the chat list", kit.IconSidebarOpen
 		}
-		if kit.Tooltip(kit.IconButton(c, icon, label, kit.Ghost).Size(32, 32), label).Clicked() {
+		switch {
+		case narrow:
+			s.openSidebar(c)
+		case kit.Tooltip(kit.IconButton(c, icon, label, kit.Ghost).Size(32, 32), label).Clicked():
 			s.Stores.SetListHidden(!hidden)
 		}
 		if mother {
@@ -225,6 +243,9 @@ func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub stri
 		})
 		kit.Spacer(c)
 		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(32, 32)
+		if narrow && kit.SmallButton(c, kit.IconPages, "Pages", kit.Ghost).Clicked() {
+			s.Stores.Shell.RightOverlay = true
+		}
 	})
 }
 

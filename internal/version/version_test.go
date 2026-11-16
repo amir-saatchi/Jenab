@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
 // root is the repo root, from this package's folder.
@@ -68,11 +70,17 @@ func TestFilesMatchVERSION(t *testing.T) {
 	// The native app's build (TASK-059) writes this version into the exe,
 	// the installer and the update manifest.
 	var mygo struct {
-		Version   string `json:"version"`
-		Publisher string `json:"publisher"`
+		Version    string `json:"version"`
+		Publisher  string `json:"publisher"`
+		Identifier string `json:"identifier"`
 	}
 	readFile(t, "mygo.json", json.Unmarshal, &mygo)
 	check(t, "mygo.json version", mygo.Version, want)
+	// The app finds its Apps entry by the identifier the installer names
+	// it with (TASK-062).
+	if mygo.Identifier != appinfo.Identifier {
+		t.Errorf("mygo.json identifier is %q; appinfo.Identifier is %q", mygo.Identifier, appinfo.Identifier)
+	}
 	// The repo is public: the exe and the installer name the app, not a
 	// person, as build/windows/info.json does.
 	for lang, table := range info.Info {

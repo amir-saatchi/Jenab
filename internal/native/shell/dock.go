@@ -25,6 +25,10 @@ func (s *Shell) chatArea(c *kit.Context, p id.Project, ch id.Chat) {
 		return
 	}
 	file := func() { s.Files.View(c, p, ch, d.Key, func() { s.dockControls(c, ref, "Close the file") }) }
+	if kit.Narrow(c) {
+		s.drawer(c, p, ch, file)
+		return
+	}
 	if sh.ChatHidden[ref] {
 		file()
 		return
@@ -39,12 +43,18 @@ func (s *Shell) chatArea(c *kit.Context, p id.Project, ch id.Chat) {
 }
 
 // dockControls are the buttons in the header of what is docked
-// (DockControls): swap the chat's side, hide or show the chat, and close.
+// (DockControls): swap the chat's side, hide or show the chat (in a narrow
+// window, open its drawer), and close.
 func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel string) {
 	sh := s.Stores.Shell
 	left := sh.Side[ref.Project] == state.DockLeft
 	hidden := sh.ChatHidden[ref]
-	if !hidden {
+	narrow := kit.Narrow(c)
+	// Narrow, the chat is a drawer: *Chat* opens it.
+	if narrow && kit.SmallButton(c, kit.IconChat, "Chat", kit.Outline).Clicked() {
+		sh.Drawer[ref] = true
+	}
+	if !narrow && !hidden {
 		label := "Move the chat to the left"
 		if left {
 			label = "Move the chat to the right"
@@ -53,11 +63,13 @@ func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel strin
 			sh.Swap(ref.Project)
 		}
 	}
-	if hidden {
+	switch {
+	case narrow:
+	case hidden:
 		if kit.SmallButton(c, kit.IconChat, "Show chat", kit.Outline).Clicked() {
 			delete(sh.ChatHidden, ref)
 		}
-	} else {
+	default:
 		icon := kit.IconPanelEnd
 		if left {
 			icon = kit.IconSidebarClose

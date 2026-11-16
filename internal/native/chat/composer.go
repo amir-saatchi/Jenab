@@ -98,7 +98,12 @@ func (s *Screen) composerView(c *kit.Context, v *view, t *state.Thread, readOnly
 	case running:
 		placeholder = "Write anytime. Your message joins the running turn."
 	}
-	kit.Column(c).Width(768).MaxWidthPercent(100).AlignSelf(kit.Center).Padding(0, 24, 16, 24).AlignItems(kit.Stretch).Children(func() {
+	box := kit.Column(c).Width(768).MaxWidthPercent(100).AlignSelf(kit.Center).Padding(0, 24, 16, 24).AlignItems(kit.Stretch)
+	// In a narrow chat, as one docked next to a file, the pickers make room
+	// as composer.tsx's do under @max-sm/composer: the input group under
+	// 384 px, its box less the padding.
+	narrow := kit.Narrower(c, box, composerNarrow+48)
+	box.Children(func() {
 		kit.InputGroup(c, func() {
 			if quoted {
 				kit.Box(c).Padding(8, 8, 0, 8).Children(func() {
@@ -164,8 +169,8 @@ func (s *Screen) composerView(c *kit.Context, v *view, t *state.Thread, readOnly
 						})
 					}
 				}
-				s.modelPicker(c, t)
-				s.levelPicker(c, t)
+				s.modelPicker(c, t, narrow)
+				s.levelPicker(c, t, narrow)
 				kit.Spacer(c)
 				if running && strings.TrimSpace(cm.text) == "" && len(cm.files) == 0 {
 					if kit.SmallButton(c, kit.IconStop, "Stop", kit.Default).Height(32).Clicked() {
@@ -264,10 +269,14 @@ func size(n int64) string {
 }
 
 // modelPicker sets the chat's model from those that are on, by provider.
-func (s *Screen) modelPicker(c *kit.Context, t *state.Thread) {
+func (s *Screen) modelPicker(c *kit.Context, t *state.Thread, narrow bool) {
 	groups := s.st.Settings.Models
 	name := logic.ModelName(groups, t.Chat.Model)
-	kit.MenuButtonGhost(c, kit.IconSparkles, name, "Model: "+name, func(m *kit.Menu) {
+	maxLabel := float32(160)
+	if narrow {
+		maxLabel = 96
+	}
+	kit.MenuPicker(c, kit.IconSparkles, name, "Model: "+name, maxLabel, func(m *kit.Menu) {
 		if len(groups) == 0 {
 			m.Item("No model is on").Disabled(true)
 			return
@@ -300,14 +309,19 @@ func (s *Screen) modelPicker(c *kit.Context, t *state.Thread) {
 // levelPicker sets the project's approval level (SPEC 8.8), "Approvals:
 // Standard", next to the model picker. A change applies from the next
 // tool call, and the chat gets a notice of it.
-func (s *Screen) levelPicker(c *kit.Context, t *state.Thread) {
+func (s *Screen) levelPicker(c *kit.Context, t *state.Thread, narrow bool) {
 	p, ch := t.Project, t.Chat.ID
 	level := s.st.Projects.Opened[p].Level
 	if level == "" {
 		level = "standard"
 	}
 	name := "Approvals: " + logic.LevelName(level)
-	kit.MenuButtonGhost(c, kit.IconShieldCheck, name, name, func(m *kit.Menu) {
+	// Narrow, the button is its icon, still named for what it shows.
+	label := name
+	if narrow {
+		label = ""
+	}
+	kit.MenuPicker(c, kit.IconShieldCheck, label, name, 160, func(m *kit.Menu) {
 		m.Item("Approvals for this project").Disabled(true)
 		for _, l := range logic.Levels {
 			if m.Item(l.Name).ID(l.ID).Subtitle(l.Hint).Radio(l.ID == level).Chosen() {
@@ -332,3 +346,7 @@ func containsAlias(as []string, m string) bool {
 	}
 	return false
 }
+
+// composerNarrow is the input group's width under which the pickers make
+// room (Tailwind's @max-sm container query: 24rem).
+const composerNarrow = 384

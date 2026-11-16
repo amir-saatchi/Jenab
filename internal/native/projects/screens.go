@@ -45,13 +45,12 @@ type Screens struct {
 	chatFor    chatTarget
 	chatFormat string
 
-	// The settings page: the project shown and at which section, the
-	// page chosen in the list, and the section to bring into view.
-	page              string
+	// The settings page: the project shown and at which section, and its
+	// frame's place (the page chosen in the list).
+	nav               kit.SettingsNav
 	pageFor           id.Project
 	pageAt            string
 	shown, wasShown   bool
-	reveal            string
 	host, hostProblem string
 	levelBusy         bool
 }

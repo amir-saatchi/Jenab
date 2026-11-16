@@ -141,9 +141,9 @@ func run() error {
 
 - **Notifications:** `mygo.NewNotification`; a click shows the window and sends `app:open`, as in the Wails app.
 - **Files:** attachments go through the upload route (`app.UploadHandler`), called in the same process, so both apps store files the same way.
-- **Updates** (TASK-059): `updater.go` wraps `mygo.Updater` as `update.Updater`. `update.New` gets the settings, `CanRestart` (no chat working or waiting, window not in front) and `Relaunch`, which is `mygo.App.Relaunch("--after-update")`. The copy that starts with `--after-update` waits up to a minute for the app lock (`lockApp`, `lifecycle.LockRootWait`), as MyGo starts it before the old copy's `lifecycle.Shutdown`. Settings › General shows the status (`state.Updates`).
+- **Updates** (TASK-059): `updater.go` wraps `mygo.Updater` as `update.Updater`. `update.New` gets the settings, `CanRestart` (no chat working or waiting, window not in front) and `Relaunch`, which is `mygo.App.Relaunch("--after-update")`. The copy that starts with `--after-update` waits up to a minute for the app lock (`lockApp`, `lifecycle.LockRootWait`), as MyGo starts it before the old copy's `lifecycle.Shutdown`. Settings › General shows the status (`state.Updates`). At each start on Windows, `appsentry.go` writes the running version into the Apps entry's DisplayVersion if the entry belongs to this folder, since MyGo's updater doesn't (TASK-062).
 - **Not yet:** like `cmd/desktop` today, it has no scheduler or pipelines yet.
-- **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go`: microsecond log stamps, marks in the log, and a loopback port that `cmd/jenab-bench -native` drives. Secrets stay in memory (`newKeyring`). The release build has no bench code.
+- **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go` (and `bench_update.go`, `bench_file.go`): microsecond log stamps, marks in the log, and a loopback port that `cmd/jenab-bench -native` drives. Secrets stay in memory (`newKeyring`). The release build has no bench code.
 
 ## 3. Bottom packages
 
@@ -997,13 +997,18 @@ internal/native/
     theme.go            Tokens (Light, Dark, from index.css), Tone and ToneColors, Theme → ui.Theme, SetThemeSource (5.11)
     fonts.go, fonts/    Geist, Geist Mono and Vazirmatn as variable TTF files, RegisterFonts; versions and SHA-256 in fonts/README.md
     icons.go, icons/    the Lucide icons the screens use (ISC)
-    dir.go              RightToLeft: a text's direction from its first strong character, as dir="auto"
+    dir.go              RightToLeft: a text's direction from its first strong character, as dir="auto"; TextInput,
+                        TextArea and the composer take their text's direction from it (TASK-062)
     markdown.go         Markdown{View, Stream}: code blocks (tab stops every 2, copy), lists and tables in their own
                         direction (Options.Block), ShareSelection across a thread
     frame.go            Rail, RailTile, SidePanel, Bar, Main, List (virtual), NavItem, Count, Dot (5.12)
     button.go, input.go, overlay.go, sidebar.go, status.go, toast.go   Button (five variants), IconButton, TextInput,
                         TextArea, Tooltip, MenuButton, Dialog, AlertDialog, Sidebar, Badge, Spinner, Alert, Empty, Toast
-    chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group
+    chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group;
+                        MenuPicker (a picker whose label can shrink to its icon) and Narrower (TASK-062)
+    narrow.go           the narrow window under 900 px (TASK-062): Narrow, Sheet (an overlay on the start or end edge)
+    settings.go         SettingsLayout and its pieces (TASK-055): the one frame of Settings and project settings;
+                        its list is 224 px wide, 176 under 900 px
     tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole
     datatable.go, picker.go, lanes.go, titledcard.go, sharebar.go, linesview.go, linkbutton.go   the developer
                         tools' pieces: DataTable, Picker (a select), TimeAxis and Lane bars, TitledCard, ShareBar,
@@ -1011,13 +1016,15 @@ internal/native/
     tree.go, split.go, tabs.go, pathbar.go, statusbar.go, endpanel.go, picture.go, linktext.go, item.go,
     toastaction.go, clipboard.go   Tree, Split (the dock's divider), Tabs, PathBar, StatusBar, EndPanel (the right
                         sidebar), Picture, LinkText and LinkBubble, Item, ToastAction, CopyText (TASK-056)
-    form.go, page.go, segmentgroup.go, progress.go, itemrow.go, path.go, textlink.go, actionbutton.go,
+    form.go, segmentgroup.go, progress.go, itemrow.go, path.go, textlink.go, actionbutton.go,
     dialogparts.go, navrow.go, icons_project.go   the project screens' pieces (TASK-057): Field, CheckField,
-                        PageTitle, Section, DetailRow, SegmentGroup, Progress, ItemRow, Path, TextLink, ActionButton,
+                        SegmentGroup, Progress, ItemRow, Path, TextLink, ActionButton,
                         DialogText, DialogFooter, Locked, NavRow, MenuTitle, TileSpinner; tester_pages.go: InView
   shell/                the frame (5.12): the rail, the chat list, the main area, the right sidebar and the bottom bar
     dock.go             a file in the main area with the chat in a resizable dock; the right sidebar's tabs; the bottom
                         bar; the project's chats in the rail while the chat list is hidden
+    narrow.go           under 900 px: the left overlay (rail and chat list), the right overlay (the right sidebar),
+                        the chat drawer over a file, and a header with the menu button on pages (TASK-062)
   files/                the Files tab (a Tree of one folder, with a path bar) and the file view: Markdown and text,
                         pictures, *Open with the system app* for the rest, and the versions (4.5, 5.12)
   projects/             the project screens (TASK-057): welcome, new project, project settings, the folder warning,

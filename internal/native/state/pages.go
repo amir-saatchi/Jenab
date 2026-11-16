@@ -60,6 +60,7 @@ type Pages struct {
 	post    Post
 	onError func(error)
 	usage   int // counts the usage reads, so only the latest one shows
+	memory  ProjectMemoryAPI
 }
 
 // NewPages makes the store. api and ver may be nil: their calls then

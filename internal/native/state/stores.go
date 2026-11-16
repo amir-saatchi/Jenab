@@ -48,6 +48,9 @@ type API struct {
 	// Settings and System have them, as the app's services do.
 	Pages   SettingsPagesAPI
 	Version VersionAPI
+	// Memory is a project's memory, for its settings; nil when Projects
+	// has it, as the project service does.
+	Memory ProjectMemoryAPI
 }
 
 // Toast is a message for the window's toasts: a project notice, or an
@@ -146,6 +149,10 @@ func NewStores(api API, post Post) *Stores {
 		ver, _ = api.System.(VersionAPI)
 	}
 	s.Pages = NewPages(pages, ver, post, s.Error)
+	s.Pages.memory = api.Memory
+	if s.Pages.memory == nil {
+		s.Pages.memory, _ = api.Projects.(ProjectMemoryAPI)
+	}
 	go s.runReloads()
 	return s
 }
