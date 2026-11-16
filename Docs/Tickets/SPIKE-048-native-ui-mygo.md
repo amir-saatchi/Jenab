@@ -1,6 +1,6 @@
 # SPIKE-048 — A native UI with MyGo
 **Type:** Spike
-**Status:** Open (Part A in progress)
+**Status:** Open (Part A done, Part B next)
 **Gate:** 3
 **Needs:** none
 
@@ -168,3 +168,12 @@ Windows 11 only. Everything is added next to the Wails app; nothing in its behav
 8. Remove the Wails app, `frontend/` and Bun from the build.
 
 From the go decision on, new UI work goes into the native app first, so nothing is built twice for longer than needed.
+
+## Result
+
+**Part A** (2026-11-16, MyGo v0.7.4): items 1 to 5 are done, and the session report is [reports/SPIKE-048-partA-report.md](reports/SPIKE-048-partA-report.md). No model requests were spent.
+
+- **Items 1 and 2:** Go 1.27.3; the services and the `Publisher` build without Wails. The Wails app and its bindings are unchanged.
+- **Item 3:** `cmd/desktop-native` starts and keeps one instance. A smoke run checked both. Hiding on close, the saved size and place, and notification clicks are wired but not yet checked live.
+- **Items 4 and 5:** the stores (54 tests) and the kit's first part (the components the chat needs, 18 headless tests; a test keeps `mygo/ui` inside the kit). Geist and Vazirmatn draw variable weights.
+- **MyGo v0.7.4 draws tabs as nothing.** The kit expands them, and its code blocks copy the original code. A tab size came upstream in [#1217](https://github.com/egoist/mygo/pull/1217), after v0.7.4. Part B should decide on moving to v0.9.1 first.

@@ -51,6 +51,12 @@ func Text(c *Context, s string) Element                 { return ui.Text(c, Expa
 func Icon(c *Context, icon *SVG) Element                { return ui.Icon(c, icon) }
 func Local[T any](e Element, key any, init func() T) *T { return ui.Local(e, key, init) }
 
+// Content is what a window shows; give View's to mygo.WindowOptions.
+type Content = ui.Content
+
+// View is a window's content that view builds, each frame.
+func View(view func(c *Context)) *Content { return ui.View(view) }
+
 // Root builds the window: Jenab's theme for the window's appearance, laid
 // out left to right (see Direction above), with fn's content filling it.
 func Root(c *Context, fn func()) Element {
