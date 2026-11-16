@@ -57,7 +57,8 @@ func Shows(tt *Tester, s string) bool {
 
 // HasRole reports whether a screen reader gets an element named name in
 // one of the roles the kit's frame gives: "navigation", "main", "article",
-// "status", "heading", "list".
+// "status", "heading", "list", and "complementary", "contentinfo", "tree",
+// "group", "image".
 func HasRole(tt *Tester, role, name string) bool {
 	r, ok := roles[role]
 	if !ok {
@@ -74,4 +75,10 @@ var roles = map[string]ui.Role{
 	"status":     ui.RoleStatus,
 	"heading":    ui.RoleHeading,
 	"list":       ui.RoleList,
+	// TASK-056: the right sidebar, the bottom bar, the files and pictures.
+	"complementary": ui.RoleComplementary,
+	"contentinfo":   ui.RoleContentInfo,
+	"tree":          ui.RoleTree,
+	"group":         ui.RoleGroup,
+	"image":         ui.RoleImage,
 }

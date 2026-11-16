@@ -179,7 +179,8 @@ func run() (err error) {
 		Started: app.Started{DataFolder: paths.DataFolder, DefaultDataFolder: defaultData, DevTools: settings.DevTools, Moved: moved}})
 	go b.CleanOpened()
 
-	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System}, mailbox.Post)
+	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System,
+		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}}, mailbox.Post)
 	defer stores.Close()
 	stores.Settings.OnTheme = kit.SetThemeSource
 	stores.Actions.Upload = uploader(app.UploadHandler(projects))
@@ -219,6 +220,7 @@ func run() (err error) {
 			}
 		})
 		stores.WindowActive = func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() }
+		stores.Bar.Visible = func() bool { return win.IsVisible() && !win.IsMinimized() }
 		mailbox.Attach(win.Update)
 		sh.Start()
 		if benchHook != nil {
@@ -320,4 +322,15 @@ func uploader(h http.Handler) state.Uploader {
 		var up app.Uploaded
 		return up, json.Unmarshal(rec.Body.Bytes(), &up)
 	}
+}
+
+// barStatus is what the bottom bar reads (TASK-056): the memory the system
+// can still hand out, and the providers' pauses.
+type barStatus struct {
+	*app.SystemService
+	settings *app.SettingsService
+}
+
+func (s barStatus) Providers(ctx context.Context) ([]app.ProviderStatus, error) {
+	return s.settings.Providers(ctx)
 }

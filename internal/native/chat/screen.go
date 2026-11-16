@@ -39,8 +39,10 @@ type Screen struct {
 
 // New makes the chat screen on the stores.
 func New(st *state.Stores) *Screen {
-	return &Screen{st: st, md: kit.Markdown{ShareSelection: true},
+	s := &Screen{st: st, md: kit.Markdown{ShareSelection: true},
 		views: map[id.Chat]*view{}, open: map[string]*bool{}, cards: map[string]*card{}, undos: map[string]*undo{}}
+	s.md.Own, s.md.CodeLink = s.own, state.CodeLink
+	return s
 }
 
 func (s *Screen) now() time.Time {

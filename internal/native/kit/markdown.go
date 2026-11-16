@@ -24,6 +24,13 @@ type Markdown struct {
 	// copies them as text, as a browser does. Without it the view has a
 	// selection of its own, which copies as text, HTML and Markdown.
 	ShareSelection bool
+	// Own, when set and OnLink isn't, takes the links the app opens
+	// itself, returning true for those, as jenab:// links (SPEC 4.5); the
+	// others open as MyGo opens them.
+	Own func(url string) bool
+	// CodeLink makes inline code a link where it returns one, as code that
+	// holds just a jenab:// link.
+	CodeLink func(code string) (dest string, ok bool)
 
 	opts markdown.Options
 	// nested builds the tables, lists and items that block turns, sharing
@@ -49,6 +56,14 @@ func (m *Markdown) prepare(c *Context, src string) string {
 	th := markdownTheme(c.Theme().Dark)
 	for _, o := range []*markdown.Options{&m.opts, &m.nested} {
 		o.Theme, o.OnLink, o.CodeBlock, o.Block = th, m.OnLink, m.codeBlock, m.block
+		o.CodeLink = m.CodeLink
+		if own := m.Own; own != nil && m.OnLink == nil {
+			o.OnLink = func(url string) {
+				if !own(url) {
+					c.OpenURL(url)
+				}
+			}
+		}
 	}
 	m.opts.ShareSelection = m.ShareSelection
 	m.nested.ShareSelection = true

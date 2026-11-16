@@ -91,7 +91,7 @@ func (s *Screen) userRow(c *kit.Context, v *view, t *state.Thread, m jc.Message,
 					s.goTo(v, p.Quote.Message)
 				}
 			case p.Text != nil:
-				kit.Bubble(c, p.Text.Text, joining).Key(i)
+				s.bubble(c, p.Text.Text, joining).Key(i)
 			}
 		}
 		if joining {
@@ -227,7 +227,7 @@ func (s *Screen) part(c *kit.Context, v *view, t *state.Thread, m jc.Message, i 
 	switch p.Kind {
 	case jc.PartText:
 		if p.Text != nil {
-			s.md.View(c, p.Text.Text)
+			s.md.View(c, state.MarkLinks(p.Text.Text))
 			if p.Text.Stopped {
 				kit.Muted(c, "Stopped")
 			}
@@ -345,7 +345,7 @@ func (s *Screen) toolChip(c *kit.Context, key string, call jc.ToolCall, res *jc.
 				}
 				detail(c, name, res.Text)
 				if res.Ref != "" {
-					kit.Muted(c, "The full output is stored as "+res.Ref+".")
+					s.storedAs(c, res.Ref)
 				}
 			}
 		})
@@ -372,7 +372,7 @@ func (s *Screen) stream(c *kit.Context, t *state.Thread) {
 		kit.Column(c).Key(key).AlignItems(kit.Stretch).Children(func() {
 			switch {
 			case p.Text != nil:
-				s.md.View(c, p.Text.Text)
+				s.md.View(c, state.MarkLinks(p.Text.Text))
 			case p.Thinking != nil:
 				s.thinking(c, key, p.Thinking.Text, false)
 			case p.ToolCall != nil:
@@ -386,7 +386,7 @@ func (s *Screen) stream(c *kit.Context, t *state.Thread) {
 		case st.Kind == jc.PartThinking:
 			s.thinking(c, key, st.Text, true)
 		case strings.TrimSpace(st.Text) != "":
-			s.md.Stream(c, st.Text)
+			s.md.Stream(c, state.MarkLinks(st.Text))
 		default:
 			kit.Spinner(c, "Working")
 		}

@@ -47,7 +47,14 @@ func Toasts(c *Context) Element {
 				case ToastWarning:
 					ui.Icon(c, IconWarning).Size(16, 16).TextColor(k.Tone(Amber).Text).MarginY(2)
 				}
-				Text(c, t.Title).Grow(1).FontSize(13)
+				if t.Description == "" {
+					Text(c, t.Title).Grow(1).FontSize(13)
+				} else {
+					ui.Column(c).Grow(1).Gap(2).Children(func() {
+						Text(c, t.Title).FontSize(13)
+						Text(c, t.Description).FontSize(12).TextColor(k.MutedForeground)
+					})
+				}
 				if t.Action != "" {
 					toast.ActionButton().Children(func() { ui.Text(c, t.Action) })
 				}
