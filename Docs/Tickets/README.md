@@ -117,6 +117,12 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-061](TASK-061-remove-wails.md) | Switch to the native app and remove Wails | Task | Done | 3 |
 | [TASK-062](TASK-062-native-leftovers.md) | The native app's leftovers before the switch | Task | Done | 3 |
 | [TASK-063](TASK-063-native-title-bar.md) | The native app's own title bar | Task | Done | 3 |
+| [TASK-064](TASK-064-native-link-safety.md) | Links in Markdown open only safe addresses | Task | Open | 3 |
+| [TASK-065](TASK-065-native-chat-parity.md) | The native chat's memory chips, *Refresh memory* and Connect card | Task | Open | 3 |
+| [TASK-066](TASK-066-native-state-fixes.md) | The native stores: lost updates and stale reads | Task | Open | 3 |
+| [TASK-067](TASK-067-native-crash-and-updates.md) | Crash log, and updates that wait for all work | Task | Open | 3 |
+| [TASK-068](TASK-068-native-settings-fixes.md) | Settings forms: keys, dialogs and the data folder | Task | Open | 3 |
+| [TASK-069](TASK-069-native-polish.md) | Small native fixes: digits, text direction, tooltips, old comments | Task | Open | 3 |
 
 ## Phase 1
 
