@@ -3,7 +3,7 @@
 **Branch:** `claude/spike-048-part-b-ff0909`, on top of Part A. Commits: 0a7bab9 (B1, MyGo v0.9.1), 79b1481 (B2, the kit's frame and chat pieces), 17fa09d (B3, the chat's pure logic), 7bc5daa (B4, the frame, the thread and the composer), then ec161c7 (B5, the bench, and the fixes the checks found), 643ff7e (this report), and the commit that gives lists and tables their direction. Nothing is pushed or merged.
 **MyGo:** `github.com/egoist/mygo v0.9.1`, from the local module cache, as the user chose. No other dependency changed.
 **Downloads:** none.
-**Model requests:** one, to `gemini-3.5-flash-lite` with `GEMINI_API_KEY`. Every measurement used the fake model.
+**Model requests:** one, to `gemini-3.5-flash-lite` with `GEMINI_API_KEY`, plus a few more during the user's own checks. Every measurement used the fake model.
 **Machine:** the Windows 11 PC that ran SPIKE-022, at 125 % scale. Every run pointed `LOCALAPPDATA`, `APPDATA`, `USERPROFILE`, `TEMP`, `TMP` and Jenab's data folder at a new temporary folder.
 
 ## 1. What was built
@@ -99,7 +99,7 @@ Notes on the table:
   - Chromium runs them right to left, because the frontend sets `dir` on the table and on each `li`.
   - After the kit's fix, the samples were pictured again: the table's columns run right to left, and each Persian item has its marker on the right, as in Chromium. The other samples didn't change.
 - **Different (1):**
-  - **19, Arabic harakat:** MyGo drops some marks: the fatha on ک, the sukun on ل after alef, and the kasra under ر. Tanvin (ـًا) and shadda draw. Headless Edge draws the kit's own Vazirmatn TTF correctly at weights 100, 400 and 900, so the font is fine and the fault is in MyGo's DirectWrite path.
+  - **19, Arabic harakat:** inside joined words MyGo misplaces or drops some marks. The fatha on ک lands on the letter's top stroke, so کَ reads as گ, and the kasra under ر is missing. Tanvin (ـًا) and shadda draw. Headless Edge draws the kit's own Vazirmatn TTF correctly at weights 100, 400 and 900, so the font is fine and the fault is in MyGo's DirectWrite path. Filed as [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925).
 - **Style only:**
   - the quote's text is muted;
   - links are blue rather than underlined;
@@ -108,13 +108,12 @@ Notes on the table:
   - the time shows as 13:11 rather than 01:11 PM;
   - the native composer has no *Approvals* picker.
 
-**Narrator.** This was checked through UI Automation, not by listening. In the native window's UIA tree:
+**Narrator.** The user listened with Narrator on 2026-11-16, and everything read correctly: the rail, the chat list, the messages, their buttons, the composer, and "Answer finished". Before that, the UIA tree was checked:
 - The rail is a "Projects" group of named buttons, the chat list a "Chats" group.
 - The thread is a "Messages" list. Each item is "You said" or "Jenab said" and holds the message text, with its buttons named *Copy*, *Reply*, *Edit and resend* and *Rewind to here*.
 - The composer is an Edit named "Message", with the Value and Text patterns, followed by *Attach files*, *Model: bench-model* and *Send*.
 - When an answer finishes, "Answer finished" appears in MyGo's polite live region at the end of the tree. MyGo raises `LiveRegionChanged` there.
 - A `System.Windows.Automation` listener in PowerShell got no event. That client also can't read `LiveSetting` ("Unsupported Property"), so this check can't tell whether Narrator would hear it. MyGo chose the live region over notification events because those "reached no client in tests", in its comment.
-- Nobody listened to Narrator itself.
 
 **Copying.** A drag across messages copies them as plain text, as a browser does. The headless test `TestASelectionCopiesAcrossMessages` covers it: "first question / the first answer / 13:31 / second question / the … answer". An answer's *Copy* button copies its Markdown, as in the Wails app. A browser selection also carries HTML. MyGo's own Markdown selection would carry HTML and Markdown, but a selection shared across messages copies text only.
 
@@ -122,7 +121,7 @@ Notes on the table:
 - **Close:** `WM_CLOSE` hid the window. The process kept running and answered on its port. *Show* brought the window back.
 - **Size and place:** the window, moved to 213,117 at 1111×733, came back there after a quit and a new start (`window-state.json` under `APPDATA\Jenab`).
 - **Weights:** DirectWrite draws the semibold heading, the bold run and the regular text as Chromium does (sample 8).
-- **A notification click:** not checked. It needs a person to click the toast. The code shows the window and sends `app:open`, as the Wails app does.
+- **A notification click:** checked by the user on 2026-11-16. A Gemini chat asked a question through `ask_user` while another window was in front. The toast appeared, and clicking it brought Jenab to the front on that chat.
 - **Gemini:** one answer from `gemini-3.5-flash-lite` in 3.1 s: "پایتخت ایران تهران است.", shown under "Gemini 3.5 Flash-Lite". The key went from `.env` into the bench app's memory only.
 
 **Tests:** `go vet` is clean, and `go test ./...` passes. In `frontend`, `bun run typecheck` and `bun test` pass. The frontend is unchanged.
@@ -130,7 +129,7 @@ Notes on the table:
 ## 2. What MyGo lacked or got wrong
 
 1. **Arabic harakat drop on Windows** (sample 19).
-   - **What's missing:** some marks don't draw, among them the fatha on ک, the sukun on ل and the kasra under ر.
+   - **What goes wrong:** marks drawn alone are fine. Inside joined words, the fatha on ک is drawn on the letter's top stroke, and the kasra under ر is missing. Tahoma shows both problems, and Segoe UI tucks the kasra into the tail of ر.
    - **Where it fails:** both the headless tester and the real window use DirectWrite (`internal/text/dwrite_windows.go`).
    - **Not the font:** go-text shapes the same marks with offsets (fatha on ک: y offset 9 at 100 px), and Edge draws the same TTF correctly.
    - **Impact:** Persian text rarely carries harakat, but Arabic quotes, the Quran and taught Persian do.
@@ -152,7 +151,7 @@ These were mistakes in the kit, not in MyGo, and are fixed in B5:
 
 ## 3. Upstream issues worth filing
 
-None was filed: posting to a public tracker needs the user's OK.
+With the user's OK, the harakat bug was filed as [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925), text only, with a repro in Segoe UI and Tahoma. The others aren't filed.
 
 1. **Harakat on Windows.**
    - **Report:** some Arabic marks don't draw in `ui.Text` on Windows (DirectWrite), while go-text shapes them.
@@ -208,10 +207,8 @@ Each ticket also needs a person's review and a live run.
 ## 5. What's next
 
 1. **Kit: direction for lists and tables.** Done: samples 14 to 16 now match, so 19 of 20 do.
-2. **Harakat:** file the upstream issue (with the OK) and wait for MyGo, or accept the gap. The kit can't draw them.
-3. **A person's checks:**
-   - ten minutes of Narrator in the chat: reading messages, buttons and the composer, and hearing "Answer finished";
-   - one notification click.
+2. **Harakat:** filed as [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925). Wait for MyGo or accept the gap. The kit can't draw them.
+3. **A person's checks:** done on 2026-11-16. Narrator read the chat correctly, and a notification click opened its chat.
 4. **Small gaps found on the way:**
    - the composer's *Approvals* picker;
    - the time in the user's locale format (01:11 PM) rather than 24-hour.

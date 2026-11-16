@@ -181,7 +181,7 @@ From the go decision on, new UI work goes into the native app first, so nothing 
 **Part B** (2026-11-16, MyGo v0.9.1): items 6 to 10 are done, and the session report is [reports/SPIKE-048-partB-report.md](reports/SPIKE-048-partB-report.md).
 - **What ran:** native and Wails were built from the same commit and measured on the SPIKE-022 PC, with the fake model and every data folder in a temporary folder.
 - **Model requests:** one, the live check with `gemini-3.5-flash-lite`.
-- **Not checked by a person:** a notification click, and listening to Narrator.
+- **Checked by the user (2026-11-16):** Narrator read the chat correctly, and a notification click opened its chat.
 
 | Measured | Native (MyGo) | Wails |
 |---|---|---|
@@ -199,17 +199,17 @@ From the go decision on, new UI work goes into the native app first, so nothing 
 
 | Criterion | Result |
 |---|---|
-| Persian and mixed text match Chromium on all 20 samples, or the kit fixes the differences | **Not fully met.** 19 of 20 match after the kit's fixes. Those fixes are code tab size 2, ten clipped icons, and direction for lists and tables. A Persian table's columns and Persian list markers now run right to left (14 to 16), through MyGo's `Options.Block`. Open: MyGo on Windows drops some Arabic harakat (19), which the kit can't fix. |
+| Persian and mixed text match Chromium on all 20 samples, or the kit fixes the differences | **Not fully met.** 19 of 20 match after the kit's fixes. Those fixes are code tab size 2, ten clipped icons, and direction for lists and tables. A Persian table's columns and Persian list markers now run right to left (14 to 16), through MyGo's `Options.Block`. Open: MyGo on Windows misplaces or drops some Arabic harakat inside words (19), which the kit can't fix: [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925). |
 | At 1,000 tok/s, frames under 33 ms and key to screen under 50 ms | **Met.** Frame work max 17.8 ms; key to screen max 24.1 ms (Wails: 51.1 ms). At 100 tok/s one frame took 62.9 ms (0.1 %). |
 | Opening a 200-message chat and start-up no slower than Wails | **Met.** About 4 times faster to open and 4 times faster to start. |
 | Private memory with a chat open at most half of the Wails app's | **Met.** 186 MB against 531 MB, 35 %. |
-| Narrator can use the chat | **Likely, not confirmed.** The UIA tree names the rail, chat list, each message ("You said" / "Jenab said" with its text), its buttons and the composer (an Edit with Value and Text). "Answer finished" goes to MyGo's live region. Nobody listened, and a managed UIA client saw no event. |
+| Narrator can use the chat | **Met.** The user listened on 2026-11-16: Narrator read the rail, the chat list, each message ("You said" / "Jenab said" with its text), its buttons and the composer, and said "Answer finished". |
 | The user accepts the estimate | **The user's call.** About 4,900 frontend lines remain, the size of this slice: 5 to 8 agent hours for the screens. Pages and pipelines, the updater and installer, and macOS and Linux come on top. |
 
 **Recommendation:** a conditional go.
 - **Why:** performance and memory are clear wins. The text gap is narrow: the three kit gaps are fixed, and what's left is an upstream bug that rarely touches Persian.
 - **Before deciding:**
   1. ~~The kit takes direction for lists and tables, and the samples pass again (19 of 20).~~ Done: 19 of 20 match.
-  2. The user spends ten minutes with Narrator in the chat and clicks one notification.
-  3. The harakat issue goes to MyGo, with the user's OK to post.
+  2. ~~The user spends ten minutes with Narrator in the chat and clicks one notification.~~ Done: both correct.
+  3. ~~The harakat issue goes to MyGo, with the user's OK to post.~~ Done: [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925).
 - **If any of these fails:** no-go, as the Done-when section says.
