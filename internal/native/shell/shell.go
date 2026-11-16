@@ -23,6 +23,8 @@ type ChatScreen interface {
 type Shell struct {
 	Stores *state.Stores
 	Chat   ChatScreen
+	// Settings is the Settings view (TASK-055); nil shows a placeholder.
+	Settings SettingsScreen
 	// Post runs work on the UI thread, as the stores' does.
 	Post state.Post
 	// Quit ends the app, as the tray's Quit does; nil hides the button.
@@ -32,6 +34,11 @@ type Shell struct {
 
 	newProject bool
 	name       string
+}
+
+// SettingsScreen is the Settings view at a place (package settings).
+type SettingsScreen interface {
+	View(c *kit.Context, place *state.Place)
 }
 
 // New makes the shell's view.
@@ -99,6 +106,8 @@ func (s *Shell) main(c *kit.Context, place *state.Place) {
 		center(c, func() { kit.Empty(c, kit.IconChat, "Choose a project", "Its chat opens here.", nil) })
 	case place.View == state.ViewChat:
 		s.chatView(c, place.Project, place.Chat)
+	case place.View == state.ViewSettings && s.Settings != nil:
+		s.Settings.View(c, place)
 	default:
 		// Settings and the developer tools are not part of the spike.
 		center(c, func() {

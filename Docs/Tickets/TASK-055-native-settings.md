@@ -1,6 +1,6 @@
 # TASK-055 — Settings in the native app
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-053
 
@@ -24,3 +24,10 @@ Port *Settings* from `frontend/src/settings` to the native app, after SPIKE-048'
 - A live check: connect a provider and pick a model.
 
 ## Result
+Done. The native app has Settings, with the pages of the Wails app; the report is [TASK-055-report.md](reports/TASK-055-report.md).
+- **The pages:** General (data folder, approval level for new projects, other apps' windows, About), Memory, Appearance, Models (providers, their models, *Add provider*, the default and fast model, the limits), Usage, Desktop (Windows only) and Developer, in a page list beside one scrolling column, as in `settings-layout.tsx`. The open project's settings are in the list too, as in `settings-view.tsx`.
+- **The kit:** the usage chart (`kit.BarChart` on `ui/chart`) and the number input (`kit.NumberInput`), plus Switch, Segmented, Meter, Table, Link and the settings layout pieces, each in its own file with headless tests in light and dark, for the keyboard, the label and right-to-left text.
+- **The stores:** `state.Pages` reads and writes what the pages need beyond `state.Settings`: usage, desktop items, presets, a provider's models, the user's memory, the folder check and the version.
+- **Tests:** the frontend's tests for these pages are ported (`format`, `provider-choice`, `memory`, `settings-view`), and every page has headless tests in `internal/native/settings`.
+- **Screenshots:** every page in light and dark, the models dialog and *Add provider*, kept outside the repo.
+- **Live check:** in the native Settings, on the real services, *Add provider* connected Google Gemini with the user's key, kept in memory, and `gemini-3.5-flash-lite` became the default and fast model.
