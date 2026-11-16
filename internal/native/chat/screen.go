@@ -286,7 +286,7 @@ func (s *Screen) empty(c *kit.Context, t *state.Thread, mother bool) {
 // rewind and the undo of the changes of the turns it took out.
 func (s *Screen) rewindMark(c *kit.Context, t *state.Thread, r store.RewindInfo) {
 	kit.Column(c).Gap(4).AlignItems(kit.Stretch).Children(func() {
-		kit.Marker(c, logic.MarkText(r)+" · "+r.At.Local().Format("15:04"), false)
+		kit.Marker(c, logic.MarkText(r)+" · "+kit.Clock(c, r.At.Local()), false)
 		if t.State != jc.StateIdle {
 			return
 		}

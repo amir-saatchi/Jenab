@@ -1115,7 +1115,7 @@ rows:
   - The window background is set from the saved theme before the first paint, so there is no white flash at start. The OS window frame follows the theme where the platform allows it.
   - The kit's tokens and `index.css` must stay the same while both apps ship.
 - **Tones:** configs never contain colours or CSS. They can only name a tone: `neutral`, `blue`, `green`, `amber`, `red` or `purple`.
-  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`), with the values of `index.css`, whose `contrast.test.ts` checks them. The kit has no contrast check of its own yet; one must come before TASK-061 removes `frontend/`.
+  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`), with the values of `index.css`. The kit's `contrast_test.go` checks its colours, in light and dark, with the pairs and threshold of `contrast.test.ts`, so the check stays when TASK-061 removes `frontend/`.
   - Validation rejects anything else, such as hex colours.
   - So every page the agent builds looks right in both themes.
 - **Charts:** series take the tones in a fixed order. Changes (`stat.change`) are green or red.

@@ -45,7 +45,7 @@ func TestAPickCardListsTheWindowsAndDeny(t *testing.T) {
 
 func TestAnAnsweredPickCardSaysWhichWindow(t *testing.T) {
 	a := pickCard("pick:w-2")
-	if got := RecordText(a, CardTime(a.AnsweredAt)); got != "Picked Search — chrome 10:14" {
+	if got := RecordText(a, CardTime(a.AnsweredAt, clock24)); got != "Picked Search — chrome 10:14" {
 		t.Errorf("RecordText = %q", got)
 	}
 }
@@ -68,7 +68,7 @@ func TestRecordText(t *testing.T) {
 			t.Errorf("RecordText(%+v) = %q, want %q", c.a, got, c.want)
 		}
 	}
-	if got := CardTime(nil); got != "" {
+	if got := CardTime(nil, clock24); got != "" {
 		t.Errorf("CardTime(nil) = %q", got)
 	}
 }
@@ -94,3 +94,6 @@ func TestCardKey(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+// clock24 writes times as kit.Clock does with a 24-hour clock.
+func clock24(t time.Time) string { return t.Format("15:04") }

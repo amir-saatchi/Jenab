@@ -72,7 +72,7 @@ func tabTo(t *testing.T, tt *ui.Tester, label string) {
 func shows(t *testing.T, tt *ui.Tester, texts ...string) {
 	t.Helper()
 	for _, s := range texts {
-		if _, ok := tt.Find(s); !ok && !tt.HasText(s) {
+		if !Shows(tt, s) {
 			t.Errorf("no %q in %q", s, tt.Texts())
 		}
 	}

@@ -114,7 +114,7 @@ func (s *Shell) chatList(c *kit.Context, p id.Project, open id.Chat) {
 		kit.Scroll(c).Grow(1).Children(func() {
 			kit.Column(c).Gap(2).AlignItems(kit.Stretch).Children(func() {
 				for _, it := range state.Visible(items) {
-					s.chatRow(c, p, it.Chat, it.State, Subline(it, s.now()), it.Chat.ID == open)
+					s.chatRow(c, p, it.Chat, it.State, s.subline(c, it), it.Chat.ID == open)
 				}
 			})
 		})

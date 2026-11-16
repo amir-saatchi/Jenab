@@ -92,7 +92,7 @@ func (x *fixture) delta(m id.Message, part int, kind jc.PartKind, text string) {
 func shows(t *testing.T, tt *kit.Tester, texts ...string) {
 	t.Helper()
 	for _, s := range texts {
-		if _, ok := tt.Find(s); !ok && !tt.HasText(s) {
+		if !kit.Shows(tt, s) {
 			t.Errorf("no %q in %q", s, tt.Texts())
 		}
 	}
@@ -341,4 +341,68 @@ func TestASelectionCopiesAcrossMessages(t *testing.T) {
 	if got := x.tt.Clipboard(); got != "the "+persian+" answer" {
 		t.Errorf("Copy copied %q", got)
 	}
+}
+
+// The composer's Approvals picker sets the project's level (SPEC 8.8), by
+// the mouse and by the keyboard, and shows the level it set.
+func TestTheApprovalsPickerSetsTheLevel(t *testing.T) {
+	both(t, func(t *testing.T, dark bool) {
+		x := open(t, dark, statetest.Text(1, jc.RoleUser, persian))
+		x.st.Projects.Open(x.p, func(app.OpenedProject, error) {})
+		x.until(t, "the project", func() bool { _, ok := x.st.Projects.Opened[x.p]; return ok })
+		shows(t, x.tt, "Approvals: Standard")
+		if err := x.tt.Click("Approvals: Standard"); err != nil {
+			t.Fatal(err)
+		}
+		x.draw()
+		shows(t, x.tt, "Approvals for this project", "Strict", "Auto", "Asks less, but always for destructive changes")
+		if err := x.tt.Click("Auto"); err != nil {
+			t.Fatal(err)
+		}
+		x.until(t, "the level", func() bool { return x.st.Projects.Opened[x.p].Level == "auto" })
+		if got := x.f.Levels; len(got) != 1 || got[0] != "auto" {
+			t.Errorf("set the levels %q", got)
+		}
+		shows(t, x.tt, "Approvals: Auto")
+
+		// By the keyboard: Tab to the picker, Enter opens it, Home goes to
+		// the first level and Enter picks it.
+		for i := 0; i < 20 && !x.tt.Focused("Approvals: Auto"); i++ {
+			x.tt.Key(0, kit.KeyTab)
+			x.tt.Frame()
+		}
+		if !x.tt.Focused("Approvals: Auto") {
+			t.Fatal("Tab never reached the picker")
+		}
+		x.tt.Key(0, kit.KeyEnter)
+		x.draw()
+		x.tt.Key(0, kit.KeyHome)
+		x.tt.Frame()
+		x.tt.Key(0, kit.KeyEnter)
+		x.until(t, "the level by the keyboard", func() bool { return x.st.Projects.Opened[x.p].Level == "strict" })
+		if got := x.f.Levels; len(got) != 2 || got[1] != "strict" {
+			t.Errorf("set the levels %q", got)
+		}
+	})
+}
+
+// A message's time is in the user's regional formats, as Windows is set:
+// "01:11 PM" with a 12-hour clock, "13:11" with a 24-hour one.
+func TestTimesFollowTheRegion(t *testing.T) {
+	both(t, func(t *testing.T, dark bool) {
+		m := statetest.Text(1, jc.RoleUser, "Hi")
+		a := answer(1, text(persian))
+		a.CreatedAt = time.Date(2026, 11, 16, 13, 11, 0, 0, time.UTC)
+		x := open(t, dark, m, a)
+		at := a.CreatedAt.Local()
+		x.tt.SetRegion(kit.Region{Locale: "en-US", HourCycle: 12})
+		x.draw()
+		shows(t, x.tt, persian, at.Format("03:04 PM"))
+		x.tt.SetRegion(kit.Region{Locale: "en-GB", HourCycle: 24})
+		x.draw()
+		shows(t, x.tt, at.Format("15:04"))
+		if x.tt.HasText(at.Format("03:04 PM")) {
+			t.Error("the 12-hour time still shows with a 24-hour clock")
+		}
+	})
 }

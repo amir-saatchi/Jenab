@@ -145,7 +145,7 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 	}
 	sub := ""
 	if it != nil {
-		sub = Subline(*it, s.now())
+		sub = s.subline(c, *it)
 	}
 	s.header(c, p, ch, title, sub, mother)
 	damage := st.Projects.Opened[p].Damage
@@ -204,8 +204,10 @@ func (s *Shell) now() time.Time {
 }
 
 // Subline is a chat row's second line (chat-sidebar.tsx): what the chat is
-// doing, else its role, else when it was last active.
-func Subline(it app.ChatItem, now time.Time) string {
+// doing, else its role, else when it was last active, at a time today and
+// as a date before, which short and date write in the user's formats
+// (kit.ShortTime and kit.MediumDate).
+func Subline(it app.ChatItem, now time.Time, short, date func(time.Time) string) string {
 	switch {
 	case it.State == chat.StateWaiting:
 		return "Waiting for you"
@@ -231,9 +233,9 @@ func Subline(it app.ChatItem, now time.Time) string {
 	y1, m1, d1 := t.Date()
 	y2, m2, d2 := now.Date()
 	if y1 == y2 && m1 == m2 && d1 == d2 {
-		return "Last active " + t.Format("15:04")
+		return "Last active " + short(t)
 	}
-	return "Last active " + t.Format("Jan 2, 2006")
+	return "Last active " + date(t)
 }
 
 // StatusLabel names a chat with what it is doing, for its tile and row.
@@ -245,4 +247,11 @@ func StatusLabel(title string, st chat.State) string {
 		return title + " · working"
 	}
 	return title
+}
+
+// subline is Subline with the times in the user's formats.
+func (s *Shell) subline(c *kit.Context, it app.ChatItem) string {
+	short := func(t time.Time) string { return kit.ShortTime(c, t) }
+	date := func(t time.Time) string { return kit.MediumDate(c, t) }
+	return Subline(it, s.now(), short, date)
 }
