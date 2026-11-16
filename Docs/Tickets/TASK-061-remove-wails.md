@@ -1,6 +1,6 @@
 # TASK-061 — Switch to the native app and remove Wails
 **Type:** Task
-**Status:** In progress (proof: waiting for the user's manual run)
+**Status:** In progress (proof passed; removal next)
 **Gate:** 3
 **Needs:** TASK-054 (not its item 3, the MyGo release with the harakat fix), TASK-055, TASK-056, TASK-057, TASK-058, TASK-059, TASK-062
 
@@ -24,7 +24,7 @@ When the native app has every screen, it becomes Jenab, and the Wails app, the R
 ## Result
 
 ### Proof
-Part 1, scope item 1. **The manual run of the native app is waiting for the user.** Nothing was removed or renamed yet. Report: [reports/TASK-061-proof-report.md](reports/TASK-061-proof-report.md).
+Part 1, scope item 1: **passed.** The acceptance runs pass, and the user's manual run of the native app passed on 2026-11-17. Nothing was removed or renamed yet; items 2 to 4 come next. Report: [reports/TASK-061-proof-report.md](reports/TASK-061-proof-report.md).
 
 - **Acceptance runs (2026-11-16, main at `ae309c1`):** `scenarios/phase2-acceptance`, `P2_schema_memory`, `-reps 3`, as P2-14 ran it, on the two models the user picked.
 
@@ -38,5 +38,5 @@ Part 1, scope item 1. **The manual run of the native app is waiting for the user
   - Against P2-14: no run tried `sqlite_master` (P2-14: 7 of 9), which fits TASK-051. Haiku still called `describe_table` in turn 5 every time; flash-lite skipped it in 2 of 3. Flash-lite needed fewer requests (P2-14: 21–24). Nothing regressed.
 - **Go test:** `TestPhase2Acceptance` passes.
 - **Native release:** `wails3 task build:native` built `Jenab.exe` and `jenab-setup-0.1.0-dev-amd64.exe` into `bin/native/windows-amd64` (nothing downloaded). The bench build started on a scratch profile, loaded, showed the welcome screen and quit through the bench port, with no system dialog.
-- **Manual run:** the steps are in the report. The user runs them with Haiku 5.5 on their own data folder.
+- **Manual run (2026-11-17):** passed. The user ran the report's steps with Haiku 5.5 on their own data folder, using the release built from main at `ae309c1` with `wails3 task build:native`. The user's words: "All passed". The screenshots stay with the user.
 - **For item 2:** removing Wails removes `wails3 task`, which runs the Taskfile today. The tasks then need another runner.

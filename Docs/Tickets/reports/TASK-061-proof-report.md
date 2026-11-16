@@ -2,7 +2,7 @@
 
 Part 1 of [TASK-061](../TASK-061-remove-wails.md), scope item 1 ("Proof first"). Branch `claude/task-061-proof-af1da9`, from main at `ae309c1`. Runs on 2026-11-16 (UTC), Windows 11, i5-1235U.
 
-**Status:** the acceptance runs pass on both models the user picked, and the Go test passes. The native release is built and starts on a scratch profile. **The manual run of the native app is waiting for the user** (steps below). Nothing was removed or renamed; items 2 to 4 wait for the manual run.
+**Status:** the proof passed. The acceptance runs pass on both models the user picked, and the Go test passes. The native release is built and starts on a scratch profile. **The user's manual run of the native app passed on 2026-11-17** (below). Nothing was removed or renamed; items 2 to 4 come next.
 
 ## What changed since P2-14
 
@@ -74,7 +74,11 @@ P2-14 for comparison: Haiku 3/3, 16–17 requests, about 30 s, $0.017; flash-lit
 - **Smoke check (bench build):** `go build -tags bench ./cmd/desktop-native` from the same commit, started with `LOCALAPPDATA`, `APPDATA` and `USERPROFILE` in a scratch folder and `JENAB_BENCH_PORT` set. `GET /state` answered at once with `loaded: true`, no projects, the window shown and focused, and the updater `unavailable` (no update key in `mygo.json`, as TASK-059 says). A screenshot through `/shot` showed the welcome screen ("Welcome to Jenab", *Create project*). `POST /quit` closed it. Its data (`registry.db`, `logs`, `window-state.json`) went into the scratch folder only. No system dialog opened.
 - The release exe itself was not started here: the user's manual run does that.
 
-## Manual run in the native app (for the user)
+## Manual run in the native app
+
+**Passed on 2026-11-17.** The user ran the steps below with Haiku 5.5 on their own data folder, using the native release built from main at `ae309c1` with `wails3 task build:native` (in `bin\native\windows-amd64` of the main checkout). The user's words: "All passed". The screenshots stay with the user. No further detail was given.
+
+The steps:
 
 This follows P2-14's "Built app" run, in the native app. Use Haiku 5.5 and your own data folder. Take the three screenshots P2-14 asked for: the memory row, the migration card and *Undo turn*. Keep them with you if they show the data folder's path.
 
