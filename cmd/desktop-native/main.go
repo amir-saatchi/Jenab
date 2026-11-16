@@ -1,14 +1,20 @@
 // Command desktop-native is the Jenab app on MyGo, with a native UI and no
 // web view (SPIKE-048). It builds the services as cmd/desktop does; the
 // screens are the stores (internal/native/state) shown with the kit
-// (internal/native/kit). Part A shows a placeholder; the chat comes in
-// Part B.
+// (internal/native/kit): the frame (internal/native/shell) and the chat
+// (internal/native/chat).
 package main
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,7 +34,9 @@ import (
 	"github.com/amir-saatchi/jenab/internal/lifecycle"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
+	"github.com/amir-saatchi/jenab/internal/native/chat"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
+	"github.com/amir-saatchi/jenab/internal/native/shell"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 	"github.com/amir-saatchi/jenab/internal/project"
 	"github.com/amir-saatchi/jenab/internal/provider"
@@ -173,7 +181,16 @@ func run() (err error) {
 	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System}, mailbox.Post)
 	defer stores.Close()
 	stores.Settings.OnTheme = kit.SetThemeSource
-	sh := &shell{stores: stores, post: mailbox.Post, quit: mygo.App.Quit}
+	stores.Actions.Upload = uploader(app.UploadHandler(projects))
+	stores.Actions.PickFiles = func() []string {
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Title: "Attach files", Multiple: true, Parent: win})
+		if err != nil {
+			log.Warn("attach: the file dialog failed", "err", err)
+		}
+		return paths
+	}
+	sh := shell.New(stores, chat.New(stores), mailbox.Post)
+	sh.Quit = mygo.App.Quit
 
 	var quitting atomic.Bool
 	mygo.App.OnSecondInstance(func([]string, string) { show(win) })
@@ -191,7 +208,7 @@ func run() (err error) {
 			Title: appinfo.Name, Width: 1280, Height: 800,
 			MinWidth: 640, MinHeight: 480, // SPEC 5.12
 			StateKey: "main",
-			Content:  kit.View(sh.view),
+			Content:  kit.View(sh.View),
 		})
 		win.OnClose(func(e *mygo.CloseEvent) {
 			if !quitting.Load() {
@@ -201,7 +218,12 @@ func run() (err error) {
 		})
 		stores.WindowActive = func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() }
 		mailbox.Attach(win.Update)
-		sh.start()
+		sh.Start()
+		// Closing the window only hides it, so the tray shows it again and
+		// quits.
+		if err := newTray(func() { show(win) }); err != nil {
+			log.Warn("tray: not shown", "err", err)
+		}
 	})
 
 	err = mygo.App.Run()
@@ -240,5 +262,48 @@ func notifier(win func() *mygo.Window, pub *app.Publisher) func(app.Notification
 			pub.Open(app.Open{Project: n.Project, Chat: n.Chat})
 		})
 		return note.Show()
+	}
+}
+
+//go:embed tray.png
+var trayIcon []byte
+
+// newTray puts Jenab in the notification area: a click shows the window,
+// and its menu shows it or quits.
+func newTray(open func()) error {
+	tray, err := mygo.NewTray(mygo.TrayOptions{ID: "jenab", Icon: trayIcon, ToolTip: appinfo.Name,
+		Menu: mygo.NewMenu([]*mygo.MenuItem{
+			{ID: "show", Label: "Show " + appinfo.Name, Click: func(*mygo.MenuItem, *mygo.Window) { open() }},
+			mygo.Separator(),
+			{ID: "quit", Label: "Quit " + appinfo.Name, Role: mygo.RoleQuit},
+		})})
+	if err != nil {
+		return err
+	}
+	tray.OnClick(open)
+	return nil
+}
+
+// uploader stores a file through the upload route the Wails app serves,
+// called in-process, so both apps store files the same way.
+func uploader(h http.Handler) state.Uploader {
+	return func(ctx context.Context, p id.Project, path string) (app.Uploaded, error) {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return app.Uploaded{}, err
+		}
+		req := httptest.NewRequestWithContext(ctx, http.MethodPost, app.UploadRoute+string(p), bytes.NewReader(body))
+		req.Header.Set(app.UploadNameHeader, url.PathEscape(filepath.Base(path)))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			var e struct{ Error string }
+			if json.Unmarshal(rec.Body.Bytes(), &e) == nil && e.Error != "" {
+				return app.Uploaded{}, errors.New(e.Error)
+			}
+			return app.Uploaded{}, fmt.Errorf("the upload failed (%d)", rec.Code)
+		}
+		var up app.Uploaded
+		return up, json.Unmarshal(rec.Body.Bytes(), &up)
 	}
 }

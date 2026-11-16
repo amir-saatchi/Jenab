@@ -189,3 +189,51 @@ func TestSelectable(t *testing.T) {
 		}
 	})
 }
+
+func TestComposerKeys(t *testing.T) {
+	var text, sent string
+	quote := true
+	view := func(c *Context) {
+		Column(c).Width(600).Children(func() {
+			InputGroup(c, func() {
+				ComposerKeys(ComposerText(c, &text, "Message"), func(s string) bool {
+					if s == "" {
+						return false
+					}
+					sent = s
+					return true
+				}, func() bool {
+					if !quote {
+						return false
+					}
+					quote = false
+					return true
+				})
+			})
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		text, sent, quote = "", "", true
+		tt.Frame()
+		tabTo(t, tt, "Message")
+		tt.Type(persian)
+		tt.Key(ui.Shift, ui.KeyEnter)
+		tt.Type("two")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if sent != persian+"\ntwo" {
+			t.Errorf("Enter sent %q", sent)
+		}
+		if text != "" || tt.HasText(persian) {
+			t.Errorf("the text stayed after sending: %q", text)
+		}
+		tt.Key(0, ui.KeyEnter)
+		if sent != persian+"\ntwo" {
+			t.Error("Enter on an empty composer sent")
+		}
+		tt.Key(0, ui.KeyEscape)
+		if quote {
+			t.Error("Escape did not take the quote off")
+		}
+	})
+}

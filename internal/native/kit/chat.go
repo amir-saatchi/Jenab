@@ -152,14 +152,16 @@ func CardTitle(c *Context, s string) Element {
 }
 
 // Record is a card that was answered or stopped, in one outlined line:
-// icon in tone, then fn's text.
+// icon in tone (nil for none), then fn's text.
 func Record(c *Context, icon *SVG, tone Tone, fn func()) Element {
 	k := TokensOf(c)
 	row := ui.Row(c).Gap(8).Padding(6, 10).Radius(Radius*0.8).Border(1, k.Border).AlignItems(ui.Center).
 		AlignSelf(ui.Start).FontSize(13)
 	return row.Children(func() {
-		ui.Icon(c, icon).Size(16, 16).TextColor(k.Tone(tone).Text).Shrink(0)
-		ui.Row(c).Gap(4).Shrink(1).Wrap().Children(fn)
+		if icon != nil {
+			ui.Icon(c, icon).Size(16, 16).TextColor(k.Tone(tone).Text).Shrink(0)
+		}
+		ui.Row(c).Gap(4).Shrink(1).Wrap().AlignItems(ui.Center).Children(fn)
 	})
 }
 
@@ -305,4 +307,23 @@ func MenuButtonGhost(c *Context, icon *SVG, label, name string, build func(m *Me
 		ui.Icon(c, IconChevronDown).Size(14, 14)
 	})
 	return b.PopoverMenuButton(build)
+}
+
+// ComposerKeys has the composer's text area send with Enter and break the
+// line with Shift+Enter: send gets the text and reports whether it sent
+// it, which clears the text. Escape calls escape, which reports whether it
+// took the key; nil leaves Escape as it is.
+func ComposerKeys(e Element, send func(text string) bool, escape func() bool) Element {
+	return e.OnTextKey(func(k ui.TextKey) bool {
+		switch {
+		case k.Key == ui.KeyEnter && k.Mods == 0:
+			if send(k.Text()) {
+				k.SetText("")
+			}
+			return true
+		case k.Key == ui.KeyEscape && k.Mods == 0 && escape != nil:
+			return escape()
+		}
+		return false
+	})
 }

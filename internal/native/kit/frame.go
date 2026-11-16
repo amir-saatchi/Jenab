@@ -180,3 +180,76 @@ var Glide = &ui.Smooth
 // Announce tells assistive technology news that doesn't move the focus,
 // as an answer that finished; it is read once.
 func Announce(c *Context, text string) { c.Announce(text) }
+
+// SidePanel is the chat list's panel beside the rail, 256 px wide in the
+// sidebar's colors, as shadcn's Sidebar: fn builds it top to bottom.
+func SidePanel(c *Context, label string, fn func()) Element {
+	k := TokensOf(c)
+	box := ui.Themed(c, railTheme(c)).Width(256).Shrink(0).Background(k.Sidebar).BorderColor(k.SidebarBorder).BorderEndWidth(1)
+	return box.Children(func() {
+		ui.Column(c).Grow(1).AlignItems(ui.Stretch).Gap(4).Padding(8).Role(ui.RoleNavigation).Label(label).Children(fn)
+	})
+}
+
+// Group is a panel's small heading over the items under it, as "Chats".
+func Group(c *Context, s string) Element {
+	return ui.Text(c, s).FontSize(12).FontWeight(500).TextColor(TokensOf(c).SidebarForeground.Alpha(0.7)).Padding(6, 8, 2, 8).
+		Role(ui.RoleHeading).Level(2)
+}
+
+// NavItem is a row of a panel that opens something, as a chat of the
+// chat list: label names it, fn builds what it shows (an icon, a title
+// and a second line, a badge), and it is filled while active, the place
+// shown.
+func NavItem(c *Context, label string, active bool, fn func()) Element {
+	k := TokensOf(c)
+	b := ui.ButtonBase(c).Label(label).MinHeight(48).Padding(6, 8).Gap(8).Radius(Radius * 0.8).AlignItems(ui.Center).
+		TextColor(k.SidebarForeground)
+	switch {
+	case active:
+		b.Current(ui.CurrentPage).Background(k.SidebarAccent).TextColor(k.SidebarAccentFg)
+	case b.Hovered():
+		b.Background(k.SidebarAccent)
+	}
+	return b.Children(fn)
+}
+
+// Lines is a title over a second line, both cut to one line, as a chat's
+// row: the second line in tone, or muted for Neutral.
+func Lines(c *Context, title, sub string, tone Tone) Element {
+	k := TokensOf(c)
+	return ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+		ui.Text(c, title).FontSize(14).SingleLine()
+		if sub != "" {
+			s := ui.Text(c, sub).FontSize(12).SingleLine().TextColor(k.MutedForeground)
+			if tone != Neutral {
+				s.TextColor(k.Tone(tone).Text)
+			}
+		}
+	})
+}
+
+// Count is a small count on the top end corner of what holds it, as the
+// number of chats that wait, in tone.
+func Count(c *Context, n int, tone Tone) Element {
+	k := TokensOf(c)
+	box := ui.Box(c).Absolute().Top(0).End(4).Height(16).MinWidth(16).PaddingX(4).Radius(8).
+		Background(k.Tone(tone).Text).AlignItems(ui.Center).Justify(ui.Center)
+	return box.Children(func() {
+		ui.Text(c, itoa(n)).FontSize(10).FontWeight(600).TextColor(k.Background).SingleLine()
+	})
+}
+
+func itoa(n int) string {
+	if n < 0 {
+		return "-" + itoa(-n)
+	}
+	if n < 10 {
+		return string(rune('0' + n))
+	}
+	return itoa(n/10) + string(rune('0'+n%10))
+}
+
+// CurrentPage marks the element of a set that is the place shown, as
+// Element.Current takes it.
+const CurrentPage = ui.CurrentPage

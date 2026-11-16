@@ -155,3 +155,6 @@ func (a *Actions) Pick(then func([]string)) {
 		a.post(func() { then(paths) })
 	}()
 }
+
+// Post runs fn on the UI thread, as the results are.
+func (a *Actions) Post(fn func()) { a.post(fn) }
