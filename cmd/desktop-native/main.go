@@ -37,6 +37,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/native/chat"
 	devtools "github.com/amir-saatchi/jenab/internal/native/dev"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
+	settingsui "github.com/amir-saatchi/jenab/internal/native/settings"
 	"github.com/amir-saatchi/jenab/internal/native/shell"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 	"github.com/amir-saatchi/jenab/internal/project"
@@ -199,7 +200,18 @@ func run() (err error) {
 		}
 		return mygo.Dialog.Save(opts)
 	}
+	stores.Pages.PickFolder = func(title, start string) string {
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Title: title, DefaultPath: start, Directory: true, Parent: win})
+		if err != nil {
+			log.Warn("data folder: the folder dialog failed", "err", err)
+		}
+		if len(paths) == 0 {
+			return ""
+		}
+		return paths[0]
+	}
 	sh := shell.New(stores, chat.New(stores), mailbox.Post)
+	sh.Settings = settingsui.New(stores, mailbox.Post)
 	sh.Quit = mygo.App.Quit
 	sh.Dev = devtools.New(stores, state.NewDev(b.Dev, mailbox.Post))
 

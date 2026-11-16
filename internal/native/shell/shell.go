@@ -37,6 +37,8 @@ type Shell struct {
 	// Files shows the bucket: the Files tab and a file opened next to the
 	// chat (TASK-056); nil shows no files.
 	Files *files.Screen
+	// Settings is the Settings view (TASK-055); nil shows a placeholder.
+	Settings SettingsScreen
 	// Post runs work on the UI thread, as the stores' does.
 	Post state.Post
 	// Quit ends the app, as the tray's Quit does; nil hides the button.
@@ -46,6 +48,11 @@ type Shell struct {
 	// Projects is the project screens: new project, welcome, project
 	// settings and the exports (TASK-057).
 	Projects *projects.Screens
+}
+
+// SettingsScreen is the Settings view at a place (package settings).
+type SettingsScreen interface {
+	View(c *kit.Context, place *state.Place)
 }
 
 // New makes the shell's view.
@@ -120,6 +127,8 @@ func (s *Shell) main(c *kit.Context, place *state.Place) {
 		s.Dev.View(c, place)
 	case place.View == state.ViewProjectSettings:
 		s.Projects.Settings(c, place.Project, place.Section)
+	case place.View == state.ViewSettings && s.Settings != nil:
+		s.Settings.View(c, place)
 	default:
 		// Settings and the developer tools are not part of the spike.
 		center(c, func() {
