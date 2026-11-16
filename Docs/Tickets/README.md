@@ -55,7 +55,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [SPIKE-045](SPIKE-045-subscribe-and-publish.md) | Subscribe and publish between agents | Spike | Done (decided 2026-11-15) | 3 |
 | [SPIKE-046](SPIKE-046-sql-lora.md) | A LoRA for the database agent on lfm3:1.7b | Spike | Open (Part A now; Part B after SPIKE-044) | 3 |
 | [SPIKE-047](SPIKE-047-headless-browser.md) | A headless browser with agent-browser | Spike | Done (no-go for now) | 3 |
-| [SPIKE-048](SPIKE-048-native-ui-mygo.md) | A native UI with MyGo | Spike | Open | 3 |
+| [SPIKE-048](SPIKE-048-native-ui-mygo.md) | A native UI with MyGo | Spike | Done (go, decided 2026-11-16) | 3 |
 | [TASK-003](TASK-003-broken-responses.md) | Broken responses: the same handling for every model | Task | Done | 3 |
 | [TASK-004](TASK-004-gemini-native.md) | Gemini through its native API | Task | Done | 3 |
 | [TASK-005](TASK-005-open-chat-memory.md) | What an open chat holds in memory | Task | Done | 3 |
@@ -106,6 +106,15 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-050](TASK-050-settings-findings.md) | Find Project settings and the project's memory | Task | Done | 3 |
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Done | 3 |
 | [TASK-052](TASK-052-provider-select.md) | Pick the provider from a list in *Add provider* | Task | Done | 3 |
+| [TASK-053](TASK-053-native-ui-docs.md) | The SPEC and design docs for the native UI | Task | Open | 3 |
+| [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | Open | 3 |
+| [TASK-055](TASK-055-native-settings.md) | Settings in the native app | Task | Open | 3 |
+| [TASK-056](TASK-056-native-files-and-dock.md) | The files panel, the file view and the dock in the native app | Task | Open | 3 |
+| [TASK-057](TASK-057-native-project-screens.md) | Project screens in the native app | Task | Open | 3 |
+| [TASK-058](TASK-058-native-developer-tools.md) | Developer tools in the native app | Task | Open | 3 |
+| [TASK-059](TASK-059-native-updater-installer.md) | Updates and the installer for the native app | Task | Open | 3 |
+| [TASK-060](TASK-060-native-macos-linux.md) | The native app on macOS and Linux | Task | Open (waits for CI and a Mac) | 3 |
+| [TASK-061](TASK-061-remove-wails.md) | Switch to the native app and remove Wails | Task | Open | 3 |
 
 ## Phase 1
 

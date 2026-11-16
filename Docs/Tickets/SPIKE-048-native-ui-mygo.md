@@ -1,6 +1,6 @@
 # SPIKE-048 — A native UI with MyGo
 **Type:** Spike
-**Status:** Open (Part A done, Part B next)
+**Status:** Done (go, decided 2026-11-16)
 **Gate:** 3
 **Needs:** none
 
@@ -213,3 +213,18 @@ From the go decision on, new UI work goes into the native app first, so nothing 
   2. ~~The user spends ten minutes with Narrator in the chat and clicks one notification.~~ Done: both correct.
   3. ~~The harakat issue goes to MyGo, with the user's OK to post.~~ Done: [egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925).
 - **If any of these fails:** no-go, as the Done-when section says.
+
+**Decision: go** (the user, 2026-11-16). Part B, with Part A, is merged into `main`. MyGo fixed the harakat bug in [#1929](https://github.com/egoist/mygo/pull/1929), tested on Windows before merging; TASK-054 moves to the release that has it.
+
+The tickets for the rest:
+- [TASK-053](TASK-053-native-ui-docs.md): the SPEC and design docs for the native UI (first);
+- [TASK-054](TASK-054-native-chat-gaps.md): the native chat's gaps, and MyGo with the harakat fix;
+- [TASK-055](TASK-055-native-settings.md): Settings;
+- [TASK-056](TASK-056-native-files-and-dock.md): the files panel, the file view and the dock;
+- [TASK-057](TASK-057-native-project-screens.md): the project screens;
+- [TASK-058](TASK-058-native-developer-tools.md): developer tools;
+- [TASK-059](TASK-059-native-updater-installer.md): updates and the installer;
+- [TASK-060](TASK-060-native-macos-linux.md): macOS and Linux, when CI runs again;
+- [TASK-061](TASK-061-remove-wails.md): the switch, and removing Wails, `frontend/` and Bun.
+
+Pages and pipelines (5.9, 6.10) get no port ticket: they are built in the native app when their phases come. Until TASK-061, the React frontend gets bug fixes only.
