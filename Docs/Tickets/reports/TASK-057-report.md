@@ -98,7 +98,17 @@ This used a bench build of `cmd/desktop-native` on a scratch user folder, as the
 
 The screenshots hold a user-name path, so they stay outside the repo.
 
-**One slip:** the first save dialog was driven at the wrong control, and the zip went to the dialog's default folder. It was moved into the scratch folder at once, and the helper was fixed for the other two saves.
+**What went wrong with the save dialog:**
+- **It showed on the user's screen.** The live check opened the real Windows Save dialog three times.
+- **"Location is not available":** the run pointed `USERPROFILE` at a scratch folder with no `Desktop`, `Documents` or `Downloads`. The dialog's default folder, the scratch `Desktop`, didn't exist, and Windows said so.
+  - This comes from the test setup, not from Jenab. On a real profile, Windows opens the user's own Desktop.
+- **The wrong control:** the script first set the wrong control, and the zip went to the user's real default folder. It was moved into the scratch folder at once, and the script was fixed for the other two saves.
+- **Nothing is left open:** the app quit through `/quit`, which closed its dialogs, and no Save dialog or alert remains.
+
+**For the next live checks:**
+- Don't open the system Save dialog. Run the export through the service, or a bench route, with a path in the scratch folder.
+- The dialog itself is left to the headless tests (`Exports.Save` is a fake there) and to the user's own manual check.
+- If a dialog must open, first create `Desktop`, `Documents` and `Downloads` in the scratch user folder.
 
 ## 6. Differences and follow-ups
 
