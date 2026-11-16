@@ -34,7 +34,7 @@ func lockApp(root string, args []string) (*os.File, error) {
 }
 
 // mygoUpdater is MyGo's signed updater (mygo.Updater) for internal/update.
-// It reads the feed and public key that `task build:native` links in from
+// It reads the feed and public key that `go tool mygo build` links in from
 // mygo.json; builds without them, such as go run, are not Enabled. Every
 // archive must carry an ed25519 signature that verifies against that key,
 // its size must match the manifest, and it downloads over https (plain

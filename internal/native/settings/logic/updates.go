@@ -33,7 +33,7 @@ func UpdateLine(st update.Status, format func(time.Time) string) (string, Update
 	}
 	switch st.State {
 	case update.StateUnavailable:
-		return "This build can't update itself. Builds made with task build:native and an update key, and installed with the installer, can.", UpdateNone
+		return "This build can't update itself. Builds made with go tool mygo build and an update key, and installed with the installer, can.", UpdateNone
 	case update.StateOff:
 		return "Updates are off. Jenab doesn't check for new versions.", UpdateCheck
 	case update.StateChecking:
