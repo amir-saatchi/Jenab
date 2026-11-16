@@ -76,13 +76,13 @@ Five versions were built from this branch with the bench tag: 0.1.1 (with instal
 - **A real toast click.** On this PC the toast never showed on screen (UI Automation found no toast window; Windows may hold it in the notification center). The click was sent as the shell sends it, to the app's tray window. A click on a real toast is a check by hand.
 - **Not restarting while the window is in front.** The bench could not keep the window in front while the PC was in use (it lost the focus in 108 of 117 samples), so this rests on the unit test.
 - **A new version that crashes at start** is not rolled back (the table above).
-- **The Apps entry's version** stays at the installed version after an update: MyGo's updater doesn't write it.
+- **The Apps entry's version** stays at the installed version after an update: MyGo's updater doesn't write it. Fixed in TASK-062: the app writes it at start.
 - **The Wails app has no updater**, so the first native version reaches Wails users through the installer, not as an update. Same data, so nothing is lost.
 
 ## Follow-ups
 
 1. Before the first public release (Phase 5): a release key and feed in `mygo.json`, the private key in the release build's secrets, and code signing (SmartScreen).
 2. A start check after an update: if the new version doesn't reach its window, put the old files back (needs MyGo to keep them until then, or Jenab's own copy).
-3. Update the Apps entry's version after an update (MyGo or Jenab).
+3. Update the Apps entry's version after an update (MyGo or Jenab). Done in TASK-062.
 4. TASK-017 (the Wails installer) overlaps: this installer covers its Windows scope except "asks before removing data", which MyGo's uninstaller doesn't do. TASK-061 can close it.
 5. CI builds `task build:native` with TASK-060.

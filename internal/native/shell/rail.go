@@ -11,8 +11,9 @@ import (
 
 // rail is the rail (rail.tsx): the projects, New project, Search (to
 // come), Waiting, the open project's chats while the chat list is hidden,
-// and Settings at the bottom.
-func (s *Shell) rail(c *kit.Context, place *state.Place) {
+// and Settings at the bottom. chats shows the open project's chats in it,
+// as while the chat list is hidden.
+func (s *Shell) rail(c *kit.Context, place *state.Place, chats bool) {
 	st := s.Stores
 	var open id.Project
 	if place != nil {
@@ -30,7 +31,7 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 		kit.Separator(c, 24, false)
 		kit.Disable(kit.Tooltip(kit.IconButton(c, kit.IconSearch, "Search", kit.Ghost), "Search comes with a later version"), true)
 		s.waiting(c)
-		if place != nil && place.View == state.ViewChat && st.ListHidden() {
+		if chats {
 			s.railChats(c, place.Project, place.Chat)
 		}
 		kit.Spacer(c)
@@ -42,6 +43,7 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 			}
 			if tools.Clicked() {
 				st.Nav.Go(state.Place{View: state.ViewInspector})
+				st.Shell.LeftOverlay = false
 			}
 		}
 		settings := kit.Tooltip(kit.IconButton(c, kit.IconSettings, "Settings", kit.Ghost), "Settings")
@@ -50,6 +52,7 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 		}
 		if settings.Clicked() {
 			st.Nav.Go(state.Place{View: state.ViewSettings})
+			st.Shell.LeftOverlay = false
 		}
 		if s.Quit != nil && kit.Tooltip(kit.IconButton(c, kit.IconX, "Quit Jenab", kit.Ghost), "Quit Jenab").Clicked() {
 			s.Quit()

@@ -220,3 +220,28 @@ func MemoryScope(c *kit.Context, st *state.Stores, p *app.ProjectItem) {
 		muted(logic.ScopeLinkFinish)
 	})
 }
+
+// ProjectMemory is a project's memory in its settings (SPEC 3.3,
+// memory.tsx's ProjectMemorySection), for projects.Screens.ProjectMemory:
+// the editor of the project shown, which reads the memory again each time
+// the page opens. A chat chip's [edit] opens its section.
+func ProjectMemory(st *state.Stores) func(c *kit.Context, p id.Project) {
+	editors := map[id.Project]*MemoryEditor{}
+	return func(c *kit.Context, p id.Project) {
+		e := editors[p]
+		if e == nil {
+			e = &MemoryEditor{Scope: "project", Project: p, Error: st.Error,
+				Load: func(then func(app.MemoryView, error)) { st.Pages.ProjectMemory(p, then) },
+				Save: func(m app.MemoryEdit, then func(app.MemorySaved, error)) { st.Pages.SaveProjectMemory(p, m, then) },
+			}
+			editors[p] = e
+		}
+		root := kit.Column(c).AlignItems(kit.Stretch).Key("project-memory-" + string(p))
+		// Built again after the page was left: read the memory again.
+		if read := kit.Local(root, "read", func() bool { return false }); !*read {
+			*read = true
+			e.Reload()
+		}
+		root.Children(func() { e.View(c, st) })
+	}
+}

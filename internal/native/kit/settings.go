@@ -31,7 +31,8 @@ func (n *SettingsNav) Go(page string) { n.Active, n.jump = page, page }
 // and one scrolling page on the right, 672 px wide at most (1152 when
 // wide). A page in the list scrolls to its SettingsSection. more builds
 // further groups under the list, as the open project's settings; nil for
-// none. back reports a click on Back to chats.
+// none. back reports a click on Back to chats. In a narrow window the
+// list is narrower, as settings-layout.tsx's w-44 below 900 px.
 func SettingsLayout(c *Context, label string, pages []string, nav *SettingsNav, wide bool, more, body func()) (back bool) {
 	if nav.Active == "" && len(pages) > 0 {
 		nav.Active = pages[0]
@@ -52,7 +53,7 @@ func SettingsLayout(c *Context, label string, pages []string, nav *SettingsNav, 
 			if more != nil {
 				more()
 			}
-		}).Width(224)
+		}).Width(listWidth(c))
 		Scroll(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			Column(c).AlignItems(Center).Children(func() {
 				w := float32(672)
@@ -172,4 +173,12 @@ var LeftToRight = ui.LeftToRight
 // and medium weight, a heading to assistive technology.
 func Subheading(c *Context, title string) Element {
 	return ui.Text(c, title).FontSize(14).FontWeight(500).Role(ui.RoleHeading).Level(3)
+}
+
+// listWidth is the page list's width: w-56, w-44 in a narrow window.
+func listWidth(c *Context) float32 {
+	if Narrow(c) {
+		return 176
+	}
+	return 224
 }

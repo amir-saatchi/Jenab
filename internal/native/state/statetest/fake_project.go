@@ -3,11 +3,13 @@ package statetest
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/chatexport"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // ProjectAdmin is the Fake's part for the project screens (TASK-057):
@@ -26,7 +28,11 @@ type ProjectAdmin struct {
 	Gate        chan struct{}
 	Exports     []app.ExportRequest
 	ChatExports []app.ChatExportRequest
-	stop        chan struct{}
+	// Memory is each project's memory, and MemSaves the edits saved
+	// to it (TASK-062).
+	Memory   map[id.Project]app.MemoryView
+	MemSaves []app.MemoryEdit
+	stop     chan struct{}
 }
 
 // Admin returns a copy of the Fake's ProjectAdmin, for tests to read.
@@ -34,7 +40,7 @@ func (f *Fake) Admin() ProjectAdmin {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	a := f.admin
-	a.Exports, a.ChatExports = slices.Clone(a.Exports), slices.Clone(a.ChatExports)
+	a.Exports, a.ChatExports, a.MemSaves = slices.Clone(a.Exports), slices.Clone(a.ChatExports), slices.Clone(a.MemSaves)
 	return a
 }
 
@@ -109,4 +115,34 @@ func (f *Fake) Export(_ context.Context, _ id.Project, c id.Chat, r app.ChatExpo
 	defer f.mu.Unlock()
 	f.admin.ChatExports = append(f.admin.ChatExports, r)
 	return chatexport.Result{Path: r.Target, Messages: len(f.Msgs[c]), Size: 1234}, nil
+}
+
+func (p projects) Memory(_ context.Context, pid id.Project) (app.MemoryView, error) {
+	p.f.mu.Lock()
+	defer p.f.mu.Unlock()
+	if v, ok := p.f.admin.Memory[pid]; ok {
+		return v, nil
+	}
+	return app.MemoryView{Scope: "project", Cap: 4000}, nil
+}
+
+func (p projects) SaveMemory(_ context.Context, pid id.Project, e app.MemoryEdit) (app.MemorySaved, error) {
+	p.f.mu.Lock()
+	defer p.f.mu.Unlock()
+	a := &p.f.admin
+	a.MemSaves = append(a.MemSaves, e)
+	if a.Memory == nil {
+		a.Memory = map[id.Project]app.MemoryView{}
+	}
+	v, ok := a.Memory[pid]
+	if !ok {
+		v = app.MemoryView{Scope: "project", Cap: 4000}
+	}
+	secs := slices.DeleteFunc(slices.Clone(v.Sections), func(m store.MemorySection) bool { return m.Section == e.Section })
+	if strings.TrimSpace(e.Content) != "" {
+		secs = append(secs, store.MemorySection{Section: e.Section, Content: e.Content, Revision: e.Revision + 1})
+	}
+	v.Sections = secs
+	a.Memory[pid] = v
+	return app.MemorySaved{Memory: v}, nil
 }

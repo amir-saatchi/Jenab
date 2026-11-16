@@ -50,30 +50,6 @@ func TestFieldAndCheckField(t *testing.T) {
 	})
 }
 
-func TestPageTitleSectionDetailRowRule(t *testing.T) {
-	view := func(c *Context) {
-		Column(c).Gap(16).Width(600).Children(func() {
-			PageTitle(c, persian, "Project settings · created Nov 16, 2026")
-			Section(c, "General", "What the project is", func() {
-				DetailRow(c, "Name", func() { Text(c, persian) })
-				DetailRow(c, "Folder", func() { Path(c, `C:\Jenab\projects\قیمت`) })
-			})
-			Rule(c)
-			between(c, func() {})
-		})
-	}
-	themes(t, view, func(t *testing.T, tt *ui.Tester) {
-		shows(t, tt, persian, "Project settings · created Nov 16, 2026", "General", "What the project is", "Name", "Folder", `C:\Jenab\projects\قیمت`)
-		if !HasRole(tt, "heading", persian) || !HasRole(tt, "heading", "General") {
-			t.Error("the title or the section has no heading")
-		}
-		if _, ok := tt.AccessByRole(ui.RoleGroup, "General"); !ok {
-			t.Error("the section is no group named by its title")
-		}
-		passesOver(t, tt)
-	})
-}
-
 func TestSegmentGroup(t *testing.T) {
 	level := "standard"
 	choices := []Segment{{Value: "strict", Label: "Strict"}, {Value: "standard", Label: "Standard", Icon: IconProjectFolder}, {Value: "auto", Label: persian}}

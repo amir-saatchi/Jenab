@@ -10,3 +10,7 @@ const (
 	// term even if the user renames that chat.
 	Mother = "Mother"
 )
+
+// Identifier is the app's reverse-DNS name, as mygo.json's identifier:
+// the installer's Apps entry is named by it.
+const Identifier = "io.github.amir-saatchi.jenab"

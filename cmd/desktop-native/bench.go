@@ -121,6 +121,7 @@ func startBench(st *state.Stores, post state.Post, win *mygo.Window) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /shot", b.shot)
+	mux.HandleFunc("POST /file", b.file)
 	b.updateRoutes(mux)
 	mux.HandleFunc("POST /quit", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
