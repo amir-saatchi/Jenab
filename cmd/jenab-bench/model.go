@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -52,12 +53,18 @@ func writeJSON(w http.ResponseWriter, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
+// toolWord is what a user's message holds for the model to call tools
+// first (-dev-tools): two read-only queries, one of them failing, then the
+// reply once their results are in.
+const toolWord = "use a tool"
+
 // chat streams the reply. A request without tools, such as a chat title,
 // gets a short answer at once.
 func (m *fakeModel) chat(w http.ResponseWriter, r *http.Request) {
 	m.calls.Add(1)
 	var req struct {
 		Messages []struct {
+			Role    string `json:"role"`
 			Content string `json:"content"`
 		} `json:"messages"`
 		Tools []json.RawMessage `json:"tools"`
@@ -90,6 +97,15 @@ func (m *fakeModel) chat(w http.ResponseWriter, r *http.Request) {
 	if len(req.Tools) == 0 {
 		send("Benchmark chat", false)
 		send("", true)
+		return
+	}
+	if last := req.Messages[len(req.Messages)-1]; last.Role == "user" && strings.Contains(strings.ToLower(last.Content), toolWord) {
+		enc.Encode(map[string]any{"message": map[string]any{"role": "assistant", "content": "", "tool_calls": []map[string]any{
+			{"function": map[string]any{"name": "query", "arguments": map[string]string{"sql": "SELECT 1 AS one"}}},
+			{"function": map[string]any{"name": "query", "arguments": map[string]string{"sql": "SELECT * FROM no_such_table"}}},
+		}}, "done": false})
+		enc.Encode(map[string]any{"message": map[string]string{"role": "assistant", "content": ""}, "done": true,
+			"done_reason": "stop", "prompt_eval_count": prompt, "eval_count": 20})
 		return
 	}
 	n := m.streams.Add(1)

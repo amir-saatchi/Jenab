@@ -208,6 +208,10 @@ func (s *Screen) footer(c *kit.Context, t *state.Thread, r logic.Row, answer jc.
 		if logic.ToolTurn(s.views[t.Chat.ID].msgs, answer.Turn) {
 			s.undoTurn(c, t, answer.Turn, 0, "")
 		}
+		if started := s.st.Settings.Started; started != nil && started.DevTools &&
+			kit.SmallButton(c, nil, "Inspect", kit.Ghost).Clicked() {
+			s.st.Nav.Go(state.Place{View: state.ViewInspector, Project: t.Project, Chat: t.Chat.ID, Turn: answer.Turn})
+		}
 	})
 }
 
