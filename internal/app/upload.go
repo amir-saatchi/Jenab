@@ -77,7 +77,8 @@ func (u *uploads) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		uploadError(w, http.StatusBadRequest, "the file name is not percent-encoded")
 		return
 	}
-	// Wails mounts a route's handler with the route cut off the path.
+	// The path may come with the route in front or without it, as a mux
+	// that strips the route hands it on.
 	pid := strings.Trim(strings.TrimPrefix(r.URL.Path, UploadRoute), "/")
 	if !id.Valid(pid) {
 		uploadError(w, http.StatusNotFound, "no such project")

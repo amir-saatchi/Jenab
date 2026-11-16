@@ -98,7 +98,7 @@ func TestServices(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Errors the frontend can act on.
+	// Errors the UI can act on.
 	if err := cs.SetLevel(ctx, op.ID, c.ID, "loose"); err == nil {
 		t.Fatal("a bad level")
 	} else {

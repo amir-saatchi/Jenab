@@ -94,7 +94,7 @@ func (k *memKeyring) Delete(name string) error {
 const testKey = "sk-test-0123456789abcdef"
 
 // env is the app's packages on a temp folder, wired as in cmd/desktop,
-// with a fake provider "p" and no Wails.
+// with a fake provider "p" and no UI.
 type env struct {
 	t        *testing.T
 	root     string

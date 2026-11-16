@@ -195,7 +195,8 @@ func ObjectHandler(pm *project.Manager) http.Handler {
 		}
 		return bucket.Served{MIME: o.MIME, Hash: o.SHA256, ModTime: o.UpdatedAt, Body: &leased{body, proj}}, nil
 	})
-	// Wails mounts a route's handler with the route cut off the path.
+	// The path may come with the route in front or without it, as a mux
+	// that strips the route hands it on.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, bucket.Route) {
 			r = r.Clone(r.Context())

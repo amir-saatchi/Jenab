@@ -7,8 +7,8 @@ import (
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
-// Publisher sends project events to the frontend; app implements it with
-// Wails events (project:notice, project:activity). It must not block.
+// Publisher sends project events to the UI; app.Publisher implements it
+// (project:notice, project:activity). It must not block.
 type Publisher interface {
 	Notice(Notice)
 	Activity(Activity)

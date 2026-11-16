@@ -10,8 +10,8 @@ import (
 
 // NativeBucket is the bucket as the native app reads it (SPEC 4.5): the
 // BucketService, and Read, which hands a file's bytes to the screen in the
-// same process. The native app has no webview, so there is no objects
-// route; the Wails app keeps /objects. It is its own type so Wails binds
+// same process. The app has no webview, so it reads files here, not
+// through the objects route. It is its own type, so the services keep
 // no Read.
 type NativeBucket struct{ *BucketService }
 

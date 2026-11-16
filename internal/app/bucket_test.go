@@ -50,7 +50,7 @@ func TestBucket(t *testing.T) {
 		uiErr(t, err, KindInvalid)
 	}
 
-	// The objects route, as Wails mounts it: the route cut off the path.
+	// The objects route, with the route in front of the path and without it.
 	h := ObjectHandler(e.pm)
 	for _, path := range []string{"/" + string(op.ID) + "/notes/a.txt", objectPath(op.ID, "notes/a.txt")} {
 		rec := httptest.NewRecorder()

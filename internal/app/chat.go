@@ -176,7 +176,7 @@ func (s *ChatService) Notes(ctx context.Context, p id.Project, c id.Chat) (n cha
 
 // Send adds the user's message; the turn's progress comes as events.
 // quote, if not nil, is the passage of an earlier message of the chat it
-// replies to: its text and message, and cut when the frontend cut it; the
+// replies to: its text and message, and cut when the UI cut it; the
 // turn and role are read from the source (TASK-019). Pictures come with
 // the composer's attachments (P1-15).
 func (s *ChatService) Send(ctx context.Context, p id.Project, c id.Chat, text string, quote *chat.Quote) (m id.Message, err error) {

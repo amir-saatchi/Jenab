@@ -18,9 +18,9 @@ import (
 	"github.com/amir-saatchi/jenab/internal/store"
 )
 
-// UIError is what the frontend gets for a failed call (Q25): a kind it can
+// UIError is what the UI gets for a failed call (Q25): a kind it can
 // act on, a short plain-English message, and the details for *Copy
-// details*. In JavaScript it is the cause of the rejected call.
+// details*.
 type UIError struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
@@ -40,7 +40,7 @@ const (
 
 func (e *UIError) Error() string { return e.Message }
 
-// MarshalJSON fixes the shape the frontend reads.
+// MarshalJSON fixes its shape as JSON.
 func (e *UIError) MarshalJSON() ([]byte, error) {
 	type plain UIError
 	return json.Marshal((*plain)(e))
@@ -137,7 +137,7 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	return &UIError{Kind: KindInternal, Message: "Something went wrong.", Details: details}
 }
 
-// levelError is a bad approval level from the frontend.
+// levelError is a bad approval level from the UI.
 type levelError struct{ level string }
 
 func (e *levelError) Error() string {
