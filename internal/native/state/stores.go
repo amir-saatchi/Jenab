@@ -31,6 +31,9 @@ type API struct {
 	Chats    ChatAPI
 	Settings SettingsAPI
 	System   SystemAPI
+	// Actions is what the chat screen asks of the chat service; nil when
+	// Chats has it too, as *app.ChatService does.
+	Actions ActionsAPI
 }
 
 // Toast is a message for the window's toasts: a project notice, or an
@@ -56,6 +59,7 @@ type Stores struct {
 	Settings *Settings
 	Shell    *Shell
 	Quotes   Quotes
+	Actions  *Actions
 	// Toasts wait for the window to show them; the kit takes them with
 	// TakeToasts as it builds.
 	Toasts []Toast
@@ -87,6 +91,11 @@ func NewStores(api API, post Post) *Stores {
 	s.Threads = NewThreads(api.Chats, post, s.Error)
 	s.Chats = NewChats(api.Chats, post, s.Threads)
 	s.Settings = NewSettings(api.Settings, post, s.Error)
+	actions := api.Actions
+	if actions == nil {
+		actions, _ = api.Chats.(ActionsAPI)
+	}
+	s.Actions = NewActions(actions, post, s.Error)
 	go s.runReloads()
 	return s
 }
