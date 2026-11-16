@@ -944,7 +944,9 @@ internal/native/
     dir.go              RightToLeft: a text's direction from its first strong character, as dir="auto"; TextInput,
                         TextArea and the composer take their text's direction from it (TASK-062)
     markdown.go         Markdown{View, Stream}: code blocks (tab stops every 2, copy), lists and tables in their own
-                        direction (Options.Block), ShareSelection across a thread
+                        direction (Options.Block), ShareSelection across a thread; links by one rule: a #heading
+                        scrolls, Own takes jenab://, the rest open only if SafeLink allows (TASK-064)
+    safelink.go         SafeLink: http, https and mailto only (MyGo's ui.SafeToOpen), for every link from data (TASK-064)
     frame.go            Rail, RailTile, SidePanel, HeadedSidePanel, Bar (it moves the window), Main, List (virtual),
                         NavItem, Count, Dot (5.12)
     button.go, input.go, overlay.go, sidebar.go, status.go, toast.go   Button (five variants), IconButton, TextInput,

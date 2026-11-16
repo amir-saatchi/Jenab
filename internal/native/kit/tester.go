@@ -58,7 +58,7 @@ func Shows(tt *Tester, s string) bool {
 // HasRole reports whether a screen reader gets an element named name in
 // one of the roles the kit's frame gives: "navigation", "main", "article",
 // "status", "heading", "list", and "complementary", "contentinfo", "tree",
-// "group", "image", and "dialog".
+// "group", "image", "dialog" and "link".
 func HasRole(tt *Tester, role, name string) bool {
 	r, ok := roles[role]
 	if !ok {
@@ -83,6 +83,8 @@ var roles = map[string]ui.Role{
 	"image":         ui.RoleImage,
 	// TASK-062: the narrow window's overlays and drawer.
 	"dialog": ui.RoleDialog,
+	// TASK-064: the links in a text.
+	"link": ui.RoleLink,
 }
 
 // WindowsButtons gives the tester's window the room of Windows 11's
@@ -144,4 +146,16 @@ func UnderWindowButtons(tt *Tester, width int) []string {
 		}
 	}
 	return under
+}
+
+// Links returns the names of the links a screen reader gets, in order
+// (TASK-064).
+func Links(tt *Tester) []string {
+	var out []string
+	for _, n := range tt.AccessAll() {
+		if n.Role == ui.RoleLink {
+			out = append(out, n.Name)
+		}
+	}
+	return out
 }

@@ -17,16 +17,18 @@ import (
 // https://github.com/egoist/mygo/pull/1217): without it, a tab advances
 // as DirectWrite sets it, and v0.7.4 drew tabs as nothing.
 type Markdown struct {
-	// OnLink opens a link the user clicks; nil does what MyGo does.
+	// OnLink opens a link the user clicks that SafeLink allows, in place of
+	// the system; nil opens it in the system. Other links open nothing
+	// (TASK-064).
 	OnLink func(url string)
 	// ShareSelection leaves the selection to a Selectable element around
 	// the view, as the thread's, so that one runs across messages and
 	// copies them as text, as a browser does. Without it the view has a
 	// selection of its own, which copies as text, HTML and Markdown.
 	ShareSelection bool
-	// Own, when set and OnLink isn't, takes the links the app opens
-	// itself, returning true for those, as jenab:// links (SPEC 4.5); the
-	// others open as MyGo opens them.
+	// Own, when set, takes the links the app opens itself, returning true
+	// for those, as jenab:// links (SPEC 4.5). It is asked before SafeLink,
+	// so it must take only links it knows.
 	Own func(url string) bool
 	// CodeLink makes inline code a link where it returns one, as code that
 	// holds just a jenab:// link.
@@ -39,32 +41,42 @@ type Markdown struct {
 	// rtl holds the directions of the nested views being built, the
 	// innermost last.
 	rtl []bool
+	// anchor is a #heading link clicked in the view of the text src, which
+	// scrolls to it in the next frame: in that view only, since one
+	// Markdown may show many texts, as the thread's.
+	anchor struct{ src, to string }
+	// building is the text of the view being built.
+	building string
 }
 
 // View shows src, Markdown that is complete.
 func (m *Markdown) View(c *Context, src string) Element {
-	return markdown.View(c, m.prepare(c, src), &m.opts)
+	return markdown.View(c, m.prepare(c, src, false), &m.opts)
 }
 
 // Stream shows src, Markdown still being written: pass the reply so far
 // each frame, as it grows.
 func (m *Markdown) Stream(c *Context, src string) Element {
-	return markdown.Stream(c, m.prepare(c, src), &m.opts)
+	return markdown.Stream(c, m.prepare(c, src, true), &m.opts)
 }
 
-func (m *Markdown) prepare(c *Context, src string) string {
+func (m *Markdown) prepare(c *Context, src string, streaming bool) string {
 	th := markdownTheme(c.Theme().Dark)
+	click := func(url string) { m.click(c, url) }
 	for _, o := range []*markdown.Options{&m.opts, &m.nested} {
-		o.Theme, o.OnLink, o.CodeBlock, o.Block = th, m.OnLink, m.codeBlock, m.block
+		o.Theme, o.OnLink, o.CodeBlock, o.Block = th, click, m.codeBlock, m.block
 		o.CodeLink = m.CodeLink
-		if own := m.Own; own != nil && m.OnLink == nil {
-			o.OnLink = func(url string) {
-				if !own(url) {
-					c.OpenURL(url)
-				}
-			}
-		}
 	}
+	// The anchor goes to the view whose link was clicked, once. The others
+	// get none, so none of them scrolls when it is built again, as a row
+	// of the thread coming back into view.
+	m.opts.Anchor = ""
+	if a := m.anchor; a.to != "" && (src == a.src || streaming && strings.HasPrefix(src, a.src)) {
+		m.opts.Anchor = a.to
+		m.opts.AnchorVersion++
+		m.anchor.src, m.anchor.to = "", ""
+	}
+	m.building = src
 	m.opts.ShareSelection = m.ShareSelection
 	m.nested.ShareSelection = true
 	return src
@@ -273,5 +285,24 @@ func (m *Markdown) copyButton(c *ui.Context, b *markdown.CodeBlockView) {
 		c.WriteClipboard(b.Code())
 		*copiedAt = c.Now()
 		c.After(2 * time.Second)
+	}
+}
+
+// click opens a link the user clicked, by one rule for all content
+// (TASK-064): a #heading link scrolls to its heading, as MyGo's default
+// does; a link Own takes goes to the app; any other link opens only if
+// SafeLink allows it, through OnLink or else in the system. The rest open
+// nothing.
+func (m *Markdown) click(c *Context, url string) {
+	switch {
+	case strings.HasPrefix(url, "#"):
+		m.anchor.src, m.anchor.to = m.building, url
+		c.After(0)
+	case m.Own != nil && m.Own(url):
+	case !SafeLink(url):
+	case m.OnLink != nil:
+		m.OnLink(url)
+	default:
+		c.OpenURL(url)
 	}
 }

@@ -11,12 +11,13 @@ import (
 // a bare link does.
 
 // own takes the links the chat opens itself: jenab:// links, and the
-// others when OnLink is set.
+// others that kit.SafeLink allows when OnLink is set. The kit drops the
+// rest (TASK-064).
 func (s *Screen) own(url string) bool {
 	switch {
 	case state.IsLink(url):
 		s.st.OpenLink(url, nil)
-	case s.OnLink != nil:
+	case s.OnLink != nil && kit.SafeLink(url):
 		s.OnLink(url)
 	default:
 		return false
