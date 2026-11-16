@@ -337,7 +337,18 @@ func TestMenuTitleAndTileSpinner(t *testing.T) {
 	}
 	themes(t, view, func(t *testing.T, tt *ui.Tester) {
 		chosen = ""
-		shows(t, tt, persian, `C:\Jenab\projects\demo`, "Notes · working")
+		shows(t, tt, persian, "Notes · working")
+		// The folder is no line of its own but the title's tooltip, read
+		// as its description (TASK-063).
+		if tt.HasText(`C:\Jenab\projects\demo`) {
+			t.Error("the folder shows as a line")
+		}
+		if d, _ := Description(tt, "Project menu"); d != `C:\Jenab\projects\demo` {
+			t.Errorf("the project menu's description is %q, want the folder", d)
+		}
+		if r, _ := tt.Find("Project menu"); r.H != BarButton {
+			t.Errorf("the project menu is %v high, want %v", r.H, BarButton)
+		}
 		// The tile's label tells it works; its spinner is what it shows.
 		tabTo(t, tt, "Project menu")
 		tt.Key(0, ui.KeyEnter)

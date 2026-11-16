@@ -24,17 +24,9 @@ func (s *Screen) View(c *kit.Context, p id.Project, ch id.Chat, key string, cont
 	o := v.Object
 	kit.Bar(c, func() {
 		kit.Icon(c, kit.IconFile).Size(16, 16).Shrink(0).TextColor(kit.TokensOf(c).MutedForeground)
-		kit.Column(c).Shrink(1).MinWidth(0).Children(func() {
-			kit.Title(c, state.NameOf(key))
-			sub := "Files"
-			switch {
-			case o != nil && o.Title != "":
-				sub = o.Title
-			case state.ParentOf(key) != "":
-				sub = state.ParentOf(key)
-			}
-			kit.Muted(c, sub)
-		})
+		// One line, as high as the window's buttons (TASK-063): the file's
+		// title or its folder is the name's tooltip.
+		kit.Title(c, state.NameOf(key)).Tooltip(fileTip(key, o))
 		kit.Spacer(c)
 		kit.Row(c).Shrink(0).Gap(4).AlignItems(kit.Center).Children(func() {
 			if o != nil {
@@ -73,7 +65,16 @@ func (s *Screen) View(c *kit.Context, p id.Project, ch id.Chat, key string, cont
 
 // button is a header's icon button, its label as its tooltip.
 func button(c *kit.Context, icon *kit.SVG, label string) kit.Element {
-	return kit.Tooltip(kit.IconButton(c, icon, label, kit.Ghost).Size(32, 32), label)
+	return kit.BarIconButton(c, icon, label)
+}
+
+// fileTip is the tooltip on a file's name in its bar: its title, or its
+// path in Files.
+func fileTip(key string, o *app.Object) string {
+	if o != nil && o.Title != "" {
+		return o.Title
+	}
+	return "Files/" + key
 }
 
 func (s *Screen) content(c *kit.Context, p id.Project, key string, o app.Object, v *state.FileView) {

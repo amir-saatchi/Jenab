@@ -71,7 +71,7 @@ func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel strin
 		if left {
 			label = "Move the chat to the right"
 		}
-		if kit.Tooltip(kit.IconButton(c, kit.IconSwapSides, label, kit.Ghost).Size(32, 32), label).Clicked() {
+		if kit.BarIconButton(c, kit.IconSwapSides, label).Clicked() {
 			sh.Swap(ref.Project)
 		}
 	}
@@ -86,11 +86,11 @@ func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel strin
 		if left {
 			icon = kit.IconSidebarClose
 		}
-		if kit.Tooltip(kit.IconButton(c, icon, "Hide the chat", kit.Ghost).Size(32, 32), "Hide the chat").Clicked() {
+		if kit.BarIconButton(c, icon, "Hide the chat").Clicked() {
 			sh.ChatHidden[ref] = true
 		}
 	}
-	if kit.Tooltip(kit.IconButton(c, kit.IconX, closeLabel, kit.Ghost).Size(32, 32), closeLabel).Clicked() {
+	if kit.BarIconButton(c, kit.IconX, closeLabel).Clicked() {
 		sh.Close(ref)
 	}
 }

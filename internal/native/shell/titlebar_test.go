@@ -29,12 +29,85 @@ func (x *fixture) buttons(t *testing.T, width int) {
 	x.clear(t, width)
 }
 
-// clear checks that no control lies under the window's buttons.
+// clear checks that no control lies under the window's buttons, and that
+// the bar's controls are centered with them.
 func (x *fixture) clear(t *testing.T, width int) {
 	t.Helper()
 	if under := kit.UnderWindowButtons(x.tt, width); len(under) > 0 {
 		t.Errorf("under the window's buttons: %q", under)
 	}
+	if off := kit.OffTheWindowButtonsMiddle(x.tt); len(off) > 0 {
+		t.Errorf("not on the window buttons' middle: %q", off)
+	}
+}
+
+// inBar is the box of the text or control named name in the bar's row
+// from x0 on.
+func (x *fixture) inBar(name string, x0 float32) (kit.AccessInfo, bool) {
+	for _, a := range x.tt.AccessAll() {
+		if a.Name == name && a.Bounds.Y < 32 && a.Bounds.X >= x0 {
+			return a, true
+		}
+	}
+	return kit.AccessInfo{}, false
+}
+
+// The bar is one line as high as the window's buttons: the project's
+// name with its folder as its tooltip, and the chat's title with all of
+// it as its tooltip and no second line, in any script; the rail's top is
+// an empty strip as high as the bar.
+func TestTheBarIsOneLine(t *testing.T) {
+	both(t, func(t *testing.T, x *fixture) {
+		x.buttons(t, 1280)
+		x.tt.Click("Demo")
+		x.settle(func() bool { return x.st.Nav.Current() != nil && x.st.Threads.Threads[x.st.Nav.Current().Chat] != nil })
+		x.settle(nil)
+		x.clear(t, 1280)
+		// The project's folder is the menu's tooltip, not a line.
+		if d, _ := kit.Description(x.tt, "Project menu"); d != `C:\Projects\Demo` {
+			t.Errorf("the project menu's description is %q, want its folder", d)
+		}
+		if x.tt.HasText(`C:\Projects\Demo`) {
+			t.Error("the project's folder shows as a line")
+		}
+		// Mother's header: its title, and no second line; the chat list's
+		// row still says Project home.
+		if _, ok := x.inBar("Mother", 312); !ok {
+			t.Errorf("no Mother in the chat's header: %q", x.tt.Texts())
+		}
+		if _, ok := x.inBar("Project home", 312); ok {
+			t.Error("the chat's header has a second line")
+		}
+		shows(t, x.tt, "Project home")
+
+		// A right-to-left title, whole as its tooltip.
+		x.click(t, persian)
+		x.settle(func() bool { return x.st.Threads.Threads[x.st.Nav.Current().Chat] != nil })
+		x.settle(nil)
+		a, ok := x.inBar(persian, 312)
+		if !ok {
+			t.Fatalf("no %q in the chat's header: %q", persian, x.tt.Texts())
+		}
+		if a.Description != persian {
+			t.Errorf("the title's description is %q, want the title", a.Description)
+		}
+		if mid := a.Bounds.Y + a.Bounds.H/2; mid < 15.5 || mid > 16.5 {
+			t.Errorf("the title is centered at %v, want the window buttons' 16", mid)
+		}
+		for _, s := range []string{"Last active", "No messages yet"} {
+			for _, b := range x.tt.AccessAll() {
+				if b.Bounds.Y < 32 && b.Bounds.X >= 312 && len(b.Name) >= len(s) && b.Name[:len(s)] == s {
+					t.Errorf("the chat's header has a second line %q", b.Name)
+				}
+			}
+		}
+		// The rail's tiles start under the bar.
+		if _, y, _, _ := box(t, x.tt, "Demo", false); y < 33 {
+			t.Errorf("the rail's first tile is at %v, in the bar", y)
+		}
+		x.clear(t, 1280)
+		shot(t, x, "titlebar-compact")
+	})
 }
 
 // pressed is the tab whose icon is pressed, "" for none.

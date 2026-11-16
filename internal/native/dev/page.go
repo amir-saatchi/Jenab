@@ -126,7 +126,7 @@ func (s *Screen) bar(c *kit.Context, view state.View) {
 			if t.view == view {
 				v = kit.Secondary
 			}
-			b := kit.SmallButton(c, t.icon, t.label, v).Height(32).PaddingX(12).FontSize(14)
+			b := kit.SmallButton(c, t.icon, t.label, v).Height(kit.BarButton).PaddingX(12).FontSize(14).FocusRingOffset(0)
 			if t.view == view {
 				b.Current(kit.CurrentPage)
 			}

@@ -192,11 +192,7 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat, end barEnd) {
 	if title == "" {
 		title = "New chat"
 	}
-	sub := ""
-	if it != nil {
-		sub = s.subline(c, *it)
-	}
-	s.header(c, p, ch, title, sub, mother, info.Title, end)
+	s.header(c, p, ch, title, mother, info.Title, end)
 	damage := st.Projects.Opened[p].Damage
 	if damage != nil {
 		kit.Box(c).Padding(12, 16, 0, 16).Children(func() {
@@ -221,10 +217,12 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat, end barEnd) {
 }
 
 // header is the chat's title bar (ChatHeader): the button hiding the chat
-// list (☰ when narrow), Mother's diamond, the title and its second line,
-// and the chat's ⋯ menu (chat-menu.tsx), then what end puts at its end.
-// raw is the chat's title as stored.
-func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool, raw string, end barEnd) {
+// list (☰ when narrow), Mother's diamond, the title on one line with all
+// of it as its tooltip, and the chat's ⋯ menu (chat-menu.tsx), then what
+// end puts at its end. What the chat does and when it was last active are
+// on its row in the chat list, so the bar is one line, as high as the
+// window's buttons (TASK-063). raw is the chat's title as stored.
+func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title string, mother bool, raw string, end barEnd) {
 	hidden := s.Stores.ListHidden()
 	narrow := kit.Narrow(c)
 	kit.Bar(c, func() {
@@ -235,20 +233,16 @@ func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub stri
 		switch {
 		case narrow:
 			s.openSidebar(c)
-		case kit.Tooltip(kit.IconButton(c, icon, label, kit.Ghost).Size(32, 32), label).Clicked():
+		case kit.BarIconButton(c, icon, label).Clicked():
 			s.Stores.SetListHidden(!hidden)
 		}
 		if mother {
 			kit.Icon(c, kit.IconDiamond).Size(16, 16).Shrink(0)
 		}
-		kit.Column(c).Shrink(1).MinWidth(0).Children(func() {
-			kit.Title(c, title)
-			if sub != "" {
-				kit.Muted(c, sub)
-			}
-		})
+		kit.Title(c, title).Tooltip(title)
 		kit.Spacer(c)
-		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(32, 32)
+		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(kit.BarButton, kit.BarButton).
+			FocusRingOffset(0)
 		s.barEnd(c, end)
 	})
 }

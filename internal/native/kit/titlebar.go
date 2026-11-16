@@ -21,12 +21,33 @@ var (
 	IconPipelines = icon("workflow")
 )
 
-// BarHeight is the height of every column's top bar, in DIPs: at least
-// the window buttons' (32 on Windows 11).
-const BarHeight = 56
+// BarHeight is the height of every column's top bar, in DIPs, with the
+// rule under it, where the system keeps its own title bar (macOS and
+// Linux until TASK-060). Under Windows' buttons the bar is as high as
+// they are, 32 DIPs on Windows 11, with the rule under them (barHeight).
+const BarHeight = 40
 
-// barHeight is BarHeight, or the window buttons' height if more.
-func barHeight(c *Context) float32 { return max(BarHeight, c.TitleBar().Height) }
+// BarButton is the size of a bar's buttons, in DIPs: 28, so that they and
+// their focus ring fit in Windows' 32 DIPs. Their centers line up with
+// the window buttons'.
+const BarButton = 28
+
+// barHeight is the window buttons' height and the rule under it, so that
+// the bar's row is as high as the buttons and centered with them; at
+// least a bar button and its focus ring. BarHeight with no buttons.
+func barHeight(c *Context) float32 {
+	if h := c.TitleBar().Height; h > 0 {
+		return max(h, BarButton+4) + 1
+	}
+	return BarHeight
+}
+
+// BarIconButton is an icon button of a bar, as the chat's ⋯ menu or the
+// dock's buttons: a ghost IconButton BarButton square, label its name and
+// tooltip. Its focus ring is on its edge, so it fits in the bar.
+func BarIconButton(c *Context, icon *SVG, label string) Element {
+	return IconButton(c, icon, label, Ghost).Size(BarButton, BarButton).Shrink(0).FocusRingOffset(0)
+}
 
 // barPadding is a bar's padding on its start and end edges.
 const barPadding = 12
@@ -47,13 +68,13 @@ func ControlsRoom(c *Context) Element {
 }
 
 // BarToggle is an icon button of a bar that stays pressed while on, as
-// the right sidebar's tabs: 32 DIPs square, filled with the accent while
+// the right sidebar's tabs: BarButton square, filled with the accent while
 // on. label names it for assistive technology, which gets a toggle button
 // pressed while on, and shows as its tooltip. Changed reports a click, or
 // Space or Enter while it has the focus.
 func BarToggle(c *Context, icon *SVG, label string, on bool) Element {
 	k := TokensOf(c)
-	b := ui.ToggleBase(c, &on).Size(32, 32).Shrink(0).Radius(Radius * 0.8).AlignItems(ui.Center).Justify(ui.Center).
+	b := ui.ToggleBase(c, &on).Size(BarButton, BarButton).Shrink(0).FocusRingOffset(0).Radius(Radius * 0.8).AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Tooltip(label).TextColor(k.MutedForeground)
 	switch {
 	case on:
