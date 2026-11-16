@@ -461,7 +461,17 @@ export interface PresetItem {
     "fields": string[] | null;
 
     /**
-     * a local Ollama needs no key
+     * "cloud", or "local" for one on this computer
+     */
+    "group": string;
+
+    /**
+     * the host it talks to, e.g. api.anthropic.com
+     */
+    "host": string;
+
+    /**
+     * one on this computer needs no key
      */
     "no_key": boolean;
 

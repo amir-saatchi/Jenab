@@ -7,14 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SettingsService, type ConnectResult, type PresetItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
-import { placeholders } from "@/settings/format"
+import { fieldLabel, firstPick, formFor, providerGroups } from "@/chat/provider-choice"
 import { useSettings } from "@/state/settings"
-
-const OTHER = "other"
 
 // freeName is name, or name-2, name-3… when a provider has it.
 function freeName(name: string, taken: Record<string, unknown>) {
@@ -54,18 +52,17 @@ export function ConnectForm({
     SettingsService.Presets()
       .then((ps) => {
         setPresets(ps ?? [])
-        setPick((ps ?? [])[0]?.id ?? OTHER)
+        setPick(firstPick(ps ?? []))
       })
       .catch(showError)
   }, [replace])
 
-  const preset = presets?.find((p) => p.id === pick)
-  const isOther = !replace && pick === OTHER
-  const needsKey = !!replace || isOther || !preset?.no_key
-  const wanted = replace ? placeholders(replace.base_url) : (preset?.fields ?? [])
+  const shape = formFor(pick, presets ?? [], replace)
+  const { preset, other: isOther, key: needsKey, fields: wanted } = shape
   const ready =
     !busy &&
-    (replace || (isOther ? other.name.trim() !== "" && other.base_url.trim() !== "" : !!preset)) &&
+    shape.chosen &&
+    (!isOther || (other.name.trim() !== "" && other.base_url.trim() !== "")) &&
     (!needsKey || key.trim() !== "") &&
     wanted.every((f) => (fields[f] ?? "").trim() !== "")
 
@@ -101,31 +98,40 @@ export function ConnectForm({
   if (!presets) return <Spinner />
   return (
     <form className="flex flex-col gap-4" onSubmit={connect}>
-      {!replace && (
-        <ToggleGroup
-          type="single"
-          value={pick}
-          onValueChange={(v) => {
-            if (!v || v === pick) return
-            // A key typed for one provider never goes to another one's URL.
-            setPick(v)
-            setKey("")
-          }}
-          variant="outline"
-          size="sm"
-          className="flex-wrap"
-          aria-label="Provider"
-        >
-          {presets.map((p) => (
-            <ToggleGroupItem key={p.id} value={p.id}>
-              {p.name}
-              {p.running && <span className="text-xs text-tone-green">running</span>}
-            </ToggleGroupItem>
-          ))}
-          <ToggleGroupItem value={OTHER}>Other…</ToggleGroupItem>
-        </ToggleGroup>
-      )}
       <FieldGroup>
+        {!replace && (
+          <Field>
+            <FieldLabel htmlFor={`${id}-provider`}>Provider</FieldLabel>
+            <Select
+              value={pick}
+              onValueChange={(v) => {
+                if (v === pick) return
+                // A key typed for one provider never goes to another one's URL.
+                setPick(v)
+                setKey("")
+              }}
+            >
+              <SelectTrigger id={`${id}-provider`} className="w-full">
+                <SelectValue placeholder="Choose a provider">{isOther ? "OpenAI-compatible…" : preset?.name}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {providerGroups(presets).map((g) => (
+                  <SelectGroup key={g.key}>
+                    <SelectLabel>{g.label}</SelectLabel>
+                    {g.items.map((c) => (
+                      <SelectItem key={c.id} value={c.id} textValue={c.name}>
+                        <span className="flex flex-col gap-0.5">
+                          <span>{c.name}</span>{" "}
+                          <span className="text-xs text-muted-foreground">{c.hint}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
         {isOther && (
           <>
             <Field>
@@ -156,11 +162,12 @@ export function ConnectForm({
         )}
         {wanted.map((f) => (
           <Field key={f}>
-            <FieldLabel htmlFor={`${id}-${f}`}>{f.replaceAll("_", " ")}</FieldLabel>
+            <FieldLabel htmlFor={`${id}-${f}`}>{fieldLabel(f)}</FieldLabel>
             <Input id={`${id}-${f}`} value={fields[f] ?? ""} onChange={(e) => setFields({ ...fields, [f]: e.target.value })} />
+            <FieldDescription>Part of the base URL · stored in the OS keychain</FieldDescription>
           </Field>
         ))}
-        {needsKey ? (
+        {needsKey && (
           <Field>
             <FieldLabel htmlFor={`${id}-key`}>API key</FieldLabel>
             <InputGroup>
@@ -179,9 +186,12 @@ export function ConnectForm({
               {replace ? "Checked with the provider, then stored in the OS keychain" : "Stored in the OS keychain · also in Settings → Models"}
             </FieldDescription>
           </Field>
-        ) : (
+        )}
+        {preset?.no_key && (
           <FieldDescription>
-            {preset?.running ? "Ollama runs on this computer; no key is needed." : "Start Ollama on this computer first."}
+            {preset.running
+              ? `${preset.name} runs on this computer; no key is needed.`
+              : `No key is needed. Start ${preset.name} on this computer first.`}
           </FieldDescription>
         )}
       </FieldGroup>

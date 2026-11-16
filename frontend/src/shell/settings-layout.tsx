@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils"
 // Full-view settings (SPEC 5.12): a page list on the left, one scrolling
 // page on the right. A page in the list scrolls to its section, whose id is
 // sectionId(page), or calls onSelect when the page shown is another view.
-// Wide pages, such as the developer tools, use the window's width.
+// Wide pages, such as the developer tools, use the window's width. more
+// is further groups under the page list, such as a link to another view.
 export function SettingsLayout({
   label,
   items,
@@ -28,6 +29,7 @@ export function SettingsLayout({
   onSelect,
   onBack,
   wide,
+  more,
   children,
 }: {
   label?: string
@@ -36,6 +38,7 @@ export function SettingsLayout({
   onSelect?: (page: string) => void
   onBack: () => void
   wide?: boolean
+  more?: React.ReactNode
   children: React.ReactNode
 }) {
   const [active, setActive] = React.useState(initial ?? items[0])
@@ -68,6 +71,7 @@ export function SettingsLayout({
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          {more}
         </SidebarContent>
       </Sidebar>
       <div className="flex min-w-0 flex-1">
@@ -83,7 +87,7 @@ export function sectionId(page: string) {
   return "settings-" + page.toLowerCase().replace(/[^a-z0-9]+/g, "-")
 }
 
-export function SettingsTitle({ title, description }: { title: string; description?: string }) {
+export function SettingsTitle({ title, description }: { title: React.ReactNode; description?: string }) {
   return (
     <div className="flex flex-col gap-1">
       <h1 className="text-xl font-semibold tracking-tight">{title}</h1>

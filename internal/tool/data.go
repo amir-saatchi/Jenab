@@ -49,9 +49,10 @@ func queryTool() Tool {
 	return Func(Spec{
 		Name: "query",
 		Description: "Run one read-only SQLite query (SELECT, WITH or VALUES) on the project's tables. " +
+			"The project card lists the tables and, for the tables it shows, their columns and keys; " +
+			"use describe_table for a table it names without columns. sqlite_schema and Jenab's own tables can't be queried. " +
 			"Returns up to 200 rows or 4,000 tokens and the total row count; a larger result comes as a preview " +
-			"and a ref, read on with read_ref or search_ref. Jenab's internal tables can't be queried: " +
-			"use describe_table for a table's columns.",
+			"and a ref, read on with read_ref or search_ref.",
 		Schema: json.RawMessage(`{
 			"type": "object",
 			"properties": {
@@ -216,7 +217,8 @@ func queryError(ctx context.Context, env *Env, err error) error {
 	case errors.As(err, &re):
 		msg := "the query was refused: " + re.Error()
 		if re.Schema {
-			msg += ". Jenab's own tables, sqlite_schema and PRAGMA functions can't be queried; " + tableList(ctx, env) +
+			msg = cardPointer(ctx, env) + " The query was refused: " + re.Error() +
+				". Jenab's own tables, sqlite_schema and PRAGMA functions can't be queried." +
 				" Use describe_table for a table's columns, keys and row count."
 		}
 		return &Error{Msg: msg, Err: err}
@@ -258,6 +260,19 @@ func tableList(ctx context.Context, env *Env) string {
 		return "the project has no tables yet."
 	}
 	return "the project's tables are: " + strings.Join(names, ", ") + "."
+}
+
+// cardPointer starts a refusal for a reserved name: it points to the
+// project card, which lists the tables, and names them.
+func cardPointer(ctx context.Context, env *Env) string {
+	names, err := env.Project.DB.Tables(ctx)
+	switch {
+	case err != nil:
+		return "The project card lists the tables."
+	case len(names) == 0:
+		return "The project has no tables yet."
+	}
+	return "The project card lists the tables: " + strings.Join(names, ", ") + "."
 }
 
 // queryResult is the rows as text: the columns, then one line a row,

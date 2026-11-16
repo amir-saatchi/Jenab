@@ -218,10 +218,12 @@ func TestQueryStoredCap(t *testing.T) {
 }
 
 // TestQueryRefusals: each layer's refusal comes back as an error the
-// model can act on, and internal names get the list of tables.
+// model can act on, and internal names start with the card's pointer and
+// the list of tables.
 func TestQueryRefusals(t *testing.T) {
 	env := dataEnv(t)
-	hint := "the project's tables are: big, coins, holdings, loose, prices. Use describe_table"
+	pointer := "The project card lists the tables: big, coins, holdings, loose, prices. The query was refused: "
+	hint := "can't be queried. Use describe_table for a table's columns, keys and row count."
 	for _, c := range []struct{ sql, want string }{
 		{"SELECT * FROM _jenab_columns", "line 1:15: `_jenab_columns` is internal. " + "Jenab's own tables"},
 		{"SELECT name FROM sqlite_schema", "`sqlite_schema` is reserved"},
@@ -237,9 +239,14 @@ func TestQueryRefusals(t *testing.T) {
 		{"SELECT '" + strings.Repeat("x", 70000) + "'", "at most 65536 are allowed"},
 	} {
 		msg := toolError(t, env, "query", fmt.Sprintf(`{"sql": %q}`, c.sql))
-		contains(t, msg, "the query was refused: ", c.want)
+		contains(t, msg, c.want)
 		if strings.Contains(c.want, "internal") || strings.Contains(c.want, "reserved") || strings.Contains(c.want, "PRAGMA") {
+			if !strings.HasPrefix(msg, pointer) {
+				t.Errorf("%s: got %q, want it to start with %q", c.sql, msg, pointer)
+			}
 			contains(t, msg, hint)
+		} else {
+			contains(t, msg, "the query was refused: ")
 		}
 	}
 	// SQLite's own errors, without the driver's code.
@@ -249,6 +256,16 @@ func TestQueryRefusals(t *testing.T) {
 	}
 	contains(t, toolError(t, env, "query", `{"sql": "SELECT * FROM price"}`), "no such table: price; the project's tables are: big, coins")
 	contains(t, toolError(t, env, "query", `{}`), "wrong arguments")
+}
+
+// TestQueryDescription: query's description points to the project card
+// for the tables, their columns and keys, says what can't be queried, and
+// keeps describe_table for a table the card names without columns.
+func TestQueryDescription(t *testing.T) {
+	contains(t, queryTool().Spec().Description,
+		"The project card lists the tables and, for the tables it shows, their columns and keys; ",
+		"use describe_table for a table it names without columns. ",
+		"sqlite_schema and Jenab's own tables can't be queried. ")
 }
 
 // TestQueryParams: params must match the query's own parameters, so no

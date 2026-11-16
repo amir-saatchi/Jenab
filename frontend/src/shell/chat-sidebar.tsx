@@ -28,11 +28,10 @@ import { cn } from "@/lib/utils"
 import { useChats, visible } from "@/state/chats"
 import { current, useNav } from "@/state/nav"
 import { useProjects } from "@/state/projects"
-import { useUI } from "@/state/ui"
 import { ChatMenuItems } from "@/shell/chat-menu"
 import { ExportChat } from "@/shell/export-chat"
 import { ExportProject } from "@/shell/export-project"
-import { newChat, openChat } from "@/shell/open"
+import { newChat, openChat, openProjectSettings } from "@/shell/open"
 
 // ChatSidebar is the left sidebar (SPEC 5.12): the project's name with its
 // menu (*Project settings*, *Export*), *New chat*, and the chat list with
@@ -67,10 +66,7 @@ export function ChatSidebar({ project, className }: { project: string; className
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onSelect={() => {
-                      useNav.getState().go({ view: "project-settings", project })
-                      useUI.getState().set({ leftOverlay: false })
-                    }}
+                    onSelect={() => openProjectSettings(project)}
                   >
                     <FolderCogIcon />
                     Project settings

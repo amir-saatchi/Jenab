@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { ChatService } from "@/lib/api"
+import { ChatService, type ProjectItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { useProjects } from "@/state/projects"
 import { FolderWarning } from "@/shell/folder-warning"
@@ -16,13 +16,19 @@ export const levels = [
   { value: "auto", label: "Auto" },
 ]
 
+// ProjectSettingsTitle is the page's title: the project's name.
+export function ProjectSettingsTitle({ item }: { item?: ProjectItem }) {
+  if (!item) return <SettingsTitle title="Project settings" />
+  const created = new Date(item.created_at).toLocaleDateString(undefined, { dateStyle: "medium" })
+  return <SettingsTitle title={<span dir="auto">{item.name}</span>} description={`Project settings · created ${created}`} />
+}
+
 // ProjectSettings is one scrolling page, opened from the project's menu
 // (SPEC 5.12). The workspace, storage, allowed hosts and Export come with
 // their tickets.
 export function ProjectSettings({ project, section }: { project: string; section?: string }) {
   const item = useProjects((s) => s.list.find((p) => p.id === project))
   const opened = useProjects((s) => s.opened[project])
-  const created = item ? new Date(item.created_at).toLocaleDateString(undefined, { dateStyle: "medium" }) : ""
   // Opened at a section, from a chat's memory chip.
   React.useEffect(() => {
     if (section) document.getElementById(sectionId(section))?.scrollIntoView({ block: "start" })
@@ -54,7 +60,7 @@ export function ProjectSettings({ project, section }: { project: string; section
       active={section}
       onBack={backToChats}
     >
-      <SettingsTitle title="Project settings" description={item ? `${item.name} · created ${created}` : ""} />
+      <ProjectSettingsTitle item={item} />
       <SettingsSection title="General">
         <FactRow label="Name">
           <span dir="auto">{item?.name}</span>

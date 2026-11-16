@@ -48,8 +48,15 @@ func TestPresets(t *testing.T) {
 			t.Errorf("up %v: Ollama Cloud = %+v", up, oc)
 		}
 		cf := ps[slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "cloudflare" })]
-		if !slices.Equal(cf.Fields, []string{"account_id"}) || cf.NoKey {
+		if !slices.Equal(cf.Fields, []string{"account_id"}) || cf.NoKey || cf.Group != "cloud" || cf.Host != "api.cloudflare.com" {
 			t.Errorf("cloudflare = %+v", cf)
+		}
+		lm := ps[slices.IndexFunc(ps, func(p PresetItem) bool { return p.ID == "lmstudio" })]
+		if !lm.NoKey || lm.Group != "local" || lm.Running || lm.BaseURL != "http://localhost:1234/v1/" || lm.Kind != string(provider.KindCompatible) {
+			t.Errorf("up %v: LM Studio = %+v", up, lm)
+		}
+		if ps[i].Group != "local" || oc.Group != "cloud" || oc.Host != "ollama.com" {
+			t.Errorf("up %v: groups: Ollama %q, Ollama Cloud %q %q", up, ps[i].Group, oc.Group, oc.Host)
 		}
 	}
 }

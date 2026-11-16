@@ -3,6 +3,7 @@ package provider_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -206,6 +207,8 @@ func TestLocalOllamaLimit(t *testing.T) {
 	}
 }
 
+// Every preset connects: one on this computer with no key, the others
+// with one.
 func TestPresetsConnect(t *testing.T) {
 	ids := map[string]bool{}
 	for _, p := range provider.Presets {
@@ -217,10 +220,57 @@ func TestPresetsConnect(t *testing.T) {
 		for _, f := range provider.Placeholders(p.BaseURL) {
 			fields[f] = "abc123"
 		}
+		key := testKey
+		if p.Local {
+			key = ""
+		}
 		s := newConnectSetup(fake.New())
-		if _, err := s.reg.Connect(context.Background(), p.ID, p.Kind, p.BaseURL, testKey, fields); err != nil {
+		if _, err := s.reg.Connect(context.Background(), p.ID, p.Kind, p.BaseURL, key, fields); err != nil {
 			t.Errorf("preset %s: %v", p.ID, err)
 		}
+		if !p.Local {
+			// A cloud preset can't go without a key.
+			if _, err := newConnectSetup(fake.New()).reg.Connect(context.Background(), p.ID, p.Kind, p.BaseURL, "", fields); !errors.Is(err, provider.ErrNeedKey) {
+				t.Errorf("preset %s without a key: err = %v, want ErrNeedKey", p.ID, err)
+			}
+		}
+	}
+}
+
+// The preset list holds the providers of SPEC 3.9, in the form's order:
+// the cloud ones, then the ones on this computer, LM Studio included.
+func TestPresetList(t *testing.T) {
+	type row struct {
+		id, name string
+		kind     provider.Kind
+		host     string
+		local    bool
+	}
+	want := []row{
+		{"anthropic", "Anthropic", provider.KindAnthropic, "api.anthropic.com", false},
+		{"openai", "OpenAI", provider.KindOpenAI, "api.openai.com", false},
+		{"gemini", "Google Gemini", provider.KindGemini, "generativelanguage.googleapis.com", false},
+		{"groq", "Groq", provider.KindCompatible, "api.groq.com", false},
+		{"openrouter", "OpenRouter", provider.KindCompatible, "openrouter.ai", false},
+		{"zai", "Z.ai", provider.KindCompatible, "api.z.ai", false},
+		{"cloudflare", "Cloudflare Workers AI", provider.KindCompatible, "api.cloudflare.com", false},
+		{"ollama-cloud", "Ollama Cloud", provider.KindOllama, "ollama.com", false},
+		{"ollama", "Ollama", provider.KindOllama, "localhost:11434", true},
+		{"lmstudio", "LM Studio", provider.KindCompatible, "localhost:1234", true},
+	}
+	var got []row
+	for _, p := range provider.Presets {
+		got = append(got, row{p.ID, p.Name, p.Kind, p.Host(), p.Local})
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("presets =\n%v\nwant\n%v", got, want)
+	}
+	lm := provider.Presets[slices.IndexFunc(provider.Presets, func(p provider.Preset) bool { return p.ID == "lmstudio" })]
+	if lm.BaseURL != "http://localhost:1234/v1/" {
+		t.Errorf("LM Studio base URL = %q", lm.BaseURL)
+	}
+	if cf := provider.Presets[slices.IndexFunc(provider.Presets, func(p provider.Preset) bool { return p.ID == "cloudflare" })]; !slices.Equal(provider.Placeholders(cf.BaseURL), []string{"account_id"}) {
+		t.Errorf("Cloudflare placeholders = %v", provider.Placeholders(cf.BaseURL))
 	}
 }
 
@@ -295,28 +345,41 @@ func TestConnectInputErrors(t *testing.T) {
 	}
 }
 
-// Only a local Ollama goes without a key.
-func TestOllamaKey(t *testing.T) {
+// Only a provider on this computer goes without a key, whatever its kind.
+func TestLocalKey(t *testing.T) {
 	ctx := context.Background()
-	for base, ok := range map[string]bool{"": true, "http://127.0.0.1:11434/": true, "https://ollama.com/": false} {
+	cases := []struct {
+		kind provider.Kind
+		base string
+		ok   bool
+	}{
+		{provider.KindOllama, "", true},
+		{provider.KindOllama, "http://127.0.0.1:11434/", true},
+		{provider.KindOllama, "https://ollama.com/", false},
+		{provider.KindCompatible, "http://localhost:1234/v1/", true},
+		{provider.KindCompatible, "https://api.groq.com/openai/v1/", false},
+		{provider.KindAnthropic, "", false}, // the kind's own URL is not this computer
+		{provider.KindOpenAI, "", false},
+	}
+	for _, c := range cases {
 		s := newConnectSetup(fake.New())
-		_, err := s.reg.Connect(ctx, "o", provider.KindOllama, base, "", nil)
-		if ok && err != nil {
-			t.Errorf("Connect(%q) without a key: %v", base, err)
+		_, err := s.reg.Connect(ctx, "o", c.kind, c.base, "", nil)
+		if c.ok && err != nil {
+			t.Errorf("Connect(%s %q) without a key: %v", c.kind, c.base, err)
 		}
-		if !ok && !errors.Is(err, provider.ErrNeedKey) {
-			t.Errorf("Connect(%q) without a key: err = %v, want ErrNeedKey", base, err)
+		if !c.ok && !errors.Is(err, provider.ErrNeedKey) {
+			t.Errorf("Connect(%s %q) without a key: err = %v, want ErrNeedKey", c.kind, c.base, err)
 		}
 
 		s.reg.Apply(config.LLMSettings{MaxParallelCalls: 4, Providers: map[string]config.ProviderSettings{
-			"o": {Kind: string(provider.KindOllama), BaseURL: base, Models: []config.ModelSettings{{ID: "m", Context: 8000}}},
+			"o": {Kind: string(c.kind), BaseURL: c.base, Models: []config.ModelSettings{{ID: "m", Context: 8000}}},
 		}})
 		_, err = collect(s.reg, limit.Interactive, provider.Request{Model: "o/m"})
-		if ok && err != nil {
-			t.Errorf("Stream(%q) without a key: %v", base, err)
+		if c.ok && err != nil {
+			t.Errorf("Stream(%s %q) without a key: %v", c.kind, c.base, err)
 		}
-		if !ok && (kindOf(err) != provider.BadRequest || len(s.rec.built()) != 0) {
-			t.Errorf("Stream(%q) without a key: err = %v, built %d", base, err, len(s.rec.built()))
+		if !c.ok && (kindOf(err) != provider.BadRequest || len(s.rec.built()) != 0) {
+			t.Errorf("Stream(%s %q) without a key: err = %v, built %d", c.kind, c.base, err, len(s.rec.built()))
 		}
 	}
 }

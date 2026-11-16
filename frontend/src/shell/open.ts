@@ -1,3 +1,4 @@
+import type { ProjectItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { useChats } from "@/state/chats"
 import { current, samePlace, useNav, type Place } from "@/state/nav"
@@ -48,6 +49,25 @@ export function openMemory(project: string, target: string) {
   useUI.getState().set({ memoryFocus: { project, target } })
   if (target.startsWith("memory:user/")) useNav.getState().go({ view: "settings", section: "Memory" })
   else useNav.getState().go({ view: "project-settings", project, section: "Memory" })
+}
+
+// useOpenProject is the project open behind Settings: the one of the chat
+// used last, where *Back to chats* returns. None on the first-run screen.
+export function useOpenProject(): ProjectItem | undefined {
+  const id = useNav((s) => s.mru[0]?.project)
+  const list = useProjects((s) => s.list)
+  return openProjectOf(id, list)
+}
+
+// openProjectOf is the project with id in list; none for a project gone.
+export function openProjectOf(id: string | undefined, list: ProjectItem[]): ProjectItem | undefined {
+  return id ? list.find((p) => p.id === id) : undefined
+}
+
+// openProjectSettings opens the project's settings, at a section if given.
+export function openProjectSettings(project: string, section?: string) {
+  useNav.getState().go({ view: "project-settings", project, section })
+  useUI.getState().set({ leftOverlay: false })
 }
 
 // openDesktop opens Settings › Desktop, the saved macros and recipes

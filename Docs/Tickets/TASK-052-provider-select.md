@@ -1,6 +1,6 @@
 # TASK-052 — Pick the provider from a list in *Add provider*
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** —
 
@@ -26,3 +26,13 @@
 - Frontend tests: the groups and second lines, the key field hidden for a local provider, a placeholder field for Cloudflare, *Other* shows the base URL.
 - A Go test for the preset list, LM Studio included.
 - Screenshots of the open list and of the form for Anthropic, Cloudflare and LM Studio, in light and dark.
+
+## Result
+Done on 2026-11-16. Report: [TASK-052-report](reports/TASK-052-report.md).
+
+- **A *Provider* Select** ("Choose a provider") with three groups: **Cloud** (Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Z.ai, Cloudflare Workers AI, Ollama Cloud), each with its host on a muted second line; **On this computer** (Ollama, LM Studio), "no key needed"; **Other** (*OpenAI-compatible…*). A running Ollama still comes first and is picked.
+- **The groups and hosts come from the Go preset list:** `Preset.Local` and `Host()`, sent as `group` and `host`. "Ollama on this computer" is now "Ollama", since the group says where it runs.
+- **The fields follow the choice:** a key field only when one is needed, a field per base-URL placeholder (Cloudflare's *Account ID*), and Name and Base URL for *Other*.
+- **LM Studio preset:** *OpenAI-compatible* with `http://localhost:1234/v1/`, no key. For it to work, the rule that let only a local Ollama connect without a key now covers any kind whose base URL is this computer, for *Connect* and for calls. Providers at their own remote URLs still need a key.
+- **Checks:** 8 frontend tests, Go tests for the preset list, keyless local presets and `PresetItem`. The bindings match a fresh generation. Screenshots of the list and of the forms for Anthropic, Cloudflare and LM Studio, in light and dark, are kept outside the repo.
+- **Open:** *Settings → Models* still says "Key in the keychain" for a connected LM Studio, which has no key.

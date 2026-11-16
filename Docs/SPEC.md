@@ -638,7 +638,8 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 **Providers and keys.**
 - Anthropic, OpenAI and Google Gemini, plus *OpenAI-compatible* (any base URL, e.g. Z.ai or Groq) and Ollama, local or Ollama Cloud (3.8). All five come in Phase 1 (decided 2026-09-29). Anthropic and OpenAI use their SDKs, Gemini and Ollama their native APIs, and OpenAI-compatible providers the OpenAI SDK (3.8).
 - Nothing is set up when the app ships: users bring their own keys (decided 2026-10-04).
-  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter, Z.ai and LM Studio (*OpenAI-compatible* with `http://localhost:1234/v1`, no key). A preset fills in only the kind and base URL; the user can edit both. Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
+  - The *Connect* form has presets for well-known providers: Anthropic, OpenAI, Gemini, Ollama, Ollama Cloud, Cloudflare Workers AI, Groq, OpenRouter, Z.ai and LM Studio (*OpenAI-compatible* with `http://localhost:1234/v1`, no key). A preset fills in only the kind and base URL; the user can edit both. The form picks the provider from a list in three groups: *Cloud*, each with its host; *On this computer* (Ollama and LM Studio), "no key needed"; and *Other*, *OpenAI-compatible* by hand. The fields follow the choice: a key only when one is needed, and a field for each base-URL placeholder (TASK-052).
+  - A provider whose base URL is this computer needs no key, whatever its kind: *Connect* and calls take an empty key there (TASK-052). Ollama Cloud is the *Ollama* kind with `https://ollama.com/`. Any OpenAI-compatible provider can also be added by hand.
   - Models are never preset. They come from the provider's list or from the user.
 - *Connect* stores the key in the OS keychain (6.7), reads the provider's model list and turns on every catalog model the key can use. They appear in the model picker at once.
   - A base URL can hold placeholders, such as Cloudflare's `{account_id}`. The form asks for each value, which must be letters, digits, `-` or `_`. The values are kept in the keychain as `provider:<name>:<field>` and hidden in logs and errors like keys; the settings file keeps the placeholder.
@@ -666,7 +667,7 @@ The orchestrator owns the agent loop. LLM providers are reached behind Jenab's o
 **First run.** There is no setup wizard.
 - The app opens to its main window with *Create project* and *Open the example*, which creates the Bitcoin project from section 9 with sample data. Its pipelines run once a provider is set up. The data folder defaults to `~/Jenab` and can be changed in *Settings → General*; the warning from 2.1 shows as a banner if it applies.
 - *Create project* asks for a name and opens the project's Mother chat. It starts with a short greeting and three starter prompts, e.g. "Track a price every day". A starter prompt fills the composer; it is sent only when the user sends it. They are built in and the same for every model (1).
-- A message sent while no provider is set up is kept. A card in the chat asks for a provider: one button per provider and a key field, the same form as *Settings → Models*. If Ollama is running on this machine (`localhost:11434`), it is listed first, with no key needed. Once connected, the kept message is sent.
+- A message sent while no provider is set up is kept. A card in the chat asks for a provider: the provider list and a key field, the same form as *Settings → Models*. If Ollama is running on this machine (`localhost:11434`), it is listed first and picked, with no key needed. Once connected, the kept message is sent.
 - Everything else is asked when it is first needed: a search provider at the first web search (6.5), and start at login when the first scheduled pipeline is saved.
 
 ---
@@ -1107,8 +1108,8 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 - **Files tab:** one folder of the bucket at a time, with a path bar back to the top. A folder opens in place; a long one loads 100 entries at a time as the list scrolls. `cache/` isn't listed with the user's folders: it is last, as *App cache* (fetched pages and long tool results, 4.4). Rows show a file's original name or page title from its metadata, in any script, under its key.
   - A file opens in the main area with the chat in the dock. Text and Markdown show as in the chat, and images, audio and video play; other types show their name, type and size. Below, its versions (4.3): size, who and when. Old versions are listed, not opened.
   - Each file has *Copy link*, *Open with the system app* (4.7) when its type allows, and *Delete*. A delete is a change by `user` and can be undone from its notice while the change is in the undo window (2.6, 4.4).
-- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page. *General* ends with *About*: the version, the commit, and the Go and Wails versions, with a copy button (2.8).
-- **Project settings:** one scrolling page with the cloud-sync warning (2.1) when it applies, the workspace folder (8.5), storage ("Kept for undo" with *Free now*, the cache and lifecycle rules, 4.4), the approval level (8.8), allowed hosts and private-network exceptions (6.7), and *Export* (2.1).
+- **Settings:** a full view in the main area, like the project settings: a page list on the left, *Back to chats*, and one scrolling page. *General* ends with *About*: the version, the commit, and the Go and Wails versions, with a copy button (2.8). Under the pages, a group with the open project's name (the project of the chat used last) has *Project settings*. *Memory* is user memory: it says it is for every project, and links to the open project's memory (3.3).
+- **Project settings:** one scrolling page, titled with the project's name, with the cloud-sync warning (2.1) when it applies, the workspace folder (8.5), storage ("Kept for undo" with *Free now*, the cache and lifecycle rules, 4.4), the approval level (8.8), allowed hosts and private-network exceptions (6.7), and *Export* (2.1).
   - **Private-network exceptions** (TASK-036): the hosts whose requests may reach this computer or the local network without asking, each with *Remove*, and a field to add one ("A name or an address, without http://, a path or a port"). A card's *Allow in this project* adds to it. One line says what it allows.
 - **Window size:** at least 640 × 480 px.
 - **Narrow windows:** below about 900 px, page rows stack (5.9), the rail and both sidebars open as overlays from ☰, the chat opens as a drawer over the page, and the bottom bar is hidden. A dot on the chat button shows new activity.
@@ -1583,7 +1584,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 
 | Tool | Purpose |
 |---|---|
-| `query(sql, params)` | Read-only query; returns up to 200 rows or 4,000 tokens, plus the total count |
+| `query(sql, params)` | Read-only query; returns up to 200 rows or 4,000 tokens, plus the total count. Its description points to the project card for the tables, and a refused reserved name starts with the card's table list (TASK-051) |
 | `describe_table(name)` | Columns with their types, NOT NULL, defaults and CHECKs, keys, annotations, row count. The project card already lists these for each table it shows with columns; the agent calls it only for a table the card names without them (3.2) |
 | `insert(table, rows)` | Small manual entries, at most 50 rows per call; recurring or bulk data goes through pipelines |
 | `request_schema_change(goal)` | Hands a schema request to the schema agent (8.2) |

@@ -7,9 +7,10 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
-import { ProjectService, SettingsService, type MemoryEdit, type MemorySaved, type MemorySection, type MemoryView } from "@/lib/api"
+import { ProjectService, SettingsService, type MemoryEdit, type MemorySaved, type MemorySection, type MemoryView, type ProjectItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { useUI } from "@/state/ui"
+import { openProjectSettings, useOpenProject } from "@/shell/open"
 import { SettingsSection } from "@/shell/settings-layout"
 
 // A section being edited: its name ("" until a new one is named), the
@@ -253,6 +254,7 @@ function useFocus(scope: "user" | "project", project?: string): Focus | undefine
 // UserMemorySection is *Settings → Memory*: user memory, for all projects.
 export function UserMemorySection() {
   const focus = useFocus("user")
+  const openProject = useOpenProject()
   const load = React.useCallback(() => SettingsService.UserMemory(), [])
   const save = React.useCallback((e: MemoryEdit) => SettingsService.SaveUserMemory(e), [])
   return (
@@ -260,8 +262,30 @@ export function UserMemorySection() {
       title="Memory"
       description="What every chat in every project knows about you: your goals, preferences and decisions. Keep values that change, such as prices, in tables."
     >
+      <MemoryScope project={openProject} />
       <MemoryEditor load={load} save={save} focus={focus} />
     </SettingsSection>
+  )
+}
+
+// MemoryScope says whose memory *Settings → Memory* is (SPEC 3.3): every
+// project's. The open project's own memory is in its settings, linked.
+export function MemoryScope({ project }: { project?: ProjectItem }) {
+  return (
+    <p className="text-sm text-muted-foreground">
+      This memory is for every project.{" "}
+      {project ? (
+        <>
+          <span dir="auto">{project.name}</span> has its own memory too, in{" "}
+          <Button variant="link" size="xs" className="h-auto p-0 text-sm" onClick={() => openProjectSettings(project.id, "Memory")}>
+            Project settings › Memory
+          </Button>
+          .
+        </>
+      ) : (
+        "Each project has its own memory too, in its Project settings."
+      )}
+    </p>
   )
 }
 

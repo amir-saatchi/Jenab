@@ -63,7 +63,9 @@ type PresetItem struct {
 	Kind    string   `json:"kind"`
 	BaseURL string   `json:"base_url"` // "" means the kind's own
 	Fields  []string `json:"fields"`   // the base URL's placeholders, e.g. account_id
-	NoKey   bool     `json:"no_key"`   // a local Ollama needs no key
+	Group   string   `json:"group"`    // "cloud", or "local" for one on this computer
+	Host    string   `json:"host"`     // the host it talks to, e.g. api.anthropic.com
+	NoKey   bool     `json:"no_key"`   // one on this computer needs no key
 	Running bool     `json:"running"`  // Ollama answers on this machine
 }
 
@@ -73,13 +75,16 @@ func (s *SettingsService) Presets(ctx context.Context) (ps []PresetItem, err err
 	defer s.guard("settings.presets", &err)
 	up := s.ollamaUp(ctx)
 	for _, p := range provider.Presets {
-		// Only the local Ollama, at the kind's own URL, needs no key.
 		it := PresetItem{ID: p.ID, Name: p.Name, Kind: string(p.Kind), BaseURL: p.BaseURL,
-			Fields: provider.Placeholders(p.BaseURL), NoKey: p.Kind == provider.KindOllama && p.BaseURL == ""}
+			Fields: provider.Placeholders(p.BaseURL), Group: "cloud", Host: p.Host(), NoKey: p.Local}
 		if it.Fields == nil {
 			it.Fields = []string{}
 		}
-		if it.NoKey && up {
+		if p.Local {
+			it.Group = "local"
+		}
+		// Only Ollama is checked: ollamaUp asks its own port.
+		if p.Local && p.Kind == provider.KindOllama && up {
 			it.Running = true
 			ps = append([]PresetItem{it}, ps...)
 			continue

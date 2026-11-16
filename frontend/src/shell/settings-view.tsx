@@ -1,9 +1,18 @@
 import * as React from "react"
 import { System } from "@wailsio/runtime"
-import { MonitorIcon, MoonIcon, SunIcon, TriangleAlertIcon } from "lucide-react"
+import { FolderCogIcon, MonitorIcon, MoonIcon, SunIcon, TriangleAlertIcon } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import type { ProjectItem } from "@/lib/api"
 import { showError } from "@/lib/errors"
 import { readTheme, type ThemeChoice } from "@/lib/theme"
 import { DesktopSection } from "@/settings/desktop"
@@ -13,7 +22,7 @@ import { UserMemorySection } from "@/settings/memory"
 import { LimitsSection, ModelsSection } from "@/settings/models"
 import { UsageSection } from "@/settings/usage"
 import { useSettings } from "@/state/settings"
-import { backToChats } from "@/shell/open"
+import { backToChats, openProjectSettings, useOpenProject } from "@/shell/open"
 import { FactRow, SettingsDivider, SettingsLayout, SettingsSection, SettingsTitle, sectionId } from "@/shell/settings-layout"
 
 // Desktop control is Windows-only in v1 (SPEC 8.10), and so is its page
@@ -26,6 +35,7 @@ export function SettingsView({ section }: { section?: string }) {
   const view = useSettings((s) => s.view)
   const setTheme = useSettings((s) => s.setTheme)
   const theme = readTheme(view?.settings.ui.theme)
+  const openProject = useOpenProject()
 
   React.useEffect(() => {
     const s = useSettings.getState()
@@ -38,7 +48,7 @@ export function SettingsView({ section }: { section?: string }) {
   }, [section, loaded])
 
   return (
-    <SettingsLayout key={section} items={settingsPages} active={section} onBack={backToChats}>
+    <SettingsLayout key={section} items={settingsPages} active={section} onBack={backToChats} more={<OpenProjectPages project={openProject} />}>
       <SettingsTitle title="Settings" />
       <Problems />
       <GeneralSection />
@@ -83,6 +93,31 @@ export function SettingsView({ section }: { section?: string }) {
       )}
       <DeveloperSection />
     </SettingsLayout>
+  )
+}
+
+// OpenProjectPages is the open project in Settings' page list, under its
+// name: its *Project settings*. Nothing with no project open.
+export function OpenProjectPages({ project }: { project?: ProjectItem }) {
+  if (!project) return null
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>
+        <span className="truncate" dir="auto">
+          {project.name}
+        </span>
+      </SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => openProjectSettings(project.id)}>
+              <FolderCogIcon />
+              <span>Project settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
 

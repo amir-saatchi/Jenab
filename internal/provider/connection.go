@@ -50,7 +50,7 @@ type Connection struct {
 	Name    string // the user's name for it, e.g. "gemini" or "zai"
 	Kind    Kind
 	BaseURL string       // never empty when a backend gets it
-	Key     secret.Value // empty for a local Ollama
+	Key     secret.Value // empty for a provider on this computer
 	// Redact removes every known secret from a text (secret.Store.Redact).
 	Redact func(string) string
 	// HTTP is the client to use; nil means http.DefaultClient's transport.

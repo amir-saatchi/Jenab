@@ -83,6 +83,19 @@ function firstLine(s: string, max = 120) {
   return line.length > max ? line.slice(0, max - 1) + "…" : line
 }
 
+// resultLine is a result in a tool's collapsed row. A result headed
+// [tool: state — ref: …], as request_schema_change's is, shows its state
+// alone; the expanded row has the whole text, ref included.
+export function resultLine(tool: string, text: string) {
+  const head = text.trim().split("\n", 1)[0] ?? ""
+  const prefix = `[${tool}: `
+  if (head.startsWith(prefix) && head.endsWith("]")) {
+    const state = head.slice(prefix.length, -1).split(" — ref: ", 1)[0].trim()
+    if (state) return firstLine(state)
+  }
+  return firstLine(text)
+}
+
 function argsText(args: unknown): string {
   try {
     const s = JSON.stringify(typeof args === "string" ? JSON.parse(args) : args, null, 2)
@@ -113,7 +126,7 @@ function argsPreview(args: unknown): string {
 export function ToolChip({ call, result, running }: { call: ToolCall; result?: ToolResult; running: boolean }) {
   if (call.name.startsWith("desktop_")) return <DesktopChip call={call} result={result} running={running} />
   const state = result ? (result.is_error ? "failed" : "done") : running ? "running" : "failed"
-  const detail = result ? firstLine(result.text) : running ? argsPreview(call.args) || "running" : "not run"
+  const detail = result ? resultLine(call.name, result.text) : running ? argsPreview(call.args) || "running" : "not run"
   return (
     <Collapsible className="flex flex-col gap-1.5 not-typeset">
       <CollapsibleTrigger asChild>

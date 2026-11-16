@@ -125,7 +125,7 @@ func (r *Registry) Apply(s config.LLMSettings) {
 		lim := s.MaxParallelCalls
 		if n, ok := s.ProviderMaxParallelCalls[name]; ok {
 			lim = n
-		} else if Kind(ps.Kind) == KindOllama && localURL(ps.BaseURL) {
+		} else if Kind(ps.Kind) == KindOllama && localURL(KindOllama, ps.BaseURL) {
 			lim = 1 // a local model answers one request at a time (SPIKE-017)
 		}
 		lim = max(lim, 1)
@@ -246,8 +246,8 @@ func (r *Registry) backendOf(c *conn) (Provider, error) {
 		switch {
 		case err == nil:
 			conn.Key = key
-		case errors.Is(err, secret.ErrNotFound) && c.kind == KindOllama && localURL(c.set.BaseURL):
-			// a local Ollama needs no key
+		case errors.Is(err, secret.ErrNotFound) && localURL(c.kind, c.set.BaseURL):
+			// a provider on this computer, such as Ollama, needs no key
 		default:
 			return nil, &Error{Kind: BadRequest, Provider: c.name, Message: "no key is stored for this provider", Err: err}
 		}
@@ -772,7 +772,7 @@ type Connected struct {
 
 // Connect tries a new connection (SPEC 3.9): it lists the models with key,
 // and only if that works stores key in the keychain. An empty key is
-// allowed for a local Ollama. baseURL "" means the kind's default; fields
+// allowed for a provider on this computer. baseURL "" means the kind's default; fields
 // are the values for its placeholders, stored in the keychain with the key.
 func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL, key string, fields map[string]string) (Connected, error) {
 	if name == "" || strings.ContainsAny(name, "/: ") {
@@ -782,9 +782,9 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 	if f == nil {
 		return Connected{}, fmt.Errorf("provider: no backend for kind %q", kind)
 	}
-	if key == "" && (kind != KindOllama || !localURL(baseURL)) {
-		// backendOf refuses calls without a stored key, except a local
-		// Ollama's, so don't save a connection that can't be used.
+	if key == "" && !localURL(kind, baseURL) {
+		// backendOf refuses calls without a stored key, except on this
+		// computer, so don't save a connection that can't be used.
 		return Connected{}, fmt.Errorf("provider %s: %w", name, ErrNeedKey)
 	}
 	if len(key) > secret.MaxSize {
@@ -883,11 +883,11 @@ func redactAll(s string, vs []secret.Value) string {
 	return s
 }
 
-// localURL tells whether a base URL is this machine; "" is a kind's
+// localURL tells whether a base URL is this machine; "" is the kind's
 // default, which for Ollama is localhost.
-func localURL(baseURL string) bool {
+func localURL(kind Kind, baseURL string) bool {
 	if baseURL == "" {
-		return true
+		baseURL = DefaultBaseURL(kind)
 	}
 	u, err := url.Parse(baseURL)
 	return err == nil && isLoopback(u.Hostname())

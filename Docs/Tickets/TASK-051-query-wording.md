@@ -1,6 +1,6 @@
 # TASK-051 — The `query` tool points to the card, not `sqlite_master`
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** —
 
@@ -19,3 +19,18 @@ In P2-14 every run on all three reference models called `describe_table` for a t
 ## Done when
 - The new text, with the tool-description test updated.
 - The before and after counts in the Result. The before counts are P2-14's: `describe_table` in 9 of 9 runs, `sqlite_master` in 7 of 9.
+
+## Result
+Done on 2026-11-16. Report: [TASK-051-report](reports/TASK-051-report.md).
+
+- **`query`'s description** now says, right after its first sentence, that the project card lists the tables and their columns and keys, that `describe_table` is for a table the card names without columns, and that `sqlite_schema` and Jenab's own tables can't be queried.
+- **A refusal for a reserved name** starts with "The project card lists the tables: …", then the reason and the hint as before. The guard is unchanged.
+- **Before and after**, `scenarios/phase2-acceptance`, turn 5, 3 reps on each reference model (2026-11-15):
+
+  | | `describe_table` | `sqlite_master` tries |
+  |---|---|---|
+  | P2-14 (before) | 9 of 9 runs | 7 of 9 |
+  | After | 8 of 9 | **0 of 9** |
+
+  So turn 5 costs 2 requests in 8 runs and 1 in one, where 7 runs needed 3. `describe_table` barely moved, so no more prompt text was added, as the ticket says.
+- **Runs:** flash-lite 3/3 and Haiku 5.5 3/3 ($0.017, cap $0.20). Mistral-large-4 passed 2/3. Its failed run made a general table with `coin` and the key `(coin, date)` in turn 1, so turn 3 was only a rename: it deletes nothing, and no card was needed. The scenario's live card check is now `info`. `TestPhase2Acceptance` still requires the card, since its script changes the key.

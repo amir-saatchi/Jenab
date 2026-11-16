@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
-import { MemoryNote, ToolChip, desktopArgs } from "@/chat/parts"
+import { MemoryNote, ToolChip, desktopArgs, resultLine } from "@/chat/parts"
 
 const note = (n?: string) => renderToStaticMarkup(createElement(MemoryNote, { note: n }))
 
@@ -32,4 +32,25 @@ test("a desktop step shows the lengths of its texts, not the texts (SPEC 8.10)",
   expect(html).toContain("desktop_snapshot")
   expect(html).toContain("50 characters")
   expect(html).not.toContain("Save")
+})
+
+// TASK-050: request_schema_change's collapsed row shows its state, not the
+// ref. The expanded row still shows result.text whole.
+test("a result headed with its state and ref shows the state alone", () => {
+  const head = "[request_schema_change: applied — ref: subagents/01JX/schema-agent.jsonl]"
+  expect(resultLine("request_schema_change", `${head}\nMigration 3 applied.`)).toBe("applied")
+  expect(resultLine("request_schema_change", "[request_schema_change: denied]\nNothing changed.")).toBe("denied")
+  // Other results show their first line as before.
+  expect(resultLine("query", "[query result — 3 rows — ref: cache/q.txt]\nid")).toBe("[query result — 3 rows — ref: cache/q.txt]")
+  expect(resultLine("query", "[request_schema_change: applied]")).toBe("[request_schema_change: applied]")
+
+  const row = renderToStaticMarkup(
+    createElement(ToolChip, {
+      call: { id: "c2", name: "request_schema_change", args: { goal: "add a price column" } },
+      result: { call_id: "c2", text: `${head}\nMigration 3 applied.`, ref: "subagents/01JX/schema-agent.jsonl" },
+      running: false,
+    }),
+  )
+  expect(row).toContain(">applied</span>")
+  expect(row).not.toContain("ref:")
 })
