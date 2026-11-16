@@ -30,7 +30,7 @@ Done.
 2. `TextInput`, `TextArea` and the composer take their direction from the first strong letter. The layout isn't mirrored.
 3. Below 900 px, the rail and the chat list open as an overlay from ☰. The right sidebar opens from *Pages*. A docked chat opens as a 448 px drawer over the file. Pages get a header with ☰, the settings list narrows to 176 px, and the bottom bar is hidden. The new kit pieces are `Narrow` and `Sheet`.
 4. In a narrow dock, the model label is cut and the approval level shows only its icon, so the picker row fits in 320 px.
-5. At each start on Windows, the app writes its version into the Apps entry, if the entry points at its own folder. MyGo's updater doesn't do this (checked in v0.9.1, v0.9.2 and main). A MyGo issue is drafted in the report and not filed.
+5. At each start on Windows, the app writes its version into the Apps entry, if the entry points at its own folder. MyGo's updater doesn't do this (checked in v0.9.1, v0.9.2 and main). Filed upstream as [egoist/mygo#1950](https://github.com/egoist/mygo/issues/1950) on 2026-11-17.
 
 Each item has headless tests in light and dark. Items 1 to 4 were checked live with the bench build at 1280 and 800 px. A new bench route, `POST /file`, docks a file. Item 5 was checked live with a local update from 0.1.1 to 0.1.2: the Apps entry went from 0.1.1 to 0.1.2, and the uninstaller removed it.
 

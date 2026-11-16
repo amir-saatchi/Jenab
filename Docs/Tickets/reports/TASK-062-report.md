@@ -52,7 +52,7 @@ The fix is in Jenab (`cmd/desktop-native/appsentry*.go`):
 
 Test: `TestTheAppsEntryTakesTheVersionAfterAnUpdate`, with a fake entry. It covers a write; the folder in another case, quoted, with a trailing separator; the same version; another copy, such as a build in the repo; a dev build; and an entry with no folder. On other systems it builds to a no-op (`GOOS=linux go vet` is clean).
 
-**MyGo issue, drafted and not filed.** I checked MyGo v0.9.1, v0.9.2 (2026-11-16) and main at 6fbc3c5. `DisplayVersion` appears only in `cmd/mygo/nsis.go`. The draft:
+**MyGo issue:** filed as [egoist/mygo#1950](https://github.com/egoist/mygo/issues/1950) on 2026-11-17, with the user's OK. I checked MyGo v0.9.1, v0.9.2 (2026-11-16) and main at 6fbc3c5. `DisplayVersion` appears only in `cmd/mygo/nsis.go`. The draft:
 
 > **The updater doesn't refresh the Windows Apps entry's version**
 >
