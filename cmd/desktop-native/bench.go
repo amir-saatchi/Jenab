@@ -23,6 +23,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 	"github.com/amir-saatchi/jenab/internal/secret"
+	"github.com/amir-saatchi/jenab/internal/version"
 )
 
 // The bench build (go build -tags bench) lets cmd/jenab-bench -native
@@ -120,6 +121,7 @@ func startBench(st *state.Stores, post state.Post, win *mygo.Window) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /shot", b.shot)
+	b.updateRoutes(mux)
 	mux.HandleFunc("POST /quit", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 		go b.post(mygo.App.Quit)
@@ -165,6 +167,13 @@ type benchState struct {
 	Running   bool     `json:"running"`
 	Streaming bool     `json:"streaming"`
 	Working   int      `json:"working"` // chats of the project not idle
+	// TASK-059: the build, every project, whether the window is shown and
+	// focused, and the updater.
+	Version  string      `json:"version"`
+	Projects []string    `json:"projects"`
+	Shown    bool        `json:"shown"`
+	Focused  bool        `json:"focused"`
+	Update   benchUpdate `json:"update"`
 }
 
 func (b *bench) project() (id.Project, bool) {
@@ -175,9 +184,14 @@ func (b *bench) project() (id.Project, bool) {
 }
 
 func (b *bench) state(w http.ResponseWriter, r *http.Request) {
-	var s benchState
+	s := benchState{Version: version.Get().Version, Update: updateState()}
 	b.ui(func() {
 		s.Loaded = b.st.Projects.Loaded
+		for _, p := range b.st.Projects.List {
+			s.Projects = append(s.Projects, p.Name)
+		}
+		s.Shown = b.win.IsVisible() && !b.win.IsMinimized()
+		s.Focused = s.Shown && b.win.IsFocused()
 		p, ok := b.project()
 		if !ok {
 			return

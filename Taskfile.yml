@@ -63,6 +63,21 @@ tasks:
     vars:
       FLAGS: '{{if eq .DEV "true"}}-buildvcs=false -gcflags=all="-l" -ldflags="{{.VERSION_FLAGS}}"{{else}}-tags production -trimpath -buildvcs=false -ldflags="-w -s{{if eq OS "windows"}} -H windowsgui{{end}} {{.VERSION_FLAGS}}"{{end}}'
 
+  build:native:
+    summary: Builds the release of the native app and its installer into bin/native/windows-amd64 (TASK-059)
+    platforms: [windows]
+    # MyGo's build (pinned as a tool in go.mod) reads mygo.json: the name,
+    # the icon, the version info and the manifest go into the exe, which is
+    # built with -trimpath and -H windowsgui; the installer is made with
+    # NSIS, which it downloads once (version and SHA-256 pinned by MyGo).
+    # With updates in mygo.json and the key in MYGO_UPDATER_PRIVATE_KEY, it
+    # also writes the signed update archive and manifest. MYGO_LDFLAGS adds
+    # the version and commit of internal/version.
+    cmds:
+      - go tool mygo build
+    env:
+      MYGO_LDFLAGS: '{{.VERSION_FLAGS}}'
+
   bench:
     summary: Builds the app with the bench tag, which can open WebView2's DevTools port, and measures it (P1-18)
     platforms: [windows]

@@ -64,6 +64,20 @@ func TestFilesMatchVERSION(t *testing.T) {
 	}
 	readFile(t, "frontend/package.json", json.Unmarshal, &pkg)
 	check(t, "frontend/package.json version", pkg.Version, want)
+
+	// The native app's build (TASK-059) writes this version into the exe,
+	// the installer and the update manifest.
+	var mygo struct {
+		Version   string `json:"version"`
+		Publisher string `json:"publisher"`
+	}
+	readFile(t, "mygo.json", json.Unmarshal, &mygo)
+	check(t, "mygo.json version", mygo.Version, want)
+	// The repo is public: the exe and the installer name the app, not a
+	// person, as build/windows/info.json does.
+	for lang, table := range info.Info {
+		check(t, "mygo.json publisher (as build/windows/info.json info."+lang+".CompanyName)", mygo.Publisher, table["CompanyName"])
+	}
 }
 
 func readFile(t *testing.T, name string, unmarshal func([]byte, any) error, v any) {

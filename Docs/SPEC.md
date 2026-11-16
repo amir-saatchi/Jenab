@@ -289,26 +289,29 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 
 ### 2.8 App updates (SPIKE-019)
 
-> **Moving (SPIKE-048):** the desktop app moves from Wails to MyGo (5.8). In the native app, MyGo's signed updater (`mygo.Updater`) replaces Wails `pkg/updater`. TASK-059 checks it against the rules below (the signature, the feed, swapping the running exe, rolling back) and rewrites this section with what differs. Until then the rules below stand, and the Wails app keeps its updater. The native app has no updater yet.
+The native app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind `internal/update` (TASK-059). The Wails app never got an updater or an installer: SPIKE-019 tried Wails `pkg/updater`, and the differences from that plan are listed below.
 
 - **Version** (TASK-037): one version, in semantic versioning, set in `VERSION` at the repository root and stamped into the build with the git commit. Settings → General shows it on an *About* line, `Jenab 0.1.0-dev (d449b7e)`, with the Go and Wails versions under it and a copy button for bug reports. The first log line of each start names the version and the commit. The updater compares this version with the latest release's. `0.1.0` comes when Phase 1 and Phase 2 acceptance pass.
-- **Updater:** Wails `pkg/updater` with the endpoint provider, reading Jenab's own manifest (in the native app, `mygo.Updater`, above). The app is installed per user (`%LOCALAPPDATA%\Programs\Jenab`), so updating needs no admin rights.
-- **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. On Linux the webview is WebKitGTK.
+- **Install:** `task build:native` makes a per-user NSIS installer. It installs into `%LOCALAPPDATA%\Programs\Jenab`, so updating needs no admin rights, adds a Start menu entry and an entry under Apps with the publisher "Jenab", and closes a running Jenab first. The uninstaller removes the program only: settings, projects and keys stay.
+- **Feed:** the build writes `update-<os>-<arch>.json` (version, date, archive URL, size, signature) next to the archive `jenab-<version>-<os>-<arch>.tar.gz`. The feed URL and the public key are in `mygo.json` (`updates`); the private key is given to the build in `MYGO_UPDATER_PRIVATE_KEY` and is never in the repository. A build without them can't update itself, and Settings says so. The release key and feed come before the first public release (Phase 5).
+- **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. On Linux the webview is WebKitGTK. The native app's macOS and Linux builds come with TASK-060.
 - **Fail closed:**
-  - A release must carry an ed25519 signature that verifies against the public key built into the app.
-  - The feed must use https.
-  - Prerelease versions are ignored unless the user picks the beta channel.
+  - A release must carry an ed25519 signature that verifies against the public key built into the app. A manifest without one is refused at the check. MyGo checks it on every install; nothing turns it off.
+  - The archive's size must match the manifest's.
+  - The feed must use https; plain http only on the loopback interface, for tests.
+  - Prerelease versions are ignored unless the user picks the beta channel (Jenab's rule; MyGo is told which).
 - **Checks:**
-  - At start, then every 6 hours, on Jenab's own timer (never `CheckInterval`). Each version is downloaded once.
-  - The user chooses automatic, notify only, or off. A check sends only the version, platform and architecture.
+  - At start, then every 6 hours, on Jenab's own timer. Each version is downloaded once. A version whose install failed is not installed again on its own; the user can try again from Settings.
+  - The user chooses automatic, notify only, or off. Off sends nothing. A check sends only the version, platform and architecture.
+- **Swap:** MyGo downloads into a work folder next to the app, checks it, then renames each file of the app aside (`.<name>.old-<pid>`) and moves the new one in. Windows lets the running exe be renamed, so the running app is not stopped. If a step fails, the renames are undone and the work folder is removed: the app stays as it was and keeps running. There is no helper process and no backup copy.
 - **Restart:**
-  - Only when no run, migration or write is in progress.
-  - `OnShutdown` has a 10 s deadline.
-  - A detached watchdog relaunches the installed exe if no instance is running 60 s after `Restart`.
+  - Automatic mode restarts into an installed version when no chat is working or waiting and the window isn't in front, checked every minute. Notify mode waits for *Restart now* in Settings.
+  - MyGo quits the app and starts the new exe with `--after-update`. That copy waits up to a minute for the app lock, which the old copy lets go of after its shutdown. The lifecycle shutdown has a 10 s deadline. A restart took under a second (TASK-059).
+  - There is no watchdog: no helper exits half-way. A new version that crashes at start is not rolled back; the old files are gone by then.
 - **Cleanup on start:**
-  - leftover `%TEMP%\wails-update-*` files and helper logs
-  - old `.old.*` exes
+  - MyGo removes the `.old-<pid>` files of the last update
   - all but the last 2 pre-update database backups
+- **Moving from the Wails app:** both apps use the same data root, data folder and keychain service, so settings, projects and keys stay. The first native version comes with its installer, over the Wails app in the same folder, not as an update.
 - **Storage format version:**
   - Each `.db` stores it in `PRAGMA user_version`.
   - A newer app backs the file up with `VACUUM INTO` into `snapshots/`, then migrates in one transaction.

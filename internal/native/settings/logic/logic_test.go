@@ -14,6 +14,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/update"
 	"github.com/amir-saatchi/jenab/internal/version"
 )
 
@@ -442,5 +443,33 @@ func TestTheScopeLineWords(t *testing.T) {
 	}
 	if ScopeLinkLabel != "Project settings › Memory" {
 		t.Error(ScopeLinkLabel)
+	}
+}
+
+func TestUpdateLines(t *testing.T) {
+	at := time.Date(2026, 11, 16, 9, 30, 0, 0, time.UTC)
+	format := func(t time.Time) string { return t.Format("Jan 2") }
+	for _, c := range []struct {
+		st     update.Status
+		text   string
+		action UpdateAction
+	}{
+		{update.Status{State: update.StateUnavailable}, "This build can't update itself.", UpdateNone},
+		{update.Status{State: update.StateOff}, "Updates are off.", UpdateCheck},
+		{update.Status{State: update.StateUpToDate, Checked: at}, "Jenab is up to date. Checked Nov 16.", UpdateCheck},
+		{update.Status{State: update.StateAvailable, Version: "0.2.0"}, "Jenab 0.2.0 is available.", UpdateInstall},
+		{update.Status{State: update.StateDownloading, Version: "0.2.0", Progress: 0.42}, "Downloading Jenab 0.2.0… 42%", UpdateNone},
+		{update.Status{State: update.StateReady, Version: "0.2.0"}, "Jenab 0.2.0 is installed.", UpdateRestart},
+		{update.Status{State: update.StateFailed, Version: "0.2.0", Err: "bad signature"}, "Jenab 0.2.0 was not installed: bad signature. This version keeps running.", UpdateCheck},
+		{update.Status{State: update.StateFailed, Err: "offline"}, "The check failed: offline", UpdateCheck},
+		{update.Status{}, "Not checked yet.", UpdateCheck},
+	} {
+		text, action := UpdateLine(c.st, format)
+		if !strings.HasPrefix(text, c.text) || action != c.action {
+			t.Errorf("%s: %q, %d; want %q…, %d", c.st.State, text, action, c.text, c.action)
+		}
+	}
+	if UpdateButton(UpdateRestart) != "Restart now" || UpdateButton(UpdateNone) != "" {
+		t.Error("buttons")
 	}
 }

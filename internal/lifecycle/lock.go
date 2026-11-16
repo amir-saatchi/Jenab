@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
@@ -34,4 +35,18 @@ func LockRoot(root string) (*os.File, error) {
 		return nil, fmt.Errorf("lock: %w", err)
 	}
 	return f, nil
+}
+
+// LockRootWait is LockRoot that waits up to wait for a copy that is
+// quitting: the copy an update restarts starts before the old one has
+// closed its databases and let go of the lock (TASK-059).
+func LockRootWait(root string, wait time.Duration) (*os.File, error) {
+	deadline := time.Now().Add(wait)
+	for {
+		f, err := LockRoot(root)
+		if !errors.Is(err, ErrRunning) || time.Now().After(deadline) {
+			return f, err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }

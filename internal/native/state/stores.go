@@ -84,6 +84,8 @@ type Stores struct {
 	Hosts    *Hosts
 	Exports  *Exports
 	Pages    *Pages
+	// Updates is the update status (TASK-059); main gives its API.
+	Updates *Updates
 	// Toasts wait for the window to show them; the kit takes them with
 	// TakeToasts as it builds.
 	Toasts []Toast
@@ -105,7 +107,7 @@ type Stores struct {
 // thread. Close stops the goroutine that reads chat lists again.
 func NewStores(api API, post Post) *Stores {
 	s := &Stores{
-		Nav: NewNav(), Shell: NewShell(), Quotes: Quotes{},
+		Nav: NewNav(), Shell: NewShell(), Quotes: Quotes{}, Updates: &Updates{},
 		WindowActive: func() bool { return false },
 		post:         post, system: api.System,
 		states:  map[id.Chat]chat.State{},
