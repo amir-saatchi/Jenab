@@ -1,6 +1,6 @@
 # TASK-066 — The native stores: lost updates and stale reads
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061
 
@@ -22,3 +22,13 @@ The review of the native app (2026-11-17) found ways the UI's stores can show th
 
 ## Done when
 - Tests: a failed re-read with a queued `Status{Idle}` ends idle; `Reload`'s callback comes after the snapshot is applied; two overlapping loads keep the newer answer; an edit before settings load isn't lost; a forgotten chat's read doesn't bring it back; the rewind dialog acts on its own chat.
+
+## Result
+Done. Report: [reports/TASK-066-report.md](reports/TASK-066-report.md).
+1. A read that waits on a running read gets its callback once the next snapshot is applied. A failed re-read keeps its events and tries again twice. If every try fails, the events are applied to the thread as it is, so a turn's end still ends it, and the thread is read again at its next event.
+2. The chat list, the waiting list, the private hosts and the model list keep the answer of the read started last.
+3. An edit made before the settings are read is queued: the settings are read first, then the edit is saved on top. If that read fails, the edit is reported.
+4. Forgetting a chat drops its read in flight, so the 20-chat limit and deleted chats hold.
+5. The developer tools take their read's result on the UI thread. The rewind dialog acts on its own chat and doesn't open over another one. The undo state keeps the newest answer.
+6. `Stores.Close` can be called twice. Deleted chats leave the Ctrl+Tab list and the shell's per-chat state.
+7. `-race` couldn't run here: there is no C compiler.

@@ -2,6 +2,7 @@ package state
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/id"
@@ -129,6 +130,25 @@ func (s *Shell) Close(c ChatRef) {
 	delete(s.Open, c)
 	s.ChatHidden[c] = false
 	s.Drawer[c] = false
+}
+
+// Prune drops what the shell keeps for the chats of project p that its
+// new chat list doesn't have, but keep, the chat shown, which the list may
+// predate.
+func (s *Shell) Prune(p id.Project, listed []id.Chat, keep id.Chat) {
+	gone := func(c ChatRef) bool { return c.Project == p && c.Chat != keep && !slices.Contains(listed, c.Chat) }
+	for _, m := range []map[ChatRef]bool{s.ChatHidden, s.Drawer} {
+		for c := range m {
+			if gone(c) {
+				delete(m, c)
+			}
+		}
+	}
+	for c := range s.Open {
+		if gone(c) {
+			delete(s.Open, c)
+		}
+	}
 }
 
 // CloseFile closes key wherever it is open in project, as after a delete.

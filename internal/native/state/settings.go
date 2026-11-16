@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -40,6 +41,11 @@ type Settings struct {
 	post    Post
 	onError func(error)
 	pending []*pendingEdit // UI thread
+	// models counts the model reads started, from any goroutine;
+	// modelsShown is the one whose answer shows (UI thread), so an older
+	// answer that comes last doesn't replace a newer one.
+	models      atomic.Int64
+	modelsShown int64
 
 	mu      sync.Mutex
 	saved   *app.SettingsView // as Go last sent it; written by the queue
@@ -160,6 +166,7 @@ func (s *Settings) LoadModels() <-chan error {
 }
 
 func (s *Settings) loadModels() error {
+	seq := s.models.Add(1)
 	gs, err := s.api.Models(background)
 	if err != nil {
 		return err
@@ -167,7 +174,11 @@ func (s *Settings) loadModels() error {
 	if gs == nil {
 		gs = []app.ModelGroup{}
 	}
-	s.post(func() { s.Models = gs })
+	s.post(func() {
+		if seq > s.modelsShown {
+			s.modelsShown, s.Models = seq, gs
+		}
+	})
 	return nil
 }
 
@@ -191,20 +202,34 @@ func (s *Settings) LoadStarted() <-chan error {
 // saved after the edits before it, on top of the settings as last saved,
 // since Save replaces all of them. A failed save takes it out again.
 // change only sets values: it runs on a copy each time the view is shown
-// and once more for the save.
+// and once more for the save. An edit made before the settings are read
+// reads them first, and shows once they are.
 func (s *Settings) Edit(change func(*config.Settings)) <-chan error {
 	done := make(chan error, 1)
-	if s.withPending() == nil {
-		done <- nil
-		return done
-	}
 	p := &pendingEdit{change}
 	s.pending = append(s.pending, p)
 	s.show()
 	s.enqueue(func() {
+		end := func(err error) {
+			s.post(func() {
+				s.pending = slices.DeleteFunc(s.pending, func(q *pendingEdit) bool { return q == p })
+				s.show()
+				done <- err
+			})
+		}
 		s.mu.Lock()
-		next := cloneSettings(s.saved.Settings)
+		saved := s.saved
 		s.mu.Unlock()
+		if saved == nil {
+			v, err := s.api.Get(background)
+			if err != nil {
+				end(err)
+				return
+			}
+			s.keep(v)
+			saved = &v
+		}
+		next := cloneSettings(saved.Settings)
 		change(&next)
 		v, err := s.api.Save(background, next)
 		if err == nil {
@@ -212,11 +237,7 @@ func (s *Settings) Edit(change func(*config.Settings)) <-chan error {
 			s.saved = &v
 			s.mu.Unlock()
 		}
-		s.post(func() {
-			s.pending = slices.DeleteFunc(s.pending, func(q *pendingEdit) bool { return q == p })
-			s.show()
-			done <- err
-		})
+		end(err)
 		if err == nil {
 			if err := s.loadModels(); err != nil {
 				s.onError(err)

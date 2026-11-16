@@ -1,6 +1,10 @@
 package state
 
-import "github.com/amir-saatchi/jenab/internal/id"
+import (
+	"slices"
+
+	"github.com/amir-saatchi/jenab/internal/id"
+)
 
 // View is the kind of place the main area shows.
 type View string
@@ -186,6 +190,19 @@ func (n *Nav) NextChat(by int) {
 	}
 	n.Cycle, n.cycleFrom = at, &from
 	n.History = Push(from, ChatPlace(n.MRU[at].Project, n.MRU[at].Chat))
+}
+
+// Prune drops from the MRU list the chats of project p that its new
+// chat list doesn't have, but keep, the chat shown, which the list may
+// predate. During a Ctrl+Tab cycle it waits for the next list, so the
+// cycle's place in the list holds.
+func (n *Nav) Prune(p id.Project, listed []id.Chat, keep id.Chat) {
+	if n.Cycle >= 0 {
+		return
+	}
+	n.MRU = slices.DeleteFunc(n.MRU, func(r ChatRef) bool {
+		return r.Project == p && r.Chat != keep && !slices.Contains(listed, r.Chat)
+	})
 }
 
 // EndCycle is Ctrl let go: the chat landed on counts as used.

@@ -435,8 +435,10 @@ func (s *Screen) bars(c *kit.Context, v *view, t *state.Thread) {
 }
 
 // rewindAsk is the rewind dialog's question: Rewind to here, or Edit and
-// resend, with what the rewind would do.
+// resend, with what the rewind would do, and the chat it asks about.
 type rewindAsk struct {
+	project id.Project
+	chat    id.Chat
 	edit    bool
 	state   agent.RewindState
 	message jc.Message
@@ -453,13 +455,14 @@ func (s *Screen) rewindActions(c *kit.Context, t *state.Thread, m jc.Message, la
 		if edit {
 			turn--
 		}
-		s.st.Actions.RewindState(t.Project, t.Chat.ID, turn, func(st agent.RewindState, err error) {
+		p, ch := t.Project, t.Chat.ID
+		s.st.Actions.RewindState(p, ch, turn, func(st agent.RewindState, err error) {
 			*busy = false
 			if err != nil {
 				s.st.Error(err)
 				return
 			}
-			s.ask = &rewindAsk{edit: edit, state: st, message: m}
+			s.ask = &rewindAsk{project: p, chat: ch, edit: edit, state: st, message: m}
 			s.dialog = true
 		})
 	}
@@ -471,10 +474,19 @@ func (s *Screen) rewindActions(c *kit.Context, t *state.Thread, m jc.Message, la
 	}
 }
 
-// rewindDialog asks before a rewind, saying what stays.
+// rewindDialog asks before a rewind, saying what stays. It shows over its
+// own chat only: shown another chat, as when the question's answer came
+// after the user moved on, it is put away, and a rewind running goes on
+// in its own chat.
 func (s *Screen) rewindDialog(c *kit.Context, t *state.Thread) {
 	a := s.ask
 	if a == nil {
+		return
+	}
+	if a.chat != t.Chat.ID {
+		if !a.busy {
+			s.ask, s.dialog = nil, false
+		}
 		return
 	}
 	title := "Edit and resend?"
@@ -497,7 +509,7 @@ func (s *Screen) rewindDialog(c *kit.Context, t *state.Thread) {
 			}
 			if kit.Disable(kit.Button(c, label, kit.Default), a.busy).Clicked() && !a.busy {
 				a.busy = true
-				p, ch := t.Project, t.Chat.ID
+				p, ch := a.project, a.chat
 				s.st.Actions.Rewind(p, ch, a.state.Turn, func(_ agent.RewindResult, err error) {
 					a.busy = false
 					s.dialog = false
@@ -527,7 +539,11 @@ func (s *Screen) rewindDialog(c *kit.Context, t *state.Thread) {
 
 // undo is Undo turn's state for a turn or a rewind's turns.
 type undo struct {
-	state  *agent.TurnUndoState
+	state *agent.TurnUndoState
+	// reads counts the state's reads started, and shown is the one whose
+	// answer state holds: an older answer that comes last is dropped.
+	reads  int
+	shown  int
 	seen   int
 	read   bool
 	busy   bool
@@ -552,6 +568,8 @@ func (s *Screen) undoTurn(c *kit.Context, t *state.Thread, turn int, rewind int6
 	}
 	p, ch := t.Project, t.Chat.ID
 	read := func(then func(agent.TurnUndoState)) {
+		u.reads++
+		n := u.reads
 		s.st.Actions.UndoState(p, ch, turn, rewind, func(st agent.TurnUndoState, err error) {
 			if err != nil {
 				if then != nil {
@@ -560,7 +578,9 @@ func (s *Screen) undoTurn(c *kit.Context, t *state.Thread, turn int, rewind int6
 				}
 				return
 			}
-			u.state = &st
+			if n > u.shown {
+				u.shown, u.state = n, &st
+			}
 			if then != nil {
 				then(st)
 			}

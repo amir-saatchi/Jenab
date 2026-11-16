@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/amir-saatchi/jenab/internal/app"
@@ -103,6 +104,7 @@ type Stores struct {
 	states  map[id.Chat]chat.State // each busy chat's last state, to see when it starts to wait
 	reloads chan id.Project
 	stop    chan struct{}
+	closing sync.Once
 	opening int // counts the OpenProject calls, so only the latest one moves
 }
 
@@ -120,6 +122,7 @@ func NewStores(api API, post Post) *Stores {
 	s.Projects = NewProjects(api.Projects, post)
 	s.Threads = NewThreads(api.Chats, post, s.Error)
 	s.Chats = NewChats(api.Chats, post, s.Threads)
+	s.Chats.OnList = s.listed
 	s.Settings = NewSettings(api.Settings, post, s.Error)
 	actions := api.Actions
 	if actions == nil {
@@ -157,10 +160,24 @@ func NewStores(api API, post Post) *Stores {
 	return s
 }
 
-// Close stops the stores' goroutine.
+// Close stops the stores' goroutine. A second call does nothing.
 func (s *Stores) Close() {
-	close(s.stop)
-	s.Bar.Stop()
+	s.closing.Do(func() {
+		close(s.stop)
+		s.Bar.Stop()
+	})
+}
+
+// listed prunes what Nav and Shell keep for the chats of p that its new
+// chat list no longer has, as Threads.Gone drops their threads: the chat
+// shown stays, since the list may predate it.
+func (s *Stores) listed(p id.Project, chats []id.Chat) {
+	var shown id.Chat
+	if at := s.Nav.Current(); at != nil && at.View == ViewChat && at.Project == p {
+		shown = at.Chat
+	}
+	s.Nav.Prune(p, chats, shown)
+	s.Shell.Prune(p, chats, shown)
 }
 
 // Error shows err in a toast.
