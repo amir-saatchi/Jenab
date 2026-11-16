@@ -58,6 +58,7 @@ func run() (err error) {
 	withSamples := flag.Bool("samples", false, "picture the 20 text samples instead of measuring (with -native, in both apps)")
 	hold := flag.Duration("hold", 0, "with -native: open the app on -hold-chat and keep it up this long, for checks by hand or UI Automation")
 	holdChat := flag.String("hold-chat", "History 200", "the chat -hold opens")
+	devTools := flag.Bool("dev-tools", false, "with -hold: turn the developer tools on; a message with \"use a tool\" in it gets two tool calls first")
 	gemini := flag.String("gemini", "", "with -hold: also connect Gemini with this model and make it the default, with the key in GEMINI_API_KEY, kept in the app's memory")
 	flag.StringVar(&o.history, "history", "mixed", "what the 200-message chat's answers hold: "+strings.Join(historyKinds, ", "))
 	flag.Parse()
@@ -98,6 +99,7 @@ func run() (err error) {
 		return errors.New("-gemini needs -hold and GEMINI_API_KEY")
 	}
 	h.gemini = *gemini
+	h.devTools = *devTools && *hold > 0
 	if err := h.writeSettings(model.url); err != nil {
 		return err
 	}

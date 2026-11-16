@@ -31,6 +31,8 @@ const (
 type home struct {
 	dir    string
 	gemini string // a Gemini model the settings connect (-gemini), or ""
+	// devTools turns the developer tools on (-dev-tools).
+	devTools bool
 }
 
 func (h home) env() []string {
@@ -69,6 +71,9 @@ func (h home) writeSettings(modelURL string) error {
 			"models":                      models,
 			"provider_max_parallel_calls": map[string]int{"bench": 8},
 		},
+	}
+	if h.devTools {
+		s["dev_tools"] = true
 	}
 	b, err := yaml.Marshal(s)
 	if err != nil {

@@ -139,7 +139,7 @@ go run ./cmd/jenab-bench -native bin/jenab-native-bench.exe
 - It uses the same seed, user folder and fake model as the Wails runs, and takes the frame times from MyGo's `MYGO_FRAME_STATS=all`. `-rate` sets the fake model's tokens a second (100 by default).
 - The bench build stamps its log in microseconds, adds marks to it, and serves a loopback port the bench drives. It keeps keys in memory (`JENAB_BENCH_KEY_<PROVIDER>`), never in the keychain. The release build has no bench code.
 - `-samples` pictures the 20 text samples (Persian, English, mixed, code, tables, lists) in both apps, for comparing with Chromium; it needs `bin/jenab-bench-app.exe` from `wails3 task bench` too.
-- `-hold 10m` keeps the native app open on a chat (`-hold-chat`) for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests.
+- `-hold 10m` keeps the native app open on a chat (`-hold-chat`) for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests. `-dev-tools` with `-hold` turns the developer tools on, and the fake model answers a message with "use a tool" in it with two `query` calls first, one of them failing.
 - Screenshots in `bin/bench` can hold user-name paths; don't commit them.
 
 ### A fake price site for manual runs

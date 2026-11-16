@@ -19,10 +19,18 @@ type ChatScreen interface {
 	View(c *kit.Context, t *state.Thread, mother, readOnly bool)
 }
 
+// DevScreen shows the developer tools (SPEC 8.4) in the main area: the
+// turn inspector or the runtime, as place says.
+type DevScreen interface {
+	View(c *kit.Context, place *state.Place)
+}
+
 // Shell is the window's view.
 type Shell struct {
 	Stores *state.Stores
 	Chat   ChatScreen
+	// Dev is the developer tools; nil leaves them out.
+	Dev DevScreen
 	// Post runs work on the UI thread, as the stores' does.
 	Post state.Post
 	// Quit ends the app, as the tray's Quit does; nil hides the button.
@@ -46,6 +54,7 @@ func (s *Shell) Start() {
 	s.report(st.Settings.Load())
 	s.report(st.Settings.LoadModels())
 	s.report(st.Chats.LoadWaiting())
+	s.report(st.Settings.LoadStarted())
 }
 
 func (s *Shell) report(done <-chan error) {
@@ -99,6 +108,8 @@ func (s *Shell) main(c *kit.Context, place *state.Place) {
 		center(c, func() { kit.Empty(c, kit.IconChat, "Choose a project", "Its chat opens here.", nil) })
 	case place.View == state.ViewChat:
 		s.chatView(c, place.Project, place.Chat)
+	case devView(place.View) && s.Dev != nil:
+		s.Dev.View(c, place)
 	default:
 		// Settings and the developer tools are not part of the spike.
 		center(c, func() {

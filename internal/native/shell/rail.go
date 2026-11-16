@@ -32,8 +32,17 @@ func (s *Shell) rail(c *kit.Context, place *state.Place) {
 		s.waiting(c)
 		kit.Spacer(c)
 		kit.Disable(kit.Tooltip(kit.IconButton(c, kit.IconSchedules, "Schedules", kit.Ghost), "Schedules come with pipelines"), true)
+		if started := st.Settings.Started; s.Dev != nil && started != nil && started.DevTools {
+			tools := kit.Tooltip(kit.IconButton(c, kit.IconWrench, "Developer tools", kit.Ghost), "Developer tools")
+			if place != nil && devView(place.View) {
+				tools.Current(kit.CurrentPage)
+			}
+			if tools.Clicked() {
+				st.Nav.Go(state.Place{View: state.ViewInspector})
+			}
+		}
 		settings := kit.Tooltip(kit.IconButton(c, kit.IconSettings, "Settings", kit.Ghost), "Settings")
-		if place != nil && place.View != state.ViewChat && place.View != state.ViewProjectSettings {
+		if place != nil && place.View != state.ViewChat && place.View != state.ViewProjectSettings && !devView(place.View) {
 			settings.Current(kit.CurrentPage)
 		}
 		if settings.Clicked() {
@@ -176,3 +185,6 @@ func (s *Shell) newProjectDialog(c *kit.Context) {
 		})
 	})
 }
+
+// devView is whether v is a developer tool's.
+func devView(v state.View) bool { return v == state.ViewInspector || v == state.ViewRuntime }

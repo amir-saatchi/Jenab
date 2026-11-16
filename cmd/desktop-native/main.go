@@ -1,8 +1,8 @@
 // Command desktop-native is the Jenab app on MyGo, with a native UI and no
 // web view (SPIKE-048). It builds the services as cmd/desktop does; the
 // screens are the stores (internal/native/state) shown with the kit
-// (internal/native/kit): the frame (internal/native/shell) and the chat
-// (internal/native/chat).
+// (internal/native/kit): the frame (internal/native/shell), the chat
+// (internal/native/chat) and the developer tools (internal/native/dev).
 package main
 
 import (
@@ -35,6 +35,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
 	"github.com/amir-saatchi/jenab/internal/native/chat"
+	devtools "github.com/amir-saatchi/jenab/internal/native/dev"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
 	"github.com/amir-saatchi/jenab/internal/native/shell"
 	"github.com/amir-saatchi/jenab/internal/native/state"
@@ -191,6 +192,7 @@ func run() (err error) {
 	}
 	sh := shell.New(stores, chat.New(stores), mailbox.Post)
 	sh.Quit = mygo.App.Quit
+	sh.Dev = devtools.New(stores, state.NewDev(b.Dev, mailbox.Post))
 
 	var quitting atomic.Bool
 	mygo.App.OnSecondInstance(func([]string, string) { show(win) })
