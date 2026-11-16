@@ -1,6 +1,6 @@
 # TASK-053 — The SPEC and design docs for the native UI
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** SPIKE-048
 
@@ -28,3 +28,16 @@ SPIKE-048 decided to move Jenab's desktop UI from React in WebView2 (Wails v3) t
 - The README's ticket table and SPIKE-048's result link this ticket.
 
 ## Result
+
+Done on 2026-11-16, checked against the code on `main` (a050de7). Report: [reports/TASK-053-report.md](reports/TASK-053-report.md). No code changed and no model requests were made.
+
+- **SPEC:**
+  - **2.8:** marked as moving. MyGo's `mygo.Updater` replaces Wails `pkg/updater` in the native app, and TASK-059 rewrites the section. The native app has no updater yet.
+  - **4.5:** the native app has no `/objects` route; screens read objects through the services. A link opens the file view, or *Open with the system app* for other types (TASK-056). The route stays for the Wails app.
+  - **5.8:** rewritten for the native app. It covers the two apps until TASK-061 and the React bug-fixes-only rule. It also covers the kit and the stores, the screens' import rule and its test, a headless test for every component, events through the Publisher and the mailbox, `markdown.Stream` and the virtual thread, and right-to-left text with no mirrored layout. The React rules stay, under their own heading, until TASK-061.
+  - **5.10:** blocks are kit components in Go.
+  - **5.11:** the kit's tokens and tones, with `SetThemeSource`. The Wails way stays until TASK-061.
+  - **5.12:** the kit's frame pieces, what the native shell has now, and hiding on close with the tray.
+- **Gate-2:** a *Desktop UI* row (MyGo, with SPIKE-048's numbers), notes on the Wails, updater, frontend and frontend-load rows, and a *UI layer* section with SPIKE-048's architecture diagram.
+- **DEVELOPMENT.md:** building and running `cmd/desktop-native`, the native UI's headless tests, and the bench's `-native` mode. Every Wails and Bun step is marked as going with TASK-061.
+- **CODE-OUTLINE:** `cmd/desktop-native` and `internal/lifecycle` (section 2), `webui` in the start sketch and the object route, and section 10 as *The UI: `native` and `frontend`*, with `internal/native/{state,kit,shell,chat}`.

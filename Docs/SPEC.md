@@ -289,8 +289,10 @@ SQLite itself needs no help: an interrupted transaction is discarded the next ti
 
 ### 2.8 App updates (SPIKE-019)
 
+> **Moving (SPIKE-048):** the desktop app moves from Wails to MyGo (5.8). In the native app, MyGo's signed updater (`mygo.Updater`) replaces Wails `pkg/updater`. TASK-059 checks it against the rules below (the signature, the feed, swapping the running exe, rolling back) and rewrites this section with what differs. Until then the rules below stand, and the Wails app keeps its updater. The native app has no updater yet.
+
 - **Version** (TASK-037): one version, in semantic versioning, set in `VERSION` at the repository root and stamped into the build with the git commit. Settings → General shows it on an *About* line, `Jenab 0.1.0-dev (d449b7e)`, with the Go and Wails versions under it and a copy button for bug reports. The first log line of each start names the version and the commit. The updater compares this version with the latest release's. `0.1.0` comes when Phase 1 and Phase 2 acceptance pass.
-- **Updater:** Wails `pkg/updater` with the endpoint provider, reading Jenab's own manifest. The app is installed per user (`%LOCALAPPDATA%\Programs\Jenab`), so updating needs no admin rights.
+- **Updater:** Wails `pkg/updater` with the endpoint provider, reading Jenab's own manifest (in the native app, `mygo.Updater`, above). The app is installed per user (`%LOCALAPPDATA%\Programs\Jenab`), so updating needs no admin rights.
 - **Platforms:** Windows 11 and macOS are supported. Linux x64 is a beta, shipped as an AppImage: one file the updater can replace, installed per user. On Linux the webview is WebKitGTK.
 - **Fail closed:**
   - A release must carry an ed25519 signature that verifies against the public key built into the app.
@@ -749,7 +751,9 @@ cache_max_size: 500MB      # cache/ is trimmed least-recently-read first
 
 - Every object has a link: `jenab://<project_id>/<key>`. Links are used in chat, in the UI and for "copy link". In chat, a link written as a link, bare, or alone in inline code opens the object in the Files panel (5.12); in the user's own message, only a bare link does. A link to another project or to a missing object says so and opens nothing.
 - **In tables, object-reference columns store the key only**, not the full link, so data stays valid when a project is imported under a new ID. The schema agent marks such columns in `_jenab_columns` with `kind: object_ref`. A write with a key that does not exist fails.
-- The frontend loads objects through a Wails asset handler route, `/objects/<project_id>/<key>`, never through `file://` paths.
+- **Loading objects:**
+  - **Native app (MyGo):** there is no webview, so there is no route. A screen reads an object's bytes in the same process, through the services (`BucketService`), which lease the project, never through `file://` paths. A link opens the object in the file view (5.12) with the chat in the dock. A type the file view doesn't show offers *Open with the system app* instead, with the rules of 4.7. The file view, the dock and the service call that reads the bytes come with TASK-056; until then the native chat doesn't handle `jenab://` links itself.
+  - **Wails app** (until TASK-061): the frontend loads objects through a Wails asset handler route, `/objects/<project_id>/<key>`, never through `file://` paths. The headers in 4.7 apply to this route.
 
 ### 4.6 Saved links
 
@@ -960,9 +964,38 @@ The same "already running" rule as in 5.5 applies.
 - View queries cannot reference `_jenab_*` tables.
 - After a migration, open views re-validate their queries on next load. A view that no longer validates shows an error state and is marked in the project card. This should be rare, since the schema agent updates dependents in the same migration.
 
-### 5.8 Frontend rules (SPIKE-022)
+### 5.8 Frontend rules (SPIKE-022, SPIKE-048)
 
-Measured in WebView2 on a mid-range laptop.
+The desktop UI moves from React in WebView2 (Wails v3) to a native UI drawn on the GPU with [MyGo](https://github.com/egoist/mygo) (SPIKE-048, decided on 2026-11-16). MyGo is pinned in `go.mod`, and it is the only UI library: no other component library.
+
+- **Two apps until TASK-061:**
+  - `cmd/desktop-native` is the native app; `cmd/desktop` is the Wails app, which still ships. Both build the same services (`internal/app`) and take the same lock, so only one of them runs at a time.
+  - The React frontend (`frontend/`) gets bug fixes only. A new screen or feature is built in the native app. Pages and pipelines (5.9, 6.10) are built in the native app only.
+  - TASK-061 switches to the native app and removes Wails, `frontend/` and Bun. The React rules at the end of this section go with them.
+- **The kit and the stores:**
+  - **The kit** (`internal/native/kit`) is Jenab's components on MyGo's `ui`: the theme (5.11), the fonts, the right-to-left defaults, and the fixes for MyGo's bugs. Each of these is done once, there, and a change in MyGo's API before its v1 touches only the kit.
+  - **The stores** (`internal/native/state`) hold what the screens show, in plain Go, with no MyGo. They are read and changed on the UI thread only, so they need no locks. Work that waits, such as a service call, runs in a goroutine and posts its result back to the UI thread (`state.Post`, made from MyGo's `Window.Update`). Their tests run without a window and are the spec.
+  - **Screens** (`internal/native/{shell,chat,…}`) draw with the kit and read and change the stores. Besides those two, they use only the Go side's own types (`app`, `chat`, `id` and the like). They never import `github.com/egoist/mygo/ui` or its packages: `TestOnlyTheKitImportsMyGoUI` walks the repository and fails on any such import outside the kit. `cmd/desktop-native` may import `github.com/egoist/mygo` itself, for the app, the window, the tray and notifications.
+  - **A MyGo bug** is fixed or worked around in the kit and reported upstream, with the issue linked in the code.
+  - **Every kit component has a headless test** (`ui.NewTester`): in light and dark, reached by the keyboard, found by its accessible label, and with right-to-left text in it.
+- **Events:** the services send every live update through one `Publisher` (`internal/app`). The native app's `Publisher` posts each event to the stores on the UI thread through `Window.Update`, which returns without waiting, so the services never wait on the UI. A mailbox keeps the events sent before the window exists and posts them in order once it does.
+- **Streaming chat:**
+  - Go coalesces tokens into at most one delta per chat every ~16 ms (`agent`), for both apps. Sending never blocks, so a faster producer would only grow memory and latency.
+  - The native app applies each delta to the stores as it comes; MyGo draws at most one frame per screen refresh, so there is no frame buffer of its own.
+  - A part that is streaming is shown with MyGo's `markdown.Stream` (through `kit.Markdown`), which parses only the text appended since the last frame. A finished part is shown with `markdown.View`.
+  - The thread is a virtual list (`kit.List`, MyGo's `ui.List`) that builds only the rows in view and follows the newest message until the user scrolls up.
+  - The thread's Markdown views share one selection, so a drag copies across messages.
+  - Measured in SPIKE-048 on the SPIKE-022 PC: at 1,000 tokens/s, 59.8 fps with no frame over 33 ms, and a key press reached the screen within 24.1 ms. A 200-message chat showed its first rows in about 14 ms.
+- **Right-to-left text** (both apps): the SPEC supports right-to-left text, not a mirrored layout (11).
+  - The window stays left to right: `kit.Root` lays it out left to right whatever the OS language is, and MyGo's layout mirroring stays off.
+  - Each paragraph, input, table cell and quote takes the direction of its first strong character, as `dir="auto"` does (`kit.RightToLeft`), so a Persian line starts on the right, also next to English. Arabic and Persian digits are weak.
+  - A Markdown list or table whose direction differs from the text around it is laid out in its own direction: a Persian table's columns run right to left, and a Persian item has its marker on the right. A list that mixes directions takes each item's own.
+  - Code blocks stay left to right, with tab stops every 2 columns; other text has tab stops every 4.
+  - The rules on quotes, answers and the user's own message below apply to the native app too.
+  - **Font:** as below. The kit embeds Geist, Geist Mono and Vazirmatn as variable TTF files and registers them with MyGo (`kit.RegisterFonts`).
+- **Known gap:** MyGo on Windows misplaces or drops some Arabic harakat inside words ([egoist/mygo#1925](https://github.com/egoist/mygo/issues/1925), fixed upstream; TASK-054 moves to the release with the fix).
+
+**The Wails app (React), until TASK-061.** Measured in WebView2 on a mid-range laptop.
 
 - **Streaming chat:**
   - Go coalesces tokens into at most one Wails event per stream every ~16 ms. Wails `Emit` never blocks, so a faster producer would only grow memory and latency.
@@ -1050,10 +1083,11 @@ rows:
 ### 5.10 Block registry and `stat`
 
 **Block registry:**
-- Each block type is one unit: a React component, a JSON Schema and a Go validator.
+- Each block type is one unit: a kit component in Go (5.8), a JSON Schema and a Go validator.
   - Data blocks (saved views): `table`, `chart`, `stat`, `form`.
   - Page blocks: `heading`, `text`, `card`, `filter`, `button`, `image`.
-- The frontend looks the type up in a registry. A new block type is added by registering one unit, with no change to pages.
+- The page screen looks the type up in a registry. A new block type is added by registering one unit, with no change to pages.
+- Pages are built in the native app only (5.8), so blocks have no React components. The component is built from the kit like any other, with a headless test, and it takes its colours from the tokens and tones (5.11).
 - More types are expected later, e.g. kanban, tabs and lists. Each one uses tones (5.11), not colours.
 
 **`stat`** shows one number:
@@ -1070,12 +1104,18 @@ rows:
 ### 5.11 Theme
 
 - **Setting:** Light, Dark or System (the default, following the OS). Set in *Settings → Appearance* and stored in `config.yaml` (`ui.theme`).
-- **How it works:**
+- **How it works (native app):**
+  - The kit holds the tokens: `kit.Light` and `kit.Dark` (`internal/native/kit/theme.go`), the colours `frontend/src/index.css` names for shadcn/ui (background, foreground, card, primary, muted, accent, destructive, border, input, ring and the sidebar's), with the tones below. `kit.Theme` maps them to MyGo's theme, and `kit.Root` sets it on every frame for the window's appearance.
+  - The setting goes to MyGo as the theme source (`kit.SetThemeSource`): light, dark, or System, which follows the OS. A change, or an OS change with System, applies at the next frame.
+  - Blocks, charts, code highlighting and the chat all take their colours from the tokens through the kit; screens never name a colour.
+  - The theme source is set from the saved setting before the window opens, so the first frame is drawn in the theme.
+- **How it works (Wails app, until TASK-061):**
   - shadcn/ui colours are CSS variables, switched by a `dark` class on the root. A change applies at once, without a reload. With System, an OS change applies at once too.
   - Blocks, charts (Recharts reads the same variables), code highlighting and the chat all use these variables.
   - The window background is set from the saved theme before the first paint, so there is no white flash at start. The OS window frame follows the theme where the platform allows it.
+  - The kit's tokens and `index.css` must stay the same while both apps ship.
 - **Tones:** configs never contain colours or CSS. They can only name a tone: `neutral`, `blue`, `green`, `amber`, `red` or `purple`.
-  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes.
+  - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`), with the values of `index.css`, whose `contrast.test.ts` checks them. The kit has no contrast check of its own yet; one must come before TASK-061 removes `frontend/`.
   - Validation rejects anything else, such as hex colours.
   - So every page the agent builds looks right in both themes.
 - **Charts:** series take the tones in a fixed order. Changes (`stat.change`) are green or red.
@@ -1084,6 +1124,11 @@ rows:
 ### 5.12 App shell
 
 Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
+
+**In the native app** (5.8), the frame is `internal/native/shell`, built from the kit's frame pieces, and the rules below hold for both apps:
+- **Kit pieces:** `kit.Root` (the window, left to right), `kit.Rail` (56 px, on the start edge) with `kit.RailTile` (a bar on the start edge marks the open one), `kit.SidePanel` (the chat list, 256 px), `kit.Bar` (a screen's top bar, 56 px high), `kit.Main` (the main area, a landmark for assistive technology), `kit.List` (virtual lists), `kit.Dialog` and `kit.Toasts`. The rail and the side panel take the sidebar tokens (5.11).
+- **What it has now** (SPIKE-048): the rail (projects, *New project*, *Waiting*, Settings), the chat list and the main area with the chat. The dock, the right sidebar, the files panel and the file view come with TASK-056, the bottom bar with TASK-056 too, Settings with TASK-055, and the project screens with TASK-057.
+- **Closing the window hides it,** and the app keeps running for the chats still working. A tray icon shows the window again and has *Quit*; the rail has *Quit Jenab* too. A second launch shows the running window. The window's size and place are saved and come back at the next start.
 
 - **Layout:** from the start edge: the rail, the left sidebar (this project's chats), the main area (a chat, or a page or pipeline with the chat in the dock, 5.9), and the right sidebar (Pages, Pipelines, Files, Links). The bottom bar runs under all of them.
 - **Rail:** always shown, 56 px wide. It holds what belongs to the whole app:
