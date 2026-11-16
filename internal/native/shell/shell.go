@@ -99,7 +99,10 @@ func (s *Shell) View(c *kit.Context) {
 		place := s.Stores.Nav.Current()
 		chatOpen := place != nil && place.View == state.ViewChat
 		// Below 900 px the rail and both sidebars are overlays and the
-		// bottom bar is hidden (app-shell.tsx).
+		// bottom bar is hidden (app-shell.tsx). The top bar of each column
+		// lines up as the window's title bar (TASK-063); the one at the
+		// window's end edge ends with the right sidebar's tabs and the room
+		// of the window's buttons (barEnd).
 		narrow := kit.Narrow(c)
 		kit.Row(c).Grow(1).MinHeight(0).AlignItems(kit.Stretch).Children(func() {
 			if !narrow {
@@ -109,12 +112,14 @@ func (s *Shell) View(c *kit.Context) {
 				s.chatList(c, place.Project, place.Chat)
 			}
 			kit.Main(c, func() {
-				if narrow && !chatOpen {
+				// A place other than a chat gets a bar with its title; the
+				// developer tools have their own, under it when narrow.
+				if !chatOpen && (narrow || place == nil || !devView(place.View) || s.Dev == nil) {
 					s.pageHeader(c, PageTitle(place))
 				}
 				s.main(c, place)
 			})
-			if !narrow && chatOpen {
+			if !narrow && chatOpen && !s.Stores.Shell.RightHidden {
 				s.rightSidebar(c, place.Project)
 			}
 		})
@@ -170,8 +175,8 @@ func (s *Shell) item(p id.Project, ch id.Chat) *app.ChatItem {
 }
 
 // chatView is the main area with one chat (chat-view.tsx): its header, a
-// read-only alert, and the chat screen.
-func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
+// read-only alert, and the chat screen. end is what ends its header.
+func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat, end barEnd) {
 	st := s.Stores
 	t := st.Threads.Threads[ch]
 	it := s.item(p, ch)
@@ -191,7 +196,7 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 	if it != nil {
 		sub = s.subline(c, *it)
 	}
-	s.header(c, p, ch, title, sub, mother, info.Title)
+	s.header(c, p, ch, title, sub, mother, info.Title, end)
 	damage := st.Projects.Opened[p].Damage
 	if damage != nil {
 		kit.Box(c).Padding(12, 16, 0, 16).Children(func() {
@@ -216,9 +221,10 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 }
 
 // header is the chat's title bar (ChatHeader): the button hiding the chat
-// list, Mother's diamond, the title and its second line, and the chat's
-// ⋯ menu at the end (chat-menu.tsx). raw is the chat's title as stored.
-func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool, raw string) {
+// list (☰ when narrow), Mother's diamond, the title and its second line,
+// and the chat's ⋯ menu (chat-menu.tsx), then what end puts at its end.
+// raw is the chat's title as stored.
+func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool, raw string, end barEnd) {
 	hidden := s.Stores.ListHidden()
 	narrow := kit.Narrow(c)
 	kit.Bar(c, func() {
@@ -243,9 +249,7 @@ func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub stri
 		})
 		kit.Spacer(c)
 		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(32, 32)
-		if narrow && kit.SmallButton(c, kit.IconPages, "Pages", kit.Ghost).Clicked() {
-			s.Stores.Shell.RightOverlay = true
-		}
+		s.barEnd(c, end)
 	})
 }
 

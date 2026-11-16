@@ -191,7 +191,14 @@ func run() (err error) {
 	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System,
 		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}}, mailbox.Post)
 	defer stores.Close()
-	stores.Settings.OnTheme = kit.SetThemeSource
+	// The window's buttons follow the app's theme, over the app's own
+	// title bar (TASK-063).
+	stores.Settings.OnTheme = func(s string) {
+		kit.SetThemeSource(s)
+		if win != nil {
+			win.SetWindowButtonsTheme(kit.ThemeSourceOf(s))
+		}
+	}
 	// Updates (SPEC 2.8, TASK-059): checked at start, then every 6 hours.
 	updates := update.New(update.Deps{
 		Updater: mygoUpdater{}, Current: v.Version, Log: log, Relaunch: relaunch,
@@ -252,8 +259,13 @@ func run() (err error) {
 			Title: appinfo.Name, Width: 1280, Height: 800,
 			MinWidth: 640, MinHeight: 480, // SPEC 5.12
 			StateKey: "main",
-			Content:  kit.View(sh.View),
+			// The app's top row is the title bar, under Windows' own
+			// buttons (TASK-063). macOS and Linux keep the system's until
+			// TASK-060.
+			TitleBarStyle: titleBarStyle(),
+			Content:       kit.View(sh.View),
 		})
+		win.SetWindowButtonsTheme(kit.ThemeSourceOf(live.Get().UI.Theme))
 		win.OnClose(func(e *mygo.CloseEvent) {
 			if !quitting.Load() {
 				e.PreventDefault()
@@ -286,6 +298,16 @@ func run() (err error) {
 	}.Run()
 	closeLog()
 	return err
+}
+
+// titleBarStyle hides the system's title bar on Windows, where the
+// window keeps its buttons over the app's top row; elsewhere the system's
+// stays (TASK-060).
+func titleBarStyle() mygo.TitleBarStyle {
+	if runtime.GOOS == "windows" {
+		return mygo.TitleBarHidden
+	}
+	return mygo.TitleBarDefault
 }
 
 // show brings the window to the front.

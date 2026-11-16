@@ -160,13 +160,4 @@ func Theme(dark bool) *ui.Theme {
 
 // SetThemeSource makes the app's windows light, dark or follow the
 // system (SPEC 5.11). Anything but light and dark is System.
-func SetThemeSource(s string) {
-	switch s {
-	case "light":
-		mygo.Theme.SetSource(mygo.ThemeLight)
-	case "dark":
-		mygo.Theme.SetSource(mygo.ThemeDark)
-	default:
-		mygo.Theme.SetSource(mygo.ThemeSystem)
-	}
-}
+func SetThemeSource(s string) { mygo.Theme.SetSource(ThemeSourceOf(s)) }

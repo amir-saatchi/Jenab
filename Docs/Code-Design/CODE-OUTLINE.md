@@ -924,7 +924,8 @@ internal/native/
                         100 at a time; opening, deleting with Undo and opening with the system app; jenab:// links
                         in Markdown (MarkLinks, CodeLink) and in the user's text (SplitLinks) (4.5, 5.12)
     bar.go              the bottom bar's readings every 2 s while the window shows: memory and provider pauses
-    shell.go, quote.go, actions.go   what is docked and hidden; the quote per chat; send, stop, retry, answer,
+    shell.go, quote.go, actions.go   what is docked and hidden, the right sidebar's tab and whether it is hidden
+                        (RightOpen, ToggleRight, TASK-063); the quote per chat; send, stop, retry, answer,
                         undo and rewind, the model, attachments (Uploader)
     statetest/          Fake: in-memory services, so screens are tested headless and measured without a provider;
                         Dev and SampleTurn for the developer tools
@@ -933,13 +934,17 @@ internal/native/
   kit/                  Jenab's components on MyGo's ui (SPEC 5.8)
     kit.go              Root (the window, left to right, tab stops), View, layout helpers, aliases of ui types
     theme.go            Tokens (Light, Dark, from the mockups' index.css), Tone and ToneColors, Theme → ui.Theme, SetThemeSource (5.11)
+    titlebar.go         the window's title bar (TASK-063): BarHeight, ControlsRoom (the room for the window's buttons),
+                        BarToggle and BarGroup (the right sidebar's tab icons), PanelHead, PanelTitle, ThemeSourceOf
+                        (also the window buttons' theme in cmd/desktop)
     fonts.go, fonts/    Geist, Geist Mono and Vazirmatn as variable TTF files, RegisterFonts; versions and SHA-256 in fonts/README.md
     icons.go, icons/    the Lucide icons the screens use (ISC)
     dir.go              RightToLeft: a text's direction from its first strong character, as dir="auto"; TextInput,
                         TextArea and the composer take their text's direction from it (TASK-062)
     markdown.go         Markdown{View, Stream}: code blocks (tab stops every 2, copy), lists and tables in their own
                         direction (Options.Block), ShareSelection across a thread
-    frame.go            Rail, RailTile, SidePanel, Bar, Main, List (virtual), NavItem, Count, Dot (5.12)
+    frame.go            Rail, RailTile, SidePanel, HeadedSidePanel, Bar (it moves the window), Main, List (virtual),
+                        NavItem, Count, Dot (5.12)
     button.go, input.go, overlay.go, sidebar.go, status.go, toast.go   Button (five variants), IconButton, TextInput,
                         TextArea, Tooltip, MenuButton, Dialog, AlertDialog, Sidebar, Badge, Spinner, Alert, Empty, Toast
     chat.go             the chat's pieces: message, bubble, marker, card, disclosure, radios, chips, the composer's input group;
@@ -947,7 +952,8 @@ internal/native/
     narrow.go           the narrow window under 900 px (TASK-062): Narrow, Sheet (an overlay on the start or end edge)
     settings.go         SettingsLayout and its pieces (TASK-055): the one frame of Settings and project settings;
                         its list is 224 px wide, 176 under 900 px
-    tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole
+    tester.go           NewTester (MyGo's ui.NewTester for the screens' tests, which can't import ui) and HasRole;
+                        WindowsButtons, Pressed and UnderWindowButtons for the title bar's tests
     datatable.go, picker.go, lanes.go, titledcard.go, sharebar.go, linesview.go, linkbutton.go   the developer
                         tools' pieces: DataTable, Picker (a select), TimeAxis and Lane bars, TitledCard, ShareBar,
                         LinesView (a long text as a virtual list of lines), LinkButton
@@ -959,10 +965,13 @@ internal/native/
                         SegmentGroup, Progress, ItemRow, Path, TextLink, ActionButton,
                         DialogText, DialogFooter, Locked, NavRow, MenuTitle, TileSpinner; tester_pages.go: InView
   shell/                the frame (5.12): the rail, the chat list, the main area, the right sidebar and the bottom bar
-    dock.go             a file in the main area with the chat in a resizable dock; the right sidebar's tabs; the bottom
-                        bar; the project's chats in the rail while the chat list is hidden
+    dock.go             a file in the main area with the chat in a resizable dock; the right sidebar under its title;
+                        the bottom bar; the project's chats in the rail while the chat list is hidden
+    titlebar.go         which bar ends at the window's end edge (barEnd, chatEnds), and the right sidebar's tab
+                        icons there (TASK-063)
     narrow.go           under 900 px: the left overlay (rail and chat list), the right overlay (the right sidebar),
-                        the chat drawer over a file, and a header with the menu button on pages (TASK-062)
+                        the chat drawer over a file, and a header with the menu button on pages (TASK-062); the header
+                        also tops pages without a chat in a wide window, as their part of the title bar (TASK-063)
   files/                the Files tab (a Tree of one folder, with a path bar) and the file view: Markdown and text,
                         pictures, *Open with the system app* for the rest, and the versions (4.5, 5.12)
   projects/             the project screens (TASK-057): welcome, new project, project settings, the folder warning,

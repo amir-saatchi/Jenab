@@ -136,12 +136,15 @@ func Separator(c *Context, length float32, vertical bool) Element {
 	return s.Size(length, 1).MarginY(6)
 }
 
-// Bar is a screen's top bar, 56 px high with a rule under it, as the
-// chat's header: fn builds its row.
+// Bar is a screen's top bar, BarHeight high with a rule under it, as the
+// chat's header: fn builds its row. It is part of the window's title bar
+// (titlebar.go): its empty parts move the window and a double click on
+// them maximizes it, while its buttons take their clicks. The bar at the
+// window's end edge ends with ControlsRoom.
 func Bar(c *Context, fn func()) Element {
 	k := TokensOf(c)
-	return ui.Row(c).Height(56).Shrink(0).AlignItems(ui.Center).Gap(8).PaddingX(12).
-		BorderColor(k.Border).BorderWidth(0, 0, 1, 0).Role(ui.RoleBanner).Children(fn)
+	return ui.Row(c).Height(barHeight(c)).Shrink(0).AlignItems(ui.Center).Gap(8).PaddingX(barPadding).
+		BorderColor(k.Border).BorderWidth(0, 0, 1, 0).Role(ui.RoleBanner).DragWindow().Children(fn)
 }
 
 // Title is a bar's or a row's main line: medium weight, one line cut with
@@ -184,10 +187,22 @@ func Announce(c *Context, text string) { c.Announce(text) }
 // SidePanel is the chat list's panel beside the rail, 256 px wide in the
 // sidebar's colors, as shadcn's Sidebar: fn builds it top to bottom.
 func SidePanel(c *Context, label string, fn func()) Element {
+	return HeadedSidePanel(c, label, nil, fn)
+}
+
+// HeadedSidePanel is SidePanel with head, when not nil, building a
+// PanelHead over the rest, as the chat list's project name: it lines up
+// with the bars beside it.
+func HeadedSidePanel(c *Context, label string, head, fn func()) Element {
 	k := TokensOf(c)
 	box := ui.Themed(c, railTheme(c)).Width(256).Shrink(0).Background(k.Sidebar).BorderColor(k.SidebarBorder).BorderEndWidth(1)
 	return box.Children(func() {
-		ui.Column(c).Grow(1).AlignItems(ui.Stretch).Gap(4).Padding(8).Role(ui.RoleNavigation).Label(label).Children(fn)
+		ui.Column(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Role(ui.RoleNavigation).Label(label).Children(func() {
+			if head != nil {
+				PanelHead(c, head)
+			}
+			ui.Column(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Gap(4).Padding(8).Children(fn)
+		})
 	})
 }
 

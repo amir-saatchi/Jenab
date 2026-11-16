@@ -70,7 +70,11 @@ type Shell struct {
 	// the right sidebar.
 	LeftOverlay, RightOverlay bool
 	MemoryFocus               *MemoryFocus
-	RightTab                  RightTab
+	// RightTab is the right sidebar's tab, and RightHidden the user's
+	// choice to hide the sidebar, from its open tab's icon in the bar
+	// (TASK-063).
+	RightTab    RightTab
+	RightHidden bool
 
 	// Folder is the Files panel's folder by project: "" for the top, else
 	// ending in "/". Rev counts the changes made from the app, by project,
@@ -85,6 +89,28 @@ func NewShell() *Shell {
 		Open: map[ChatRef]Docked{}, ChatHidden: map[ChatRef]bool{}, Drawer: map[ChatRef]bool{},
 		Side: map[id.Project]DockSide{}, Width: map[id.Project]int{},
 		RightTab: TabPages, Folder: map[id.Project]string{}, Rev: map[id.Project]int{},
+	}
+}
+
+// RightOpen reports whether the right sidebar shows tab t: in a narrow
+// window, its overlay; else the sidebar beside the chat.
+func (s *Shell) RightOpen(t RightTab, narrow bool) bool {
+	if narrow {
+		return s.RightOverlay && s.RightTab == t
+	}
+	return !s.RightHidden && s.RightTab == t
+}
+
+// ToggleRight is a click on tab t's icon in the bar: it opens the right
+// sidebar on t, or hides it when it shows t already. In a narrow window
+// the sidebar is the overlay.
+func (s *Shell) ToggleRight(t RightTab, narrow bool) {
+	open := !s.RightOpen(t, narrow)
+	s.RightTab = t
+	if narrow {
+		s.RightOverlay = open
+	} else {
+		s.RightHidden = !open
 	}
 }
 

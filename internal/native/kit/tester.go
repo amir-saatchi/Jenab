@@ -84,3 +84,31 @@ var roles = map[string]ui.Role{
 	// TASK-062: the narrow window's overlays and drawer.
 	"dialog": ui.RoleDialog,
 }
+
+// WindowsButtons gives the tester's window the room of Windows 11's
+// minimize, maximize and close buttons, 3 × 46 by 32 at its top end
+// corner, as the app's window has with no system title bar (TASK-063).
+func WindowsButtons(tt *Tester) { tt.SetTitleBar(windowsButtonsRoom) }
+
+var windowsButtonsRoom = ui.TitleBar{Height: 32, Right: 138, Bottom: 32}
+
+// Pressed reports whether the toggle button named name is pressed, and
+// whether the window has one.
+func Pressed(tt *Tester, name string) (on, ok bool) {
+	a, ok := tt.AccessByRole(ui.RoleToggleButton, name)
+	return a.Checked, ok
+}
+
+// UnderWindowButtons names the controls that lie under the buttons
+// WindowsButtons gives a window width wide, which none should.
+func UnderWindowButtons(tt *Tester, width int) []string {
+	w, bar := float32(width), windowsButtonsRoom
+	var under []string
+	for _, a := range tt.AccessAll() {
+		r := a.Bounds
+		if a.Focusable && r.W > 0 && r.Y < bar.Height && r.X+r.W > w-bar.Right {
+			under = append(under, a.Name)
+		}
+	}
+	return under
+}

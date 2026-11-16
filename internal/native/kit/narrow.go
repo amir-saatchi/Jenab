@@ -9,11 +9,8 @@ import "github.com/egoist/mygo/ui"
 // NarrowWidth is the window's width below which it is narrow, in DIPs.
 const NarrowWidth = 900
 
-// The narrow window's icons.
-var (
-	IconMenu  = icon("menu")
-	IconPages = icon("panel-right") // the right sidebar: Pages, Pipelines, Files, Links
-)
+// The narrow window's ☰.
+var IconMenu = icon("menu")
 
 // Narrow reports whether the window is narrower than NarrowWidth. A view
 // that reads it is built again as the window's size changes.

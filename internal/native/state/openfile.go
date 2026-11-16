@@ -13,7 +13,7 @@ import (
 // shows its folder in the Files panel.
 func (s *Stores) OpenFile(p id.Project, c id.Chat, key string) {
 	s.Shell.SetFolder(p, ParentOf(key))
-	s.Shell.RightTab, s.Shell.RightOverlay = TabFiles, false
+	s.Shell.RightTab, s.Shell.RightOverlay, s.Shell.RightHidden = TabFiles, false, false
 	s.Shell.Dock(ChatRef{p, c}, Docked{Kind: "file", Key: key})
 }
 
