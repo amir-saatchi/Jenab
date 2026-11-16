@@ -9,9 +9,12 @@ When the native app has every screen, it becomes Jenab, and the Wails app, the R
 
 ## Scope
 1. **Proof first:** the native app passes the Phase 2 acceptance scenarios on the reference models (as P2-14 ran them), and a manual run by the user, as the Wails app did.
-2. **Remove:** `cmd/desktop`, `internal/webui`, `frontend/` (bindings included), the Wails dependency, and the Wails and Bun tasks in `Taskfile.yml`.
+2. **Remove:** `cmd/desktop`, `internal/webui`, `frontend/` (bindings included), the Wails dependency, and `Taskfile.yml` with it (decided 2026-11-17, below).
 3. **Rename:** `cmd/desktop-native` becomes `cmd/desktop`. The bench keeps its native mode only.
-4. **Docs:** `DEVELOPMENT.md`, `CODE-OUTLINE.md` and the SPEC lose the Wails and Bun parts that TASK-053 marked as going away.
+4. **No Taskfile:** after Wails, nothing runs it (`wails3 task` goes), and MyGo has no task runner (its CLI and automation plugin docs, 2026-11-17). The user chose to drop it rather than add Task as a `go tool`:
+   - Builds and dev: `go tool mygo build` (the release exe and the installer) and `go tool mygo dev` (rebuilds and restarts on Go changes). Tests: `go vet ./...` and `go test ./...`. The bench: a plain `go build -tags bench`.
+   - The version stamp: `internal/version` takes the commit and the modified flag from Go's build info (`debug.ReadBuildInfo`, `vcs.revision` and `vcs.modified`), and the version number from one source instead of both `VERSION` and `mygo.json`. Check that `mygo build` keeps Go's VCS stamping on, and that a release build shows the version and commit in *About*.
+5. **Docs:** `DEVELOPMENT.md`, `CODE-OUTLINE.md` and the SPEC lose the Wails and Bun parts that TASK-053 marked as going away.
 
 ## Rules
 - One commit for the removal, after the proof, so it is easy to read and to revert.
@@ -39,4 +42,4 @@ Part 1, scope item 1: **passed.** The acceptance runs pass, and the user's manua
 - **Go test:** `TestPhase2Acceptance` passes.
 - **Native release:** `wails3 task build:native` built `Jenab.exe` and `jenab-setup-0.1.0-dev-amd64.exe` into `bin/native/windows-amd64` (nothing downloaded). The bench build started on a scratch profile, loaded, showed the welcome screen and quit through the bench port, with no system dialog.
 - **Manual run (2026-11-17):** passed. The user ran the report's steps with Haiku 5.5 on their own data folder, using the release built from main at `ae309c1` with `wails3 task build:native`. The user's words: "All passed". The screenshots stay with the user.
-- **For item 2:** removing Wails removes `wails3 task`, which runs the Taskfile today. The tasks then need another runner.
+- **For item 2:** removing Wails removes `wails3 task`, which runs the Taskfile today. The user chose to drop the Taskfile (scope item 4).
