@@ -120,6 +120,16 @@ func startBench(st *state.Stores, post state.Post, win *mygo.Window) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("POST /shot", b.shot)
+	// TASK-063: the theme, as Settings sets it, for the window's buttons.
+	mux.HandleFunc("POST /theme", func(w http.ResponseWriter, r *http.Request) {
+		var done <-chan error
+		b.ui(func() { done = b.st.Settings.SetTheme(r.URL.Query().Get("s")) })
+		if err := <-done; err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
 	mux.HandleFunc("POST /file", b.file)
 	b.updateRoutes(mux)
 	mux.HandleFunc("POST /quit", func(w http.ResponseWriter, r *http.Request) {

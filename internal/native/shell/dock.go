@@ -20,12 +20,24 @@ func (s *Shell) chatArea(c *kit.Context, p id.Project, ch id.Chat) {
 	sh := s.Stores.Shell
 	ref := state.ChatRef{Project: p, Chat: ch}
 	d, ok := sh.Open[ref]
-	if !ok || d.Kind != "file" || s.Files == nil {
-		s.chatView(c, p, ch)
+	docked := ok && d.Kind == "file" && s.Files != nil
+	fileEnd, chatEnd := s.chatEnds(ref, docked)
+	narrow := kit.Narrow(c)
+	if narrow {
+		// Narrow, the main area is at the window's end edge.
+		fileEnd, chatEnd = endTabs, endTabs
+	}
+	if !docked {
+		s.chatView(c, p, ch, chatEnd)
 		return
 	}
-	file := func() { s.Files.View(c, p, ch, d.Key, func() { s.dockControls(c, ref, "Close the file") }) }
-	if kit.Narrow(c) {
+	file := func() {
+		s.Files.View(c, p, ch, d.Key, func() {
+			s.dockControls(c, ref, "Close the file")
+			s.barEnd(c, fileEnd)
+		})
+	}
+	if narrow {
 		s.drawer(c, p, ch, file)
 		return
 	}
@@ -35,7 +47,7 @@ func (s *Shell) chatArea(c *kit.Context, p id.Project, ch id.Chat) {
 	}
 	width := float32(sh.Width[p])
 	kit.Split(c, &width, state.MinDock, sh.Side[p] == state.DockLeft, "The file and the chat", file, func() {
-		s.chatView(c, p, ch)
+		s.chatView(c, p, ch, chatEnd)
 	})
 	if int(width) != sh.Width[p] {
 		sh.SetWidth(p, float64(width))
@@ -83,26 +95,20 @@ func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel strin
 	}
 }
 
-// rightTabs are the right sidebar's tabs, in order.
-var rightTabs = []state.RightTab{state.TabPages, state.TabPipelines, state.TabFiles, state.TabLinks}
-
 // rightSidebar holds the project's Pages, Pipelines, Files and Links
 // (right-sidebar.tsx). Pages and pipelines come in later phases; Files is
-// the bucket. A jenab:// link in the chat switches to Files.
+// the bucket. A jenab:// link in the chat switches to Files. It is at the
+// window's end edge, so its bar has the tabs' icons (TASK-063); its tab
+// shows as a small title over its content, or as the Files panel's path
+// bar.
 func (s *Shell) rightSidebar(c *kit.Context, p id.Project) {
 	sh := s.Stores.Shell
 	kit.EndPanel(c, "Project", func() {
-		kit.Box(c).Padding(12).Shrink(0).Children(func() {
-			tab := 0
-			for i, t := range rightTabs {
-				if t == sh.RightTab {
-					tab = i
-				}
-			}
-			if kit.Tabs(c, &tab, "Project", "Pages", "Pipelines", "Files", "Links").Changed() {
-				sh.RightTab = rightTabs[tab]
-			}
-		})
+		kit.PanelHead(c, func() { s.barEnd(c, endTabs) }).Justify(kit.End)
+		// The Files panel's path bar starts with "Files", which names it.
+		if sh.RightTab != state.TabFiles {
+			kit.PanelTitle(c, tabName(sh.RightTab))
+		}
 		switch sh.RightTab {
 		case state.TabFiles:
 			if s.Files != nil {

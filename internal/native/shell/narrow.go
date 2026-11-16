@@ -36,11 +36,16 @@ func PageTitle(place *state.Place) string {
 }
 
 // pageHeader is the header of a place other than a chat (PageHeader): ☰
-// and the place's title.
+// in a narrow window, and the place's title. It is the bar at the
+// window's end edge.
 func (s *Shell) pageHeader(c *kit.Context, title string) {
 	kit.Bar(c, func() {
-		s.openSidebar(c)
+		if kit.Narrow(c) {
+			s.openSidebar(c)
+		}
 		kit.Title(c, title)
+		kit.Spacer(c)
+		kit.ControlsRoom(c)
 	})
 }
 
@@ -52,8 +57,8 @@ func (s *Shell) openSidebar(c *kit.Context) {
 }
 
 // overlays are the rail with the open chat's list from the start edge,
-// and the right sidebar from the end edge (Overlays); ☰ and *Pages* in the
-// header open them.
+// and the right sidebar from the end edge (Overlays); ☰ and the tabs'
+// icons in the bar open them.
 func (s *Shell) overlays(c *kit.Context, place *state.Place, chatOpen bool) {
 	sh := s.Stores.Shell
 	kit.Sheet(c, &sh.LeftOverlay, false, "Projects and chats", func() {
@@ -84,7 +89,10 @@ func (s *Shell) drawer(c *kit.Context, p id.Project, ch id.Chat, file func()) {
 	win, _ := c.Size()
 	kit.Sheet(c, &open, true, "Chat", func() {
 		// The width holds the sheet's border, as Tailwind's w-[28rem] does.
-		kit.Column(c).Width(min(win, drawerWidth) - 1).Grow(1).MinHeight(0).AlignItems(kit.Stretch).Children(func() { s.chatView(c, p, ch) })
+		// The drawer runs to the window's top end corner, under its buttons.
+		kit.Column(c).Width(min(win, drawerWidth) - 1).Grow(1).MinHeight(0).AlignItems(kit.Stretch).Children(func() {
+			s.chatView(c, p, ch, endRoom)
+		})
 	})
 	if open != sh.Drawer[ref] {
 		sh.Drawer[ref] = open

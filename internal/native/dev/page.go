@@ -136,6 +136,11 @@ func (s *Screen) bar(c *kit.Context, view state.View) {
 		}
 		kit.Spacer(c)
 		kit.Badge(c, "Read-only · secrets redacted", kit.Neutral).Shrink(0)
+		// At the window's top end corner, unless the narrow window's
+		// header is over it (TASK-063).
+		if !kit.Narrow(c) {
+			kit.ControlsRoom(c)
+		}
 	})
 }
 

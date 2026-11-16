@@ -1,6 +1,6 @@
 # TASK-063 — The native app's own title bar
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061
 
@@ -34,3 +34,16 @@ The native app shows the plain Windows title bar above its own headers, which wa
 - `go build ./...`, `go vet ./...` and `go test ./...` pass.
 
 ## Result
+Done. Report: [reports/TASK-063-report.md](reports/TASK-063-report.md).
+1. On Windows the window has no system title bar, and Windows' own buttons stay. The chat list's head, the chat's or file's header and the right sidebar's head line up as one 56 px bar. The bar at the window's end edge leaves room for the buttons. macOS and Linux keep the system's bar until TASK-060.
+2. The bar's empty parts move the window, and a double-click maximizes it. Buttons inside the bar still get their clicks.
+3. The window's buttons follow the app's light or dark theme, and change with it.
+4. The right sidebar's tabs are four toggle icons before the window's buttons: Pages, Pipelines, Files and Links. A click opens the sidebar on that tab, and a click on the open tab hides it. The sidebar has a small title in place of its tab row. A `jenab://` link opens Files and shows the sidebar.
+5. Below 900 px the icons open the right overlay on their tab, in place of *Pages*.
+6. Settings, project settings, the developer tools, the file view and pages without a chat have the same bar.
+
+Each item has headless tests in light and dark. A live check with the bench build at 1280 and 800 px covered dragging, double-click maximize, snap layouts, the buttons' theme and the icons. A new bench route, `POST /theme`, sets the theme. The icons' names and toggle states were checked with UI Automation.
+
+Gaps:
+- A spoken Narrator pass wasn't done; it needs someone to listen.
+- `ControlsRoom` doesn't handle macOS's buttons on the start side yet (TASK-060).

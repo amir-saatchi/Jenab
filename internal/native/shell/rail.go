@@ -147,18 +147,21 @@ func (s *Shell) railChats(c *kit.Context, p id.Project, open id.Chat) {
 }
 
 // chatList is the chat list beside the rail (chat-sidebar.tsx): the
-// project's name with its menu (Project settings, Export…), New chat,
-// and the chats with Mother first, each with its ⋯ menu.
+// project's name with its menu (Project settings, Export…) in the panel's
+// part of the window's title bar, New chat, and the chats with Mother
+// first, each with its ⋯ menu.
 func (s *Shell) chatList(c *kit.Context, p id.Project, open id.Chat) {
 	st := s.Stores
-	kit.SidePanel(c, "Chats", func() {
+	head := func() {
 		folder := ""
 		for _, it := range st.Projects.List {
 			if it.ID == p {
 				folder = it.Folder
 			}
 		}
-		kit.MenuTitle(c, s.projectName(p), folder, "Project menu", func(m *kit.Menu) { s.Projects.ProjectMenu(m, p) })
+		kit.MenuTitle(c, s.projectName(p), folder, "Project menu", func(m *kit.Menu) { s.Projects.ProjectMenu(m, p) }).Grow(1)
+	}
+	kit.HeadedSidePanel(c, "Chats", head, func() {
 		if kit.Button(c, "New chat", kit.Outline).Clicked() {
 			st.NewChat(p)
 		}
