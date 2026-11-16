@@ -143,3 +143,34 @@ func TestMarkdownListItemsTakeTheirDirection(t *testing.T) {
 		}
 	})
 }
+
+// Markdown takes the look of the frontend's typeset.css where MyGo lets
+// it (TASK-054): a quote in the text's color, links of weight 500, a
+// table's header with no fill, and a code block with no language shown,
+// which a screen reader still names.
+func TestMarkdownLooksLikeTheFrontend(t *testing.T) {
+	src := "> " + persian + "\n\nSee [the docs](https://example.com).\n\n| Name | City |\n|---|---|\n| Sara | Berlin |\n\n" + goCode
+	var m Markdown
+	themes(t, func(c *Context) { m.View(c, src) }, func(t *testing.T, tt *ui.Tester) {
+		dark := near(tt.Image().RGBAAt(799, 599), Dark.Background)
+		k, th := &Light, markdownTheme(dark)
+		if dark {
+			k = &Dark
+		}
+		if th.QuoteText != k.Foreground || th.QuoteBarWidth != 2 || th.LinkWeight != 500 {
+			t.Errorf("quote %v (bar %v), link weight %d", th.QuoteText, th.QuoteBarWidth, th.LinkWeight)
+		}
+		shows(t, tt, persian, "the docs", "Code, go", "Copy code")
+		for _, s := range tt.Texts() {
+			if s == "go" {
+				t.Error("the code block shows its language")
+			}
+		}
+		// The header row's fill, in its first cell's room: the window's.
+		r := bounds(t, tt, "Name")
+		if got := tt.Image().RGBAAt(int(r.X)+4, int(r.Y)+3); !near(got, k.Background) {
+			t.Errorf("the header is filled with %v, want the background %v", got, k.Background)
+		}
+		tabTo(t, tt, "the docs")
+	})
+}

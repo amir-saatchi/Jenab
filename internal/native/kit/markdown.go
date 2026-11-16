@@ -186,7 +186,17 @@ func markdownGap(c *ui.Context, tight bool) float32 {
 
 var markdownThemes [2]*markdown.Theme
 
-// markdownTheme is the Markdown theme of the light or the dark tokens.
+// markdownTheme is the Markdown theme of the light or the dark tokens, in
+// the look of the frontend's typeset.css (TASK-054):
+//   - a quote's text is the text's color, by a 2 px bar;
+//   - links are of weight 500. The frontend underlines them in the
+//     text's color; MyGo underlines a Markdown link only while the
+//     pointer is on it and has no setting for more, so they stay blue to
+//     stand out;
+//   - a table's header has no fill, and cells have the frontend's room,
+//     1 em across and 0.75 em down. The frontend draws only lines between
+//     rows and under the table; MyGo draws a frame and lines between
+//     columns too, in one color, with no setting to leave them out.
 func markdownTheme(dark bool) *markdown.Theme {
 	i, k := 0, &Light
 	if dark {
@@ -195,18 +205,21 @@ func markdownTheme(dark bool) *markdown.Theme {
 	if markdownThemes[i] == nil {
 		markdownThemes[i] = &markdown.Theme{
 			Font: FontSans, CodeFont: FontMono,
-			Text: k.Foreground, Muted: k.MutedForeground, Link: k.Tone(Blue).Text,
+			Text: k.Foreground, Muted: k.MutedForeground, Link: k.Tone(Blue).Text, LinkWeight: 500,
 			Code: k.Foreground, CodeBackground: k.Muted,
 			CodeBlockBackground: k.Muted.Alpha(0.5), CodeBlockBorder: k.Border,
-			QuoteBar: k.Border, QuoteText: k.MutedForeground, Rule: k.Border,
-			TableBorder: k.Border, TableHeader: k.Muted.Alpha(0.5),
+			QuoteBar: k.Border, QuoteText: k.Foreground, QuoteBarWidth: 2, Rule: k.Border,
+			// Not the zero color, which MyGo takes as its own header fill.
+			TableBorder: k.Border, TableHeader: k.Background.Alpha(0),
+			TableCellPadding: [2]float32{1, 0.75},
 		}
 	}
 	return markdownThemes[i]
 }
 
 // codeBlock builds a code block as MyGo's DefaultCodeBlock does, in the
-// kit's colors, with tab stops every 2 columns.
+// kit's colors, with tab stops every 2 columns. It shows no language, as
+// the frontend's; a screen reader still hears it ("Code, go").
 func (m *Markdown) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 	k := TokensOf(c)
 	box := ui.Column(c).Direction(ui.LeftToRight).Background(k.Muted.Alpha(0.5)).Border(1, k.Border).
@@ -218,7 +231,6 @@ func (m *Markdown) codeBlock(c *ui.Context, b *markdown.CodeBlockView) {
 	box.Role(ui.RoleGroup).Label(label)
 	box.Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Padding(5, 6, 0, 12).Children(func() {
-			ui.Text(c, b.Language).FontSize(11).TextColor(k.MutedForeground).Unselectable()
 			ui.Spacer(c)
 			m.copyButton(c, b)
 		})
