@@ -177,3 +177,39 @@ From the go decision on, new UI work goes into the native app first, so nothing 
 - **Item 3:** `cmd/desktop-native` starts and keeps one instance. A smoke run checked both. Hiding on close, the saved size and place, and notification clicks are wired but not yet checked live.
 - **Items 4 and 5:** the stores (54 tests) and the kit's first part (the components the chat needs, 18 headless tests; a test keeps `mygo/ui` inside the kit). Geist and Vazirmatn draw variable weights.
 - **MyGo v0.7.4 draws tabs as nothing.** The kit expands them, and its code blocks copy the original code. A tab size came upstream in [#1217](https://github.com/egoist/mygo/pull/1217), after v0.7.4. Part B should decide on moving to v0.9.1 first.
+
+**Part B** (2026-11-16, MyGo v0.9.1): items 6 to 10 are done, and the session report is [reports/SPIKE-048-partB-report.md](reports/SPIKE-048-partB-report.md).
+- **What ran:** native and Wails were built from the same commit and measured on the SPIKE-022 PC, with the fake model and every data folder in a temporary folder.
+- **Model requests:** one, the live check with `gemini-3.5-flash-lite`.
+- **Not checked by a person:** a notification click, and listening to Narrator.
+
+| Measured | Native (MyGo) | Wails |
+|---|---|---|
+| Start to the shell drawn (3 starts) | 540, 177, 185 ms | 823, 760, 805 ms |
+| Opening the 200-message chat, first rows / all rows (median of 5) | 14 / 37 ms | 56 / 196 ms |
+| 1,000 tok/s: frames | 59.8 fps, work max 17.8 ms, 0 % over 33 ms | 59.9 fps, max 18.7 ms, 0 % over 33 ms |
+| 1,000 tok/s: key to screen p50 / p95 / max | 11.7 / 18.2 / 24.1 ms | 23.0 / 35.4 / 51.1 ms |
+| 100 tok/s: key to screen p50 / p95 / max | 12.0 / 17.1 / 76.9 ms | 15.5 / 26.6 / 33.9 ms |
+| Private memory, all processes: idle | 177 MB | 351 MB |
+| … with the 200-message chat open | 186 MB | 531 MB |
+| … peak with 10 answers (100 / 1,000 tok/s) | 225 / 418 MB | 654 / 770 MB |
+| Text samples like Chromium | 16 of 20 | — |
+
+**Go criteria:**
+
+| Criterion | Result |
+|---|---|
+| Persian and mixed text match Chromium on all 20 samples, or the kit fixes the differences | **Not met.** 16 of 20 match after the kit's fixes (code tab size 2, ten clipped icons). Open: a Persian table's columns and the list markers of Persian items (14 to 16) run left to right; the kit can fix them through MyGo's `Options.Block`. MyGo on Windows drops some Arabic harakat (19); the kit can't fix that. |
+| At 1,000 tok/s, frames under 33 ms and key to screen under 50 ms | **Met.** Frame work max 17.8 ms; key to screen max 24.1 ms (Wails: 51.1 ms). At 100 tok/s one frame took 62.9 ms (0.1 %). |
+| Opening a 200-message chat and start-up no slower than Wails | **Met.** About 4 times faster to open and 4 times faster to start. |
+| Private memory with a chat open at most half of the Wails app's | **Met.** 186 MB against 531 MB, 35 %. |
+| Narrator can use the chat | **Likely, not confirmed.** The UIA tree names the rail, chat list, each message ("You said" / "Jenab said" with its text), its buttons and the composer (an Edit with Value and Text). "Answer finished" goes to MyGo's live region. Nobody listened, and a managed UIA client saw no event. |
+| The user accepts the estimate | **The user's call.** About 4,900 frontend lines remain, the size of this slice: 5 to 8 agent hours for the screens. Pages and pipelines, the updater and installer, and macOS and Linux come on top. |
+
+**Recommendation:** a conditional go.
+- **Why:** performance and memory are clear wins. The text gaps are narrow: three can be fixed in the kit, and one is an upstream bug that rarely touches Persian.
+- **Before deciding:**
+  1. The kit takes direction for lists and tables, and the samples pass again (19 of 20).
+  2. The user spends ten minutes with Narrator in the chat and clicks one notification.
+  3. The harakat issue goes to MyGo, with the user's OK to post.
+- **If any of these fails:** no-go, as the Done-when section says.
