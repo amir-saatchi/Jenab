@@ -114,7 +114,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-058](TASK-058-native-developer-tools.md) | Developer tools in the native app | Task | Done | 3 |
 | [TASK-059](TASK-059-native-updater-installer.md) | Updates and the installer for the native app | Task | Done | 3 |
 | [TASK-060](TASK-060-native-macos-linux.md) | The native app on macOS and Linux | Task | Open (waits for CI and a Mac) | 3 |
-| [TASK-061](TASK-061-remove-wails.md) | Switch to the native app and remove Wails | Task | Open | 3 |
+| [TASK-061](TASK-061-remove-wails.md) | Switch to the native app and remove Wails | Task | In progress (proof: waiting for the user's manual run) | 3 |
 | [TASK-062](TASK-062-native-leftovers.md) | The native app's leftovers before the switch | Task | Done | 3 |
 
 ## Phase 1
