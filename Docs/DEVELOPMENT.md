@@ -94,6 +94,8 @@ go run ./cmd/jenab-bench -app bin/jenab-bench-app.exe
 - `-samples` pictures the 20 text samples (Persian, English, mixed, code, tables, lists).
 - `-hold 1m` keeps the app up on a scratch profile, on a chat (`-hold-chat`), for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests. `-dev-tools` with `-hold` turns the developer tools on, and the fake model answers a message with "use a tool" in it with two `query` calls first, one of them failing. While it holds, the port takes `/state`, `/open`, `/send`, `/key`, `/front`, `/size` (the window's size, for the narrow layout under 900 px), `/shot` and `/quit`, and `POST /file?path=<file>` uploads a file into the open chat's project and opens it, with the chat in the dock. `POST /theme?s=light|dark|system` sets the theme as Settings does, with the window's buttons (TASK-063).
 - Screenshots in `bin/bench` can hold user-name paths; don't commit them.
+- Only one bench app runs at a time on a Windows account, whatever its profile: MyGo's single-instance check is per user. A second one, from another worktree too, hands its command line to the first, which shows its window, and exits. Check for a running `jenab-bench-app` first.
+- The crash log (TASK-067): `POST /panic?text=` posts a closure that panics, so the app ends with `crash-<time>-<pid>.raw` in the scratch profile's `logs`. The next start makes it a `.log` without the bench keys and shows *Jenab closed unexpectedly*. `GET /state` has `busy`, which the update restart waits for.
 
 ### Testing updates and the installer
 

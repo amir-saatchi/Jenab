@@ -90,6 +90,10 @@ func (s *Shell) View(c *kit.Context) {
 			case t.Warning:
 				kind = kit.ToastWarning
 			}
+			if t.Action != "" && t.Sticky {
+				kit.StickyToastAction(c, t.Text, t.Detail, t.Action, kind, t.OnAction)
+				continue
+			}
 			if t.Action != "" {
 				kit.ToastAction(c, t.Text, t.Detail, t.Action, t.OnAction)
 				continue

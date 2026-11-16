@@ -45,13 +45,21 @@ func (f *fakeUpdater) count() int {
 type fakeVersion struct {
 	v        string
 	err      error
+	hang     bool // Install downloads until its context ends
 	installs atomic.Int32
+	stopped  atomic.Bool
 }
 
 func (v *fakeVersion) Version() string { return v.v }
 func (v *fakeVersion) Notes() string   { return "notes of " + v.v }
 func (v *fakeVersion) Install(ctx context.Context, progress func(done, total int64)) error {
 	v.installs.Add(1)
+	if v.hang {
+		progress(1, 10)
+		<-ctx.Done()
+		v.stopped.Store(true)
+		return ctx.Err()
+	}
 	progress(10, 10)
 	return v.err
 }
@@ -231,6 +239,65 @@ func TestCheckFails(t *testing.T) {
 	if st := h.wait(t, StateFailed); st.Err != "offline" {
 		t.Fatalf("status %+v", st)
 	}
+}
+
+// A check that fails after a version is installed keeps offering the
+// restart into it (TASK-067).
+func TestFailedRecheckKeepsTheInstalledVersion(t *testing.T) {
+	u := &fakeUpdater{enabled: true, next: &fakeVersion{v: "1.1.0"}}
+	h := start(t, u, "automatic", "stable")
+	h.wait(t, StateReady)
+	u.mu.Lock()
+	u.checkErr = errors.New("offline")
+	u.mu.Unlock()
+	h.s.CheckNow()
+	select {
+	case st := <-h.statuses:
+		if st.State != StateReady || st.Version != "1.1.0" || st.Notes == "" {
+			t.Fatalf("after a failed re-check: %+v; want ready with 1.1.0", st)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("no status after the re-check")
+	}
+	if n := u.count(); n != 2 {
+		t.Fatalf("%d checks, want 2", n)
+	}
+	h.can.Store(true)
+	deadline := time.Now().Add(time.Second)
+	for h.relaunch.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if h.relaunch.Load() == 0 {
+		t.Fatal("no restart into the installed version")
+	}
+}
+
+// Switching updates off stops a download, and no restart is offered
+// (TASK-067).
+func TestSwitchingOffStopsTheDownload(t *testing.T) {
+	v := &fakeVersion{v: "1.1.0", hang: true}
+	u := &fakeUpdater{enabled: true, next: v}
+	h := start(t, u, "automatic", "stable")
+	h.wait(t, StateDownloading)
+	h.set.Store(&config.UpdateSettings{Mode: "off", Channel: "stable"})
+	h.s.SettingsChanged()
+	h.wait(t, StateOff)
+	if !v.stopped.Load() {
+		t.Fatal("the download was not cancelled")
+	}
+	h.can.Store(true)
+	time.Sleep(30 * time.Millisecond)
+	if st := h.s.Status(); st.State != StateOff {
+		t.Fatalf("status %+v; want off", st)
+	}
+	if h.relaunch.Load() != 0 {
+		t.Fatal("restarted after the download stopped")
+	}
+	// Turned on again, the version is offered again: it was stopped, not
+	// refused.
+	h.set.Store(&config.UpdateSettings{Mode: "notify", Channel: "stable"})
+	h.s.SettingsChanged()
+	h.wait(t, StateAvailable)
 }
 
 func TestPrerelease(t *testing.T) {

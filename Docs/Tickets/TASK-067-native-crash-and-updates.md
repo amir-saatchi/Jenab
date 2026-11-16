@@ -1,6 +1,6 @@
 # TASK-067 — Crash log, and updates that wait for all work
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061
 
@@ -20,3 +20,11 @@ The review of the native app (2026-11-17) found that a crash leaves no trace, an
 
 ## Done when
 - Tests: a panic in a posted closure writes the crash file; the next start shows the notice; `CanRestart` is false while a pipeline run or background task is going; a failed re-check keeps the installed version; switching off cancels a download.
+
+## Result
+Done. Report: [reports/TASK-067-report.md](reports/TASK-067-report.md).
+1. A crash writes the panic and every goroutine's stack to `logs/crash-<time>-<pid>.raw` (`internal/crash`, `debug.SetCrashOutput`). The next start makes it a `.log` without secrets, keeps the last 5, and shows a toast that stays: "Jenab closed unexpectedly", with *Open the log*. Nothing is sent.
+2. The update restart waits for all work: `Orchestrator.Busy` (every turn with its subagents and title, every memory refresh and call) or `project.Manager.Busy`. Pipeline runs and background tasks don't exist yet; they join the check when they are built.
+3. A failed check or install after a version is installed keeps that version and *Restart now*. Switching updates off stops a download, offers no restart and doesn't refuse the version.
+4. A second start waits up to 15 s for a copy that is quitting, instead of saying Jenab is already running.
+5. The live check found that a deferred stop of the crash output lost the crash, and that a toast with a button didn't stay. Both are fixed.

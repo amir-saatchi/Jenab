@@ -81,6 +81,17 @@ func (b *bench) updateRoutes(mux *http.ServeMux) {
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+	// POST /panic?text= posts a closure to the UI thread that panics with
+	// text, for the crash log's check (TASK-067). The app ends.
+	mux.HandleFunc("POST /panic", func(w http.ResponseWriter, r *http.Request) {
+		text := r.URL.Query().Get("text")
+		mark("panic posted")
+		w.WriteHeader(http.StatusNoContent)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		b.post(func() { panic("bench: " + text) })
+	})
 	// POST /hide hides the window, as closing it does.
 	mux.HandleFunc("POST /hide", func(w http.ResponseWriter, r *http.Request) {
 		b.ui(func() { b.win.Hide() })

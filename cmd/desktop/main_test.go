@@ -63,6 +63,8 @@ func TestTheRestartedCopyLocksOnce(t *testing.T) {
 	if d := time.Since(start); d > 5*time.Second {
 		t.Fatalf("took the free lock in %v", d)
 	}
+	defer func(w time.Duration) { quitWait = w }(quitWait)
+	quitWait = 200 * time.Millisecond
 	if _, err := lockApp(root, nil); !errors.Is(err, lifecycle.ErrRunning) {
 		t.Fatalf("a second copy: %v; want ErrRunning", err)
 	}
@@ -77,5 +79,27 @@ func TestTheRestartedCopyLocksOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	<-released
+	next.Close()
+}
+
+// A plain start that meets a copy still quitting waits for it, instead of
+// saying the app is already running: MyGo lets go of the single-instance
+// check before the shutdown lets go of the lock (TASK-067).
+func TestASecondStartWaitsForAQuittingCopy(t *testing.T) {
+	defer func(w time.Duration) { quitWait = w }(quitWait)
+	quitWait = 5 * time.Second
+	root := t.TempDir()
+	old, err := lockApp(root, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		time.Sleep(300 * time.Millisecond) // the shutdown closes the databases
+		old.Close()
+	}()
+	next, err := lockApp(root, nil)
+	if err != nil {
+		t.Fatalf("a start during a quit: %v", err)
+	}
 	next.Close()
 }

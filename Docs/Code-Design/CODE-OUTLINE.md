@@ -29,7 +29,7 @@ tool, schedule, update
 project, provider, web, expr, script, mcp
 store
 sqlguard, bucket, workspace, proc, skill
-id, chat, config, limit, secret, logfile, sysmem
+id, chat, config, limit, secret, logfile, sysmem, crash
 ```
 
 - `agent` imports `pipeline`: Mother's chats and the finish notices need runs. `pipeline` never imports `agent`.
@@ -52,7 +52,8 @@ func main() {
 
 func run() error {
     paths, err := config.DefaultPaths(appinfo.Name)             // <user data dir>/<app>/
-    lock, err := lockApp(paths.Root, os.Args[1:])               // app.lock: one copy of the app at a time
+    lock, err := lockApp(paths.Root, os.Args[1:])               // app.lock: one copy of the app at a time; waits for a copy that is quitting
+    crashFile, stopCrash, err := crash.Start(paths.Logs)        // a crash writes its stacks here; stopCrash at the end of a normal quit, never deferred
     settings, problems := config.LoadSettingsOrDefaults(paths.Settings) // a broken config.yaml gives Defaults and a Problem
     paths = paths.WithDataFolder(settings.DataFolder)           // projects/ (2.1)
     log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
@@ -62,6 +63,7 @@ func run() error {
 
     live    := app.NewSettings(paths.Settings, settings, problems) // a save applies at once
     secrets := secret.New(newKeyring())                         // the OS keychain; in memory in the bench build
+    crashes, err := crash.Collect(paths.Logs, crashFile, crashRedactor(live.Get(), secrets)) // earlier crashes become logs without secrets; a toast after the stores exist
     registry, err := store.OpenRegistry(ctx, paths.Registry)
     moved, err := project.MoveProjects(ctx, paths, registry, log) // the data folder changed (2.1); logged, not fatal
     calls  := limit.NewGate(settings.LLM.MaxParallelCalls)
@@ -104,9 +106,10 @@ func run() error {
 
 - **Notifications:** `mygo.NewNotification`; a click shows the window and sends `app:open`.
 - **Files:** attachments go through the upload route (`app.UploadHandler`), called in the same process.
-- **Updates** (TASK-059): `updater.go` wraps `mygo.Updater` as `update.Updater`. `update.New` gets the settings, `CanRestart` (no chat working or waiting, window not in front) and `Relaunch`, which is `mygo.App.Relaunch("--after-update")`. The copy that starts with `--after-update` waits up to a minute for the app lock (`lockApp`, `lifecycle.LockRootWait`), as MyGo starts it before the old copy's `lifecycle.Shutdown`. Settings › General shows the status (`state.Updates`). At each start on Windows, `appsentry.go` writes the running version into the Apps entry's DisplayVersion if the entry belongs to this folder, since MyGo's updater doesn't (TASK-062).
-- **Not yet:** the scheduler and pipelines (Phase 3).
-- **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go` (and `bench_update.go`, `bench_file.go`): microsecond log stamps, marks in the log, and a loopback port (`JENAB_BENCH_PORT`) that `cmd/jenab-bench` drives. Secrets stay in memory (`newKeyring`). The release build has no bench code.
+- **Updates** (TASK-059): `updater.go` wraps `mygo.Updater` as `update.Updater`. `update.New` gets the settings, `CanRestart` and `Relaunch`, which is `mygo.App.Relaunch("--after-update")`. `CanRestart` is `appBusy` false (`orch.Busy() || projects.Busy()`: every turn with its subagents and title, every memory refresh and call, every project lease; TASK-067) and the window not in front. The copy that starts with `--after-update` waits up to a minute for the app lock (`lockApp`, `lifecycle.LockRootWait`), as MyGo starts it before the old copy's `lifecycle.Shutdown`; a plain start waits up to `quitWait` (15 s), as MyGo gives up the single-instance check before that shutdown too. Settings › General shows the status (`state.Updates`). At each start on Windows, `appsentry.go` writes the running version into the Apps entry's DisplayVersion if the entry belongs to this folder, since MyGo's updater doesn't (TASK-062).
+- **Crashes** (TASK-067): `crash.go` builds the redactor for the crash logs (every provider's key and base-URL fields, as `exportRedactor` does) and the sticky toast with *Open the log* (`mygo.Shell.OpenPath`). There is no top-level `recover`: the crash output covers every goroutine.
+- **Not yet:** the scheduler and pipelines (Phase 3). When they come, their runs join `appBusy`.
+- **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go` (and `bench_update.go`, `bench_file.go`): microsecond log stamps, marks in the log, and a loopback port (`JENAB_BENCH_PORT`) that `cmd/jenab-bench` drives. `GET /state` has `busy` (`appBusy`), and `POST /panic` posts a closure that panics, for the crash log (TASK-067). Secrets stay in memory (`newKeyring`). The release build has no bench code.
 - **Version:** `internal/version` reads the number from `mygo.json`, which the root package `jenab` (`jenab.go`) embeds, and the commit from Go's build info (DEVELOPMENT.md).
 
 ## 3. Bottom packages
@@ -249,6 +252,15 @@ func (s *Store) Redact(text string) string // replaces every known secret with [
 func Open(dir string, debug bool) (*slog.Logger, func() error, error) // text handler, 10 MB × 5 files
 func Tail(dir string, match string) ([]string, error)                 // for *Copy details*
 ```
+
+### `crash` (TASK-067)
+
+```go
+func Start(dir string) (path string, stop func(), err error) // debug.SetCrashOutput to crash-<time>-<pid>.raw, traceback "all"
+func Collect(dir, current string, redact func(string) string) ([]string, error) // earlier .raw files become .log; keeps Keep (5)
+```
+
+A panic runs its goroutine's defers before the runtime writes it, so `stop` is called at the end of a normal quit, never in a defer.
 
 ### `skill`: skills (8.9)
 
@@ -608,7 +620,7 @@ func (s *Service) CheckNow(); Install(); Restart(); SettingsChanged() // Setting
 func (s *Service) Status() Status            // off, unavailable, idle, checking, up-to-date, available, downloading, ready, failed
 ```
 
-A version whose install failed is not installed again on its own; the user can try it from Settings.
+A version whose install failed is not installed again on its own; the user can try it from Settings. Once a version is installed, a failed check or install keeps it shown as ready. `Install` runs on its own goroutine while `Run` keeps reading requests: switching to off cancels its context, gives off and doesn't refuse the version (TASK-067).
 
 ## 6. Tools (8.1, Q11)
 
@@ -700,6 +712,7 @@ func (o *Orchestrator) State(p id.Project, c id.Chat) chat.State       // idle, 
 func (o *Orchestrator) Waits() []Wait                                  // every chat waiting for the user, by chat ID, for *Waiting* in the rail
 func (o *Orchestrator) Answer(p id.Project, c id.Chat, a Answer) error // the card or form the turn waits for (8.8); ErrNotWaiting, ErrBadAnswer
 func (o *Orchestrator) SetLevel(ctx context.Context, p id.Project, c id.Chat, l project.Level) error // from the next tool call; adds a notice to the chat
+func (o *Orchestrator) Busy() bool                                     // any turn, refresh or call going; for the update restart (TASK-067)
 func (o *Orchestrator) Refuse()                                        // shutdown step 1: Send, Retry, Clear and Delete fail
 func (o *Orchestrator) Wait(ctx context.Context) error
 

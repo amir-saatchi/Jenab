@@ -69,12 +69,12 @@ type Deps struct {
 	// Settings returns the user's choice now.
 	Settings func() config.UpdateSettings
 	// CanRestart reports whether an automatic restart would interrupt
-	// nothing: no chat working, and the window not in use.
+	// nothing: no work going on, and the window not in use.
 	CanRestart func() bool
 	// Relaunch quits the app the normal way and starts it again.
 	Relaunch func()
 	// OnStatus gets every change of the status, from the service's
-	// goroutine.
+	// goroutines, one at a time.
 	OnStatus func(Status)
 	Log      *slog.Logger
 	// Every is how often it checks; 6 hours when 0. Poll is how often a
@@ -103,6 +103,7 @@ type Service struct {
 	// Only Run's goroutine uses these.
 	found     Available
 	installed string          // the version whose files are in place
+	notes     string          // its release notes
 	refused   map[string]bool // versions whose install failed, not tried again on their own
 	mode      string          // the mode of the last step
 }
@@ -223,10 +224,18 @@ func (s *Service) check(ctx context.Context, manual bool) {
 		return
 	}
 	beta := set.Channel == "beta"
-	s.set(Status{State: StateChecking, Checked: s.Status().Checked})
+	// With a version installed, Settings keeps offering the restart while
+	// it checks for a newer one.
+	if s.installed == "" {
+		s.set(Status{State: StateChecking, Checked: s.Status().Checked})
+	}
 	found, err := s.d.Updater.Check(ctx, beta)
 	if err != nil {
 		s.d.Log.Warn("update: the check failed", "err", err)
+		if s.installed != "" {
+			s.set(s.ready(s.Status().Checked))
+			return
+		}
 		s.set(Status{State: StateFailed, Err: err.Error(), Checked: s.Status().Checked})
 		return
 	}
@@ -240,7 +249,7 @@ func (s *Service) check(ctx context.Context, manual bool) {
 	if found == nil || found.Version() == s.installed {
 		s.found = nil
 		if s.installed != "" {
-			s.set(Status{State: StateReady, Version: s.installed, Checked: now})
+			s.set(s.ready(now))
 		} else {
 			s.set(Status{State: StateUpToDate, Checked: now})
 		}
@@ -255,31 +264,82 @@ func (s *Service) check(ctx context.Context, manual bool) {
 	s.set(Status{State: StateAvailable, Version: found.Version(), Notes: found.Notes(), Checked: now})
 }
 
-// install downloads and installs found, once.
+// install downloads and installs found, once. Switching updates off while
+// it downloads stops the download (TASK-067); other requests wait for it.
 func (s *Service) install(ctx context.Context, found Available) {
 	v := found.Version()
 	checked := s.Status().Checked
 	s.set(Status{State: StateDownloading, Version: v, Notes: found.Notes(), Checked: checked})
-	last := time.Time{}
-	err := found.Install(ctx, func(done, total int64) {
-		if total <= 0 || time.Since(last) < 250*time.Millisecond && done < total {
-			return
+	dctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		last := time.Time{}
+		result <- found.Install(dctx, func(done, total int64) {
+			if total <= 0 || time.Since(last) < 250*time.Millisecond && done < total {
+				return
+			}
+			last = time.Now()
+			s.set(Status{State: StateDownloading, Version: v, Notes: found.Notes(), Progress: float64(done) / float64(total), Checked: checked})
+		})
+	}()
+	stopped := false
+	var err error
+wait:
+	for {
+		select {
+		case err = <-result:
+			break wait
+		case r := <-s.reqs:
+			// A check, an install or a restart asked for now is answered
+			// by the download's end; only off changes it.
+			if r != reqSettings {
+				continue
+			}
+			s.mode = s.settings().Mode
+			if s.mode == "off" && !stopped {
+				stopped = true
+				s.d.Log.Info("update: updates are off; the download stops", "version", v)
+				cancel()
+			}
 		}
-		last = time.Now()
-		s.set(Status{State: StateDownloading, Version: v, Notes: found.Notes(), Progress: float64(done) / float64(total), Checked: checked})
-	})
+	}
+	if err != nil && (stopped || ctx.Err() != nil) {
+		// Stopped, not failed: the version is not refused, and the app is
+		// unchanged.
+		s.found = nil
+		if s.installed != "" {
+			s.set(s.ready(checked))
+		} else {
+			s.set(Status{State: StateOff})
+		}
+		return
+	}
 	if err != nil {
 		// The Updater leaves the app as it was: a download that fails its
 		// signature or size is never unpacked, and a swap that fails puts
 		// the old files back.
 		s.refused[v] = true
 		s.d.Log.Warn("update: the install failed; the app is unchanged", "version", v, "err", err)
+		if s.installed != "" {
+			// An earlier version is still in place and still runs after a
+			// restart.
+			s.set(s.ready(checked))
+			return
+		}
 		s.set(Status{State: StateFailed, Version: v, Err: err.Error(), Checked: checked})
 		return
 	}
-	s.installed, s.found = v, nil
+	// Done, even if updates went off at the last moment: the files are in
+	// place, so the restart is offered.
+	s.installed, s.notes, s.found = v, found.Notes(), nil
 	s.d.Log.Info("update: installed; it runs after a restart", "version", v)
-	s.set(Status{State: StateReady, Version: v, Notes: found.Notes(), Checked: checked})
+	s.set(s.ready(checked))
+}
+
+// ready is the status while the installed version waits for a restart.
+func (s *Service) ready(checked time.Time) Status {
+	return Status{State: StateReady, Version: s.installed, Notes: s.notes, Checked: checked}
 }
 
 func (s *Service) set(st Status) {
