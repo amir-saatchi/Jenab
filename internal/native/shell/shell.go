@@ -12,6 +12,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/files"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
+	"github.com/amir-saatchi/jenab/internal/native/projects"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 )
 
@@ -42,14 +43,14 @@ type Shell struct {
 	Quit func()
 	// Now is the clock for the chat list's "Last active"; nil is time.Now.
 	Now func() time.Time
-
-	newProject bool
-	name       string
+	// Projects is the project screens: new project, welcome, project
+	// settings and the exports (TASK-057).
+	Projects *projects.Screens
 }
 
 // New makes the shell's view.
 func New(stores *state.Stores, screen ChatScreen, post state.Post) *Shell {
-	return &Shell{Stores: stores, Chat: screen, Files: files.New(stores), Post: post}
+	return &Shell{Stores: stores, Chat: screen, Files: files.New(stores), Post: post, Projects: projects.New(stores, post)}
 }
 
 // Start loads what the window shows first, on the UI thread.
@@ -101,7 +102,7 @@ func (s *Shell) View(c *kit.Context) {
 			}
 		})
 		s.bottomBar(c, place)
-		s.newProjectDialog(c)
+		s.Projects.Dialogs(c)
 		kit.Toasts(c)
 	})
 }
@@ -111,20 +112,14 @@ func (s *Shell) main(c *kit.Context, place *state.Place) {
 	switch {
 	case !st.Projects.Loaded:
 		center(c, func() { kit.Spinner(c, "Loading the projects") })
-	case place == nil && len(st.Projects.List) == 0:
-		center(c, func() {
-			kit.Empty(c, kit.IconSparkles, "Welcome to Jenab", "Make a project to start: its Mother chat opens here.", func() {
-				if kit.Button(c, "New project", kit.Default).Clicked() {
-					s.newProject = true
-				}
-			})
-		})
 	case place == nil:
-		center(c, func() { kit.Empty(c, kit.IconChat, "Choose a project", "Its chat opens here.", nil) })
+		s.Projects.Welcome(c)
 	case place.View == state.ViewChat:
 		s.chatArea(c, place.Project, place.Chat)
 	case devView(place.View) && s.Dev != nil:
 		s.Dev.View(c, place)
+	case place.View == state.ViewProjectSettings:
+		s.Projects.Settings(c, place.Project, place.Section)
 	default:
 		// Settings and the developer tools are not part of the spike.
 		center(c, func() {
@@ -173,7 +168,7 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 	if it != nil {
 		sub = s.subline(c, *it)
 	}
-	s.header(c, p, ch, title, sub, mother)
+	s.header(c, p, ch, title, sub, mother, info.Title)
 	damage := st.Projects.Opened[p].Damage
 	if damage != nil {
 		kit.Box(c).Padding(12, 16, 0, 16).Children(func() {
@@ -198,8 +193,9 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat) {
 }
 
 // header is the chat's title bar (ChatHeader): the button hiding the chat
-// list, Mother's diamond, the title and its second line.
-func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool) {
+// list, Mother's diamond, the title and its second line, and the chat's
+// ⋯ menu at the end (chat-menu.tsx). raw is the chat's title as stored.
+func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub string, mother bool, raw string) {
 	hidden := s.Stores.ListHidden()
 	kit.Bar(c, func() {
 		label, icon := "Hide the chat list", kit.IconSidebarClose
@@ -218,6 +214,8 @@ func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title, sub stri
 				kit.Muted(c, sub)
 			}
 		})
+		kit.Spacer(c)
+		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(32, 32)
 	})
 }
 

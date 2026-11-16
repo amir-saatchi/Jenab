@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
 	"github.com/amir-saatchi/jenab/internal/native/state"
@@ -143,44 +142,4 @@ func (s *Shell) bottomBar(c *kit.Context, place *state.Place) {
 			kit.StatusText(c, state.MemoryText(*m), tone, state.MemoryTip(*m))
 		}
 	})
-}
-
-// railChats are the project's chats in the rail while the chat list is
-// hidden (rail.tsx's RailChats), with New chat under them.
-func (s *Shell) railChats(c *kit.Context, p id.Project, open id.Chat) {
-	st := s.Stores
-	kit.Separator(c, 24, false)
-	kit.Scroll(c).Shrink(1).MinHeight(0).Children(func() {
-		kit.Column(c).Gap(8).AlignItems(kit.Center).Children(func() {
-			for _, it := range state.Visible(st.Chats.ByProject[p]) {
-				title := it.Chat.Title
-				if title == "" {
-					title = "New chat"
-				}
-				mother := it.Chat.Kind == chat.KindMother
-				active := it.Chat.ID == open
-				label := StatusLabel(title, it.State)
-				c.Key("rail-" + string(it.Chat.ID))
-				tile := kit.RailTile(c, label, active, func() {
-					if mother {
-						kit.IconFace(c, kit.IconDiamond)
-					} else {
-						kit.TileFace(c, state.Initials(title), false, active)
-					}
-					switch it.State {
-					case chat.StateWaiting:
-						kit.Dot(c, kit.Amber)
-					case chat.StateWorking:
-						kit.SmallSpinner(c, "Working").Absolute().Bottom(0).End(8)
-					}
-				})
-				if tile.Clicked() {
-					st.OpenChat(p, it.Chat.ID)
-				}
-			}
-		})
-	})
-	if kit.Tooltip(kit.IconButton(c, kit.IconPlus, "New chat", kit.Ghost), "New chat").Clicked() {
-		st.NewChat(p)
-	}
 }
