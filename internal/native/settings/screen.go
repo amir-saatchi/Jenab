@@ -226,6 +226,7 @@ func (s *Screen) general(c *kit.Context, set config.Settings) {
 				})
 		}
 		s.about(c)
+		s.updates(c, set)
 	})
 }
 

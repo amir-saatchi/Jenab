@@ -39,7 +39,7 @@ id, chat, config, limit, secret, logfile, sysmem
 
 - `agent` imports `pipeline`: Mother's chats and the finish notices need runs. `pipeline` never imports `agent`.
 - `view` and `pipeline` share a row and don't import each other; a form that starts a run goes through a small `view.Runs` interface.
-- `update` also imports Wails (`pkg/updater`), so a Wails upgrade touches `webui` and `update`. In the native app, MyGo's updater replaces it (TASK-059, SPEC 2.8).
+- `update` imports neither Wails nor MyGo: `cmd/desktop-native` gives it MyGo's `mygo.Updater` behind a small interface (TASK-059, SPEC 2.8). The Wails app has no updater.
 - In `native`, only `kit` imports MyGo's `ui`; the screens import `kit` and `state` (section 10).
 
 ## 2. `cmd/desktop`: start
@@ -141,7 +141,8 @@ func run() error {
 
 - **Notifications:** `mygo.NewNotification`; a click shows the window and sends `app:open`, as in the Wails app.
 - **Files:** attachments go through the upload route (`app.UploadHandler`), called in the same process, so both apps store files the same way.
-- **Not yet:** like `cmd/desktop` today, it has no scheduler, pipelines or updater yet; the updater comes with TASK-059.
+- **Updates** (TASK-059): `updater.go` wraps `mygo.Updater` as `update.Updater`. `update.New` gets the settings, `CanRestart` (no chat working or waiting, window not in front) and `Relaunch`, which is `mygo.App.Relaunch("--after-update")`. The copy that starts with `--after-update` waits up to a minute for the app lock (`lockApp`, `lifecycle.LockRootWait`), as MyGo starts it before the old copy's `lifecycle.Shutdown`. Settings › General shows the status (`state.Updates`).
+- **Not yet:** like `cmd/desktop` today, it has no scheduler or pipelines yet.
 - **Bench build:** `-tags bench` adds `bench.go` and `bench_shot.go`: microsecond log stamps, marks in the log, and a loopback port that `cmd/jenab-bench -native` drives. Secrets stay in memory (`newKeyring`). The release build has no bench code.
 
 ## 3. Bottom packages
@@ -634,10 +635,16 @@ type Wake interface { Resumed() <-chan time.Time }            // Q12; OSWake use
 ### `update` (2.8)
 
 ```go
-func New(d Deps) *Updater
-func (u *Updater) Run(ctx context.Context) error // check at start, then every 6 h
-func (u *Updater) Apply(ctx context.Context) error // only when Deps.Busy() is false
+type Updater interface { Enabled() bool; Check(ctx context.Context, prereleases bool) (Available, error) } // mygo.Updater in cmd/desktop-native
+type Available interface { Version() string; Notes() string; Install(ctx context.Context, progress func(done, total int64)) error }
+type Deps struct { Updater Updater; Current string; Settings func() config.UpdateSettings; CanRestart func() bool; Relaunch func(); OnStatus func(Status); Log *slog.Logger }
+func New(d Deps) *Service
+func (s *Service) Run(ctx context.Context)  // check at start, then every 6 h; restarts into an installed version when CanRestart (automatic)
+func (s *Service) CheckNow(); Install(); Restart(); SettingsChanged() // Settings › General; each returns at once
+func (s *Service) Status() Status            // off, unavailable, idle, checking, up-to-date, available, downloading, ready, failed
 ```
+
+A version whose install failed is not installed again on its own; the user can try it from Settings.
 
 ## 6. Tools (8.1, Q11)
 

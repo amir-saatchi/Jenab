@@ -1,0 +1,11 @@
+{
+  "name": "Jenab",
+  "identifier": "io.github.amir-saatchi.jenab",
+  "version": "0.1.0-dev",
+  "copyright": "Apache-2.0",
+  "publisher": "Jenab",
+  "license": "Apache-2.0",
+  "icon": "build/appicon.png",
+  "main": "./cmd/desktop-native",
+  "out": "bin/native"
+}

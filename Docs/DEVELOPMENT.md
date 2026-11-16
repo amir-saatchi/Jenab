@@ -47,13 +47,15 @@ go run ./cmd/desktop-native
 
 - It builds the services as the Wails app does and uses the same data folder, settings and keychain entries. The Wails app takes the same lock, so quit one before starting the other.
 - Closing the window only hides it. Quit from the tray icon's menu or with *Quit Jenab* on the rail.
-- To build it with the version stamped in, and as a window app with no console:
+- To build the release and its installer (Windows):
 
   ```bash
-  go build -trimpath -ldflags="-H windowsgui -X $(go list -m)/internal/version.number=$(cat VERSION)" -o bin/jenab-native.exe ./cmd/desktop-native
+  wails3 task build:native
   ```
 
-  The Taskfile has no task for it yet; the installer and the release build come with TASK-059.
+  It runs `go tool mygo build`, which reads `mygo.json` and writes `bin/native/windows-amd64/Jenab.exe` and `jenab-setup-<version>-amd64.exe`. The exe is built with `-trimpath` and `-H windowsgui`, with the icon, version info and manifest, and the version and commit of `internal/version`. The first build downloads NSIS 3.13 into `%LOCALAPPDATA%\mygo` (MyGo pins its SHA-256).
+- The installer installs per user into `%LOCALAPPDATA%\Programs\Jenab`, adds a Start menu entry and an entry under Apps, and closes a running Jenab first. `/S` installs silently, `/D=<folder>` picks the folder. The uninstaller removes the program only; settings, projects and keys stay.
+- `mygo.json` has no `updates` block yet, so release builds can't update themselves; Settings says so. With `updates` (the feed URL and the public key) and the private key in `MYGO_UPDATER_PRIVATE_KEY`, the build also writes the signed update archive and `update-windows-amd64.json`. Never commit a private key.
 - For a scratch user folder, point `LOCALAPPDATA`, `APPDATA` and `USERPROFILE` (Windows) at a temporary folder. `USERPROFILE` matters: the default data folder is `%USERPROFILE%\Jenab`, and the start-up scan reads it.
 
 ### The Wails app *(Wails)*
@@ -63,6 +65,7 @@ go run ./cmd/desktop-native
 | `wails3 task dev` | runs the app with hot reload: Vite serves the UI, and the Go side rebuilds and restarts on save |
 | `wails3 task build` | builds `bin/jenab.exe` (`bin/jenab` on macOS and Linux) for production |
 | `wails3 task build DEV=true` | a dev build: no minifying, and the dev tools work |
+| `wails3 task build:native` | Windows: builds the native app's release and its installer into `bin/native/windows-amd64` (TASK-059) |
 | `wails3 task run` | runs the built app |
 | `wails3 task bindings` | regenerates `frontend/bindings` after a service or event changes |
 | `wails3 task check:bindings` | fails if the committed bindings differ from fresh ones (CI runs it) |
@@ -74,7 +77,7 @@ go run ./cmd/desktop-native
 - The frontend uses `@wailsio/runtime`, pinned to the same version as the Wails library. Upgrade both together.
 - `wails3 task dev` serves Vite on port 9245; set `WAILS_VITE_PORT` to change it.
 - On Windows, the build adds the icon and manifest from `build/windows` through a `.syso` file in `cmd/desktop` (git-ignored).
-- **Version:** set in `VERSION` at the repository root (semantic versioning, e.g. `0.1.0-dev`). `wails3 task build`, `dev` and `bench` stamp it into `internal/version` with the git short commit, and with "modified" when tracked files had changes. A build without the Taskfile, such as `go run ./cmd/desktop`, says `dev`. `build/config.yml`, `build/windows/info.json` (four numbers for Windows' fixed versions, e.g. `0.1.0.0`) and `frontend/package.json` carry the same number; `go test ./internal/version` fails when one differs. To bump it, edit `VERSION` and those three files, then tag the release commit `vX.Y.Z`.
+- **Version:** set in `VERSION` at the repository root (semantic versioning, e.g. `0.1.0-dev`). `wails3 task build`, `dev` and `bench` stamp it into `internal/version` with the git short commit, and with "modified" when tracked files had changes. A build without the Taskfile, such as `go run ./cmd/desktop`, says `dev`. `build/config.yml`, `build/windows/info.json` (four numbers for Windows' fixed versions, e.g. `0.1.0.0`), `frontend/package.json` and `mygo.json` carry the same number; `go test ./internal/version` fails when one differs. To bump it, edit `VERSION` and those four files, then tag the release commit `vX.Y.Z`.
 
 Without the CLI, `go run ./cmd/desktop` still works after `bun run build` in `frontend`.
 
@@ -141,6 +144,21 @@ go run ./cmd/jenab-bench -native bin/jenab-native-bench.exe
 - `-samples` pictures the 20 text samples (Persian, English, mixed, code, tables, lists) in both apps, for comparing with Chromium; it needs `bin/jenab-bench-app.exe` from `wails3 task bench` too.
 - `-hold 10m` keeps the native app open on a chat (`-hold-chat`) for checks by hand or with UI Automation. `-gemini <model>` with `-hold` connects one Gemini model with `GEMINI_API_KEY`, which counts against the key's requests. `-dev-tools` with `-hold` turns the developer tools on, and the fake model answers a message with "use a tool" in it with two `query` calls first, one of them failing.
 - Screenshots in `bin/bench` can hold user-name paths; don't commit them.
+
+### Testing updates and the installer (native app)
+
+Test updates only against a local feed, never the public one, and keep test keys outside the repo.
+
+1. Make a key pair in a scratch folder: `go tool mygo keygen -o <scratch>/keys`.
+2. Copy `mygo.json` into a folder under `bin/` and give it a test version, `"main": "github.com/amir-saatchi/jenab/cmd/desktop-native"`, an absolute `icon`, and `"updates": {"publicKey": "<the .pub>", "url": "https://updates.invalid/jenab", "deltas": 0}`.
+3. Build each version with the bench tag and the private key:
+
+   ```bash
+   GOFLAGS=-tags=bench MYGO_UPDATER_PRIVATE_KEY="$(cat <scratch>/keys/mygo-update.key)" MYGO_LDFLAGS="-X github.com/amir-saatchi/jenab/internal/version.number=0.1.2" go tool mygo build -skip-installer -o <scratch>/out/v2 bin/<folder>
+   ```
+
+4. Install the first version with its installer (`/S /D=<scratch>\install\Jenab`) and start it with `LOCALAPPDATA`, `APPDATA` and `USERPROFILE` in a scratch folder, `JENAB_BENCH_PORT` set, and `JENAB_UPDATE_FEED` set to a folder (or a loopback URL) that holds the next version's `update-windows-amd64.json` and archive. The bench build reads the feed from there instead of the URL in the manifest. Run the installer and the uninstaller with the same `APPDATA`: the Start menu entry goes under it, and an uninstaller with another one leaves the entry behind.
+5. Drive it on the bench port: `POST /update?do=check|install|restart`, `POST /hide`, `POST /notify` (a test notification), and `GET /state` for the version, the projects, whether the window is shown and focused, and the updater's state.
 
 ### A fake price site for manual runs
 

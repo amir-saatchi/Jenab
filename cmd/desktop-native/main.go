@@ -48,6 +48,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/sqlworker"
 	"github.com/amir-saatchi/jenab/internal/store"
 	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/update"
 	"github.com/amir-saatchi/jenab/internal/version"
 	"github.com/amir-saatchi/jenab/internal/web"
 )
@@ -79,8 +80,9 @@ func run() (err error) {
 	if err != nil {
 		return err
 	}
-	// The Wails app takes the same lock: one of the two runs at a time.
-	lock, err := lifecycle.LockRoot(paths.Root)
+	// The Wails app takes the same lock: one of the two runs at a time. The
+	// copy an update restarts waits for the old one to let go of it.
+	lock, err := lockApp(paths.Root, os.Args[1:])
 	if err != nil {
 		return err
 	}
@@ -174,9 +176,10 @@ func run() (err error) {
 		Card: func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, time.Now()) }})
 
 	var win *mygo.Window // set in WhenReady
+	appNotify = notifier(func() *mygo.Window { return win }, pub)
 	b := app.NewServices(app.Services{Orchestrator: orch, Projects: projects, Registry: registry, Models: models,
 		Secrets: secrets, Settings: live, Traces: traces, Logs: paths.Logs, Log: log,
-		Events: pub, Notify: notifier(func() *mygo.Window { return win }, pub), OpenFile: mygo.Shell.OpenPath,
+		Events: pub, Notify: appNotify, OpenFile: mygo.Shell.OpenPath,
 		Started: app.Started{DataFolder: paths.DataFolder, DefaultDataFolder: defaultData, DevTools: settings.DevTools, Moved: moved}})
 	go b.CleanOpened()
 
@@ -184,6 +187,18 @@ func run() (err error) {
 		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}}, mailbox.Post)
 	defer stores.Close()
 	stores.Settings.OnTheme = kit.SetThemeSource
+	// Updates (SPEC 2.8, TASK-059): checked at start, then every 6 hours.
+	updates := update.New(update.Deps{
+		Updater: mygoUpdater{}, Current: v.Version, Log: log, Relaunch: relaunch,
+		Settings: func() config.UpdateSettings { return live.Get().Updates },
+		CanRestart: func() bool {
+			return onUI(mailbox.Post, func() bool { return !stores.Busy() && !stores.WindowActive() })
+		},
+		OnStatus: func(st update.Status) { mailbox.Post(func() { stores.UpdateStatus(st) }) },
+	})
+	stores.Updates.API = updates
+	updateService = updates
+	go updates.Run(ctx)
 	stores.Actions.Upload = uploader(app.UploadHandler(projects))
 	stores.Actions.PickFiles = func() []string {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{Title: "Attach files", Multiple: true, Parent: win})
@@ -296,6 +311,13 @@ func notifier(win func() *mygo.Window, pub *app.Publisher) func(app.Notification
 // cmd/jenab-bench drive the app.
 var benchHook func(*state.Stores, state.Post, *mygo.Window)
 
+// appNotify and updateService are the notifier and the updater, which the
+// bench build drives too (TASK-059).
+var (
+	appNotify     func(app.Notification) error
+	updateService *update.Service
+)
+
 // newKeyring is where the app keeps its secrets: the OS keychain, or in a
 // build with the bench tag a keyring in memory, so that the bench never
 // reads or writes the user's.
@@ -353,4 +375,17 @@ type barStatus struct {
 
 func (s barStatus) Providers(ctx context.Context) ([]app.ProviderStatus, error) {
 	return s.settings.Providers(ctx)
+}
+
+// onUI runs fn on the UI thread and returns its answer, or false when the
+// UI doesn't answer within 2 s, as while the app quits.
+func onUI(post state.Post, fn func() bool) bool {
+	answer := make(chan bool, 1)
+	post(func() { answer <- fn() })
+	select {
+	case ok := <-answer:
+		return ok
+	case <-time.After(2 * time.Second):
+		return false
+	}
 }
