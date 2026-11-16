@@ -883,6 +883,11 @@ func redactAll(s string, vs []secret.Value) string {
 	return s
 }
 
+// LocalURL tells whether a provider of kind at baseURL runs on this
+// computer, so it needs no key; Settings uses the same rule as the
+// registry (TASK-068).
+func LocalURL(kind Kind, baseURL string) bool { return localURL(kind, baseURL) }
+
 // localURL tells whether a base URL is this machine; "" is the kind's
 // default, which for Ollama is localhost.
 func localURL(kind Kind, baseURL string) bool {

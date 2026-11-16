@@ -230,7 +230,7 @@ func TestProviderRowsAndModelToggles(t *testing.T) {
 	if len(ps) != 2 || ps[0].Name != "ollama" || !ps[0].Local() || ps[1].Local() {
 		t.Fatalf("providers %+v", ps)
 	}
-	if ps[0].Line() != "On this computer · no key · 2 models on" || ps[1].Line() != "Key in the keychain · 1 model on" {
+	if ps[0].Line() != "On this computer · no key needed · 2 models on" || ps[1].Line() != "Key in the keychain · 1 model on" {
 		t.Errorf("lines %q, %q", ps[0].Line(), ps[1].Line())
 	}
 

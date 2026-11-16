@@ -31,6 +31,8 @@ type Settings struct {
 	Desk       app.DesktopList
 	Build      version.Info
 	Warn       map[string]*project.FolderWarning // CheckFolder's warning by folder
+	Refuse     map[string]string                 // CheckFolder's refusal by folder, as the backend's
+	PresetsBad int                               // how many Presets calls fail before one works
 	Connects   []app.ConnectRequest
 	Removed    []string
 	MemSaves   []app.MemoryEdit
@@ -44,7 +46,7 @@ type Settings struct {
 // NewSettings makes the settings services with the default settings.
 func NewSettings() *Settings {
 	return &Settings{View: app.SettingsView{Settings: config.Defaults()}, Listed: map[string]app.ProviderModels{},
-		Warn: map[string]*project.FolderWarning{}, Memory: app.MemoryView{Scope: "user", Cap: 4000}}
+		Warn: map[string]*project.FolderWarning{}, Refuse: map[string]string{}, Memory: app.MemoryView{Scope: "user", Cap: 4000}}
 }
 
 // Use puts s in api as the settings, the pages and the version.
@@ -106,6 +108,10 @@ func (s *Settings) Remove(_ context.Context, name string) (app.SettingsView, err
 func (s *Settings) Presets(context.Context) ([]app.PresetItem, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.PresetsBad > 0 {
+		s.PresetsBad--
+		return nil, errors.New("the presets couldn't be read")
+	}
 	return slices.Clone(s.PresetList), nil
 }
 
@@ -189,6 +195,13 @@ func (s *Settings) DeleteDesktopRecipe(_ context.Context, id int64) error {
 func (s *Settings) CheckFolder(_ context.Context, dir string) (*project.FolderWarning, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	msg := s.Refuse[dir]
+	if msg == "" {
+		msg = project.DataFolderProblem(dir, "", nil)
+	}
+	if msg != "" {
+		return nil, &app.UIError{Kind: app.KindInvalid, Message: msg}
+	}
 	return s.Warn[dir], nil
 }
 

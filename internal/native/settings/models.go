@@ -65,8 +65,7 @@ func (s *Screen) modelsPage(c *kit.Context, set config.Settings) {
 		}
 		kit.Row(c).Gap(12).AlignItems(kit.Center).Children(func() {
 			if kit.SmallButton(c, kit.IconPlus, "Add provider", kit.Outline).Clicked() {
-				p.adding = true
-				p.add = &ConnectForm{Connected: func(app.ConnectResult) { p.adding = false }}
+				p.openAdd()
 			}
 			kit.Hint(c, "Any OpenAI-compatible URL")
 		})
@@ -116,11 +115,7 @@ func (s *Screen) providerRow(c *kit.Context, set config.Settings, pr logic.Provi
 			}
 			if !pr.Local() {
 				if kit.SmallButton(c, nil, "Replace key", kit.Ghost).Label("Replace the key of " + pr.Name).Clicked() {
-					p.replacing = true
-					p.replace = &ConnectForm{
-						Replace:   &logic.Replace{Name: pr.Name, Kind: pr.Kind, BaseURL: pr.BaseURL},
-						Connected: func(app.ConnectResult) { p.replacing = false },
-					}
+					p.openReplace(&logic.Replace{Name: pr.Name, Kind: pr.Kind, BaseURL: pr.BaseURL})
 				}
 			}
 			if kit.SmallButton(c, nil, "Remove", kit.Ghost).Label("Remove " + pr.Name).TextColor(k.MutedForeground).Clicked() {
@@ -138,15 +133,54 @@ func ownLimit(set config.Settings, name string) *int {
 	return nil
 }
 
+// openAdd opens *Add provider* with a new form. A connect closes the
+// dialog only while it still shows that form, not one opened since.
+func (p *modelsPage) openAdd() {
+	p.closeForms()
+	form := &ConnectForm{}
+	form.Connected = func(app.ConnectResult) {
+		if p.add == form {
+			p.adding = false
+		}
+	}
+	p.adding, p.add = true, form
+}
+
+// openReplace opens a provider's *New key* dialog, as openAdd does.
+func (p *modelsPage) openReplace(r *logic.Replace) {
+	p.closeForms()
+	form := &ConnectForm{Replace: r}
+	form.Connected = func(app.ConnectResult) {
+		if p.replace == form {
+			p.replacing = false
+		}
+	}
+	p.replacing, p.replace = true, form
+}
+
+// closeForms drops the forms of dialogs that closed, with the key and
+// placeholder values typed in them (TASK-068).
+func (p *modelsPage) closeForms() {
+	if !p.adding && p.add != nil {
+		p.add.Clear()
+		p.add = nil
+	}
+	if !p.replacing && p.replace != nil {
+		p.replace.Clear()
+		p.replace = nil
+	}
+}
+
 // dialogs are the Models page's dialogs, over the screen.
 func (p *modelsPage) dialogs(c *kit.Context, s *Screen) {
-	if p.adding {
+	defer p.closeForms()
+	if p.adding && p.add != nil {
 		kit.Dialog(c, &p.adding, "Add provider", func() {
 			kit.Muted(c, "The key is checked with the provider and stored in the OS keychain.")
 			p.add.View(c, s.st)
 		})
 	}
-	if p.replacing {
+	if p.replacing && p.replace != nil {
 		kit.Dialog(c, &p.replacing, "New key for "+p.replace.Replace.Name, func() {
 			kit.Muted(c, "The saved key is never shown. A new one replaces it; the models stay as they are.")
 			p.replace.View(c, s.st)

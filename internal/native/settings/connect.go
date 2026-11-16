@@ -13,8 +13,14 @@ import (
 // provider-card.tsx): a provider from the list, or any OpenAI-compatible
 // URL, the base URL's placeholders and the key, checked with the provider
 // and stored in the OS keychain. With Replace set it saves a new key for
-// a connected provider, whose models stay. Make a new form each time it
-// opens; the chat's Connect card can show one too.
+// a connected provider, whose models stay.
+//
+// To show one, as Settings › Models and the chat's Connect card do: make a
+// new form each time its dialog or card opens, call View in each frame it
+// shows, and call Clear when it closes or is cancelled, so the typed key
+// and placeholder values are dropped. Connected may still arrive after
+// Clear, for a connect that was already sent; check that the form is
+// still the one shown before acting on it.
 type ConnectForm struct {
 	Replace *logic.Replace
 	// Connected is called after a connect that worked; nil for none.
@@ -23,6 +29,7 @@ type ConnectForm struct {
 	asked   bool
 	presets []app.PresetItem
 	loaded  bool
+	failed  string // why the presets couldn't be read
 	pick    string
 	key     string
 	name    string
@@ -42,11 +49,19 @@ func (f *ConnectForm) load(st *state.Stores) {
 	}
 	st.Pages.Presets(func(ps []app.PresetItem, err error) {
 		if err != nil {
-			st.Error(err)
+			f.failed = state.ErrorText(err)
 			return
 		}
 		f.presets, f.pick, f.loaded = ps, logic.FirstPick(ps), true
 	})
+}
+
+// Clear drops what was typed that is secret: the key and the base URL's
+// placeholder values. Call it when the form's dialog or card closes or is
+// cancelled. The map stays, as a frame may still fill it.
+func (f *ConnectForm) Clear() {
+	f.key = ""
+	clear(f.fields)
 }
 
 // ready tells whether the form can be sent.
@@ -95,7 +110,7 @@ func (f *ConnectForm) connect(st *state.Stores, shape logic.FormShape) {
 			st.Error(err)
 			return
 		}
-		f.key = ""
+		f.Clear()
 		name := r.Provider
 		if f.Replace == nil && !shape.Other && shape.Preset != nil {
 			name = shape.Preset.Name
@@ -110,6 +125,15 @@ func (f *ConnectForm) connect(st *state.Stores, shape logic.FormShape) {
 // View builds the form.
 func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 	f.load(st)
+	if f.failed != "" {
+		kit.Column(c).Gap(12).AlignItems(kit.Stretch).Children(func() {
+			kit.Alert(c, kit.Red, "The providers couldn't be read", f.failed)
+			if kit.Button(c, "Try again", kit.Outline).AlignSelf(kit.Start).Clicked() {
+				f.asked, f.failed = false, ""
+			}
+		})
+		return
+	}
 	if !f.loaded {
 		kit.Spinner(c, "Loading the providers")
 		return
@@ -117,7 +141,7 @@ func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 	if f.fields == nil {
 		f.fields = map[string]string{}
 	}
-	shape := logic.FormFor(f.pick, f.presets, f.Replace)
+	shape := logic.FormFor(f.pick, f.presets, f.Replace).WithURL(f.url)
 	kit.Column(c).Gap(16).AlignItems(kit.Stretch).Children(func() {
 		if f.Replace == nil {
 			field(c, "Provider", func() {
@@ -133,9 +157,10 @@ func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 						m.Item(g.Label).Disabled(true)
 						for _, ch := range g.Items {
 							if m.Item(ch.Name).ID(ch.ID).Subtitle(ch.Hint).Radio(ch.ID == f.pick).Chosen() && ch.ID != f.pick {
-								// A key typed for one provider never goes to
-								// another one's URL.
-								f.pick, f.key = ch.ID, ""
+								// A key or account ID typed for one provider
+								// never goes to another one's URL.
+								f.pick = ch.ID
+								f.Clear()
 							}
 						}
 					}
@@ -168,6 +193,11 @@ func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 					hint = "Checked with the provider, then stored in the OS keychain"
 				}
 				kit.Hint(c, hint)
+			})
+		} else if shape.OptionalKey {
+			field(c, "API key (optional)", func() {
+				kit.TextInput(c, &f.key, "API key (optional)").Password()
+				kit.Hint(c, "Only if the server asks for a token · stored in the OS keychain")
 			})
 		}
 		if p := shape.Preset; p != nil && p.NoKey {

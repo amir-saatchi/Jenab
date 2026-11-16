@@ -8,6 +8,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/provider"
 )
 
 // Pages are Settings' page list (settings-view.tsx). Desktop control is
@@ -96,10 +97,11 @@ func Providers(s config.Settings) []Provider {
 	return out
 }
 
-// Local tells whether the provider runs on this computer with no key: an
-// Ollama at a local address.
+// Local tells whether the provider runs on this computer, so it needs no
+// key: its base URL is this computer, by the registry's own rule. An
+// Ollama, an LM Studio or any server on localhost (TASK-068).
 func (p Provider) Local() bool {
-	return p.Kind == "ollama" && LimitDefault(p.Kind, p.BaseURL, 2) == 1
+	return provider.LocalURL(provider.Kind(p.Kind), p.BaseURL)
 }
 
 // Line is the row's second line: where the key is, and how many models
@@ -107,7 +109,7 @@ func (p Provider) Local() bool {
 func (p Provider) Line() string {
 	where := "Key in the keychain"
 	if p.Local() {
-		where = "On this computer · no key"
+		where = "On this computer · no key needed"
 	}
 	n := len(p.Models)
 	if n == 1 {
