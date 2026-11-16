@@ -113,7 +113,7 @@ func TestOpenReplaysTheEventsThatCameDuringTheRead(t *testing.T) {
 	answer, give = later()
 	f.push(answer)
 	s.Delta(chatDelta("r1", "01A1", 0, "\n", 11))
-	s.Part(chatPart("r1", "01X1", 9)) // a gap: the chat is read again
+	s.Part(chatPart("r1", "01X1", 9))             // a gap: the chat is read again
 	s.Delta(chatDelta("r1", "01A1", 0, "\n", 12)) // came after the snapshot read Live
 	give <- storeSnap("r1", 9, agent.Live{Running: true, Seq: 9, Streaming: "01A1", Kind: chat.PartText, Text: "Hello there\n"})
 	until(t, l, func() bool { return len(s.reading) == 0 })
