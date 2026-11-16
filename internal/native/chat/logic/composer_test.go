@@ -29,3 +29,11 @@ func TestModelName(t *testing.T) {
 		}
 	}
 }
+
+func TestLevelName(t *testing.T) {
+	for level, want := range map[string]string{"": "Standard", "strict": "Strict", "standard": "Standard", "auto": "Auto", "loose": "loose"} {
+		if got := LevelName(level); got != want {
+			t.Errorf("LevelName(%q) = %q, want %q", level, got, want)
+		}
+	}
+}

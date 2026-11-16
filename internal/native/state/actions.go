@@ -18,6 +18,7 @@ type ActionsAPI interface {
 	Retry(ctx context.Context, p id.Project, c id.Chat) error
 	Answer(ctx context.Context, p id.Project, c id.Chat, a agent.Answer) error
 	SetModel(ctx context.Context, p id.Project, c id.Chat, model string) error
+	SetLevel(ctx context.Context, p id.Project, c id.Chat, level string) error
 	UndoState(ctx context.Context, p id.Project, c id.Chat, turn int) (agent.TurnUndoState, error)
 	UndoTurn(ctx context.Context, p id.Project, c id.Chat, r agent.UndoRequest) (agent.TurnUndo, error)
 	RewindState(ctx context.Context, p id.Project, c id.Chat, turn int) (agent.RewindState, error)
@@ -101,6 +102,13 @@ func (a *Actions) Answer(p id.Project, c id.Chat, ans agent.Answer, then func(er
 // SetModel sets the chat's model.
 func (a *Actions) SetModel(p id.Project, c id.Chat, model string, then func(error)) {
 	done(a, func(ctx context.Context) error { return a.api.SetModel(ctx, p, c, model) }, then)
+}
+
+// SetLevel sets the project's approval level from the chat's composer
+// (SPEC 8.8): strict, standard or auto. On success it is the opened
+// project's level too, as the Wails composer keeps it.
+func (a *Actions) SetLevel(p id.Project, c id.Chat, level string, then func(error)) {
+	done(a, func(ctx context.Context) error { return a.api.SetLevel(ctx, p, c, level) }, then)
 }
 
 // UndoState reads what *Undo turn* would revert, for a turn or, with

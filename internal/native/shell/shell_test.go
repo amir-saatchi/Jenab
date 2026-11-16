@@ -186,7 +186,7 @@ func TestSubline(t *testing.T) {
 		{app.ChatItem{LastActivity: &today}, "Last active 10:42"},
 		{app.ChatItem{LastActivity: &before}, "Last active Mar 2, 2026"},
 	} {
-		if got := shell.Subline(c.it, now); got != c.want {
+		if got := shell.Subline(c.it, now, func(t time.Time) string { return t.Format("15:04") }, func(t time.Time) string { return t.Format("Jan 2, 2006") }); got != c.want {
 			t.Errorf("Subline(%+v) = %q, want %q", c.it, got, c.want)
 		}
 	}

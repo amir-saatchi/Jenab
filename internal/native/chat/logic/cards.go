@@ -44,13 +44,14 @@ func CardKind(a chat.Approval) string {
 	return a.Kind
 }
 
-// CardTime is when a card was answered, as its record shows it: "10:14" in
-// t's own zone, or "" when it wasn't.
-func CardTime(t *time.Time) string {
+// CardTime is when a card was answered, as its record shows it, written
+// by clock in t's own zone ("10:14 AM" or "10:14", kit.Clock), or "" when
+// it wasn't.
+func CardTime(t *time.Time, clock func(time.Time) string) string {
 	if t == nil {
 		return ""
 	}
-	return t.Format("15:04")
+	return clock(*t)
 }
 
 // RecordText is how an answered or stopped card ended, for its one-line

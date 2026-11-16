@@ -38,7 +38,7 @@ func (s *Screen) row(c *kit.Context, v *view, t *state.Thread, i int) {
 			s.failedCard(c, t, n.Text)
 			return
 		}
-		noticeLine(c, *n, r.Message.CreatedAt.Local().Format("15:04"))
+		noticeLine(c, *n, kit.Clock(c, r.Message.CreatedAt.Local()))
 	case logic.RowAgent:
 		last := i == lastRowIndex(v, t)
 		stream := ""
@@ -200,7 +200,7 @@ func (s *Screen) footer(c *kit.Context, t *state.Thread, r logic.Row, answer jc.
 		if quoted != nil && kit.SmallButton(c, kit.IconReply, "Reply", kit.Ghost).Clicked() {
 			s.reply(t.Chat.ID, quoted, state.MessageText(quoted))
 		}
-		kit.Text(c, answer.CreatedAt.Local().Format("15:04")).PaddingStart(4)
+		kit.Text(c, kit.Clock(c, answer.CreatedAt.Local())).PaddingStart(4)
 		if answer.Model != "" {
 			kit.Text(c, "· "+logic.ModelName(s.st.Settings.Models, answer.Model))
 		}

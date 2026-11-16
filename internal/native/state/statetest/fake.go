@@ -40,6 +40,7 @@ type Fake struct {
 	Msgs     map[id.Chat][]chat.Message
 	Groups   []app.ModelGroup
 	SetTo    map[id.Chat]string // SetModel's last model per chat
+	Levels   []string           // SetLevel's levels, in order
 	sent     []Sent
 	answers  []agent.Answer
 	rewinds  []int
@@ -260,6 +261,20 @@ func (f *Fake) SetModel(_ context.Context, _ id.Project, c id.Chat, model string
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.SetTo[c] = model
+	return nil
+}
+
+// SetLevel records the level; one that isn't strict, standard or auto
+// fails, as the chat service's does.
+func (f *Fake) SetLevel(_ context.Context, _ id.Project, _ id.Chat, level string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch level {
+	case "strict", "standard", "auto":
+	default:
+		return fmt.Errorf("no approval level %q", level)
+	}
+	f.Levels = append(f.Levels, level)
 	return nil
 }
 

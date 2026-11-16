@@ -47,7 +47,7 @@ func (s *Screen) approvalCard(c *kit.Context, t *state.Thread, msg id.Message, i
 		}
 		kit.Record(c, icon, tone, func() {
 			kit.Muted(c, a.Ask+" ·")
-			kit.Text(c, logic.RecordText(a, logic.CardTime(localTime(a.AnsweredAt))))
+			kit.Text(c, logic.RecordText(a, logic.CardTime(localTime(a.AnsweredAt), func(t time.Time) string { return kit.Clock(c, t) })))
 		})
 		return
 	}

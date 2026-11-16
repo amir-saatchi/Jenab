@@ -165,6 +165,7 @@ func (s *Screen) composerView(c *kit.Context, v *view, t *state.Thread, readOnly
 					}
 				}
 				s.modelPicker(c, t)
+				s.levelPicker(c, t)
 				kit.Spacer(c)
 				if running && strings.TrimSpace(cm.text) == "" && len(cm.files) == 0 {
 					if kit.SmallButton(c, kit.IconStop, "Stop", kit.Default).Height(32).Clicked() {
@@ -291,6 +292,33 @@ func (s *Screen) modelPicker(c *kit.Context, t *state.Thread) {
 						s.st.Threads.SetChat(info)
 					})
 				}
+			}
+		}
+	})
+}
+
+// levelPicker sets the project's approval level (SPEC 8.8), "Approvals:
+// Standard", next to the model picker. A change applies from the next
+// tool call, and the chat gets a notice of it.
+func (s *Screen) levelPicker(c *kit.Context, t *state.Thread) {
+	p, ch := t.Project, t.Chat.ID
+	level := s.st.Projects.Opened[p].Level
+	if level == "" {
+		level = "standard"
+	}
+	name := "Approvals: " + logic.LevelName(level)
+	kit.MenuButtonGhost(c, kit.IconShieldCheck, name, name, func(m *kit.Menu) {
+		m.Item("Approvals for this project").Disabled(true)
+		for _, l := range logic.Levels {
+			if m.Item(l.Name).ID(l.ID).Subtitle(l.Hint).Radio(l.ID == level).Chosen() {
+				id := l.ID
+				s.st.Actions.SetLevel(p, ch, id, func(err error) {
+					if err != nil {
+						s.st.Error(err)
+						return
+					}
+					s.st.Projects.SetLevel(p, id)
+				})
 			}
 		}
 	})

@@ -16,6 +16,7 @@ const (
 	KeyEnter  = ui.KeyEnter
 	KeyEscape = ui.KeyEscape
 	KeyTab    = ui.KeyTab
+	KeyHome   = ui.KeyHome
 	KeyC      = ui.KeyC
 	Ctrl      = ui.Ctrl
 	Shift     = ui.Shift
