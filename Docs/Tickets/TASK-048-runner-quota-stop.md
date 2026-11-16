@@ -1,6 +1,6 @@
 # TASK-048 — The scenario runner stops a model when its quota is gone
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** —
 
@@ -21,3 +21,14 @@
 ## Done when
 - A Go test with a scripted model that returns `quota` on its 3rd request: the run that hit it ends as now, every later run on that model is skipped, and a second model's runs all go ahead.
 - The report and the set lines show the skips.
+
+## Result
+Done on 2026-11-16. No live requests; all checks ran locally on Windows 11.
+
+- **How it stops:** each run's backends are wrapped already, to count requests. The wrapper now also marks the run when a request comes back with the provider layer's `provider.Quota` kind (`errors.As`, no error text). After that run, `RunSet` starts no more runs on its model. Runs already under way, with `-parallel`, end as they do.
+- **Across sets:** one `scenario.Quotas` lives for the whole `jenab-scenarios run`, so a model stopped in one set gets nothing in the later sets either.
+- **Report:** the runs left are `skip (quota: <provider>/<model>)` and count as skipped. A run has `quota: true` in the JSON when it got the quota. The set line ends with `; stopped on its quota at <scenario> r<rep>`, or `earlier, at <set>, <scenario> r<rep>` in a later set. The Markdown ends with a "Stopped on quota" section. The console also prints one line when the model stops.
+- **`-usage-log`:** one line `{"time", "model", "quota_stop": "<set>, <scenario> r<rep>"}` when the model stops. It isn't added to the totals.
+- **Not changed:** `rate_limited` and the other kinds are retried, or fail, as before; only `quota` stops a model. The app's own code isn't touched. A quota on any request of the run stops the model, not only on the request the run ended on: the quota belongs to the provider, so later requests would fail the same way.
+- **Tests:** `TestQuotaStopsTheModel` (`internal/scenario/quota_test.go`) scripts two models on one provider. m1 answers `quota` on its 3rd request: runs 1 and 2 pass, run 3 ends broke as before, runs 4 and 5 are skipped, and m1 gets 3 requests in all. m2's 5 runs all pass. A second set with the same `Quotas` skips all of m1's runs and runs all of m2's. With the skip turned off, the test fails (m1 gets 5 requests). `TestCountingMarksQuota` checks that only `quota` marks a run. The command's tests check the skip line and the usage-log line.
+- **Checks:** `go build ./...`, `go vet ./...` and `go test ./...` pass. In one full `go test ./...`, `TestRunTimeout/in a refresh's map` hit its 2 s limit during setup, under the load of all packages at once, before its first request. That is a timing flake, not this change: it passed 5 of 5 alone and in the package's own run.

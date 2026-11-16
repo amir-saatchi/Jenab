@@ -60,6 +60,14 @@ type Options struct {
 	Keep      bool     // keep the runs' projects
 	Log       *slog.Logger
 	Progress  func(Run) // called after each run
+	// Quotas keeps the models stopped on their quota across RunSet calls;
+	// nil keeps them for this set only (TASK-048).
+	Quotas *Quotas
+	// QuotaStop is called once for a model whose provider said its daily
+	// quota or credit is used up (provider.Quota), with the run where it
+	// did. No more runs start on that model; its runs under way end as
+	// they do (TASK-048).
+	QuotaStop func(model string, at Run)
 	// Settings changes the app settings of every run, after the set's
 	// and the scenario's.
 	Settings func(*config.Settings)
@@ -151,16 +159,28 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 	ch := make(chan job)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	quotas := opt.Quotas
+	if quotas == nil {
+		quotas = &Quotas{}
+	}
 	for range opt.Parallel {
 		wg.Go(func() {
 			for j := range ch {
-				r := (&run{opt: opt, sc: j.sc, skills: skills, model: j.model, harness: j.harness}).do(ctx, j.rep)
-				runs[j.i] = r
-				if opt.Progress != nil {
-					mu.Lock()
-					opt.Progress(r)
-					mu.Unlock()
+				var r Run
+				if _, out := quotas.Stopped(j.model); out && j.sc.skip() == "" {
+					r = Run{Model: j.model, Harness: j.harness, Scenario: j.sc.ID, Rep: j.rep, Skipped: QuotaSkip(j.model)}
+				} else {
+					r = (&run{opt: opt, sc: j.sc, skills: skills, model: j.model, harness: j.harness}).do(ctx, j.rep)
 				}
+				runs[j.i] = r
+				mu.Lock()
+				if opt.Progress != nil {
+					opt.Progress(r)
+				}
+				if r.Quota && quotas.stop(j.model, s.Title+", "+r.at()) && opt.QuotaStop != nil {
+					opt.QuotaStop(j.model, r)
+				}
+				mu.Unlock()
 			}
 		})
 	}
@@ -177,9 +197,55 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 			rep.Runs = append(rep.Runs, r)
 		}
 	}
+	for _, m := range rep.Models {
+		where, out := quotas.Stopped(m)
+		if !out {
+			continue
+		}
+		if rep.QuotaStops == nil {
+			rep.QuotaStops = map[string]string{}
+		}
+		if q, ok := rep.quotaRun(m); ok {
+			rep.QuotaStops[m] = "at " + q.at()
+		} else {
+			rep.QuotaStops[m] = "earlier, at " + where
+		}
+	}
 	rep.Took = time.Since(rep.Started).Seconds()
 	rep.summarize()
 	return rep, ctx.Err()
+}
+
+// Quotas are the models whose provider said the daily quota or credit is
+// used up, with the run where it did. RunSet starts no more runs on them;
+// one Quotas over several sets keeps them stopped in the later sets too
+// (TASK-048). The zero value is ready; it is safe for concurrent use.
+type Quotas struct {
+	mu sync.Mutex
+	at map[string]string // model: "<set>, <scenario> r<rep>"
+}
+
+// Stopped reports whether model stopped on its quota, and where.
+func (q *Quotas) Stopped(model string) (string, bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	where, ok := q.at[model]
+	return where, ok
+}
+
+// stop marks model as stopped at where. It reports whether this is the
+// first stop for model.
+func (q *Quotas) stop(model, where string) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if _, ok := q.at[model]; ok {
+		return false
+	}
+	if q.at == nil {
+		q.at = map[string]string{}
+	}
+	q.at[model] = where
+	return true
 }
 
 // run is one scenario on one model.
@@ -212,6 +278,9 @@ type run struct {
 	// requests counts every request the providers got, traced or not,
 	// such as Refresh memory's and titles'.
 	requests atomic.Int64
+	// quota is set when a provider answered with provider.Quota: its
+	// daily quota or credit is used up (TASK-048).
+	quota atomic.Bool
 
 	// day is the clock's day since a message with a day; nil is the set's.
 	day atomic.Pointer[time.Time]
@@ -229,6 +298,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 	start := time.Now()
 	rec, err := r.play(ctx)
 	out.Seconds = time.Since(start).Seconds()
+	out.Quota = r.quota.Load()
 	if err != nil {
 		out.Error = r.opt.Models.redact(err.Error())
 	}
@@ -321,7 +391,7 @@ func (r *run) open(ctx context.Context) error {
 	if r.fp != nil {
 		backends = map[provider.Kind]provider.Factory{scriptedKind: r.fp.Factory()}
 	}
-	backends = counted(backends, &r.requests)
+	backends = counted(backends, &r.requests, &r.quota)
 	models := provider.NewRegistry(provider.Deps{
 		Settings: set.LLM, Secrets: secret.New(r.opt.Models.keyring()), Gate: limit.NewGate(set.LLM.MaxParallelCalls),
 		Backends: backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,
@@ -492,8 +562,9 @@ func (r *run) history(ctx context.Context) error {
 	return nil
 }
 
-// counted wraps each backend so the run counts its requests.
-func counted(backends map[provider.Kind]provider.Factory, n *atomic.Int64) map[provider.Kind]provider.Factory {
+// counted wraps each backend so the run counts its requests, and marks
+// quota when one comes back with the provider layer's Quota kind.
+func counted(backends map[provider.Kind]provider.Factory, n *atomic.Int64, quota *atomic.Bool) map[provider.Kind]provider.Factory {
 	out := make(map[provider.Kind]provider.Factory, len(backends))
 	for k, f := range backends {
 		out[k] = func(c provider.Connection) (provider.Provider, error) {
@@ -501,7 +572,7 @@ func counted(backends map[provider.Kind]provider.Factory, n *atomic.Int64) map[p
 			if err != nil {
 				return nil, err
 			}
-			return counting{p, n}, nil
+			return counting{p, n, quota}, nil
 		}
 	}
 	return out
@@ -509,13 +580,28 @@ func counted(backends map[provider.Kind]provider.Factory, n *atomic.Int64) map[p
 
 type counting struct {
 	provider.Provider
-	n *atomic.Int64
+	n     *atomic.Int64
+	quota *atomic.Bool
 }
 
 func (c counting) Stream(ctx context.Context, req provider.Request) iter.Seq2[provider.Event, error] {
 	c.n.Add(1)
-	return c.Provider.Stream(ctx, req)
+	return func(yield func(provider.Event, error) bool) {
+		for ev, err := range c.Provider.Stream(ctx, req) {
+			var pe *provider.Error
+			if errors.As(err, &pe) && pe.Kind == provider.Quota {
+				c.quota.Store(true)
+			}
+			if !yield(ev, err) {
+				return
+			}
+		}
+	}
 }
+
+// QuotaSkip is why a run on model was skipped: an earlier run's provider
+// said the quota or credit is used up.
+func QuotaSkip(model string) string { return "quota: " + model }
 
 // newChat makes a chat under test with the scenario's role and skills, and
 // sends the next messages there.
