@@ -56,7 +56,7 @@ type uploads struct {
 	taken    map[string]bool // keys being uploaded now, by "<project>/<key>"
 }
 
-func uploadHandler(pm *project.Manager) http.Handler {
+func UploadHandler(pm *project.Manager) http.Handler {
 	return &uploads{projects: pm, taken: map[string]bool{}}
 }
 

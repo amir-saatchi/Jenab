@@ -16,7 +16,7 @@ import (
 type ProjectService struct {
 	base
 	projects *project.Manager
-	emit     func(name string, data any) // sends events; set by Bind
+	emit     func(name string, data any) // sends events; Services.Events
 	exports  sync.Map                    // id.Project → *runningExport
 }
 

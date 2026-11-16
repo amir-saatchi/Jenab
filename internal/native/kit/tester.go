@@ -1,0 +1,54 @@
+package kit
+
+import "github.com/egoist/mygo/ui"
+
+// Tester drives a view with no window, for the screens' tests: it
+// clicks, types and reads what is shown and what a screen reader gets.
+type Tester = ui.Tester
+
+// The keys and modifiers the screens' tests press.
+type (
+	Key       = ui.Key
+	Modifiers = ui.Modifiers
+)
+
+const (
+	KeyEnter  = ui.KeyEnter
+	KeyEscape = ui.KeyEscape
+	KeyTab    = ui.KeyTab
+	KeyC      = ui.KeyC
+	Ctrl      = ui.Ctrl
+	Shift     = ui.Shift
+)
+
+// NewTester builds view in Root, in a window of w by h, light or dark.
+func NewTester(view func(c *Context), w, h int, dark bool) (*Tester, error) {
+	if err := RegisterFonts(); err != nil {
+		return nil, err
+	}
+	tt := ui.NewTester(view, w, h)
+	tt.SetDark(dark)
+	tt.Frame()
+	return tt, nil
+}
+
+// HasRole reports whether a screen reader gets an element named name in
+// one of the roles the kit's frame gives: "navigation", "main", "article",
+// "status", "heading", "list".
+func HasRole(tt *Tester, role, name string) bool {
+	r, ok := roles[role]
+	if !ok {
+		return false
+	}
+	_, found := tt.AccessByRole(r, name)
+	return found
+}
+
+var roles = map[string]ui.Role{
+	"navigation": ui.RoleNavigation,
+	"main":       ui.RoleMain,
+	"article":    ui.RoleArticle,
+	"status":     ui.RoleStatus,
+	"heading":    ui.RoleHeading,
+	"list":       ui.RoleList,
+}

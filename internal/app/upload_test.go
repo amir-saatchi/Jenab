@@ -73,7 +73,7 @@ func TestUpload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := uploadHandler(e.pm)
+	h := UploadHandler(e.pm)
 
 	// A Word document: stored with its name, its text made at once.
 	doc := docxtest.Doc("# نامه", "سلام، این یک می‌خواهم است.")

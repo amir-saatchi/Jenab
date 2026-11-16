@@ -9,7 +9,7 @@ Writing the code out, and checking it against later phases, added these to the m
 
 1. **`internal/id`:** all typed IDs (`id.Project`, `id.Chat`, `id.Message`, `id.Run`, `id.Task`, `id.Change`), the ULID generator, and `id.Source`, the one format for who did something (SPEC 2.5). `ProjectID` must sit below `store`, and chat events need it, so the IDs can't live in `chat` as Q5 said. IDs come from `oklog/ulid/v2` with `crypto/rand` as the random source.
 2. **`internal/logfile`:** the rotating log writer and the `slog` setup (Q36).
-3. **Publisher seams:** `agent`, `pipeline` and `project` each define a small `Publisher` interface for their events; `app` implements it with Wails events. This is the Q13 rule (the seam lives with its user), and it's how lower packages send events without importing `app`.
+3. **Publisher seams:** `agent`, `pipeline` and `project` each define a small `Publisher` interface for their events; `app.Publisher` implements it, and the UI layer (`webui` for Wails) gives it the function that sends the events. This is the Q13 rule (the seam lives with its user), and it's how lower packages send events without importing `app`.
 4. **`internal/workspace`:** the linked folder and its rules (8.5): paths stay inside, no links out, `.gitignore`, blocked credential files. The v1 read tools use it, and Phase 6's `edit_file` and `write_file` reuse the same checks.
 5. **`internal/proc`:** child processes in a Job Object on Windows, with a memory cap, only the listed environment, and the whole tree killed on stop. Used by the Starlark worker (v1), MCP stdio servers (Phase 5) and `run_command` (Phase 6).
 6. **`internal/mcp`** (Phase 5): the MCP client and one server process per project (8.7).
@@ -17,7 +17,7 @@ Writing the code out, and checking it against later phases, added these to the m
 
 Two Wails facts found while writing this (beta.26 source):
 
-- `RegisterEvent` must be called from an `init()` function, or the binding generator can't see the event. So `app/events.go` has the one `init()` in the code, and it only registers event names and types (an exception to Q28).
+- `RegisterEvent` must be called from an `init()` function, or the binding generator can't see the event. So `webui/app.go` has the one `init()` in the code, and it only registers event names and types (an exception to Q28).
 - A bound method's error reaches JavaScript as `{message, cause, kind}`, and `cause` is the error's own JSON. So `app.UIError` implements `MarshalJSON`, and React gets the kind and *Copy details* text without parsing strings.
 
 ## 1. Import graph
@@ -25,8 +25,9 @@ Two Wails facts found while writing this (beta.26 source):
 A package imports only from rows below its own.
 
 ```
-cmd/desktop, cmd/jenab-scenarios
-app, scenario                         nothing imports them; app has Wails, scenario is the scenario runner
+cmd/desktop, cmd/desktop-native, cmd/jenab-scenarios
+webui, native                         the UI layers: webui has Wails (cmd/desktop), native has MyGo (SPIKE-048)
+app, scenario, lifecycle              app has the services, without Wails; scenario is the scenario runner; lifecycle the lock and the quit order
 agent
 pipeline, view
 tool, schedule, update
@@ -38,7 +39,7 @@ id, chat, config, limit, secret, logfile, sysmem
 
 - `agent` imports `pipeline`: Mother's chats and the finish notices need runs. `pipeline` never imports `agent`.
 - `view` and `pipeline` share a row and don't import each other; a form that starts a run goes through a small `view.Runs` interface.
-- `update` also imports Wails (`pkg/updater`), so a Wails upgrade touches `app` and `update`.
+- `update` also imports Wails (`pkg/updater`), so a Wails upgrade touches `webui` and `update`.
 
 ## 2. `cmd/desktop`: start
 
@@ -57,7 +58,7 @@ func run(args []string) error {
         return script.Serve(os.Stdin, os.Stdout) // child process (Q4)
     }
     paths, err := config.DefaultPaths(appDir)                   // <user data dir>/<app>/
-    lock, err := lockRoot(paths.Root)                           // app.lock: one copy of the app at a time
+    lock, err := lifecycle.LockRoot(paths.Root)                 // app.lock: one copy of the app at a time
     settings, problems := config.LoadSettingsOrDefaults(paths.Settings) // a broken config.yaml gives Defaults and a Problem
     paths = paths.WithDataFolder(settings.DataFolder)           // projects/ (2.1)
     log, closeLog, err := logfile.Open(paths.Logs, settings.DevTools)
@@ -99,7 +100,7 @@ func run(args []string) error {
 
 `wapp.OnShutdown` hides the window, then runs the function on Wails' `OnShutdown`. `wapp.OnStart` comes with the scheduler (Phase 3), over a Wails service startup hook.
 
-`Shutdown.Run` (cmd/desktop/shutdown.go) runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged. Past 10 s plus 2 s it calls `Exit` (nil: `os.Exit(1)`), for a step that ignores its deadline.
+`lifecycle.Shutdown.Run` runs the Q30 order within 10 s: the `Refuse` functions (no new work), `Cancel` the app context and wait up to 5 s for the `Wait` functions, then `Close` (drain writers, checkpoint, remove the lock files) with the rest of the time. Errors are joined and logged. Past 10 s plus 2 s it calls `Exit` (nil: `os.Exit(1)`), for a step that ignores its deadline.
 
 ## 3. Bottom packages
 
@@ -822,9 +823,12 @@ type Runs interface { StartFromForm(ctx context.Context, p id.Project, pl string
 
 `view` gets a `Runs` value for forms that start a pipeline; `pipeline.Runner` has that method, so `app` passes the runner in and `view` never imports `pipeline`.
 
-## 9. `app`: the Wails layer (Q31–33)
+## 9. `app` and `webui`: the services and the Wails layer (Q31–33)
+
+`app` holds the services and the `Publisher`, and builds without Wails; `webui` binds them to Wails, sends the events to the frontend and opens the window (SPIKE-048). Both desktop apps build the services with `NewServices`.
 
 ```go
+// webui
 type Deps struct { Name string; Assets fs.FS; WebviewData string; Log *slog.Logger }
 func New(d Deps) *App                     // Wails logs at Warn and above only
 func (a *App) Publisher() *Publisher
@@ -832,9 +836,13 @@ func (a *App) Bind(s Services)            // the services and the objects route;
 func (a *App) OnShutdown(fn func())
 func (a *App) Run() error
 
-type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Started Started; Traces *agent.Traces; Logs string; Log }
+// app
+type Services struct { Orchestrator; Projects; Registry; Models; Secrets; Settings *Settings; Started Started; Traces *agent.Traces; Logs string; Log;
+    Events *Publisher; Notify func(Notification) error; OpenFile func(string) error } // the last three from the UI layer
+func NewPublisher(emit func(name string, data any)) *Publisher
 type Bound struct { Project *ProjectService; Chat *ChatService; Settings *SettingsService; Bucket *BucketService; System *SystemService; Dev *DevService }
 func NewServices(s Services) Bound        // what Bind registers; tests call the services without Wails
+func (b Bound) CleanOpened()              // at the start: removes opened copies older than a day
 
 // Settings holds the settings while the app runs (7.6).
 func NewSettings(path string, s config.Settings, problems []config.Problem) *Settings
@@ -874,6 +882,7 @@ func (s *ChatService) Answer(ctx context.Context, p id.Project, c id.Chat, a age
 //   a click shows the window and sends app:open with the chat.
 // Later tickets add files to Send, UndoTurn, PageService and PipelineService in the same style.
 
+// webui
 func windowTheme(theme string, dark bool) (application.RGBA, application.Theme) // the window's background before the
     // first paint, from the saved theme (System reads Windows' setting); a save changes the background, not the frame
 

@@ -51,7 +51,7 @@ func TestBucket(t *testing.T) {
 	}
 
 	// The objects route, as Wails mounts it: the route cut off the path.
-	h := objectHandler(e.pm)
+	h := ObjectHandler(e.pm)
 	for _, path := range []string{"/" + string(op.ID) + "/notes/a.txt", objectPath(op.ID, "notes/a.txt")} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))

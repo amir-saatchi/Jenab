@@ -53,10 +53,19 @@ func run() (err error) {
 	keep := flag.Bool("keep", false, "keep the app's user folder")
 	dumps := flag.Bool("dumps", false, "also take memory-infra dumps: idle, with the chat open, and after it closed")
 	temp := flag.String("temp", "", "where the app's user folder goes; default: the system's temp folder")
+	native := flag.String("native", "", "measure this native app instead (cmd/desktop-native built with -tags bench)")
+	tokens := flag.Int("tokens", 2000, "the fake model's answer, in tokens")
+	withSamples := flag.Bool("samples", false, "picture the 20 text samples instead of measuring (with -native, in both apps)")
+	hold := flag.Duration("hold", 0, "with -native: open the app on -hold-chat and keep it up this long, for checks by hand or UI Automation")
+	holdChat := flag.String("hold-chat", "History 200", "the chat -hold opens")
+	gemini := flag.String("gemini", "", "with -hold: also connect Gemini with this model and make it the default, with the key in GEMINI_API_KEY, kept in the app's memory")
 	flag.StringVar(&o.history, "history", "mixed", "what the 200-message chat's answers hold: "+strings.Join(historyKinds, ", "))
 	flag.Parse()
 	if !slices.Contains(historyKinds, o.history) {
 		return fmt.Errorf("-history must be one of %s", strings.Join(historyKinds, ", "))
+	}
+	if *native != "" && (!*withSamples || *hold > 0) {
+		o.app = *native
 	}
 	if _, err := os.Stat(o.app); err != nil {
 		return fmt.Errorf("the app: %w (task bench builds it)", err)
@@ -73,19 +82,39 @@ func run() (err error) {
 		defer os.RemoveAll(dir)
 	}
 	h := home{dir: dir}
-	model, err := startModel(reply(1, 2000), o.rate)
+	// WebView2 opens no DevTools port while USERPROFILE has no
+	// AppData\Local, so the user folder gets the usual ones.
+	for _, d := range []string{"roaming", "temp", filepath.Join("user", "AppData", "Local"), filepath.Join("user", "AppData", "Roaming")} {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0o755); err != nil {
+			return err
+		}
+	}
+	model, err := startModel(reply(1, *tokens), o.rate)
 	if err != nil {
 		return err
 	}
 	defer model.close()
+	if *gemini != "" && (*hold == 0 || os.Getenv("GEMINI_API_KEY") == "") {
+		return errors.New("-gemini needs -hold and GEMINI_API_KEY")
+	}
+	h.gemini = *gemini
 	if err := h.writeSettings(model.url); err != nil {
 		return err
 	}
-	if err := h.seed(ctx, o.history); err != nil {
+	if err := h.seed(ctx, o.history, *withSamples); err != nil {
 		return fmt.Errorf("seed: %w", err)
 	}
 	if err := os.MkdirAll(o.out, 0o755); err != nil {
 		return err
+	}
+	if *native != "" && *hold > 0 {
+		return holdNative(o, o.app, h, *holdChat, *hold)
+	}
+	if *withSamples {
+		return runSamples(o, *native, h)
+	}
+	if *native != "" {
+		return runNative(o, o.app, h, model)
 	}
 	rep := &report{Started: time.Now().UTC(), App: o.app, Rate: o.rate, Reply: len(model.reply), History: o.history}
 	log := func(f string, a ...any) { fmt.Printf(f+"\n", a...) }

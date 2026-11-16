@@ -25,17 +25,21 @@ const (
 	otherChats  = 8             // "Call 1" to "Call 8": the 8 other calls of N-54
 )
 
-// home is a fresh user folder for the app: LOCALAPPDATA and USERPROFILE
-// point into it, so the app has its own settings, projects and WebView2
-// profile, and never sees the user's.
+// home is a fresh user folder for the app: LOCALAPPDATA, APPDATA,
+// USERPROFILE and the temp folder point into it, so the app has its own
+// settings, projects and WebView2 profile, and never sees the user's.
 type home struct {
-	dir string
+	dir    string
+	gemini string // a Gemini model the settings connect (-gemini), or ""
 }
 
 func (h home) env() []string {
 	return []string{
 		"LOCALAPPDATA=" + filepath.Join(h.dir, "local"),
 		"USERPROFILE=" + filepath.Join(h.dir, "user"),
+		"APPDATA=" + filepath.Join(h.dir, "roaming"),
+		"TEMP=" + filepath.Join(h.dir, "temp"),
+		"TMP=" + filepath.Join(h.dir, "temp"),
 	}
 }
 
@@ -52,11 +56,17 @@ func (h home) writeSettings(modelURL string) error {
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return err
 	}
+	providers := map[string]any{"bench": map[string]any{"kind": "ollama", "base_url": modelURL,
+		"models": []map[string]any{{"id": modelName, "context": 262144}}}}
+	models := map[string]string{"default": "bench/" + modelName, "fast": "bench/" + modelName}
+	if h.gemini != "" {
+		providers["gemini"] = map[string]any{"kind": "gemini", "models": []map[string]any{{"id": h.gemini}}}
+		models["default"] = "gemini/" + h.gemini
+	}
 	s := map[string]any{
 		"llm": map[string]any{
-			"providers": map[string]any{"bench": map[string]any{"kind": "ollama", "base_url": modelURL,
-				"models": []map[string]any{{"id": modelName, "context": 262144}}}},
-			"models":                      map[string]string{"default": "bench/" + modelName, "fast": "bench/" + modelName},
+			"providers":                   providers,
+			"models":                      models,
 			"provider_max_parallel_calls": map[string]int{"bench": 8},
 		},
 	}
@@ -69,7 +79,7 @@ func (h home) writeSettings(modelURL string) error {
 
 // seed makes the project "Bench" with its chats, before the app starts.
 // kind is what the 200-message chat holds (historyKinds).
-func (h home) seed(ctx context.Context, kind string) error {
+func (h home) seed(ctx context.Context, kind string, withSamples bool) error {
 	p := h.paths()
 	if err := os.MkdirAll(p.Root, 0o755); err != nil {
 		return err
@@ -97,6 +107,23 @@ func (h home) seed(ctx context.Context, kind string) error {
 	for _, t := range titles {
 		if _, err := pr.Chats.CreateChat(ctx, id.SourceUser, chat.Chat{Title: t}); err != nil {
 			return err
+		}
+	}
+	if withSamples {
+		for i, text := range samples {
+			ch, err := pr.Chats.CreateChat(ctx, id.SourceUser, chat.Chat{Title: sampleTitle(i)})
+			if err != nil {
+				return err
+			}
+			at := time.Now().Add(-time.Hour)
+			for _, m := range []chat.Message{
+				{Chat: ch.ID, Turn: 1, Role: chat.RoleUser, CreatedAt: at, Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: sampleTitle(i)}}}},
+				{Chat: ch.ID, Turn: 1, Role: chat.RoleAssistant, Model: "bench/" + modelName, CreatedAt: at.Add(time.Second), Parts: []chat.Part{{Kind: chat.PartText, Text: &chat.Text{Text: text}}}},
+			} {
+				if _, _, err := pr.Chats.AppendMessage(ctx, m); err != nil {
+					return fmt.Errorf("%s: %w", sampleTitle(i), err)
+				}
+			}
 		}
 	}
 	// The history chat last, so it is the newest.
