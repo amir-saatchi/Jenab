@@ -25,6 +25,10 @@ type Services struct {
 	Traces       *agent.Traces // the turns recorded for the inspector; nil with the developer tools off
 	Logs         string        // the log folder, for the developer tools
 	Log          *slog.Logger
+	// What the UI layer gives; nil sends and opens nothing, as in tests.
+	Events   *Publisher               // project:export, from ProjectService.Export
+	Notify   func(Notification) error // shows a desktop notification
+	OpenFile func(path string) error  // opens a file with the system's app
 }
 
 // Bound are the services the frontend calls (Q31): one thin service per
@@ -42,7 +46,8 @@ type Bound struct {
 }
 
 // NewServices builds the services. They work without Wails, so tests
-// drive them directly.
+// drive them directly, and both apps (cmd/desktop, cmd/desktop-native)
+// build them the same way.
 func NewServices(s Services) Bound {
 	if s.Log == nil {
 		s.Log = slog.New(slog.DiscardHandler)
@@ -51,16 +56,25 @@ func NewServices(s Services) Bound {
 	if s.Secrets != nil {
 		b.redact = s.Secrets.Redact
 	}
+	emit := func(string, any) {}
+	if s.Events != nil {
+		emit = s.Events.emit
+	}
 	return Bound{
-		Project: &ProjectService{base: b, projects: s.Projects, emit: func(string, any) {}},
+		Project: &ProjectService{base: b, projects: s.Projects, emit: emit},
 		Chat:    &ChatService{base: b, orch: s.Orchestrator, projects: s.Projects, secrets: s.Secrets, settings: s.Settings, registry: s.Registry},
 		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, secrets: s.Secrets, registry: s.Registry,
 			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},
-		Bucket: &BucketService{base: b, projects: s.Projects},
-		System: &SystemService{base: b},
+		Bucket: &BucketService{base: b, projects: s.Projects, openFile: s.OpenFile},
+		System: &SystemService{base: b, notify: s.Notify},
 		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, traces: s.Traces, logs: s.Logs, now: time.Now},
 	}
 }
+
+// CleanOpened removes the copies of bucket files opened more than a day
+// ago (BucketService.OpenFile). The app runs it once at the start, in a
+// goroutine of its own.
+func (b Bound) CleanOpened() { b.Bucket.cleanOpened() }
 
 // base is what every service shares.
 type base struct {

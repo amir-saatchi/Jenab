@@ -1,4 +1,5 @@
 // Command desktop is the Jenab app: it builds everything and starts Wails.
+// cmd/desktop-native is the same app on MyGo (SPIKE-048).
 package main
 
 import (
@@ -19,6 +20,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/desktop"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/lifecycle"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/logfile"
 	"github.com/amir-saatchi/jenab/internal/project"
@@ -31,6 +33,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/version"
 	"github.com/amir-saatchi/jenab/internal/web"
+	"github.com/amir-saatchi/jenab/internal/webui"
 )
 
 // benchArgs gives extra WebView2 arguments; only the bench build sets it.
@@ -41,10 +44,10 @@ func main() {
 	// not take the lock or start Wails.
 	sqlworker.IfWorker()
 	if err := run(os.Args[1:]); err != nil {
-		if errors.Is(err, errRunning) {
-			fatal(err.Error() + ".")
+		if errors.Is(err, lifecycle.ErrRunning) {
+			lifecycle.Fatal(err.Error() + ".")
 		} else {
-			fatal(fmt.Sprintf("%s couldn't start: %v", appinfo.Name, err))
+			lifecycle.Fatal(fmt.Sprintf("%s couldn't start: %v", appinfo.Name, err))
 		}
 		os.Exit(1)
 	}
@@ -60,7 +63,7 @@ func run(_ []string) (err error) {
 	}
 	// One copy at a time, before anything is moved or opened. The file
 	// stays open, and locked, until the process ends.
-	lock, err := lockRoot(paths.Root)
+	lock, err := lifecycle.LockRoot(paths.Root)
 	if err != nil {
 		return err
 	}
@@ -118,7 +121,7 @@ func run(_ []string) (err error) {
 		models.Apply(s.LLM)
 	})
 
-	wapp := app.New(app.Deps{Name: appinfo.Name, Assets: assets, Log: log, // first, so events can be sent
+	wapp := webui.New(webui.Deps{Name: appinfo.Name, Assets: assets, Log: log, // first, so events can be sent
 		WebviewData: filepath.Join(paths.Root, "webview"), BrowserArgs: benchArgs()})
 	projects := project.NewManager(project.Deps{Paths: paths, Registry: registry, Log: log, Events: wapp.Publisher(),
 		Level: func() project.Level {
@@ -162,7 +165,7 @@ func run(_ []string) (err error) {
 	var once sync.Once
 	shutdown := func() {
 		once.Do(func() {
-			_ = Shutdown{ // logged inside
+			_ = lifecycle.Shutdown{ // logged inside
 				Refuse: []func(){orch.Refuse},
 				Cancel: cancel,
 				Wait:   []func(context.Context) error{orch.Wait},

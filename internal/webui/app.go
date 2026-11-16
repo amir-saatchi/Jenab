@@ -1,8 +1,10 @@
-// Package app is the thin Wails layer between Go and the React frontend
-// (CODE-OUTLINE 9, Q31–Q33): the bound services, the events, the error
-// shape the frontend gets, the objects route and the quit order. It holds
-// no logic of its own; everything below it works without Wails.
-package app
+// Package webui is the thin Wails layer between the services in
+// internal/app and the React frontend (CODE-OUTLINE 9, Q31–Q33): it binds
+// the services, sends the events, serves the objects route and keeps the
+// quit order. It holds no logic of its own. It is the only package that
+// imports Wails, so the services and their Publisher build without it, for
+// the native app (SPIKE-048).
+package webui
 
 import (
 	"context"
@@ -13,10 +15,25 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
+	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/bucket"
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/project"
 )
+
+// init is the only one in the app (CODE-OUTLINE 0). The bindings
+// generator reads these calls to write the events' TypeScript types.
+func init() {
+	application.RegisterEvent[chat.Delta](app.EventDelta)
+	application.RegisterEvent[chat.PartDone](app.EventPart)
+	application.RegisterEvent[chat.Status](app.EventStatus)
+	application.RegisterEvent[project.Notice](app.EventNotice)
+	application.RegisterEvent[project.Activity](app.EventActivity)
+	application.RegisterEvent[app.Open](app.EventOpen)
+	application.RegisterEvent[project.ExportProgress](app.EventExport)
+}
 
 // Deps are what the App needs.
 type Deps struct {
@@ -35,10 +52,10 @@ type Deps struct {
 type App struct {
 	w    *application.App
 	main *application.WebviewWindow
-	pub  *Publisher
+	pub  *app.Publisher
 	log  *slog.Logger
 	name string
-	ui   *Settings // set by Bind
+	ui   *app.Settings // set by Bind
 }
 
 // New makes the Wails application. It shows nothing until Run, but events
@@ -56,16 +73,16 @@ func New(d Deps) *App {
 		Logger:  slog.New(minLevel{d.Log.Handler(), slog.LevelWarn}),
 		Windows: application.WindowsOptions{WebviewUserDataPath: d.WebviewData, AdditionalBrowserArgs: d.BrowserArgs},
 	})
-	a.pub = &Publisher{emit: func(name string, data any) { a.w.Event.Emit(name, data) }}
+	a.pub = app.NewPublisher(func(name string, data any) { a.w.Event.Emit(name, data) })
 	return a
 }
 
 // Publisher sends events to the frontend; agent and project get it.
-func (a *App) Publisher() *Publisher { return a.pub }
+func (a *App) Publisher() *app.Publisher { return a.pub }
 
 // Bind registers the services and the objects and upload routes. DevService is bound
 // only when the developer tools are on at the start (8.4).
-func (a *App) Bind(s Services) {
+func (a *App) Bind(s app.Services) {
 	a.ui = s.Settings
 	s.Settings.OnChange(func(c config.Settings) {
 		if a.main != nil {
@@ -73,11 +90,11 @@ func (a *App) Bind(s Services) {
 			a.main.SetBackgroundColour(bg)
 		}
 	})
-	b := NewServices(s)
-	b.System.notify = a.notifier()
-	b.Bucket.openFile = a.w.Browser.OpenFile
-	go b.Bucket.cleanOpened()
-	b.Project.emit = a.pub.emit
+	s.Events = a.pub
+	s.Notify = a.notifier()
+	s.OpenFile = a.w.Browser.OpenFile
+	b := app.NewServices(s)
+	go b.CleanOpened()
 	a.w.RegisterService(application.NewService(b.Project))
 	a.w.RegisterService(application.NewService(b.Chat))
 	a.w.RegisterService(application.NewService(b.Settings))
@@ -86,8 +103,8 @@ func (a *App) Bind(s Services) {
 	if s.Settings.Get().DevTools {
 		a.w.RegisterService(application.NewService(b.Dev))
 	}
-	a.w.RegisterService(application.NewServiceWithOptions(&objects{objectHandler(s.Projects)}, application.ServiceOptions{Route: bucket.Route}))
-	a.w.RegisterService(application.NewServiceWithOptions(&objects{uploadHandler(s.Projects)}, application.ServiceOptions{Route: UploadRoute}))
+	a.w.RegisterService(application.NewServiceWithOptions(&objects{app.ObjectHandler(s.Projects)}, application.ServiceOptions{Route: bucket.Route}))
+	a.w.RegisterService(application.NewServiceWithOptions(&objects{app.UploadHandler(s.Projects)}, application.ServiceOptions{Route: app.UploadRoute}))
 }
 
 // The keys of a notification's data, read back when it is clicked.
@@ -100,7 +117,7 @@ const (
 // Windows it registers the app with the toast system under
 // HKCU\Software\Classes at start. A click shows the window and sends
 // app:open, so the frontend opens the chat.
-func (a *App) notifier() func(Notification) error {
+func (a *App) notifier() func(app.Notification) error {
 	ns := notifications.New()
 	a.w.RegisterService(application.NewService(ns))
 	ns.OnNotificationResponse(func(r notifications.NotificationResult) {
@@ -116,10 +133,10 @@ func (a *App) notifier() func(Notification) error {
 			a.main.Focus()
 		}
 		if p != "" && c != "" {
-			a.pub.emit(EventOpen, Open{Project: id.Project(p), Chat: id.Chat(c)})
+			a.pub.Open(app.Open{Project: id.Project(p), Chat: id.Chat(c)})
 		}
 	})
-	return func(n Notification) error {
+	return func(n app.Notification) error {
 		return ns.SendNotification(notifications.NotificationOptions{
 			ID: "chat-" + string(n.Chat), Title: n.Title, Body: n.Body,
 			Data: map[string]any{
@@ -137,7 +154,7 @@ type objects struct{ h http.Handler }
 func (o *objects) ServeHTTP(w http.ResponseWriter, r *http.Request) { o.h.ServeHTTP(w, r) }
 
 // OnShutdown runs fn when the app quits, after the window is hidden, so a
-// slow quit doesn't show a frozen window. fn should be cmd/desktop's Shutdown.Run.
+// slow quit doesn't show a frozen window. fn should run lifecycle.Shutdown.
 func (a *App) OnShutdown(fn func()) {
 	a.w.OnShutdown(func() {
 		if a.main != nil {

@@ -176,10 +176,10 @@ func (s *BucketService) UndoDelete(ctx context.Context, p id.Project, change id.
 	})
 }
 
-// objectHandler serves /objects/<project_id>/<key> with bucket.Handler's
+// ObjectHandler serves /objects/<project_id>/<key> with bucket.Handler's
 // rules for untrusted files (4.7). Each request leases the project until
 // its body is sent.
-func objectHandler(pm *project.Manager) http.Handler {
+func ObjectHandler(pm *project.Manager) http.Handler {
 	h := bucket.Handler(func(ctx context.Context, p id.Project, key string) (bucket.Served, error) {
 		proj, err := pm.Open(ctx, p)
 		if err != nil {

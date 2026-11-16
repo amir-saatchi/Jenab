@@ -1,4 +1,4 @@
-package main
+package lifecycle
 
 import (
 	"fmt"
@@ -9,10 +9,10 @@ import (
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
-// fatal tells the user why the app can't start. The release build has no
+// Fatal tells the user why the app can't start. The release build has no
 // console (-H windowsgui), so it is a message box; stderr gets it too, for
 // a dev build.
-func fatal(msg string) {
+func Fatal(msg string) {
 	fmt.Fprintln(os.Stderr, msg)
 	text, err1 := windows.UTF16PtrFromString(msg)
 	title, err2 := windows.UTF16PtrFromString(appinfo.Name)

@@ -1,4 +1,4 @@
-package app
+package webui
 
 import "github.com/wailsapp/wails/v3/pkg/w32"
 

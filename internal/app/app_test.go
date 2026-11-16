@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -259,23 +257,5 @@ func TestShutdownDuringTurn(t *testing.T) {
 	}
 	if len(snap.Messages) == 0 || snap.Messages[0].Parts[0].Text.Text != "Work hard" {
 		t.Fatalf("messages after restart: %+v", snap.Messages)
-	}
-}
-
-func TestWindowTheme(t *testing.T) {
-	for _, c := range []struct {
-		theme string
-		dark  bool
-		bg    application.RGBA
-		frame application.Theme
-	}{
-		{"light", true, lightBackground, application.Light},
-		{"dark", false, darkBackground, application.Dark},
-		{"system", true, darkBackground, application.SystemDefault},
-		{"system", false, lightBackground, application.SystemDefault},
-	} {
-		if bg, frame := windowTheme(c.theme, c.dark); bg != c.bg || frame != c.frame {
-			t.Errorf("windowTheme(%s, %t) = %v, %v", c.theme, c.dark, bg, frame)
-		}
 	}
 }

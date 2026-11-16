@@ -1,4 +1,4 @@
-package main
+package lifecycle
 
 import (
 	"errors"
@@ -9,16 +9,16 @@ import (
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 )
 
-// errRunning is returned by lockRoot when another copy of the app holds
+// ErrRunning is returned by LockRoot when another copy of the app holds
 // the lock.
 //
 //lint:ignore ST1005 the message starts with the app's name
-var errRunning = errors.New(appinfo.Name + " is already running")
+var ErrRunning = errors.New(appinfo.Name + " is already running")
 
-// lockRoot takes the app folder's lock, so only one copy of the app runs:
+// LockRoot takes the app folder's lock, so only one copy of the app runs:
 // two would both move projects and write the registry. The OS drops the
 // lock when the process ends, also after a crash. Close releases it.
-func lockRoot(root string) (*os.File, error) {
+func LockRoot(root string) (*os.File, error) {
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		return nil, fmt.Errorf("lock: %w", err)
 	}
@@ -28,7 +28,7 @@ func lockRoot(root string) (*os.File, error) {
 	}
 	if err := lockFile(f); err != nil {
 		f.Close()
-		if errors.Is(err, errRunning) {
+		if errors.Is(err, ErrRunning) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("lock: %w", err)

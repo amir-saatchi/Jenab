@@ -1,4 +1,4 @@
-package main
+package lifecycle
 
 import (
 	"errors"
@@ -7,15 +7,15 @@ import (
 
 func TestLockRoot(t *testing.T) {
 	dir := t.TempDir()
-	f, err := lockRoot(dir)
+	f, err := LockRoot(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := lockRoot(dir); !errors.Is(err, errRunning) {
-		t.Fatalf("second lock: %v; want errRunning", err)
+	if _, err := LockRoot(dir); !errors.Is(err, ErrRunning) {
+		t.Fatalf("second lock: %v; want ErrRunning", err)
 	}
 	f.Close()
-	g, err := lockRoot(dir)
+	g, err := LockRoot(dir)
 	if err != nil {
 		t.Fatalf("lock after release: %v", err)
 	}
