@@ -130,6 +130,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-074](TASK-074-local-provider-token.md) | Replace the token of a provider on this computer | Task | Done | 3 |
 | [TASK-075](TASK-075-heading-links-and-cell-tooltips.md) | Heading links in repeated text, and a cut number cell's tooltip | Task | Done | 3 |
 | [TASK-076](TASK-076-review-leftovers.md) | Three small leftovers from the review: crash redaction, Undo turn's state, number fields | Task | Done | 3 |
+| [TASK-077](TASK-077-connect-retry-and-chip-reads.md) | The Connect card's refused retry, and a chip's read during its own undo | Task | Done | 3 |
+| [TASK-078](TASK-078-shapes-crash-start-and-hosts.md) | Key shapes in escaped JSON, the crash redactor at start, and overlapping host changes | Task | Done | 3 |
 
 ## Phase 1
 
