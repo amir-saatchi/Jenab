@@ -121,7 +121,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-065](TASK-065-native-chat-parity.md) | The native chat's memory chips, *Refresh memory* and Connect card | Task | Open | 3 |
 | [TASK-066](TASK-066-native-state-fixes.md) | The native stores: lost updates and stale reads | Task | Done | 3 |
 | [TASK-067](TASK-067-native-crash-and-updates.md) | Crash log, and updates that wait for all work | Task | Done | 3 |
-| [TASK-068](TASK-068-native-settings-fixes.md) | Settings forms: keys, dialogs and the data folder | Task | Open | 3 |
+| [TASK-068](TASK-068-native-settings-fixes.md) | Settings forms: keys, dialogs and the data folder | Task | Done | 3 |
 | [TASK-069](TASK-069-native-polish.md) | Small native fixes: digits, text direction, tooltips, old comments | Task | Open | 3 |
 
 ## Phase 1

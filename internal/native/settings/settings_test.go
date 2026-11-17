@@ -412,7 +412,7 @@ func TestTheAboutRowCopiesTheVersion(t *testing.T) {
 
 func TestTheProviderRows(t *testing.T) {
 	both(t, func(t *testing.T, x *fixture) {
-		shows(t, x.tt, "gemini", "Gemini", "Key in the keychain · 2 models on", "local", "Ollama", "On this computer · no key · 1 model on",
+		shows(t, x.tt, "gemini", "Gemini", "Key in the keychain · 2 models on", "local", "Ollama", "On this computer · no key needed · 1 model on",
 			"http://localhost:11434/v1/", "Replace the key of gemini")
 		hides(t, x.tt, "Replace the key of local")
 		x.focus(t, "Background calls at once for gemini")

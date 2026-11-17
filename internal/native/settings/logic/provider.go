@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/amir-saatchi/jenab/internal/app"
+	"github.com/amir-saatchi/jenab/internal/provider"
 )
 
 // The Connect form's choices (SPEC 3.9), from chat/provider-choice.ts as
@@ -76,6 +77,9 @@ type FormShape struct {
 	Other  bool     // the name and base URL are typed in
 	Key    bool     // the key field is shown and needed
 	Fields []string // a field for each base-URL placeholder
+	// OptionalKey shows the key field for a provider on this computer
+	// that may still want a token; it may be left empty (TASK-068).
+	OptionalKey bool
 }
 
 // Replace names a connected provider whose key is replaced; its models
@@ -100,7 +104,16 @@ func FormFor(pick string, presets []app.PresetItem, replace *Replace) FormShape 
 	if fields == nil {
 		fields = []string{}
 	}
-	return FormShape{Preset: &p, Chosen: true, Key: !p.NoKey, Fields: fields}
+	return FormShape{Preset: &p, Chosen: true, Key: !p.NoKey, OptionalKey: p.NoKey, Fields: fields}
+}
+
+// WithURL is the shape once the base URL of an OpenAI-compatible
+// provider is typed: one on this computer needs no key, but may have one.
+func (s FormShape) WithURL(baseURL string) FormShape {
+	if s.Other && provider.LocalURL(provider.KindCompatible, strings.TrimSpace(baseURL)) {
+		s.Key, s.OptionalKey = false, true
+	}
+	return s
 }
 
 // FieldLabel names a base-URL placeholder: account_id reads "Account ID".

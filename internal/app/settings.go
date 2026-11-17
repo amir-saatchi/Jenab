@@ -2,9 +2,7 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"maps"
-	"path/filepath"
 	"slices"
 	"sync"
 	"time"
@@ -167,8 +165,8 @@ func (s *SettingsService) Started(ctx context.Context) (st Started, err error) {
 // a synced folder.
 func (s *SettingsService) CheckFolder(ctx context.Context, dir string) (w *project.FolderWarning, err error) {
 	defer s.guard("settings.check_folder", &err)
-	if !filepath.IsAbs(dir) {
-		return nil, &UIError{Kind: KindInvalid, Message: fmt.Sprintf("%q is not a full path. Choose a folder.", dir)}
+	if err := s.dataFolderError(ctx, dir); err != nil {
+		return nil, err
 	}
 	return project.CheckFolder(dir), nil
 }
@@ -182,6 +180,13 @@ func (s *SettingsService) Get(ctx context.Context) (v SettingsView, err error) {
 // Save stores the settings and applies them.
 func (s *SettingsService) Save(ctx context.Context, next config.Settings) (v SettingsView, err error) {
 	defer s.guard("settings.save", &err)
+	if dir := next.DataFolder; dir != "" && dir != s.settings.Get().DataFolder {
+		// A folder the projects can't move to is refused, not reset to the
+		// default (TASK-068).
+		if err := s.dataFolderError(ctx, dir); err != nil {
+			return s.settings.view(), err
+		}
+	}
 	loaded, problems, err := s.settings.save(next)
 	return settingsView(loaded, problems), err
 }

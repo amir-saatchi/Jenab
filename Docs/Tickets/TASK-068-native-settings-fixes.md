@@ -1,6 +1,6 @@
 # TASK-068 — Settings forms: keys, dialogs and the data folder
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061
 
@@ -19,3 +19,13 @@ The review of the native app (2026-11-17) found small faults in the Settings for
 
 ## Done when
 - Tests for each of the five.
+
+## Result
+Done. Report: [reports/TASK-068-report.md](reports/TASK-068-report.md).
+1. `ConnectForm.Clear` drops the key and the placeholder values when the provider choice changes, after a connect, and when the dialog closes. A closed dialog's form is cleared and dropped, so the next opening starts empty.
+2. Presets that can't be read show the error and *Try again* in the form.
+3. A connect's callback closes its dialog only if its form is still the one shown.
+4. *Save* in the data folder dialog waits until the check passes for the folder typed. The backend (`CheckFolder` and `Save`) refuses a relative path, a folder inside the projects folder in use, and a folder inside a project's folder (`project.DataFolderProblem`).
+5. Settings uses the registry's rule (`provider.LocalURL`): a provider whose base URL is this computer, LM Studio included, says "no key needed" and has no *Replace key*. *Add provider* shows an optional key field for such a provider.
+
+Each item has headless tests in light and dark, and backend tests cover the data folder rule. A live check on the bench build covered all five. It also found a crash in the first version of item 1, which is fixed and tested. `ConnectForm` stays reusable for TASK-065's Connect card; the report says how to embed it.

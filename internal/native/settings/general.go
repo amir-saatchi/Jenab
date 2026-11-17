@@ -23,6 +23,7 @@ type folderDialog struct {
 	fallback, checked string
 	warning           *project.FolderWarning
 	err               string
+	passed            string // the folder the last check passed; Save waits for it
 	busy              bool
 	seq               int
 }
@@ -36,7 +37,7 @@ func (d *folderDialog) open(current, fallback string) {
 func (d *folderDialog) check(s *Screen) {
 	d.seq++
 	seq, dir := d.seq, strings.TrimSpace(d.dir)
-	d.checked = d.dir
+	d.checked, d.passed = d.dir, ""
 	if dir == "" {
 		return
 	}
@@ -50,9 +51,9 @@ func (d *folderDialog) check(s *Screen) {
 				if seq != d.seq {
 					return
 				}
-				d.warning, d.err = w, ""
+				d.warning, d.err, d.passed = w, "", dir
 				if err != nil {
-					d.warning, d.err = nil, state.ErrorText(err)
+					d.warning, d.err, d.passed = nil, state.ErrorText(err), ""
 				}
 			})
 		})
@@ -102,7 +103,9 @@ func (d *folderDialog) view(c *kit.Context, s *Screen) {
 				d.shown = false
 			}
 			dir := strings.TrimSpace(d.dir)
-			off := d.busy || dir == "" || d.err != "" || logic.SamePath(dir, d.current)
+			// Save waits for the folder check, which the backend repeats
+			// (TASK-068).
+			off := d.busy || dir == "" || d.err != "" || d.passed != dir || logic.SamePath(dir, d.current)
 			if kit.Disable(kit.Button(c, "Save", kit.Default), off).Clicked() && !off {
 				d.busy = true
 				value := dir
