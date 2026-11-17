@@ -18,7 +18,7 @@ paths:
   - "**/*.go"
 ---
 
-> **Jenab:** adapted for Jenab, a Go + Wails v3 desktop app (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
+> **Jenab:** adapted for Jenab, a Go desktop app with a native UI on MyGo (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
 
 > **Community default.** A company skill that explicitly supersedes `samber/cc-skills-golang@golang-context` skill takes precedence.
 

@@ -26,10 +26,9 @@ import (
 // percent-encoded, in UploadNameHeader (TASK-021). A file is stored under
 // uploads/<name>, never over another: a taken key gets a number.
 //
-// A binding would carry 100 MB as JSON, so the body comes as is. The
-// header is the guard against a page that is not the app's: a form can't
-// set it, and a fetch from another origin, or from a sandboxed object,
-// can't send it without a preflight, which this route refuses.
+// The body comes as is, not as JSON. The native app calls the route in
+// its own process (cmd/desktop's uploader). The header is still
+// required: a request without it is refused.
 const UploadRoute = "/upload/"
 
 // UploadNameHeader holds the file's original name, percent-encoded.

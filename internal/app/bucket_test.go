@@ -2,9 +2,6 @@ package app
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -49,27 +46,4 @@ func TestBucket(t *testing.T) {
 	} else {
 		uiErr(t, err, KindInvalid)
 	}
-
-	// The objects route, with the route in front of the path and without it.
-	h := ObjectHandler(e.pm)
-	for _, path := range []string{"/" + string(op.ID) + "/notes/a.txt", objectPath(op.ID, "notes/a.txt")} {
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		body, _ := io.ReadAll(rec.Body)
-		if rec.Code != http.StatusOK || string(body) != "two" || rec.Header().Get("X-Content-Type-Options") != "nosniff" {
-			t.Errorf("%s: %d %q", path, rec.Code, body)
-		}
-	}
-	for _, path := range []string{"/" + string(op.ID) + "/notes/none.txt", "/" + id.New() + "/notes/a.txt"} {
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("%s: %d", path, rec.Code)
-		}
-	}
-	if e.pm.Busy() {
-		t.Error("the objects route kept a lease")
-	}
 }
-
-func objectPath(p id.Project, key string) string { return "/objects/" + string(p) + "/" + key }

@@ -154,7 +154,7 @@ func TestServices(t *testing.T) {
 // The private-network exceptions are read and set from the project
 // settings (SPEC 6.7, 5.12): stored in one spelling, and an invalid host
 // is KindInvalid and changes nothing.
-func TestPrivateHostsBinding(t *testing.T) {
+func TestPrivateHostsSettings(t *testing.T) {
 	ctx := context.Background()
 	e := newEnv(t, t.TempDir())
 	ps := e.svc.Project

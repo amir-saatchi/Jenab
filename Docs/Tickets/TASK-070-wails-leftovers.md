@@ -1,6 +1,6 @@
 # TASK-070 — Remove the code and text the Wails app left behind
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061, TASK-069
 
@@ -23,3 +23,13 @@ TASK-061 removed the Wails app but, by its rule, left the services unchanged. So
 - The report lists everything removed and everything kept, with the reason.
 - `go build ./...`, `go vet ./...`, `go vet -tags bench ./cmd/desktop` and `go test ./...` pass.
 - The bench build still starts on a scratch profile, opens a file in the file view and quits through the bench port.
+
+## Result
+Done.
+1. `internal/bucket/serve.go` (the objects route: `Handler`, `Route`, `Served`, `Opener` and the header rules) and `app.ObjectHandler` are gone, with their tests. The route's refusals (a missing key, another project, a bad project ID, bad keys, no lease kept) are now checked through `NativeBucket.Read`, and its types through `state.KindOf`.
+2. `UIError.MarshalJSON` and its test are gone. The logs write `Error()` through slog's text handler, and no export marshals an error. The struct tags stay.
+3. The sweep found nothing else that only tests call. The upload route stays (the app calls it in its own process), and so do the event names, which the native stores switch on. The report lists each with the reason.
+4. The twelve `golang-*` skills say "a Go desktop app with a native UI on MyGo".
+5. CODE-OUTLINE loses `Handler` and `ObjectHandler`. SPEC 4.7 is "Showing untrusted files", with the file view's rules in place of the route's headers.
+
+The removal is one commit (`03ea3d0`). `go build ./...`, `go vet ./...`, `go vet -tags bench ./cmd/desktop` and `go test ./...` pass. The bench build started on a scratch profile, opened a Markdown file and an HTML file in the file view (the HTML as text), and quit through the bench port. Report: [reports/TASK-070-report.md](reports/TASK-070-report.md).

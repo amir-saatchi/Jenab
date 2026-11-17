@@ -4,12 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/amir-saatchi/jenab/internal/bucket"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/limit"
 	"github.com/amir-saatchi/jenab/internal/project"
@@ -17,8 +14,7 @@ import (
 )
 
 // BucketService lists a project's files for the Files panel (SPEC 4,
-// 5.12). The files themselves load from /objects/<project_id>/<key>, never
-// through a binding (Q31).
+// 5.12). The file view reads a file's bytes through NativeBucket.
 type BucketService struct {
 	base
 	projects *project.Manager
@@ -174,47 +170,4 @@ func (s *BucketService) UndoDelete(ctx context.Context, p id.Project, change id.
 		}
 		return err
 	})
-}
-
-// ObjectHandler serves /objects/<project_id>/<key> with bucket.Handler's
-// rules for untrusted files (4.7). Each request leases the project until
-// its body is sent.
-func ObjectHandler(pm *project.Manager) http.Handler {
-	h := bucket.Handler(func(ctx context.Context, p id.Project, key string) (bucket.Served, error) {
-		proj, err := pm.Open(ctx, p)
-		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				return bucket.Served{}, bucket.ErrNotFound // no such project
-			}
-			return bucket.Served{}, err
-		}
-		o, body, err := proj.DB.OpenObject(ctx, key)
-		if err != nil {
-			proj.Release()
-			return bucket.Served{}, err
-		}
-		return bucket.Served{MIME: o.MIME, Hash: o.SHA256, ModTime: o.UpdatedAt, Body: &leased{body, proj}}, nil
-	})
-	// The path may come with the route in front or without it, as a mux
-	// that strips the route hands it on.
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, bucket.Route) {
-			r = r.Clone(r.Context())
-			r.URL.Path = bucket.Route + strings.TrimPrefix(r.URL.Path, "/")
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-// leased is an object's body that gives back the project's lease when it
-// is closed.
-type leased struct {
-	io.ReadSeekCloser
-	proj *project.Project
-}
-
-func (l *leased) Close() error {
-	err := l.ReadSeekCloser.Close()
-	l.proj.Release()
-	return err
 }

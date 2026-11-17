@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -76,16 +75,6 @@ func TestUIError(t *testing.T) {
 	}()
 	uiErr(t, err, KindInternal)
 
-	j, _ := json.Marshal(&UIError{Kind: KindBusy, Message: "Wait.", Details: "d"})
-	if string(j) != `{"kind":"busy","message":"Wait.","details":"d"}` {
-		t.Errorf("JSON %s", j)
-	}
-	// Marshalled as an error value too: through the error interface.
-	var asErr error = &UIError{Kind: KindInternal, Message: "Something went wrong."}
-	j, _ = json.Marshal(&asErr)
-	if string(j) != `{"kind":"internal","message":"Something went wrong."}` {
-		t.Errorf("JSON through error %s", j)
-	}
 }
 
 // A cancelled call is closing, not logged; a panic's value is redacted in
