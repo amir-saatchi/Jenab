@@ -24,32 +24,35 @@ type Hosts struct {
 	// ByProject is each project's list as last read or saved; a project
 	// not read yet is missing.
 	ByProject map[id.Project][]string
-	// Busy is set while a project's change runs.
+	// Busy is set while a project's change runs or waits.
 	Busy map[id.Project]bool
 
 	api     HostsAPI
 	post    Post
 	onError func(error)
-	// loads and changes count each project's reads and changes started,
-	// and changing the changes running. A read's list shows only if it is
-	// the last read started and no change ran while it read: a read made
-	// during a save may predate it, and the save's answer is the list. A
-	// change's list shows if it is the last change started.
-	loads    map[id.Project]int
-	changes  map[id.Project]int
-	changing map[id.Project]int
+	// loads counts each project's reads started, and changes its changes
+	// started. A read's list shows only if it is the last read started
+	// and no change ran while it read: a read made during a save may
+	// predate it, and the save's answer is the list. A project's changes
+	// run one after another (TASK-078): each reads the list, changes it
+	// and saves it, so two at once could lose one's edit. waiting holds
+	// those still to run; running is set while one does.
+	loads   map[id.Project]int
+	changes map[id.Project]int
+	running map[id.Project]bool
+	waiting map[id.Project][]func()
 }
 
 // NewHosts makes the store. onError shows the errors no caller takes.
 func NewHosts(api HostsAPI, post Post, onError func(error)) *Hosts {
 	return &Hosts{ByProject: map[id.Project][]string{}, Busy: map[id.Project]bool{}, api: api, post: post, onError: onError,
-		loads: map[id.Project]int{}, changes: map[id.Project]int{}, changing: map[id.Project]int{}}
+		loads: map[id.Project]int{}, changes: map[id.Project]int{}, running: map[id.Project]bool{}, waiting: map[id.Project][]func(){}}
 }
 
 // Load reads the project's list.
 func (h *Hosts) Load(p id.Project) {
 	h.loads[p]++
-	seq, changes, clear := h.loads[p], h.changes[p], h.changing[p] == 0
+	seq, changes, clear := h.loads[p], h.changes[p], !h.running[p]
 	go func() {
 		hosts, err := h.api.PrivateHosts(background, p)
 		h.post(func() {
@@ -65,12 +68,33 @@ func (h *Hosts) Load(p id.Project) {
 }
 
 // Change saves next of the stored list, which a card may have changed
-// since the page read it, and gives then the error, if any.
+// since the page read it, and gives then the error, if any. It runs once
+// the project's earlier changes have ended. A failed change reads the
+// list again, as a read made while it ran was dropped.
 func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(error)) {
 	h.Busy[p] = true
 	h.changes[p]++
-	h.changing[p]++
-	seq := h.changes[p]
+	h.waiting[p] = append(h.waiting[p], func() { h.change(p, next, then) })
+	if !h.running[p] {
+		h.runNext(p)
+	}
+}
+
+// runNext starts the project's next waiting change, or ends Busy.
+func (h *Hosts) runNext(p id.Project) {
+	q := h.waiting[p]
+	if len(q) == 0 {
+		delete(h.waiting, p)
+		delete(h.running, p)
+		delete(h.Busy, p)
+		return
+	}
+	h.waiting[p] = q[1:]
+	h.running[p] = true
+	q[0]()
+}
+
+func (h *Hosts) change(p id.Project, next func([]string) []string, then func(error)) {
 	go func() {
 		stored, err := h.api.PrivateHosts(background, p)
 		var saved []string
@@ -78,12 +102,12 @@ func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(err
 			saved, err = h.api.SetPrivateHosts(background, p, next(orEmpty(stored)))
 		}
 		h.post(func() {
-			if h.changing[p]--; h.changing[p] == 0 {
-				delete(h.changing, p)
-				delete(h.Busy, p)
-			}
-			if err == nil && seq == h.changes[p] {
+			if err == nil {
 				h.ByProject[p] = orEmpty(saved)
+			}
+			h.runNext(p)
+			if err != nil && !h.running[p] {
+				h.Load(p)
 			}
 			then(err)
 		})
