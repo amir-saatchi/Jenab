@@ -129,6 +129,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-073](TASK-073-crash-and-updates-2.md) | Updates during a download, and the crash log's raw file | Task | Done | 3 |
 | [TASK-074](TASK-074-local-provider-token.md) | Replace the token of a provider on this computer | Task | Done | 3 |
 | [TASK-075](TASK-075-heading-links-and-cell-tooltips.md) | Heading links in repeated text, and a cut number cell's tooltip | Task | Done | 3 |
+| [TASK-076](TASK-076-review-leftovers.md) | Three small leftovers from the review: crash redaction, Undo turn's state, number fields | Task | Done | 3 |
 
 ## Phase 1
 
