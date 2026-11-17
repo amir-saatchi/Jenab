@@ -108,6 +108,7 @@ type view struct {
 	starts  map[id.Message]int
 	marks   []logic.Mark
 	notice  *logic.Notice
+	undo    id.Message // the newest Undo turn or Redo turn, for the chips
 	results map[string]jc.ToolResult
 	running bool // as the last frame saw it, for "Answer finished"
 	older   bool // earlier turns are loading
@@ -159,6 +160,7 @@ func (s *Screen) viewOf(t *state.Thread) *view {
 		v.starts = logic.TurnStarts(v.msgs)
 		v.marks = logic.Marks(t.Rewinds)
 		v.notice = logic.LastNotice(v.msgs)
+		v.undo = logic.LastUndo(v.msgs)
 		v.results = logic.Results(v.msgs)
 	}
 	return v

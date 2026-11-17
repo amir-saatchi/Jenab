@@ -80,3 +80,41 @@ func TestTheConnectCardSendsTheKeptMessage(t *testing.T) {
 		}
 	})
 }
+
+// The new provider's settings arrive before its model list: the card stops
+// showing in between, and the kept message is still sent once the connect
+// is done (TASK-071).
+func TestAConnectWhoseModelsAnswerLateSendsTheKeptMessage(t *testing.T) {
+	both(t, func(t *testing.T, dark bool) {
+		set := statetest.NewSettings()
+		set.PresetList = []app.PresetItem{
+			{ID: "ollama", Name: "Ollama", Kind: "ollama", Group: "local", Host: "localhost:11434", NoKey: true, Running: true},
+		}
+		set.ConnectOK = func(req app.ConnectRequest) (app.ConnectResult, error) {
+			v := app.SettingsView{Settings: config.Defaults()}
+			v.Settings.LLM.Providers = map[string]config.ProviderSettings{
+				req.Name: {Kind: req.Kind, Models: []config.ModelSettings{{ID: "qwen3:8b"}}},
+			}
+			return app.ConnectResult{Provider: req.Name, Models: 1, View: v}, nil
+		}
+		f := statetest.New()
+		x := openWith(t, dark, f, set.Use(f.API()), statetest.Text(1, jc.RoleUser, persian),
+			failed(1, "No AI model is set up. Add a provider in Settings › Models."))
+		x.st.Settings.Load()
+		x.until(t, "the Connect card", func() bool { return kit.Shows(x.tt, "Ollama runs on this computer; no key is needed.") })
+		wait := make(chan struct{})
+		set.Lock(func() { set.HoldModels = wait })
+		click(t, x, "Connect")
+		// The settings with the provider show while its models load: the
+		// card is gone.
+		x.until(t, "the card gone", func() bool { return !kit.Shows(x.tt, "Notes needs an AI model to answer") })
+		if n := x.f.Retries(); n != 0 {
+			t.Fatalf("sent before the connect was done: %d", n)
+		}
+		close(wait)
+		x.until(t, "the kept message sent", func() bool { return x.f.Retries() == 1 })
+		if got := toasts(x); len(got) != 1 {
+			t.Errorf("toasts %q", got)
+		}
+	})
+}

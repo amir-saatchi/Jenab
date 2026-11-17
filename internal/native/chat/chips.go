@@ -18,11 +18,46 @@ import (
 // whether the change is undone, so a chip is right after a reload or an
 // undo of its turn.
 
-// chip is a chip's undo between frames.
+// chip is a chip's undo between frames. It offers Undo or Redo only once
+// it knows which applies, and reads that again after each Undo turn or
+// Redo turn in its chat, which may have reverted or put back its change.
 type chip struct {
-	asked  bool // whether it is undone was asked
+	read   bool       // whether it is undone was asked, after the undo below
+	undo   id.Message // the chat's newest turn undo when it was asked
+	known  bool       // the answer is in
 	undone bool
 	busy   bool
+	asks   int // reads and undos sent, so a late answer to an older one is dropped
+}
+
+// ask reads whether the chip's change is undone, if it hasn't since the
+// chat's newest turn undo, undo. A read that fails leaves the chip as it
+// was and known, so a click says what is wrong.
+func (k *chip) ask(undo id.Message, read func(then func(bool, error))) {
+	if k.read && k.undo == undo {
+		return
+	}
+	k.read, k.undo, k.known = true, undo, false
+	k.asks++
+	n := k.asks
+	read(func(u bool, err error) {
+		if n != k.asks {
+			return
+		}
+		if err == nil {
+			k.undone = u
+		}
+		k.known = true
+	})
+}
+
+// sent marks an undo or redo sent; it returns the check that its answer
+// is still the newest, since a turn undo meanwhile asks again.
+func (k *chip) sent() func() bool {
+	k.busy = true
+	k.asks++
+	n := k.asks
+	return func() bool { return n == k.asks }
 }
 
 // chipOf is the chip key of chat ch, kept by chat so a deleted chat's go.
@@ -70,6 +105,12 @@ func chipButton(c *kit.Context, label string, busy bool) bool {
 	return kit.Disable(kit.SmallButton(c, nil, label, kit.Ghost), busy).Clicked() && !busy
 }
 
+// undoButton is the chip's Undo or Redo, off until the chip knows which
+// applies and while one runs.
+func undoButton(c *kit.Context, k *chip) bool {
+	return chipButton(c, undoLabel(k.undone), k.busy || !k.known)
+}
+
 // memoryNote is a memory chip's line under it, such as that the edit came
 // from a chat that read web pages (SPEC 3.3, 3.5). A chip without one, as
 // those saved before chips had it, shows none.
@@ -91,19 +132,14 @@ func (s *Screen) memoryChip(c *kit.Context, t *state.Thread, key string, n *jc.N
 	k := s.chipOf(ch, key)
 	req := app.MemoryUndoRequest{Target: n.Target, Change: n.Change}
 	undoable := n.Target != "" && n.Change != ""
-	if undoable && !k.asked {
-		k.asked = true
-		s.st.Actions.MemoryUndone(p, req, func(u bool, err error) {
-			if err == nil { // the chip keeps Undo; a click says what is wrong
-				k.undone = u
-			}
-		})
+	if undoable {
+		k.ask(s.viewOf(t).undo, func(then func(bool, error)) { s.st.Actions.MemoryUndone(p, req, then) })
 	}
 	kit.Column(c).Gap(4).AlignItems(kit.Stretch).Children(func() {
 		kit.Row(c).Gap(6).Wrap().AlignItems(kit.Center).Children(func() {
 			kit.Record(c, kit.IconBrain, kit.Neutral, func() { kit.Text(c, chipText(n.Text, k.undone)) })
-			if undoable && chipButton(c, undoLabel(k.undone), k.busy) {
-				k.busy = true
+			if undoable && undoButton(c, k) {
+				newest := k.sent()
 				r := req
 				r.Redo = k.undone
 				s.st.Actions.UndoMemory(p, r, func(res app.MemoryUndo, err error) {
@@ -112,7 +148,9 @@ func (s *Screen) memoryChip(c *kit.Context, t *state.Thread, key string, n *jc.N
 						s.st.Error(err)
 						return
 					}
-					k.undone = res.Undone
+					if newest() {
+						k.undone = res.Undone
+					}
 					s.info(logic.MemoryUndoText(res.Changed, res.Done, res.Undone))
 				})
 			}
@@ -131,19 +169,14 @@ func (s *Screen) memoryChip(c *kit.Context, t *state.Thread, key string, n *jc.N
 func (s *Screen) desktopChip(c *kit.Context, t *state.Thread, key string, n *jc.Notice) {
 	k := s.chipOf(t.Chat.ID, key)
 	req := app.DesktopUndoRequest{Change: n.Change}
-	if n.Change != "" && !k.asked {
-		k.asked = true
-		s.st.Actions.DesktopSaveUndone(req, func(u bool, err error) {
-			if err == nil {
-				k.undone = u
-			}
-		})
+	if n.Change != "" {
+		k.ask(s.viewOf(t).undo, func(then func(bool, error)) { s.st.Actions.DesktopSaveUndone(req, then) })
 	}
 	kit.Column(c).Gap(4).AlignItems(kit.Stretch).Children(func() {
 		kit.Row(c).Gap(6).Wrap().AlignItems(kit.Center).Children(func() {
 			kit.Record(c, kit.IconAppWindow, kit.Neutral, func() { kit.Text(c, chipText(n.Text, k.undone)) })
-			if n.Change != "" && chipButton(c, undoLabel(k.undone), k.busy) {
-				k.busy = true
+			if n.Change != "" && undoButton(c, k) {
+				newest := k.sent()
 				r := req
 				r.Redo = k.undone
 				s.st.Actions.UndoDesktopSave(r, func(res store.DesktopUndo, err error) {
@@ -152,7 +185,9 @@ func (s *Screen) desktopChip(c *kit.Context, t *state.Thread, key string, n *jc.
 						s.st.Error(err)
 						return
 					}
-					k.undone = res.Undone
+					if newest() {
+						k.undone = res.Undone
+					}
 					s.info(logic.DesktopUndoText(res.Changed, res.Done, res.Undone))
 				})
 			}
@@ -179,26 +214,21 @@ func (s *Screen) desktopChip(c *kit.Context, t *state.Thread, key string, n *jc.
 func (s *Screen) refreshChip(c *kit.Context, t *state.Thread, key string, n *jc.Notice) {
 	p := t.Project
 	k := s.chipOf(t.Chat.ID, key)
-	if !k.asked {
-		k.asked = true
-		s.st.Actions.RefreshUndone(p, n.Edits, func(u bool, err error) {
-			if err == nil {
-				k.undone = u
-			}
-		})
-	}
+	k.ask(s.viewOf(t).undo, func(then func(bool, error)) { s.st.Actions.RefreshUndone(p, n.Edits, then) })
 	kit.Column(c).Gap(6).AlignItems(kit.Stretch).Children(func() {
 		kit.Row(c).Gap(6).Wrap().AlignItems(kit.Center).Children(func() {
 			kit.Record(c, kit.IconBrain, kit.Neutral, func() { kit.Text(c, chipText(n.Text, k.undone)) })
-			if chipButton(c, undoLabel(k.undone), k.busy) {
-				k.busy = true
+			if undoButton(c, k) {
+				newest := k.sent()
 				s.st.Actions.UndoRefresh(p, app.RefreshUndoRequest{Edits: n.Edits, Redo: k.undone}, func(res app.RefreshUndo, err error) {
 					k.busy = false
 					if err != nil {
 						s.st.Error(err)
 						return
 					}
-					k.undone = res.Undone
+					if newest() {
+						k.undone = res.Undone
+					}
 					if res.Changed {
 						s.info(logic.UndoChangedText(res.Sections))
 					} else if !res.Done {

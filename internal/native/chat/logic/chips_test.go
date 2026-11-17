@@ -1,6 +1,11 @@
 package logic
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
+)
 
 func TestTheChipsUndoTexts(t *testing.T) {
 	for _, c := range []struct {
@@ -20,5 +25,23 @@ func TestTheChipsUndoTexts(t *testing.T) {
 		if c.got != c.want {
 			t.Errorf("got %q, want %q", c.got, c.want)
 		}
+	}
+}
+
+func TestLastUndoIsTheNewestTurnUndoneNotice(t *testing.T) {
+	undo := func(m id.Message) chat.Message {
+		return chat.Message{ID: m, Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice,
+			Notice: &chat.Notice{Kind: chat.NoticeTurnUndone, Text: "Turn 1 undone"}}}}
+	}
+	other := chat.Message{ID: "m3", Role: chat.RoleUser, Parts: []chat.Part{{Kind: chat.PartNotice,
+		Notice: &chat.Notice{Kind: chat.NoticeTurnFailed, Text: "stopped"}}}}
+	if got := LastUndo(nil); got != "" {
+		t.Errorf("no messages: %q", got)
+	}
+	if got := LastUndo([]chat.Message{other}); got != "" {
+		t.Errorf("no undo: %q", got)
+	}
+	if got := LastUndo([]chat.Message{undo("m1"), undo("m2"), other}); got != "m2" {
+		t.Errorf("got %q, want m2", got)
 	}
 }

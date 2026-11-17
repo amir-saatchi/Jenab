@@ -41,6 +41,9 @@ type Settings struct {
 	Edits      []app.DesktopMacroEdit
 	Writes     []app.DesktopRecipeWrite
 	ConnectOK  func(app.ConnectRequest) (app.ConnectResult, error)
+	// HoldModels, when not nil, holds each answer to Models until it is
+	// closed, as a provider whose model list answers late.
+	HoldModels chan struct{}
 }
 
 // NewSettings makes the settings services with the default settings.
@@ -69,6 +72,12 @@ func (s *Settings) Save(_ context.Context, next config.Settings) (app.SettingsVi
 }
 
 func (s *Settings) Models(context.Context) ([]app.ModelGroup, error) {
+	s.mu.Lock()
+	hold := s.HoldModels
+	s.mu.Unlock()
+	if hold != nil {
+		<-hold
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return slices.Clone(s.Groups), nil

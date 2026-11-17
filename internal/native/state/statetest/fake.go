@@ -53,6 +53,9 @@ type Fake struct {
 	// Undone is what the chips' undo reverted: "memory:", "desktop:" or
 	// "refresh:" and the change, true while it is undone.
 	Undone map[string]bool
+	// HoldUndone, when not nil, holds each answer to whether a chip's
+	// change is undone until it is closed, as a slow read.
+	HoldUndone chan struct{}
 	// Changed makes the chips' undo of these changes find them changed
 	// since, as a section edited after its chip.
 	Changed map[string]bool
@@ -316,6 +319,25 @@ func (f *Fake) IsUndone(key string) bool {
 	return f.Undone[key]
 }
 
+// SetUndone sets whether key is undone while the screen runs, as an
+// Undo turn or Redo turn of the chip's turn does.
+func (f *Fake) SetUndone(key string, undone bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Undone[key] = undone
+}
+
+// undone answers whether key is undone, once HoldUndone lets it.
+func (f *Fake) undone(key string) bool {
+	f.mu.Lock()
+	hold := f.HoldUndone
+	f.mu.Unlock()
+	if hold != nil {
+		<-hold
+	}
+	return f.IsUndone(key)
+}
+
 // SetChanged makes key changed since its chip, so its undo does nothing.
 func (f *Fake) SetChanged(key string) {
 	f.mu.Lock()
@@ -324,7 +346,7 @@ func (f *Fake) SetChanged(key string) {
 }
 
 func (f *Fake) MemoryUndone(_ context.Context, _ id.Project, r app.MemoryUndoRequest) (bool, error) {
-	return f.IsUndone("memory:" + r.Change), nil
+	return f.undone("memory:" + r.Change), nil
 }
 
 // UndoMemory undoes or redoes the memory chip's change.
@@ -334,7 +356,7 @@ func (f *Fake) UndoMemory(_ context.Context, _ id.Project, r app.MemoryUndoReque
 }
 
 func (f *Fake) DesktopSaveUndone(_ context.Context, r app.DesktopUndoRequest) (bool, error) {
-	return f.IsUndone("desktop:" + r.Change), nil
+	return f.undone("desktop:" + r.Change), nil
 }
 
 // UndoDesktopSave undoes or redoes the desktop chip's save.
@@ -380,7 +402,7 @@ func batchKey(edits []chat.MemoryDiff) string {
 }
 
 func (f *Fake) RefreshUndone(_ context.Context, _ id.Project, edits []chat.MemoryDiff) (bool, error) {
-	return f.IsUndone(batchKey(edits)), nil
+	return f.undone(batchKey(edits)), nil
 }
 
 // UndoRefresh undoes or redoes the batch; a changed one names its first
