@@ -181,7 +181,7 @@ func TestOverlappingChatListsKeepTheNewer(t *testing.T) {
 	g, l := &gatedChats{}, newLoop()
 	s := NewChats(g, l.post, nil)
 	var listed [][]id.Chat
-	s.OnList = func(_ id.Project, chats []id.Chat) { listed = append(listed, chats) }
+	s.OnList = func(_ id.Project, chats []id.Chat, _ int) { listed = append(listed, chats) }
 	older := s.Load("p1")
 	g.lists.came(t, l, 1)
 	newer := s.Load("p1")

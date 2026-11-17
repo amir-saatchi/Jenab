@@ -435,10 +435,14 @@ func (s *Screen) bars(c *kit.Context, v *view, t *state.Thread) {
 }
 
 // rewindAsk is the rewind dialog's question: Rewind to here, or Edit and
-// resend, with what the rewind would do, and the chat it asks about.
+// resend, with what the rewind would do, and the chat it asks about. A
+// click makes a new one, loading until its plan comes; a plan is taken
+// only by the ask it was read for, so an older one can't fill a newer
+// dialog.
 type rewindAsk struct {
 	project id.Project
 	chat    id.Chat
+	loading bool
 	edit    bool
 	state   agent.RewindState
 	message jc.Message
@@ -455,14 +459,19 @@ func (s *Screen) rewindActions(c *kit.Context, t *state.Thread, m jc.Message, la
 		if edit {
 			turn--
 		}
-		p, ch := t.Project, t.Chat.ID
-		s.st.Actions.RewindState(p, ch, turn, func(st agent.RewindState, err error) {
+		a := &rewindAsk{project: t.Project, chat: t.Chat.ID, loading: true, edit: edit, message: m}
+		s.ask, s.dialog = a, false
+		s.st.Actions.RewindState(a.project, a.chat, turn, func(st agent.RewindState, err error) {
 			*busy = false
+			if s.ask != a {
+				return // opened again since, or put away
+			}
 			if err != nil {
+				s.ask = nil
 				s.st.Error(err)
 				return
 			}
-			s.ask = &rewindAsk{project: p, chat: ch, edit: edit, state: st, message: m}
+			a.state, a.loading = st, false
 			s.dialog = true
 		})
 	}
@@ -487,6 +496,9 @@ func (s *Screen) rewindDialog(c *kit.Context, t *state.Thread) {
 		if !a.busy {
 			s.ask, s.dialog = nil, false
 		}
+		return
+	}
+	if a.loading {
 		return
 	}
 	title := "Edit and resend?"

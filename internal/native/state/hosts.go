@@ -30,20 +30,26 @@ type Hosts struct {
 	api     HostsAPI
 	post    Post
 	onError func(error)
-	// seq counts each project's reads and changes started: an answer
-	// older than the last one started doesn't overwrite its list.
-	seq map[id.Project]int
+	// loads and changes count each project's reads and changes started,
+	// and changing the changes running. A read's list shows only if it is
+	// the last read started and no change ran while it read: a read made
+	// during a save may predate it, and the save's answer is the list. A
+	// change's list shows if it is the last change started.
+	loads    map[id.Project]int
+	changes  map[id.Project]int
+	changing map[id.Project]int
 }
 
 // NewHosts makes the store. onError shows the errors no caller takes.
 func NewHosts(api HostsAPI, post Post, onError func(error)) *Hosts {
-	return &Hosts{ByProject: map[id.Project][]string{}, Busy: map[id.Project]bool{}, api: api, post: post, onError: onError, seq: map[id.Project]int{}}
+	return &Hosts{ByProject: map[id.Project][]string{}, Busy: map[id.Project]bool{}, api: api, post: post, onError: onError,
+		loads: map[id.Project]int{}, changes: map[id.Project]int{}, changing: map[id.Project]int{}}
 }
 
 // Load reads the project's list.
 func (h *Hosts) Load(p id.Project) {
-	h.seq[p]++
-	seq := h.seq[p]
+	h.loads[p]++
+	seq, changes, clear := h.loads[p], h.changes[p], h.changing[p] == 0
 	go func() {
 		hosts, err := h.api.PrivateHosts(background, p)
 		h.post(func() {
@@ -51,7 +57,7 @@ func (h *Hosts) Load(p id.Project) {
 				h.onError(err)
 				return
 			}
-			if seq == h.seq[p] {
+			if seq == h.loads[p] && clear && changes == h.changes[p] {
 				h.ByProject[p] = orEmpty(hosts)
 			}
 		})
@@ -62,8 +68,9 @@ func (h *Hosts) Load(p id.Project) {
 // since the page read it, and gives then the error, if any.
 func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(error)) {
 	h.Busy[p] = true
-	h.seq[p]++
-	seq := h.seq[p]
+	h.changes[p]++
+	h.changing[p]++
+	seq := h.changes[p]
 	go func() {
 		stored, err := h.api.PrivateHosts(background, p)
 		var saved []string
@@ -71,8 +78,11 @@ func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(err
 			saved, err = h.api.SetPrivateHosts(background, p, next(orEmpty(stored)))
 		}
 		h.post(func() {
-			delete(h.Busy, p)
-			if err == nil && seq == h.seq[p] {
+			if h.changing[p]--; h.changing[p] == 0 {
+				delete(h.changing, p)
+				delete(h.Busy, p)
+			}
+			if err == nil && seq == h.changes[p] {
 				h.ByProject[p] = orEmpty(saved)
 			}
 			then(err)

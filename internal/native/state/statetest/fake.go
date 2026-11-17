@@ -65,6 +65,9 @@ type Fake struct {
 	TurnUndo  agent.TurnUndoState
 	undoTurns []agent.UndoRequest
 	live      map[id.Chat]agent.Live // each chat's running turn, for Snapshot
+	// HoldRewindState, if set, runs before RewindState answers, outside
+	// mu: a test holds a chat's answer back with it.
+	HoldRewindState func(c id.Chat)
 	// Bucket is the projects' files and the bottom bar's readings.
 	Bucket FakeBucket
 	admin  ProjectAdmin // the project screens' part (fake_project.go)
@@ -481,6 +484,9 @@ func (f *Fake) last(c id.Chat) int {
 }
 
 func (f *Fake) RewindState(_ context.Context, _ id.Project, c id.Chat, turn int) (agent.RewindState, error) {
+	if f.HoldRewindState != nil {
+		f.HoldRewindState(c)
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return agent.RewindState{Turn: turn, LastTurn: f.last(c)}, nil
