@@ -94,6 +94,12 @@ func TestTheBarIsOneLine(t *testing.T) {
 		if mid := a.Bounds.Y + a.Bounds.H/2; mid < 15.5 || mid > 16.5 {
 			t.Errorf("the title is centered at %v, want the window buttons' 16", mid)
 		}
+		// Refresh memory is a bar button before the chat's ⋯ menu (SPEC 3.5).
+		r, ok := x.inBar("Refresh memory", 312)
+		m, _ := x.inBar("Chat menu", 312)
+		if !ok || r.Bounds.W != kit.BarButton || r.Bounds.H != kit.BarButton || r.Bounds.X >= m.Bounds.X {
+			t.Errorf("Refresh memory is %+v, the chat menu %+v", r.Bounds, m.Bounds)
+		}
 		for _, s := range []string{"Last active", "No messages yet"} {
 			for _, b := range x.tt.AccessAll() {
 				if b.Bounds.Y < 32 && b.Bounds.X >= 312 && len(b.Name) >= len(s) && b.Name[:len(s)] == s {

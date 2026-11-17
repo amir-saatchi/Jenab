@@ -171,3 +171,69 @@ func TestThemeSourceOf(t *testing.T) {
 		}
 	}
 }
+
+// A bar's menu button says when its menu shows, opens it to its end
+// below the bar, from the keyboard too, and opens none while off.
+func TestBarMenuButtonSaysItIsOpen(t *testing.T) {
+	open, off, chosen := false, false, ""
+	view := func(c *Context) {
+		Main(c, func() {
+			Bar(c, func() {
+				Title(c, "Demo")
+				Spacer(c)
+				BarMenuButton(c, IconBrain, "Refresh memory", &open, off, func(m *Menu) {
+					if m.Item(persian).Subtitle("12 turns").Chosen() {
+						chosen = persian
+					}
+				})
+				ControlsRoom(c)
+			})
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		open, off, chosen = false, false, ""
+		tt.Frame() // the window was built as the last run left off
+		b, ok := tt.Find("Refresh memory")
+		if !ok || b.W != BarButton || b.H != BarButton {
+			t.Fatalf("the button is %+v, want %v square", b, BarButton)
+		}
+		if err := tt.Click("Refresh memory"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if !open {
+			t.Fatal("the menu shows but open is false")
+		}
+		shows(t, tt, persian, "12 turns")
+		if r, _ := tt.Find(persian); r.X+r.W > b.X+b.W+1 || r.Y < b.Y+b.H {
+			t.Errorf("the item at %+v is not below the button's end %+v", r, b)
+		}
+		if err := tt.Click(persian); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		if chosen != persian || open {
+			t.Errorf("chose %q, open %v", chosen, open)
+		}
+		// The keyboard opens it and Escape closes it.
+		tabTo(t, tt, "Refresh memory")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if !open {
+			t.Error("Enter did not open the menu")
+		}
+		tt.Key(0, ui.KeyEscape)
+		tt.Frame()
+		if open {
+			t.Error("Escape left the menu open")
+		}
+		// Off, it opens none.
+		off = true
+		tt.Frame()
+		_ = tt.Click("Refresh memory")
+		tt.Frame()
+		if open || Shows(tt, persian) {
+			t.Error("an off button opened its menu")
+		}
+	})
+}

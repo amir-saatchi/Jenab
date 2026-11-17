@@ -34,8 +34,16 @@ func (s *Screen) row(c *kit.Context, v *view, t *state.Thread, i int) {
 		}
 		failed := v.notice != nil && v.notice.Kind == jc.NoticeTurnFailed && !running &&
 			v.notice.Message.ID == r.Message.ID && r.Part.Notice == lastPart(v.notice.Message).Notice
+		if failed && s.noProvider() {
+			s.connectCard(c, t)
+			return
+		}
 		if failed {
 			s.failedCard(c, t, n.Text)
+			return
+		}
+		if n.Kind == jc.NoticeMemoryRefreshed && len(n.Edits) > 0 {
+			s.refreshChip(c, t, string(r.Message.ID)+":refresh", n)
 			return
 		}
 		noticeLine(c, *n, kit.Clock(c, r.Message.CreatedAt.Local()))
@@ -162,7 +170,7 @@ func (s *Screen) agentRow(c *kit.Context, v *view, t *state.Thread, r logic.Row,
 	kit.Message(c, "Jenab said", false, func() {
 		for _, m := range r.Messages {
 			for i, p := range m.Parts {
-				kit.Column(c).Key(string(m.ID)+":"+itoa(i)).AlignItems(kit.Stretch).Children(func() {
+				kit.Column(c).Key(string(m.ID) + ":" + itoa(i)).AlignItems(kit.Stretch).Children(func() {
 					s.part(c, v, t, m, i, p, running, busy, waiting)
 				})
 			}
@@ -249,7 +257,7 @@ func (s *Screen) part(c *kit.Context, v *view, t *state.Thread, m jc.Message, i 
 			kit.Muted(c, "Image: "+imageName(*p.Image))
 		}
 	case jc.PartNotice:
-		s.noticePart(c, key, p.Notice)
+		s.noticePart(c, t, key, p.Notice)
 	case jc.PartApproval, jc.PartQuestion:
 		live := (w != nil && w.Message == m.ID && w.Index == i) || busy
 		if p.Approval != nil {
@@ -262,20 +270,21 @@ func (s *Screen) part(c *kit.Context, v *view, t *state.Thread, m jc.Message, i 
 }
 
 // noticePart is a notice inside the agent's work: a skill's chip, a
-// schema change, a memory edit, or a line.
-func (s *Screen) noticePart(c *kit.Context, key string, n *jc.Notice) {
+// schema change, a memory edit or a desktop save with its undo, or a
+// line.
+func (s *Screen) noticePart(c *kit.Context, t *state.Thread, key string, n *jc.Notice) {
 	if n == nil || n.Kind == jc.NoticeSkillText {
 		return
 	}
 	switch n.Kind {
 	case jc.NoticeSkillLoaded:
 		kit.Record(c, kit.IconSparkles, kit.Neutral, func() { kit.Text(c, n.Text) })
-	case jc.NoticeMigration, jc.NoticeDesktopSaved, jc.NoticeMemoryUpdated:
-		icon := kit.IconPackage
-		if n.Kind == jc.NoticeMemoryUpdated {
-			icon = kit.IconBrain
-		}
-		kit.Record(c, icon, kit.Neutral, func() { kit.Text(c, n.Text) })
+	case jc.NoticeMemoryUpdated:
+		s.memoryChip(c, t, key, n)
+	case jc.NoticeDesktopSaved:
+		s.desktopChip(c, t, key, n)
+	case jc.NoticeMigration:
+		kit.Record(c, kit.IconPackage, kit.Neutral, func() { kit.Text(c, n.Text) })
 		if n.Details != "" {
 			kit.Disclosure(c, "View steps", s.flag(key), false, func() { kit.Text(c, "View steps") }, func() {
 				kit.Panel(c, func() { kit.Pre(c, n.Details) })

@@ -6,7 +6,9 @@
 package chat
 
 import (
+	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	jc "github.com/amir-saatchi/jenab/internal/chat"
@@ -33,16 +35,60 @@ type Screen struct {
 	open   map[string]*bool
 	cards  map[string]*card
 	undos  map[string]*undo
+	chips  map[id.Chat]map[string]*chip
 	ask    *rewindAsk
 	dialog bool // the rewind dialog
+
+	refreshes map[id.Chat]*refresh
+	long      *refreshAsk // a long refresh asking first
+	longOpen  bool        // its dialog
+	connect   *connecting // the Connect card's form
 }
 
 // New makes the chat screen on the stores.
 func New(st *state.Stores) *Screen {
 	s := &Screen{st: st, md: kit.Markdown{ShareSelection: true},
-		views: map[id.Chat]*view{}, open: map[string]*bool{}, cards: map[string]*card{}, undos: map[string]*undo{}}
+		views: map[id.Chat]*view{}, open: map[string]*bool{}, cards: map[string]*card{}, undos: map[string]*undo{},
+		chips: map[id.Chat]map[string]*chip{}, refreshes: map[id.Chat]*refresh{}}
 	s.md.Own, s.md.CodeLink = s.own, state.CodeLink
+	st.OnPrune = append(st.OnPrune, s.prune)
 	return s
+}
+
+// prune drops what the screen keeps for project p's chats that were
+// deleted: those its fresh list doesn't have, but the chat shown. What
+// it keeps by key, a card's input or what is unfolded, is under a key
+// with the chat's ID or one of its messages' IDs between its colons.
+func (s *Screen) prune(p id.Project, listed []id.Chat, shown id.Chat) {
+	gone := map[string]bool{}
+	for ch, v := range s.views {
+		if v.thread == nil || v.thread.Project != p || ch == shown || slices.Contains(listed, ch) {
+			continue
+		}
+		gone[string(ch)] = true
+		for _, m := range v.msgs {
+			gone[string(m.ID)] = true
+		}
+		delete(s.views, ch)
+		delete(s.chips, ch)
+		delete(s.refreshes, ch)
+	}
+	if len(gone) == 0 {
+		return
+	}
+	hit := func(key string) bool {
+		return slices.ContainsFunc(strings.Split(key, ":"), func(seg string) bool { return gone[seg] })
+	}
+	maps.DeleteFunc(s.open, func(k string, _ *bool) bool { return hit(k) })
+	maps.DeleteFunc(s.cards, func(k string, _ *card) bool { return hit(k) })
+	maps.DeleteFunc(s.undos, func(k string, _ *undo) bool { return hit(k) })
+	if s.connect != nil && gone[string(s.connect.chat)] {
+		s.connect.form.Clear()
+		s.connect = nil
+	}
+	if s.long != nil && gone[string(s.long.chat)] {
+		s.long, s.longOpen = nil, false
+	}
 }
 
 func (s *Screen) now() time.Time {
@@ -127,6 +173,7 @@ func (s *Screen) View(c *kit.Context, t *state.Thread, mother, readOnly bool) {
 		kit.Announce(c, "Answer finished")
 	}
 	v.running = running
+	s.keepConnect(t.Chat.ID, v.notice != nil && v.notice.Kind == jc.NoticeTurnFailed && !running && s.noProvider())
 	// A window card holds still: the chat stops following new content
 	// until it is answered (SPEC 8.10).
 	v.list.FollowEnd = !logic.PickWaiting(v.msgs, t.Waiting)
@@ -140,6 +187,7 @@ func (s *Screen) View(c *kit.Context, t *state.Thread, mother, readOnly bool) {
 		s.composerView(c, v, t, readOnly)
 	})
 	s.rewindDialog(c, t)
+	s.refreshDialog(c, t)
 }
 
 // items lays the thread out as thread-view.tsx does: earlier turns, the
@@ -293,7 +341,7 @@ func (s *Screen) rewindMark(c *kit.Context, t *state.Thread, r store.RewindInfo)
 			return
 		}
 		kit.Row(c).Gap(4).Justify(kit.Center).Children(func() {
-			key := "rewind:" + itoa(int(r.ID))
+			key := "rewind:" + string(t.Chat.ID) + ":" + itoa(int(r.ID))
 			if r.Undoable {
 				busy := s.flag(key + ":busy")
 				b := kit.SmallButton(c, nil, "Undo rewind", kit.Ghost)

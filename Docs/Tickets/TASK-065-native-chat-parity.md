@@ -1,6 +1,6 @@
 # TASK-065 — The native chat's memory chips, *Refresh memory* and Connect card
 **Type:** Task
-**Status:** Open
+**Status:** Done
 **Gate:** 3
 **Needs:** TASK-061
 
@@ -27,3 +27,12 @@ The services exist (`ChatService.UndoMemory`, `RefreshMemory`, `UndoRefresh`, th
 - Headless tests for each: undo and redo on a memory chip, *Edit* opening the section, a desktop chip's undo, starting *Refresh memory* and undoing its batch, the Connect card sending the kept message.
 - Tests the chat screen lacks today: *Undo turn*, the Retry card, a message sent during a turn, *Deny* with a note, an approval after *Stop*.
 - Screenshots in light and dark, kept outside the repo.
+
+## Result
+Done. Report: [reports/TASK-065-report.md](reports/TASK-065-report.md).
+1. The memory chip has *Undo*/*Redo*, *Edit*, which opens the memory section, and its note under it. It asks the backend whether it is undone, so it is right after a reload.
+2. The desktop chip has *Undo*/*Redo* and *View steps*, and *Edit*, which opens Settings › Desktop.
+3. *Refresh memory* is a bar icon button in the chat header, before *Chat menu*. Its menu has both refreshes, each with its estimate on a second line. A long one asks first with React's dialog. The refresh chip has *View changes* and a batch *Undo*/*Redo*.
+4. With no provider set up, the failed turn shows the Connect card with Settings' `ConnectForm`, a running Ollama first. Connecting sends the kept message.
+
+The chat screen also drops a deleted chat's state, through a new `Stores.OnPrune` hook. Each item has headless tests in light and dark, as do *Undo turn*, the Retry card, a message sent during a turn, *Deny* with a note and an approval after *Stop*. A live check on the bench build covered the header button, its estimates, the long-refresh dialog and a refresh run. Screenshots are outside the repo.

@@ -60,3 +60,16 @@ func TestThousands(t *testing.T) {
 		}
 	}
 }
+
+func TestAnEstimateFitsOneLine(t *testing.T) {
+	e := agent.RefreshEstimate{Turns: 12, Calls: 3, Tokens: 8000}
+	if got := EstimateLine(e); got != "12 turns · 3 calls · about 8,000 tokens" {
+		t.Errorf("line: %q", got)
+	}
+	if got := EstimateLine(agent.RefreshEstimate{Turns: 1, Calls: 1, Tokens: 1}); got != "1 turn · 1 call · about 1 token" {
+		t.Errorf("one: %q", got)
+	}
+	if got := EstimateLine(agent.RefreshEstimate{}); got != "Nothing new to review" {
+		t.Errorf("none: %q", got)
+	}
+}

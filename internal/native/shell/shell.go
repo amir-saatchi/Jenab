@@ -22,6 +22,12 @@ type ChatScreen interface {
 	View(c *kit.Context, t *state.Thread, mother, readOnly bool)
 }
 
+// ChatHeaderActions is a chat screen that puts buttons of its own in the
+// chat's header, before its ⋯ menu, as Refresh memory (SPEC 3.5).
+type ChatHeaderActions interface {
+	HeaderActions(c *kit.Context, t *state.Thread)
+}
+
 // DevScreen shows the developer tools (SPEC 8.4) in the main area: the
 // turn inspector or the runtime, as place says.
 type DevScreen interface {
@@ -196,8 +202,12 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat, end barEnd) {
 	if title == "" {
 		title = "New chat"
 	}
-	s.header(c, p, ch, title, mother, info.Title, end)
 	damage := st.Projects.Opened[p].Damage
+	var actions func()
+	if a, ok := s.Chat.(ChatHeaderActions); ok && t != nil && damage == nil {
+		actions = func() { a.HeaderActions(c, t) }
+	}
+	s.header(c, p, ch, title, mother, info.Title, actions, end)
 	if damage != nil {
 		kit.Box(c).Padding(12, 16, 0, 16).Children(func() {
 			kit.Alert(c, kit.Amber, "This project is open read-only", damage.File+" failed its check: "+damage.Problem)
@@ -223,10 +233,12 @@ func (s *Shell) chatView(c *kit.Context, p id.Project, ch id.Chat, end barEnd) {
 // header is the chat's title bar (ChatHeader): the button hiding the chat
 // list (☰ when narrow), Mother's diamond, the title on one line with all
 // of it as its tooltip, and the chat's ⋯ menu (chat-menu.tsx), then what
-// end puts at its end. What the chat does and when it was last active are
+// end puts at its end; actions, when set, puts the chat screen's buttons
+// before the ⋯ menu (ChatHeaderActions), which a project open read-only
+// has none of. What the chat does and when it was last active are
 // on its row in the chat list, so the bar is one line, as high as the
 // window's buttons (TASK-063). raw is the chat's title as stored.
-func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title string, mother bool, raw string, end barEnd) {
+func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title string, mother bool, raw string, actions func(), end barEnd) {
 	hidden := s.Stores.ListHidden()
 	narrow := kit.Narrow(c)
 	kit.Bar(c, func() {
@@ -245,6 +257,9 @@ func (s *Shell) header(c *kit.Context, p id.Project, ch id.Chat, title string, m
 		}
 		kit.Title(c, title).Tooltip(title)
 		kit.Spacer(c)
+		if actions != nil {
+			actions()
+		}
 		kit.MoreButton(c, "Chat menu", func(m *kit.Menu) { s.Projects.ChatMenu(m, p, ch, raw) }).Size(kit.BarButton, kit.BarButton).
 			FocusRingOffset(0)
 		s.barEnd(c, end)

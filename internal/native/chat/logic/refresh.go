@@ -50,3 +50,13 @@ func UndoChangedText(sections []string) string {
 	}
 	return upperFirst(what) + " changed since, so nothing was undone. Edit memory in the settings."
 }
+
+// EstimateLine is a refresh's cost in one line, under its item in the
+// header's menu: "12 turns · 3 calls · about 8,000 tokens", or "Nothing
+// new to review" when there are no turns to review.
+func EstimateLine(e agent.RefreshEstimate) string {
+	if e.Turns == 0 {
+		return "Nothing new to review"
+	}
+	return fmt.Sprintf("%s · %s · about %s", plural(e.Turns, "turn"), plural(e.Calls, "call"), plural(e.Tokens, "token"))
+}
