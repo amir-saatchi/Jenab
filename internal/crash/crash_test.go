@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeKey stands for a provider's key that reached a panic's message.
@@ -56,10 +57,11 @@ func TestAPanicInAPostedClosureWritesTheCrashFile(t *testing.T) {
 		t.Fatalf("crash files %v; want one", raws)
 	}
 
-	logs, err := Collect(dir, "", redact)
+	res, err := Collect(dir, "", redact)
 	if err != nil {
 		t.Fatal(err)
 	}
+	logs := res.Logs
 	if len(logs) != 1 {
 		t.Fatalf("logs %v; want one", logs)
 	}
@@ -80,7 +82,7 @@ func TestAPanicInAPostedClosureWritesTheCrashFile(t *testing.T) {
 		t.Errorf("crash files left: %v", raws)
 	}
 	// The next start finds nothing new.
-	if again, err := Collect(dir, "", redact); err != nil || len(again) != 0 {
+	if again, err := Collect(dir, "", redact); err != nil || len(again.Logs)+len(again.Lost) != 0 {
 		t.Errorf("a second Collect: %v, %v; want nothing", again, err)
 	}
 }
@@ -101,6 +103,68 @@ func TestStopRemovesTheEmptyFile(t *testing.T) {
 	}
 }
 
+// unwritable leaves a crash output whose log can't be written: a folder
+// stands where the log goes.
+func unwritable(t *testing.T, dir string) string {
+	t.Helper()
+	raw := filepath.Join(dir, "crash-20261117-100000-8.raw")
+	if err := os.WriteFile(raw, []byte("panic: the call to "+fakeKey+" broke"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "crash-20261117-100000-8.log"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+// A crash output whose log can't be written is tried again at the next
+// starts and removed at the MaxTries-th, since it may hold keys (TASK-073).
+func TestAnOutputThatCantBeKeptGoesAfterAFewTries(t *testing.T) {
+	dir := t.TempDir()
+	raw := unwritable(t, dir)
+	for try := 1; try < MaxTries; try++ {
+		res, err := Collect(dir, "", redact)
+		if err == nil || len(res.Logs)+len(res.Lost) != 0 {
+			t.Fatalf("try %d: %+v, %v; want an error and nothing done", try, res, err)
+		}
+		if _, err := os.Stat(raw); err != nil {
+			t.Fatalf("try %d removed the output: %v", try, err)
+		}
+		if b, _ := os.ReadFile(raw + triesExt); string(b) != fmt.Sprint(try) {
+			t.Fatalf("try %d: the count is %q", try, b)
+		}
+	}
+	res, err := Collect(dir, "", redact)
+	if err == nil || len(res.Logs) != 0 || len(res.Lost) != 1 || res.Lost[0] != filepath.Base(raw) {
+		t.Fatalf("the last try: %+v, %v", res, err)
+	}
+	for _, p := range []string{raw, raw + triesExt} {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
+			t.Errorf("%s is still there: %v", filepath.Base(p), err)
+		}
+	}
+}
+
+// One that is MaxAge old goes at the first failed try (TASK-073).
+func TestAnOldOutputThatCantBeKeptGoesAtOnce(t *testing.T) {
+	dir := t.TempDir()
+	raw := unwritable(t, dir)
+	old := time.Now().Add(-MaxAge - 24*time.Hour)
+	if err := os.Chtimes(raw, old, old); err != nil {
+		t.Fatal(err)
+	}
+	res, err := Collect(dir, "", redact)
+	if err == nil || len(res.Lost) != 1 {
+		t.Fatalf("%+v, %v; want it lost", res, err)
+	}
+	if _, err := os.Stat(raw); !os.IsNotExist(err) {
+		t.Errorf("the output is still there: %v", err)
+	}
+	if _, err := os.Stat(raw + triesExt); !os.IsNotExist(err) {
+		t.Errorf("a count was left: %v", err)
+	}
+}
+
 // Collect skips this run's file, removes empty ones and keeps the newest
 // Keep logs.
 func TestCollectKeepsTheLastFew(t *testing.T) {
@@ -118,10 +182,11 @@ func TestCollectKeepsTheLastFew(t *testing.T) {
 	write("crash-20261117-100000-8.raw", "panic: boom") // crashed
 	write("crash-20261117-110000-9.raw", "")            // this run
 	write("jenab.log", "the app's log")
-	logs, err := Collect(dir, filepath.Join(dir, "crash-20261117-110000-9.raw"), nil)
+	res, err := Collect(dir, filepath.Join(dir, "crash-20261117-110000-9.raw"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	logs := res.Logs
 	if len(logs) != 1 || filepath.Base(logs[0]) != "crash-20261117-100000-8.log" {
 		t.Fatalf("logs %v", logs)
 	}

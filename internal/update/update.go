@@ -106,6 +106,9 @@ type Service struct {
 	notes     string          // its release notes
 	refused   map[string]bool // versions whose install failed, not tried again on their own
 	mode      string          // the mode of the last step
+	// recheck asks Run to check at once: updates were turned off and on
+	// again while a download ran, which the download's stop absorbed.
+	recheck bool
 }
 
 // New makes the service; Run starts it.
@@ -170,8 +173,7 @@ func (s *Service) Run(ctx context.Context) {
 			check.Reset(s.d.Every)
 		case <-restart.C:
 			if s.installed != "" && s.settings().Mode == "automatic" && s.d.CanRestart() {
-				s.d.Log.Info("update: restarting into the new version", "version", s.installed)
-				s.d.Relaunch()
+				s.relaunch()
 			}
 		case r := <-s.reqs:
 			switch r {
@@ -183,8 +185,7 @@ func (s *Service) Run(ctx context.Context) {
 				}
 			case reqRestart:
 				if s.installed != "" {
-					s.d.Log.Info("update: restarting into the new version", "version", s.installed)
-					s.d.Relaunch()
+					s.relaunch()
 				}
 			case reqSettings:
 				was := s.mode
@@ -199,7 +200,17 @@ func (s *Service) Run(ctx context.Context) {
 				}
 			}
 		}
+		if s.recheck {
+			s.recheck = false
+			check.Reset(0)
+		}
 	}
+}
+
+// relaunch restarts into the installed version.
+func (s *Service) relaunch() {
+	s.d.Log.Info("update: restarting into the new version", "version", s.installed)
+	s.d.Relaunch()
 }
 
 func (s *Service) settings() config.UpdateSettings {
@@ -264,8 +275,10 @@ func (s *Service) check(ctx context.Context, manual bool) {
 	s.set(Status{State: StateAvailable, Version: found.Version(), Notes: found.Notes(), Checked: now})
 }
 
-// install downloads and installs found, once. Switching updates off while
-// it downloads stops the download (TASK-067); other requests wait for it.
+// install downloads and installs found, once. While it downloads,
+// switching updates off stops the download (TASK-067), and Restart now
+// stops it and restarts into the version already installed (TASK-073).
+// A check or an install asked for meanwhile waits for the download's end.
 func (s *Service) install(ctx context.Context, found Available) {
 	v := found.Version()
 	checked := s.Status().Checked
@@ -283,7 +296,7 @@ func (s *Service) install(ctx context.Context, found Available) {
 			s.set(Status{State: StateDownloading, Version: v, Notes: found.Notes(), Progress: float64(done) / float64(total), Checked: checked})
 		})
 	}()
-	stopped := false
+	stopped, restart := false, false
 	var err error
 wait:
 	for {
@@ -291,27 +304,45 @@ wait:
 		case err = <-result:
 			break wait
 		case r := <-s.reqs:
-			// A check, an install or a restart asked for now is answered
-			// by the download's end; only off changes it.
-			if r != reqSettings {
-				continue
-			}
-			s.mode = s.settings().Mode
-			if s.mode == "off" && !stopped {
-				stopped = true
-				s.d.Log.Info("update: updates are off; the download stops", "version", v)
-				cancel()
+			switch r {
+			case reqSettings:
+				s.mode = s.settings().Mode
+				if s.mode == "off" && !stopped {
+					stopped = true
+					s.d.Log.Info("update: updates are off; the download stops", "version", v)
+					cancel()
+				}
+			case reqRestart:
+				// The version in place runs now; the newer one is offered
+				// again after the restart.
+				if s.installed != "" && !restart {
+					stopped, restart = true, true
+					s.d.Log.Info("update: restart now; the download stops", "version", v)
+					cancel()
+				}
 			}
 		}
 	}
+	defer func() {
+		if restart {
+			s.relaunch()
+		}
+	}()
 	if err != nil && (stopped || ctx.Err() != nil) {
 		// Stopped, not failed: the version is not refused, and the app is
 		// unchanged.
 		s.found = nil
-		if s.installed != "" {
+		switch {
+		case s.installed != "":
 			s.set(s.ready(checked))
-		} else {
+		case s.mode == "off":
 			s.set(Status{State: StateOff})
+		default:
+			s.set(Status{State: StateIdle, Checked: checked})
+		}
+		// Turned off and on again: check at once, as a start does.
+		if s.mode != "off" && ctx.Err() == nil && !restart {
+			s.recheck = true
 		}
 		return
 	}
