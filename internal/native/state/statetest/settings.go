@@ -64,7 +64,7 @@ func (s *Settings) Get(context.Context) (app.SettingsView, error) {
 func (s *Settings) Save(_ context.Context, next config.Settings) (app.SettingsView, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.View = app.SettingsView{Settings: next}
+	s.View = app.SettingsView{Settings: next, LocalKeys: s.View.LocalKeys}
 	return s.View, nil
 }
 

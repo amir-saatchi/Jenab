@@ -128,6 +128,9 @@ func settingsView(s config.Settings, ps []config.Problem) SettingsView {
 type SettingsView struct {
 	Settings config.Settings  `json:"settings"`
 	Problems []config.Problem `json:"problems"`
+	// LocalKeys are the providers on this computer with a key in the
+	// keychain; the others always have one (TASK-074).
+	LocalKeys []string `json:"local_keys"`
 }
 
 // SettingsService is *Settings* (SPEC 5.12): the settings, the providers
@@ -174,7 +177,7 @@ func (s *SettingsService) CheckFolder(ctx context.Context, dir string) (w *proje
 // Get returns the settings and the problems found in config.yaml.
 func (s *SettingsService) Get(ctx context.Context) (v SettingsView, err error) {
 	defer s.guard("settings.get", &err)
-	return s.settings.view(), nil
+	return s.withKeys(s.settings.view()), nil
 }
 
 // Save stores the settings and applies them.
@@ -184,11 +187,11 @@ func (s *SettingsService) Save(ctx context.Context, next config.Settings) (v Set
 		// A folder the projects can't move to is refused, not reset to the
 		// default (TASK-068).
 		if err := s.dataFolderError(ctx, dir); err != nil {
-			return s.settings.view(), err
+			return s.withKeys(s.settings.view()), err
 		}
 	}
 	loaded, problems, err := s.settings.save(next)
-	return settingsView(loaded, problems), err
+	return s.withKeys(settingsView(loaded, problems)), err
 }
 
 // ProviderStatus is a connected provider's state, for the bottom bar

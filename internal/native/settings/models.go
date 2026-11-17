@@ -60,7 +60,12 @@ func (s *Screen) modelsPage(c *kit.Context, set config.Settings) {
 		if len(providers) == 0 {
 			kit.Text(c, "No provider yet. Add one with your own key.").FontSize(14).TextColor(kit.TokensOf(c).MutedForeground)
 		}
+		var keyed []string
+		if v := s.st.Settings.View; v != nil {
+			keyed = v.LocalKeys
+		}
 		for _, pr := range providers {
+			pr.Key = slices.Contains(keyed, pr.Name)
 			s.providerRow(c, set, pr)
 		}
 		kit.Row(c).Gap(12).AlignItems(kit.Center).Children(func() {
@@ -113,10 +118,10 @@ func (s *Screen) providerRow(c *kit.Context, set config.Settings, pr logic.Provi
 			if kit.SmallButton(c, nil, "Models", kit.Ghost).Label("Models of " + pr.Name).Clicked() {
 				p.list.open(s, pr.Name)
 			}
-			if !pr.Local() {
-				if kit.SmallButton(c, nil, "Replace key", kit.Ghost).Label("Replace the key of " + pr.Name).Clicked() {
-					p.openReplace(&logic.Replace{Name: pr.Name, Kind: pr.Kind, BaseURL: pr.BaseURL})
-				}
+			// A provider on this computer may have a token too, which can be
+			// changed or removed (TASK-074).
+			if kit.SmallButton(c, nil, "Replace key", kit.Ghost).Label("Replace the key of " + pr.Name).Clicked() {
+				p.openReplace(&logic.Replace{Name: pr.Name, Kind: pr.Kind, BaseURL: pr.BaseURL, Keyed: pr.Key || !pr.Local()})
 			}
 			if kit.SmallButton(c, nil, "Remove", kit.Ghost).Label("Remove " + pr.Name).TextColor(k.MutedForeground).Clicked() {
 				p.removing, p.remove = true, pr.Name
@@ -182,7 +187,13 @@ func (p *modelsPage) dialogs(c *kit.Context, s *Screen) {
 	}
 	if p.replacing && p.replace != nil {
 		kit.Dialog(c, &p.replacing, "New key for "+p.replace.Replace.Name, func() {
-			kit.Muted(c, "The saved key is never shown. A new one replaces it; the models stay as they are.")
+			text := "The saved key is never shown. A new one replaces it; the models stay as they are."
+			if r := p.replace.Replace; r.Local() && r.Keyed {
+				text = "The saved key is never shown. A new one replaces it, and an empty field removes it; the models stay as they are."
+			} else if r.Local() {
+				text = "This server is on this computer and has no key. Add one only if it asks for a token; the models stay as they are."
+			}
+			kit.Muted(c, text)
 			p.replace.View(c, s.st)
 		})
 	}
