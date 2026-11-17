@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"errors"
+
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
@@ -37,23 +39,31 @@ func (s *Screen) keepConnect(ch id.Chat, shows bool) {
 	}
 }
 
+// sendKept sends chat ch's kept message once a connect started from its
+// card is done. It does so even when the card stopped showing meanwhile:
+// the settings, with the new provider, are read before its models are, so
+// a frame between the two drops the card. A chat whose turn went on in
+// the meantime, by Retry or a new message, or that was deleted, has no
+// message waiting, and that is no error.
+func (s *Screen) sendKept(p id.Project, ch id.Chat) {
+	k := s.cardOf("failed:" + string(ch))
+	k.busy = true
+	s.st.Actions.Retry(p, ch, func(err error) {
+		k.busy = false
+		var ue *app.UIError
+		if errors.As(err, &ue) && (ue.Kind == app.KindBusy || ue.Kind == app.KindNotFound) {
+			return
+		}
+		s.st.Error(err)
+	})
+}
+
 // connectCard is "Notes needs an AI model to answer" with the form.
 func (s *Screen) connectCard(c *kit.Context, t *state.Thread) {
 	p, ch := t.Project, t.Chat.ID
 	if s.connect == nil || s.connect.chat != ch {
 		s.keepConnect(ch, false)
-		form := &settings.ConnectForm{}
-		form.Connected = func(app.ConnectResult) {
-			if s.connect == nil || s.connect.form != form {
-				return // the card closed meanwhile
-			}
-			k := s.cardOf("failed:" + string(ch))
-			k.busy = true
-			s.st.Actions.Retry(p, ch, func(err error) {
-				k.busy = false
-				s.st.Error(err)
-			})
-		}
+		form := &settings.ConnectForm{Connected: func(app.ConnectResult) { s.sendKept(p, ch) }}
 		s.connect = &connecting{form: form, chat: ch}
 	}
 	title := t.Chat.Title

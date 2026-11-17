@@ -1,5 +1,10 @@
 package logic
 
+import (
+	"github.com/amir-saatchi/jenab/internal/chat"
+	"github.com/amir-saatchi/jenab/internal/id"
+)
+
 // The toasts of the chips' undo (parts.tsx, refresh.tsx): what happened
 // when an undo or redo did nothing. An undo that worked says nothing; the
 // chip shows it.
@@ -40,4 +45,18 @@ func BatchUndoText(undone bool) string {
 		return "These edits were already undone."
 	}
 	return "These edits are already back."
+}
+
+// LastUndo is the newest message noting an Undo turn or Redo turn, "" for
+// none. A chip reads its state again when it changes, since the undo of a
+// turn reverts or puts back the chips' changes with the rest.
+func LastUndo(messages []chat.Message) id.Message {
+	for i := len(messages) - 1; i >= 0; i-- {
+		for _, p := range messages[i].Parts {
+			if p.Kind == chat.PartNotice && p.Notice != nil && p.Notice.Kind == chat.NoticeTurnUndone {
+				return messages[i].ID
+			}
+		}
+	}
+	return ""
 }
