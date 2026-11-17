@@ -84,6 +84,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 - **Crashes** (TASK-067): a panic that nothing recovers, on any goroutine, or a fatal error ends the app. Go writes the panic and every goroutine's stack to `logs/crash-<time>-<pid>.raw` as well as to stderr; the windowed app has no console.
   - The next start turns the file into `crash-<time>-<pid>.log`, with every key and field replaced by `[secret:NAME]` (6.7), and keeps the last 5. A run that quits normally leaves no file.
   - It then shows a toast that stays until closed: "Jenab closed unexpectedly", the log's name, and *Open the log*, which opens it with the system's app.
+  - If the `.log` can't be written, the `.raw` file stays for the next start. At the third failed try, or at the first once it is 7 days old, it is deleted, since it can hold keys, and a toast that stays says the crash log couldn't be kept (TASK-073).
   - Nothing is sent anywhere.
 - A project folder is self-contained. Backup, export and delete work on the folder.
 - A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. `index.db` is left out, since it can be rebuilt (2.9). Every `VACUUM INTO` follows the safe-copy rule in 7.5.
@@ -308,6 +309,7 @@ The app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind 
 - **Checks:**
   - At start, then every 6 hours, on Jenab's own timer. Each version is downloaded once. A version whose install failed is not installed again on its own; the user can try again from Settings.
   - Once a version is installed, Settings keeps showing it and *Restart now* while later checks run. A check or an install of a newer version that fails is logged; the installed version stays offered (TASK-067).
+  - *Restart now* during a download stops the download and restarts into the installed version. Updates turned on again, even during a download, check at once (TASK-073).
   - The user chooses automatic, notify only, or off. Off sends nothing. A check sends only the version, platform and architecture.
   - Switching to off during a download stops it. The app stays as it was, no restart is offered, and the version is not marked as failed. A download that had already finished its swap counts as installed (TASK-067).
 - **Swap:** MyGo downloads into a work folder next to the app, checks it, then renames each file of the app aside (`.<name>.old-<pid>`) and moves the new one in. Windows lets the running exe be renamed, so the running app is not stopped. If a step fails, the renames are undone and the work folder is removed: the app stays as it was and keeps running. There is no helper process and no backup copy.

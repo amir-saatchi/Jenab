@@ -124,6 +124,11 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-068](TASK-068-native-settings-fixes.md) | Settings forms: keys, dialogs and the data folder | Task | Done | 3 |
 | [TASK-069](TASK-069-native-polish.md) | Small native fixes: digits, text direction, tooltips, old comments | Task | Done | 3 |
 | [TASK-070](TASK-070-wails-leftovers.md) | Remove the code and text the Wails app left behind | Task | Done | 3 |
+| [TASK-071](TASK-071-connect-card-and-chips.md) | The Connect card keeps the message; memory chips' Undo and Redo | Task | Done | 3 |
+| [TASK-072](TASK-072-stores-stale-reads-2.md) | The native stores: the hosts' counter, the rewind dialog, Ctrl+Tab and the Dev page | Task | Done | 3 |
+| [TASK-073](TASK-073-crash-and-updates-2.md) | Updates during a download, and the crash log's raw file | Task | Done | 3 |
+| [TASK-074](TASK-074-local-provider-token.md) | Replace the token of a provider on this computer | Task | Done | 3 |
+| [TASK-075](TASK-075-heading-links-and-cell-tooltips.md) | Heading links in repeated text, and a cut number cell's tooltip | Task | Done | 3 |
 
 ## Phase 1
 
