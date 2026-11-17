@@ -316,10 +316,9 @@ func CheckKey(key string) error                                     // 4.1
 func Link(p id.Project, key string) string                          // jenab://<project_id>/<key> (4.5)
 func ParseLink(s string) (id.Project, string, error)
 func DetectMIME(head []byte, key string) string                     // from the bytes, never the source (4.7)
-func Handler(open Opener) http.Handler                              // /objects/<project_id>/<key>, the 4.7 rules
 ```
 
-The index tables and the write order (4.3) are in `store`, which calls `bucket`. `app.ObjectHandler` wraps `Handler`, but the app mounts no route: its screens read objects through the services (SPEC 4.5).
+The index tables and the write order (4.3) are in `store`, which calls `bucket`. The app serves no objects route: its screens read objects through the services (`app.NativeBucket`, SPEC 4.5).
 
 ### `store`: databases, writers, readers (2, 7)
 
@@ -904,7 +903,6 @@ type UIError struct { Kind, Message, Details string } // the kind, and the text 
 func toUI(err error, log *slog.Logger, redact func(string) string, what string) error // known errors get a message; else logged, "Something went wrong."
 
 type Publisher struct { … }               // implements agent and project Publisher; sends each event through emit, never blocking
-func ObjectHandler(pm *project.Manager) http.Handler // bucket.Handler with an Opener that leases the project per request; not mounted (4.5)
 
 // events.go: the event names (Q32)
 const EventDelta = "chat:delta"           // also chat:part, chat:status, project:notice, project:activity, project:export,

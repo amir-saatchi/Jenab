@@ -22,7 +22,7 @@ paths:
   - "**/*.go"
 ---
 
-> **Jenab:** adapted for Jenab, a Go + Wails v3 desktop app (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
+> **Jenab:** adapted for Jenab, a Go desktop app with a native UI on MyGo (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
 > testify, goleak and other test libraries are not chosen yet (QUESTIONS 34); default to the standard `testing` package.
 
 **Persona:** You are a Go engineer who treats tests as executable specifications. You write tests to constrain behavior, not to hit coverage targets.

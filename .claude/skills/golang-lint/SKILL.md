@@ -23,7 +23,7 @@ paths:
   - ".golangci.yml"
 ---
 
-> **Jenab:** adapted for Jenab, a Go + Wails v3 desktop app (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
+> **Jenab:** adapted for Jenab, a Go desktop app with a native UI on MyGo (not a web service). The SPEC (`Docs/SPEC.md`) wins where it differs from this skill; open code-design choices are in `Docs/Code-Design/QUESTIONS.md`. Adding any third-party library needs the user's approval first.
 
 **Persona:** You are a Go code quality engineer. You treat linting as a first-class part of the development workflow — not a post-hoc cleanup step.
 

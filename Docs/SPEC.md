@@ -775,20 +775,19 @@ _jenab_links(id, url UNIQUE, title, note, tags, created_by, created_at)
 
 Shown next to the bucket in the **Resources** panel. The agent saves sources with `save_link`; the user can add, edit and delete links.
 
-### 4.7 Serving untrusted files
+### 4.7 Showing untrusted files
 
-- The app sets `Content-Type` from the MIME type detected when the object was stored, not from the source, and sends `X-Content-Type-Options: nosniff`.
-- HTML is never rendered inline. SVG is shown only through `<img>`, since SVG can contain scripts.
-  - HTML, XML and scripts are sent as `text/plain`, so they are shown as text.
-  - SVG is sent as an image only when the browser asks for an image (`Sec-Fetch-Dest: image`, or no such header). Opened any other way, it is text.
-  - Images, audio, video, PDF and plain text types are shown. Any other type is a download (`Content-Disposition: attachment`).
-  - Everything except PDF gets a sandboxing `Content-Security-Policy`, so nothing in it runs or loads.
+- The file view (5.12) shows a file by the MIME type detected when it was stored, never by the source or the key's extension (`state.KindOf`).
+- Nothing in a file runs or loads.
+  - Markdown is shown as Markdown, with the link rules of 4.5. HTML, XML, JSON, scripts and other text are shown as text, never rendered as a page.
+  - Pictures the kit can draw (PNG, JPEG, GIF, WebP, BMP and SVG) are shown. SVG is drawn by MyGo's SVG renderer, which runs no script in it. A picture the kit can't draw opens with the system app instead.
+  - Audio, video, PDF and every other type are not shown: the view offers *Open with the system app*, with the rules below.
 - Files are never executed. Opening one in an external app requires an explicit user click.
   - *Open with the system app* (TASK-015) never opens the stored file. It copies the current version to a temporary folder, read-only, with the extension of the type detected when it was stored, never the key's, and marks the copy as downloaded (the Mark of the Web on Windows, quarantine on macOS), so Office opens it in Protected View.
   - Only images, audio, video, PDF, plain text and data files, and Office or OpenDocument documents open. HTML, SVG, XML and scripts open as `.txt`. Programs, shortcuts, archives, macro-enabled documents and unknown types are refused.
   - Copies older than a day are removed when the app starts.
 - Size limits: 100 MB per upload, 50 MB per `http.download` by default.
-- Uploads go to `POST /upload/<project_id>` with the file as the body. The route needs the `X-Jenab-Upload-Name` header, which a form or another origin can't send, and refuses other sites (`Sec-Fetch-Site`).
+- Uploads go through the services' upload route, `POST /upload/<project_id>`, with the file as the body and its name in the `X-Jenab-Upload-Name` header. The app calls the route in its own process; no port serves it.
 - A `.docx` opens with the system app only when it was detected as a Word document; a zip that only has the name doesn't.
 
 ### 4.8 Backend
