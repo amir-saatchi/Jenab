@@ -43,9 +43,12 @@ func (f *fakeUpdater) count() int {
 }
 
 type fakeVersion struct {
-	v        string
-	err      error
-	hang     bool // Install downloads until its context ends
+	v    string
+	err  error
+	hang bool // Install downloads until its context ends
+	// release, when set, holds a stopped Install from returning until
+	// it is closed.
+	release  chan struct{}
 	installs atomic.Int32
 	stopped  atomic.Bool
 }
@@ -58,6 +61,9 @@ func (v *fakeVersion) Install(ctx context.Context, progress func(done, total int
 		progress(1, 10)
 		<-ctx.Done()
 		v.stopped.Store(true)
+		if v.release != nil {
+			<-v.release
+		}
 		return ctx.Err()
 	}
 	progress(10, 10)
@@ -298,6 +304,75 @@ func TestSwitchingOffStopsTheDownload(t *testing.T) {
 	h.set.Store(&config.UpdateSettings{Mode: "notify", Channel: "stable"})
 	h.s.SettingsChanged()
 	h.wait(t, StateAvailable)
+}
+
+// Restart now during the download of a newer version stops it and
+// restarts into the version already installed (TASK-073).
+func TestRestartNowDuringADownload(t *testing.T) {
+	u := &fakeUpdater{enabled: true, next: &fakeVersion{v: "1.1.0"}}
+	h := start(t, u, "automatic", "stable")
+	h.wait(t, StateReady)
+	newer := &fakeVersion{v: "1.2.0", hang: true}
+	u.mu.Lock()
+	u.next = newer
+	u.mu.Unlock()
+	h.s.CheckNow()
+	if st := h.wait(t, StateDownloading); st.Version != "1.2.0" {
+		t.Fatalf("downloading %+v", st)
+	}
+	h.s.Restart()
+	deadline := time.Now().Add(time.Second)
+	for h.relaunch.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if h.relaunch.Load() != 1 {
+		t.Fatal("Restart now during a download did not restart")
+	}
+	if !newer.stopped.Load() {
+		t.Fatal("the download was not stopped")
+	}
+	if st := h.s.Status(); st.State != StateReady || st.Version != "1.1.0" {
+		t.Fatalf("status %+v; want ready with 1.1.0", st)
+	}
+}
+
+// Off and on again during a download checks at once, as a start does,
+// instead of waiting for the next timer (TASK-073).
+func TestOffAndOnDuringADownloadChecks(t *testing.T) {
+	release := make(chan struct{})
+	v := &fakeVersion{v: "1.1.0", hang: true, release: release}
+	u := &fakeUpdater{enabled: true, next: v}
+	h := startEvery(t, u, "automatic", "stable", time.Hour)
+	h.wait(t, StateDownloading)
+	h.set.Store(&config.UpdateSettings{Mode: "off", Channel: "stable"})
+	h.s.SettingsChanged()
+	deadline := time.Now().Add(time.Second)
+	for !v.stopped.Load() && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if !v.stopped.Load() {
+		t.Fatal("off did not stop the download")
+	}
+	// On again while the stopped download is still ending.
+	h.set.Store(&config.UpdateSettings{Mode: "automatic", Channel: "stable"})
+	h.s.SettingsChanged()
+	time.Sleep(20 * time.Millisecond)
+	close(release)
+	// The timer's next check is an hour away: a second check and a second
+	// download come from turning updates on again.
+	deadline = time.Now().Add(time.Second)
+	for v.installs.Load() < 2 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if n := u.count(); n != 2 {
+		t.Fatalf("%d checks, want 2", n)
+	}
+	if n := v.installs.Load(); n != 2 {
+		t.Fatalf("%d downloads, want 2", n)
+	}
+	if st := h.s.Status(); st.State != StateDownloading {
+		t.Fatalf("status %+v; want downloading", st)
+	}
 }
 
 func TestPrerelease(t *testing.T) {

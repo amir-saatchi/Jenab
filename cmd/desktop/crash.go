@@ -5,6 +5,7 @@ import (
 
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/crash"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/secret"
@@ -28,24 +29,26 @@ func crashRedactor(s config.Settings, secrets *secret.Store) func(string) string
 	return secrets.Redactor(names...)
 }
 
-// crashNotice is the toast that tells the user the last run crashed, with
-// a button that opens the newest crash log. ok is false with no crash
-// logs.
-func crashNotice(logs []string, open func(string) error) (t state.Toast, ok bool) {
-	if len(logs) == 0 {
-		return state.Toast{}, false
+// crashNotice is the toast that tells the user an earlier run crashed,
+// with a button that opens the newest crash log. When no log could be
+// kept, it says so in the text, since a toast without a button shows no
+// detail line (TASK-073). ok is false with no crash.
+func crashNotice(res crash.Result, open func(string) error) (t state.Toast, ok bool) {
+	t = state.Toast{Text: appinfo.Name + " closed unexpectedly", Warning: true, Sticky: true}
+	if len(res.Logs) == 0 {
+		if len(res.Lost) == 0 {
+			return state.Toast{}, false
+		}
+		t.Text += ". Its crash log couldn't be written, so what the crash left was deleted: it can hold keys. Nothing was sent anywhere."
+		return t, true
 	}
-	last := logs[len(logs)-1]
-	return state.Toast{
-		Text:    appinfo.Name + " closed unexpectedly",
-		Detail:  "What happened is in " + filepath.Base(last) + ", in the logs folder. Nothing was sent anywhere.",
-		Warning: true,
-		Sticky:  true,
-		Action:  "Open the log",
-		OnAction: func() {
-			if open != nil {
-				open(last)
-			}
-		},
-	}, true
+	last := res.Logs[len(res.Logs)-1]
+	t.Detail = "What happened is in " + filepath.Base(last) + ", in the logs folder. Nothing was sent anywhere."
+	t.Action = "Open the log"
+	t.OnAction = func() {
+		if open != nil {
+			open(last)
+		}
+	}
+	return t, true
 }

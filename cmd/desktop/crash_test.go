@@ -34,17 +34,18 @@ func TestTheNextStartShowsTheCrash(t *testing.T) {
 	var s config.Settings
 	s.LLM.Providers = map[string]config.ProviderSettings{"test": {Kind: "openai"}}
 	secrets := secret.New(testKeyring{"provider:test": key})
-	logs, err := crash.Collect(dir, "", crashRedactor(s, secrets))
-	if err != nil || len(logs) != 1 {
-		t.Fatalf("Collect: %v, %v", logs, err)
+	res, err := crash.Collect(dir, "", crashRedactor(s, secrets))
+	if err != nil || len(res.Logs) != 1 {
+		t.Fatalf("Collect: %v, %v", res, err)
 	}
+	logs := res.Logs
 	b, _ := os.ReadFile(logs[0])
 	if strings.Contains(string(b), key) || !strings.Contains(string(b), "[secret:provider:test]") {
 		t.Fatalf("the crash log:\n%s", b)
 	}
 
 	var opened string
-	toast, ok := crashNotice(logs, func(p string) error { opened = p; return nil })
+	toast, ok := crashNotice(res, func(p string) error { opened = p; return nil })
 	if !ok || !toast.Sticky || toast.Action != "Open the log" || !strings.Contains(toast.Text, "closed unexpectedly") {
 		t.Fatalf("toast %+v, %v", toast, ok)
 	}
@@ -52,7 +53,21 @@ func TestTheNextStartShowsTheCrash(t *testing.T) {
 	if opened != logs[0] {
 		t.Fatalf("opened %q; want %q", opened, logs[0])
 	}
-	if _, ok := crashNotice(nil, nil); ok {
+	if _, ok := crashNotice(crash.Result{}, nil); ok {
 		t.Fatal("a notice with no crash")
+	}
+}
+
+// A crash whose log couldn't be kept is still told, without a button that
+// would open nothing (TASK-073).
+func TestALostCrashLogIsTold(t *testing.T) {
+	toast, ok := crashNotice(crash.Result{Lost: []string{"crash-20261117-100000-8.raw"}}, nil)
+	if !ok || !toast.Sticky || !toast.Warning || toast.Action != "" || toast.OnAction != nil {
+		t.Fatalf("toast %+v, %v", toast, ok)
+	}
+	for _, want := range []string{"closed unexpectedly", "couldn't be written", "deleted"} {
+		if !strings.Contains(toast.Text, want) {
+			t.Errorf("the text has no %q: %q", want, toast.Text)
+		}
 	}
 }

@@ -147,8 +147,11 @@ func run() (err error) {
 	if err != nil {
 		log.Warn("app: crash logs", "err", err)
 	}
-	for _, c := range crashes {
+	for _, c := range crashes.Logs {
 		log.Warn("app: an earlier run crashed", "log", filepath.Base(c))
+	}
+	for _, c := range crashes.Lost {
+		log.Warn("app: an earlier run crashed; its crash log couldn't be kept, and its output was deleted", "file", c)
 	}
 	registry, err := store.OpenRegistry(ctx, paths.Registry)
 	if err != nil {
