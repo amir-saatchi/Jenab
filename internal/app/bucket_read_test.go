@@ -39,9 +39,27 @@ func TestNativeBucketRead(t *testing.T) {
 	if err != nil || len(ob.Data) != 4 || !ob.Cut {
 		t.Fatalf("Read cut = %q %v, %v", ob.Data, ob.Cut, err)
 	}
-	if _, err := nb.Read(ctx, op.ID, "notes/gone.md", 10); err == nil {
-		t.Fatal("a missing file was read")
-	} else {
-		uiErr(t, err, KindNotFound)
+	// What the removed objects route refused (TASK-070 moved these here):
+	// a missing key, another project, a bad project ID, and bad keys.
+	for _, c := range []struct {
+		name string
+		p    id.Project
+		key  string
+		kind string
+	}{
+		{"a missing key", op.ID, "notes/gone.md", KindNotFound},
+		{"another project", id.Project(id.New()), "notes/a.md", KindNotFound},
+		{"a bad project ID", "not-an-id", "notes/a.md", KindNotFound},
+		{"a key out of the bucket", op.ID, "../a.md", KindInvalid},
+		{"an empty key", op.ID, "", KindInvalid},
+	} {
+		if ob, err := nb.Read(ctx, c.p, c.key, 10); err == nil {
+			t.Errorf("%s: read %q", c.name, ob.Data)
+		} else {
+			uiErr(t, err, c.kind)
+		}
+	}
+	if e.pm.Busy() {
+		t.Error("Read kept a lease")
 	}
 }

@@ -114,6 +114,10 @@ func TestKindsSizesAndWho(t *testing.T) {
 		"image/svg+xml": KindImage, "image/tiff": KindOther, "application/pdf": KindOther, "audio/mpeg": KindAudio,
 		"application/octet-stream": KindOther, "image/png": KindImage,
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": KindOther,
+		// The types the removed objects route's test had (TASK-070).
+		"application/xhtml+xml": KindText, "text/xml; charset=utf-8": KindText, "application/rss+xml": KindText,
+		"text/csv; charset=utf-8": KindText, "text/plain; charset=utf-8": KindText, "application/javascript": KindOther,
+		"application/zip": KindOther, "not a type": KindOther,
 	} {
 		if got := KindOf(mime); got != want {
 			t.Errorf("KindOf(%q) = %q, want %q", mime, got, want)

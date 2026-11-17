@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -39,12 +38,6 @@ const (
 )
 
 func (e *UIError) Error() string { return e.Message }
-
-// MarshalJSON fixes its shape as JSON.
-func (e *UIError) MarshalJSON() ([]byte, error) {
-	type plain UIError
-	return json.Marshal((*plain)(e))
-}
 
 // known are the errors with their own message, checked in order.
 var known = []struct {
