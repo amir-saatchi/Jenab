@@ -235,7 +235,7 @@ func (s *Screen) part(c *kit.Context, v *view, t *state.Thread, m jc.Message, i 
 	switch p.Kind {
 	case jc.PartText:
 		if p.Text != nil {
-			s.md.View(c, state.MarkLinks(p.Text.Text))
+			s.md.ViewAs(c, key, state.MarkLinks(p.Text.Text))
 			if p.Text.Stopped {
 				kit.Muted(c, "Stopped")
 			}
@@ -381,7 +381,7 @@ func (s *Screen) stream(c *kit.Context, t *state.Thread) {
 		kit.Column(c).Key(key).AlignItems(kit.Stretch).Children(func() {
 			switch {
 			case p.Text != nil:
-				s.md.View(c, state.MarkLinks(p.Text.Text))
+				s.md.ViewAs(c, key, state.MarkLinks(p.Text.Text))
 			case p.Thinking != nil:
 				s.thinking(c, key, p.Thinking.Text, false)
 			case p.ToolCall != nil:
@@ -395,7 +395,7 @@ func (s *Screen) stream(c *kit.Context, t *state.Thread) {
 		case st.Kind == jc.PartThinking:
 			s.thinking(c, key, st.Text, true)
 		case strings.TrimSpace(st.Text) != "":
-			s.md.Stream(c, state.MarkLinks(st.Text))
+			s.md.StreamAs(c, key, state.MarkLinks(st.Text))
 		default:
 			kit.Spinner(c, "Working")
 		}

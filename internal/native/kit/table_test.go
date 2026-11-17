@@ -31,21 +31,24 @@ func TestTable(t *testing.T) {
 }
 
 // TASK-069: a cut cell in any column shows its text whole in its tooltip;
-// a cell that fits has none.
+// a cell that fits has none. TASK-075: a number is measured in its figures
+// of one width: "11,111,111,111" takes about 60 px in the font's own
+// figures and 101 in those, more than the column's 96.
 func TestTableTooltips(t *testing.T) {
+	big := "11,111,111,111"
 	long := "gemini-3.5-flash-thinking-preview"
 	path := `C:\Jenab\projects\demo\notes\reading-notes.md`
 	view := func(c *Context) {
 		between(c, func() {
 			Column(c).Width(420).Children(func() {
 				Table(c, "Files", []TableColumn{{Title: "File"}, {Title: "Model"}, {Title: "Tokens", Numeric: true}},
-					[][]string{{path, long, "12.5K"}, {"a.md", "mini", "950"}})
+					[][]string{{path, long, "12.5K"}, {"a.md", "mini", "950"}, {"b.md", "mini", big}})
 			})
 		})
 	}
 	themes(t, view, func(t *testing.T, tt *ui.Tester) {
 		tt.Frame()
-		for name, want := range map[string]string{path: path, long: long, "12.5K": "", "a.md": "", "mini": "", "950": ""} {
+		for name, want := range map[string]string{path: path, long: long, "12.5K": "", "a.md": "", "mini": "", "950": "", big: big} {
 			if d, ok := Description(tt, name); !ok || d != want {
 				t.Errorf("the cell %q has the tooltip %q (found %v), want %q", name, d, ok, want)
 			}

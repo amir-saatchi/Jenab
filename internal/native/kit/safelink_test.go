@@ -152,3 +152,53 @@ func TestAHeadingLinkScrolls(t *testing.T) {
 		}
 	})
 }
+
+// TASK-075: two views of one Markdown with the same text, as two answers
+// alike in the thread: a heading link scrolls only the view it was clicked
+// in.
+func TestAHeadingLinkScrollsItsOwnView(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("[Go to the end](#the-end)\n\n")
+	for range 60 {
+		b.WriteString("A paragraph that only takes room.\n\n")
+	}
+	b.WriteString("## The end\n\nThe last line.\n")
+	src := b.String()
+	md := &Markdown{}
+	view := func(c *Context) {
+		Row(c).Gap(8).Children(func() {
+			Scroll(c).Height(400).Width(380).Children(func() { md.ViewAs(c, "first", src) })
+			Scroll(c).Height(400).Width(380).Children(func() { md.ViewAs(c, "second", src) })
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		// shown is the views, "first" or "second", whose heading shows.
+		shown := func() (out []string) {
+			for _, n := range tt.AccessAll() {
+				if n.Role == ui.RoleHeading && n.Name == "The end" && n.Bounds.H > 0 && n.Bounds.Y < 460 {
+					out = append(out, map[bool]string{false: "first", true: "second"}[n.Bounds.X > 300])
+				}
+			}
+			return out
+		}
+		if got := shown(); len(got) != 0 {
+			t.Fatalf("the end shows in %q before the click", got)
+		}
+		var second ui.AccessInfo
+		for _, n := range tt.AccessAll() {
+			if n.Role == ui.RoleLink && n.Name == "Go to the end" && n.Bounds.X > 300 {
+				second = n
+			}
+		}
+		if second.Bounds.W == 0 {
+			t.Fatalf("no link in the second view: %q", Links(tt))
+		}
+		tt.ClickAt(second.Bounds.X+second.Bounds.W/2, second.Bounds.Y+second.Bounds.H/2)
+		for range 3 {
+			tt.Frame()
+		}
+		if got := shown(); !slices.Equal(got, []string{"second"}) {
+			t.Errorf("the end shows in %q after a click in the second view", got)
+		}
+	})
+}

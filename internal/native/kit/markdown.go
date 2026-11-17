@@ -41,26 +41,43 @@ type Markdown struct {
 	// rtl holds the directions of the nested views being built, the
 	// innermost last.
 	rtl []bool
-	// anchor is a #heading link clicked in the view of the text src, which
-	// scrolls to it in the next frame: in that view only, since one
-	// Markdown may show many texts, as the thread's.
-	anchor struct{ src, to string }
-	// building is the text of the view being built.
-	building string
+	// anchor is a #heading link clicked in a view, which scrolls to it in
+	// the next frame: in that view only, since one Markdown may show many
+	// texts, as the thread's. The view is the one of key, or, without a
+	// key, of the text src.
+	anchor viewAnchor
+	// building is the view being built.
+	building viewAnchor
 }
+
+type viewAnchor struct{ key, src, to string }
 
 // View shows src, Markdown that is complete.
 func (m *Markdown) View(c *Context, src string) Element {
-	return markdown.View(c, m.prepare(c, src, false), &m.opts)
+	return m.ViewAs(c, "", src)
 }
 
 // Stream shows src, Markdown still being written: pass the reply so far
 // each frame, as it grows.
 func (m *Markdown) Stream(c *Context, src string) Element {
-	return markdown.Stream(c, m.prepare(c, src, true), &m.opts)
+	return m.StreamAs(c, "", src)
 }
 
-func (m *Markdown) prepare(c *Context, src string, streaming bool) string {
+// ViewAs is View for a Markdown that shows many texts, as the thread's:
+// key names this view among them, the same from frame to frame, as a
+// message's part. A #heading link then scrolls only the view it was
+// clicked in, even where two views show the same text. View tells views
+// apart by their text only (TASK-075).
+func (m *Markdown) ViewAs(c *Context, key, src string) Element {
+	return markdown.View(c, m.prepare(c, key, src, false), &m.opts)
+}
+
+// StreamAs is Stream for a view key names, as ViewAs.
+func (m *Markdown) StreamAs(c *Context, key, src string) Element {
+	return markdown.Stream(c, m.prepare(c, key, src, true), &m.opts)
+}
+
+func (m *Markdown) prepare(c *Context, key, src string, streaming bool) string {
 	th := markdownTheme(c.Theme().Dark)
 	click := func(url string) { m.click(c, url) }
 	for _, o := range []*markdown.Options{&m.opts, &m.nested} {
@@ -71,12 +88,13 @@ func (m *Markdown) prepare(c *Context, src string, streaming bool) string {
 	// get none, so none of them scrolls when it is built again, as a row
 	// of the thread coming back into view.
 	m.opts.Anchor = ""
-	if a := m.anchor; a.to != "" && (src == a.src || streaming && strings.HasPrefix(src, a.src)) {
+	if a := m.anchor; a.to != "" && a.key == key &&
+		(key != "" || src == a.src || streaming && strings.HasPrefix(src, a.src)) {
 		m.opts.Anchor = a.to
 		m.opts.AnchorVersion++
-		m.anchor.src, m.anchor.to = "", ""
+		m.anchor = viewAnchor{}
 	}
-	m.building = src
+	m.building = viewAnchor{key: key, src: src}
 	m.opts.ShareSelection = m.ShareSelection
 	m.nested.ShareSelection = true
 	return src
@@ -296,7 +314,8 @@ func (m *Markdown) copyButton(c *ui.Context, b *markdown.CodeBlockView) {
 func (m *Markdown) click(c *Context, url string) {
 	switch {
 	case strings.HasPrefix(url, "#"):
-		m.anchor.src, m.anchor.to = m.building, url
+		m.anchor = m.building
+		m.anchor.to = url
 		c.After(0)
 	case m.Own != nil && m.Own(url):
 	case !SafeLink(url):

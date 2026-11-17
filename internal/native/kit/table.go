@@ -26,10 +26,11 @@ func Table(c *Context, label string, cols []TableColumn, rows [][]string) Elemen
 		} else {
 			t.Width(96).Shrink(0)
 		}
-		if !head && s != "" && cut(c, t, s) {
+		numeric := i < len(cols) && cols[i].Numeric
+		if !head && s != "" && cut(c, t, s, numeric) {
 			t.Tooltip(s)
 		}
-		if i < len(cols) && cols[i].Numeric {
+		if numeric {
 			t.TextAlign(ui.End).FontFeatures("tnum").Direction(ui.LeftToRight)
 		}
 	}
@@ -55,9 +56,16 @@ func Table(c *Context, label string, cols []TableColumn, rows [][]string) Elemen
 
 // cut reports whether t, a one-line text of s at 14 px, was too narrow
 // for it in the last frame. As the width changes, the frame is built
-// again with the new answer.
-func cut(c *Context, t Element, s string) bool {
-	w, _ := c.MeasureText(0, ui.Span{Text: s, Size: 14})
+// again with the new answer. A numeric cell's text is measured in its
+// figures of one width, which are wider than the font's own: a "1" takes
+// nearly twice the room, so a number could be cut where its measure said
+// it fit (TASK-075).
+func cut(c *Context, t Element, s string, numeric bool) bool {
+	span := ui.Span{Text: s, Size: 14}
+	if numeric {
+		span.Features = "tnum"
+	}
+	w, _ := c.MeasureText(0, span)
 	short := func(box float32) bool { return box > 0 && w > box+0.5 }
 	was := short(t.LayoutBounds().W)
 	t.Draw(func(_ *ui.Painter, r ui.Rect) {
