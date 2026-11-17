@@ -24,6 +24,10 @@ type UIError struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
 	Details string `json:"details,omitempty"`
+	// Cause is the known error it was made from, such as agent.ErrInTurn,
+	// so a caller in this process can tell apart errors of one kind with
+	// errors.Is. Only the sentinel is kept, never the error's own text.
+	Cause error `json:"-"`
 }
 
 // The kinds of UIError.
@@ -38,6 +42,9 @@ const (
 )
 
 func (e *UIError) Error() string { return e.Message }
+
+// Unwrap is Cause, nil for an error not made from a known one.
+func (e *UIError) Unwrap() error { return e.Cause }
 
 // known are the errors with their own message, checked in order.
 var known = []struct {
@@ -99,7 +106,7 @@ func toUI(err error, log *slog.Logger, redact func(string) string, what string) 
 	}
 	for _, k := range known {
 		if errors.Is(err, k.err) {
-			return &UIError{Kind: k.kind, Message: k.msg, Details: details}
+			return &UIError{Kind: k.kind, Message: k.msg, Details: details, Cause: k.err}
 		}
 	}
 	var pe *provider.Error

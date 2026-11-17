@@ -56,6 +56,12 @@ type Fake struct {
 	// HoldUndone, when not nil, holds each answer to whether a chip's
 	// change is undone until it is closed, as a slow read.
 	HoldUndone chan struct{}
+	// HoldUndo, when not nil, holds each chip's undo or redo until it is
+	// closed, before it lands.
+	HoldUndo chan struct{}
+	// retryErr is what Retry answers, as the service would: nil, or a
+	// refusal (SetRetryErr).
+	retryErr error
 	// Changed makes the chips' undo of these changes find them changed
 	// since, as a section edited after its chip.
 	Changed map[string]bool
@@ -293,7 +299,14 @@ func (f *Fake) Retry(context.Context, id.Project, id.Chat) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.retries++
-	return nil
+	return f.retryErr
+}
+
+// SetRetryErr makes Retry answer err from now on; it still counts.
+func (f *Fake) SetRetryErr(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.retryErr = err
 }
 
 // Retries is how many times Retry was called.
@@ -306,6 +319,12 @@ func (f *Fake) Retries() int {
 // flip undoes or redoes key, as the chips' undo does: already as asked is
 // not done, and a change made since is left as it is.
 func (f *Fake) flip(key string, redo bool) (done, changed, undone bool) {
+	f.mu.Lock()
+	hold := f.HoldUndo
+	f.mu.Unlock()
+	if hold != nil {
+		<-hold
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	switch {

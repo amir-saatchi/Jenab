@@ -249,3 +249,38 @@ func TestTheChipsFollowAnUndoOfTheirTurn(t *testing.T) {
 		x.until(t, "the undo", func() bool { return x.f.IsUndone("memory:41") || x.f.IsUndone("desktop:12") })
 	})
 }
+
+// A turn undo that shows while the chip's own Undo is on its way doesn't
+// read the chip's state before that undo lands; it reads once it has, so
+// the chip offers Redo (TASK-077).
+func TestAChipDoesntReadDuringItsOwnUndo(t *testing.T) {
+	both(t, func(t *testing.T, dark bool) {
+		f := statetest.New()
+		hold := make(chan struct{})
+		f.HoldUndo = hold
+		defer func() {
+			select {
+			case <-hold:
+			default:
+				close(hold)
+			}
+		}()
+		x := openOn(t, dark, f,
+			statetest.Text(1, jc.RoleUser, "Remember my goal"),
+			answer(1, notice(jc.Notice{Kind: jc.NoticeMemoryUpdated, Text: "Memory updated: " + persian,
+				Target: "memory:project/goals", Change: "41"})),
+		)
+		x.until(t, "the chip's state", func() bool { return !off(t, x, "Undo") })
+		click(t, x, "Undo") // held: the edit isn't undone yet
+		// Another turn's undo shows meanwhile.
+		x.f.AddMessages(x.ch, turnUndone("undo1", "Turn 2 undone"))
+		x.st.Threads.Reload(x.ch)
+		x.until(t, "the notice", func() bool { return kit.Shows(x.tt, "Turn 2 undone") })
+		close(hold)
+		x.until(t, "the undo", func() bool { return x.f.IsUndone("memory:41") })
+		x.until(t, "Redo", func() bool { return kit.Shows(x.tt, "Memory updated: "+persian+" · undone") && !off(t, x, "Redo") })
+		if x.tt.HasText("Undo") {
+			t.Errorf("the chip offers Undo for an undone edit: %q", x.tt.Texts())
+		}
+	})
+}
