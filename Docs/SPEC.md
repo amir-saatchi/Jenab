@@ -64,7 +64,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 <user data dir>/Jenab/        app files, always here
   config.yaml                 user settings; secrets stay in the OS keychain
   registry.db                 project list and user memory
-  logs/                       jenab.log, rotated (Q36)
+  logs/                       jenab.log, rotated (Q36); crash-*.log, the last 5 crashes
   snapshots/                  registry.db backups before a format update (2.8)
 <data folder>/                ~/Jenab unless changed in Settings → General (3.9)
   projects/
@@ -80,6 +80,11 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 - `<user data dir>` is `%LOCALAPPDATA%` on Windows, `~/Library/Application Support` on macOS and `$XDG_DATA_HOME` or `~/.local/share` on Linux. Moving the data folder moves only the projects; the settings, registry and logs stay, so the app can always find them.
 - `config.yaml` is read into typed settings with the same YAML library as the configs (10). Saving from *Settings* keeps comments the user wrote. An unknown key, a wrong type or a value out of range is logged with its line and replaced by the default, so the app still starts. A file that doesn't parse at all gives the defaults; the next save first keeps a copy of it as `config.yaml.broken`.
 - Only one copy of the app runs at a time: a second one says Jenab is already running and quits.
+  - A second start while the first copy quits waits up to 15 s for it to let go of the app lock, then starts. MyGo gives up the single-instance check as quitting begins, before the shutdown has closed the databases (TASK-067).
+- **Crashes** (TASK-067): a panic that nothing recovers, on any goroutine, or a fatal error ends the app. Go writes the panic and every goroutine's stack to `logs/crash-<time>-<pid>.raw` as well as to stderr; the windowed app has no console.
+  - The next start turns the file into `crash-<time>-<pid>.log`, with every key and field replaced by `[secret:NAME]` (6.7), and keeps the last 5. A run that quits normally leaves no file.
+  - It then shows a toast that stays until closed: "Jenab closed unexpectedly", the log's name, and *Open the log*, which opens it with the system's app.
+  - Nothing is sent anywhere.
 - A project folder is self-contained. Backup, export and delete work on the folder.
 - A folder is never copied while the project is open, because the `-wal` file may hold committed data that is not yet checkpointed. Export uses `VACUUM INTO` (or the SQLite backup API) for both databases, then copies `objects/`. `index.db` is left out, since it can be rebuilt (2.9). Every `VACUUM INTO` follows the safe-copy rule in 7.5.
 - If `registry.db` is lost, it is rebuilt by scanning `projects/`. The project's name is also stored in `_jenab_meta`.
@@ -302,10 +307,12 @@ The app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind 
   - Prerelease versions are ignored unless the user picks the beta channel (Jenab's rule; MyGo is told which).
 - **Checks:**
   - At start, then every 6 hours, on Jenab's own timer. Each version is downloaded once. A version whose install failed is not installed again on its own; the user can try again from Settings.
+  - Once a version is installed, Settings keeps showing it and *Restart now* while later checks run. A check or an install of a newer version that fails is logged; the installed version stays offered (TASK-067).
   - The user chooses automatic, notify only, or off. Off sends nothing. A check sends only the version, platform and architecture.
+  - Switching to off during a download stops it. The app stays as it was, no restart is offered, and the version is not marked as failed. A download that had already finished its swap counts as installed (TASK-067).
 - **Swap:** MyGo downloads into a work folder next to the app, checks it, then renames each file of the app aside (`.<name>.old-<pid>`) and moves the new one in. Windows lets the running exe be renamed, so the running app is not stopped. If a step fails, the renames are undone and the work folder is removed: the app stays as it was and keeps running. There is no helper process and no backup copy.
 - **Restart:**
-  - Automatic mode restarts into an installed version when no chat is working or waiting and the window isn't in front, checked every minute. Notify mode waits for *Restart now* in Settings.
+  - Automatic mode restarts into an installed version when no work goes on and the window isn't in front, checked every minute. Work is every turn, queued, running or waiting for the user, with its subagents and its title; every memory refresh; and every project's leased work (TASK-067). The orchestrator and the project manager report it, not the UI. Pipeline runs and background tasks (8.3, 8.6) join the check when they are built. Notify mode waits for *Restart now* in Settings.
   - MyGo quits the app and starts the new exe with `--after-update`. That copy waits up to a minute for the app lock, which the old copy lets go of after its shutdown. The lifecycle shutdown has a 10 s deadline. A restart took under a second (TASK-059).
   - There is no watchdog: no helper exits half-way. A new version that crashes at start is not rolled back; the old files are gone by then.
 - **Cleanup on start:**

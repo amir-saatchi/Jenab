@@ -29,6 +29,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
+	"github.com/amir-saatchi/jenab/internal/crash"
 	"github.com/amir-saatchi/jenab/internal/desktop"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/lifecycle"
@@ -81,11 +82,25 @@ func run() (err error) {
 	}
 	// One copy runs at a time. The copy an update restarts waits for the
 	// old one to let go of the lock.
+	lockStart := time.Now()
 	lock, err := lockApp(paths.Root, os.Args[1:])
 	if err != nil {
 		return err
 	}
+	lockWaited := time.Since(lockStart)
 	defer lock.Close()
+	// A crash, a panic nothing recovers on any goroutine or a fatal
+	// error, writes its stacks to a file in the logs folder; the next
+	// start shows it (TASK-067). Without it a crash of the windowed app
+	// left no trace: it has no console. stopCrash runs at the end of a
+	// normal quit, not in a defer: a panic runs the defers before the
+	// runtime writes it, so a deferred stop would turn the output off
+	// first. A start that fails leaves an empty file, which the next start
+	// removes.
+	crashFile, stopCrash, crashErr := crash.Start(paths.Logs)
+	if crashErr != nil {
+		stopCrash = func() {}
+	}
 	settings, problems := config.LoadSettingsOrDefaults(paths.Settings)
 	defaultData := paths.DataFolder
 	paths = paths.WithDataFolder(settings.DataFolder)
@@ -102,6 +117,9 @@ func run() (err error) {
 			log.Error("app: start", "err", err)
 		}
 	}()
+	if lockWaited > 200*time.Millisecond {
+		log.Info("app: waited for a copy that was quitting", "for", lockWaited.Round(time.Millisecond))
+	}
 	for _, p := range problems {
 		log.Warn("setting ignored", "problem", p.String())
 	}
@@ -120,6 +138,18 @@ func run() (err error) {
 
 	live := app.NewSettings(paths.Settings, settings, problems)
 	secrets := secret.New(newKeyring())
+	if crashErr != nil {
+		log.Warn("app: crashes will not be kept", "err", crashErr)
+	}
+	// The crash output of earlier runs becomes crash logs, without the
+	// secrets.
+	crashes, err := crash.Collect(paths.Logs, crashFile, crashRedactor(live.Get(), secrets))
+	if err != nil {
+		log.Warn("app: crash logs", "err", err)
+	}
+	for _, c := range crashes {
+		log.Warn("app: an earlier run crashed", "log", filepath.Base(c))
+	}
 	registry, err := store.OpenRegistry(ctx, paths.Registry)
 	if err != nil {
 		return err
@@ -191,6 +221,9 @@ func run() (err error) {
 	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System,
 		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}}, mailbox.Post)
 	defer stores.Close()
+	if t, ok := crashNotice(crashes, mygo.Shell.OpenPath); ok {
+		mailbox.Post(func() { stores.Toasts = append(stores.Toasts, t) })
+	}
 	// The window's buttons follow the app's theme, over the app's own
 	// title bar (TASK-063).
 	stores.Settings.OnTheme = func(s string) {
@@ -200,11 +233,15 @@ func run() (err error) {
 		}
 	}
 	// Updates (SPEC 2.8, TASK-059): checked at start, then every 6 hours.
+	// The automatic restart waits until no work goes on: every turn, with
+	// its subagents, every memory refresh and call (the orchestrator), and
+	// every project's leased work (TASK-067).
+	appBusy = func() bool { return orch.Busy() || projects.Busy() }
 	updates := update.New(update.Deps{
 		Updater: mygoUpdater{}, Current: v.Version, Log: log, Relaunch: relaunch,
 		Settings: func() config.UpdateSettings { return live.Get().Updates },
 		CanRestart: func() bool {
-			return onUI(mailbox.Post, func() bool { return !stores.Busy() && !stores.WindowActive() })
+			return !appBusy() && onUI(mailbox.Post, func() bool { return !stores.WindowActive() })
 		},
 		OnStatus: func(st update.Status) { mailbox.Post(func() { stores.UpdateStatus(st) }) },
 	})
@@ -297,6 +334,7 @@ func run() (err error) {
 		Log: log,
 	}.Run()
 	closeLog()
+	stopCrash()
 	return err
 }
 
@@ -344,6 +382,9 @@ var benchHook func(*state.Stores, state.Post, *mygo.Window)
 var (
 	appNotify     func(app.Notification) error
 	updateService *update.Service
+	// appBusy reports whether any work goes on, which an automatic
+	// restart must not cut off.
+	appBusy func() bool
 )
 
 // newKeyring is where the app keeps its secrets: the OS keychain, or in a

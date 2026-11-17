@@ -641,6 +641,16 @@ func (o *Orchestrator) Refuse() {
 	o.mu.Unlock()
 }
 
+// Busy reports whether any work is going: a turn, queued or running or
+// waiting for the user, with its subagents and its title, a memory
+// refresh, or a call such as Send or Undo. The update restart waits until
+// it is false (SPEC 2.8, TASK-067).
+func (o *Orchestrator) Busy() bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.busy > 0
+}
+
 // Wait waits until every call and runner has ended, or ctx is done.
 func (o *Orchestrator) Wait(ctx context.Context) error {
 	o.mu.Lock()

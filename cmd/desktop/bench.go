@@ -185,6 +185,9 @@ type benchState struct {
 	Shown    bool        `json:"shown"`
 	Focused  bool        `json:"focused"`
 	Update   benchUpdate `json:"update"`
+	// TASK-067: whether any work goes on, which the update restart
+	// waits for.
+	Busy bool `json:"busy"`
 }
 
 func (b *bench) project() (id.Project, bool) {
@@ -196,7 +199,7 @@ func (b *bench) project() (id.Project, bool) {
 
 func (b *bench) state(w http.ResponseWriter, r *http.Request) {
 	v := version.Get()
-	s := benchState{Version: v.Version, Build: v.String(), Update: updateState()}
+	s := benchState{Version: v.Version, Build: v.String(), Update: updateState(), Busy: appBusy != nil && appBusy()}
 	b.ui(func() {
 		s.Loaded = b.st.Projects.Loaded
 		for _, p := range b.st.Projects.List {
