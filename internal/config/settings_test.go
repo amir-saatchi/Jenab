@@ -281,7 +281,11 @@ func TestLoadSettingsOrDefaults(t *testing.T) {
 	for _, c := range []struct {
 		text string
 		line int
-	}{{"ui:\n  theme: dark\n  font: \"x\n", 3}, {"- a list\n", 1}} {
+	}{
+		{"ui:\n  theme: dark\n  font: \"x\n", 3},
+		{"ui:\n  theme: 'dark\n  font: x\n  size: 3\n", 2}, // the line the quote opens on
+		{"- a list\n", 1},
+	} {
 		s, probs := LoadSettingsOrDefaults(writeConfig(t, c.text))
 		if diff := cmp.Diff(Defaults(), s); diff != "" {
 			t.Errorf("%q: (-want +got):\n%s", c.text, diff)

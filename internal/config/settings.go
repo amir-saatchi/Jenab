@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // defaultYAML holds every setting with its default and a comment. A new
@@ -148,6 +148,13 @@ func LoadSettings(path string) (Settings, []Problem, error) {
 func ParseSettings(src []byte) (Settings, []Problem, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(src, &doc); err != nil {
+		// At the end of the text, as with a quote never closed, the line
+		// is past the file's last one: the line the open construct starts
+		// on says more.
+		var le *yaml.LoadError
+		if errors.As(err, &le) && le.Mark.Index >= len(src) && le.ContextMark.Line > 0 {
+			err = fmt.Errorf("yaml: line %d: %s", le.ContextMark.Line, le.Message)
+		}
 		return Defaults(), nil, err
 	}
 	root := docRoot(&doc)

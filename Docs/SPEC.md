@@ -29,7 +29,7 @@ Rules of thumb: **views read, pipelines write. Tables hold data, memory holds in
 - Every config has `version: 1`. The runner rejects unknown versions.
 - Configs are stored as JSON internally and shown/edited as YAML. Both parse to the same structure.
 - **Config parsing** (SPIKE-013):
-  - **Library:** YAML is read with `go.yaml.in/yaml/v3` as a node tree. Jenab's own loader builds the value and records a line:column for every JSON path.
+  - **Library:** YAML is read with `go.yaml.in/yaml/v4` as a node tree (v3 until 2026-11; SPIKE-002 planned the move once v4 was final). Jenab's own loader builds the value and records a line:column for every JSON path.
   - **Rejected:**
     - duplicate keys (in YAML and in JSON)
     - anchors, aliases, merge keys (`<<`) and tags
