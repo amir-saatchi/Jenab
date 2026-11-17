@@ -118,3 +118,61 @@ func TestACrashHidesARemovedProvidersKey(t *testing.T) {
 		}
 	}
 }
+
+// countingKeyring counts the keychain's reads and listings.
+type countingKeyring struct {
+	testKeyring
+	reads int
+}
+
+func (k *countingKeyring) Get(name string) (string, error) {
+	k.reads++
+	return k.testKeyring.Get(name)
+}
+
+func (k *countingKeyring) Names() ([]string, error) {
+	k.reads++
+	return k.testKeyring.Names()
+}
+
+// A start with no crash output doesn't read the keychain (TASK-078); one
+// with crash output reads it then, and hides the keys.
+func TestTheCrashRedactorReadsTheKeychainForACrashOnly(t *testing.T) {
+	dir := t.TempDir()
+	const key = "sk-test-0123456789abcdef"
+	var s config.Settings
+	s.LLM.Providers = map[string]config.ProviderSettings{"test": {Kind: "openai"}}
+	kr := &countingKeyring{testKeyring: testKeyring{"provider:test": key, "provider:old": "removed-0123456789abcdef"}}
+	secrets := secret.New(kr)
+
+	// No crash output: nothing at all, then an empty file of a run that
+	// ended without stop.
+	if _, err := crash.Collect(dir, "", crashRedactor(s, secrets)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "crash-20261117-100000-7.raw"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := crash.Collect(dir, "", crashRedactor(s, secrets)); err != nil {
+		t.Fatal(err)
+	}
+	if kr.reads != 0 {
+		t.Fatalf("a start with no crash read the keychain %d times", kr.reads)
+	}
+
+	raw := filepath.Join(dir, "crash-20261117-100000-8.raw")
+	if err := os.WriteFile(raw, []byte("panic: the call to "+key+" broke\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	res, err := crash.Collect(dir, "", crashRedactor(s, secrets))
+	if err != nil || len(res.Logs) != 1 {
+		t.Fatalf("Collect: %v, %v", res, err)
+	}
+	if kr.reads == 0 {
+		t.Error("the crash's keys weren't read")
+	}
+	b, _ := os.ReadFile(res.Logs[0])
+	if strings.Contains(string(b), key) || !strings.Contains(string(b), "[secret:provider:test]") {
+		t.Errorf("the crash log:\n%s", b)
+	}
+}

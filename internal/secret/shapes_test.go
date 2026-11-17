@@ -1,6 +1,8 @@
 package secret
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -66,5 +68,34 @@ func TestNamesUnder(t *testing.T) {
 	got := namesUnder("jenab", []string{"jenab:provider:a", "jenab:provider:b:account_id", "jenabx:provider:c", "other:jenab:d", "jenab:", "jenab"})
 	if strings.Join(got, ",") != "provider:a,provider:b:account_id" {
 		t.Errorf("namesUnder = %q", got)
+	}
+}
+
+// JSON printed with %q, once or twice, escapes its quotes (TASK-078): a
+// key without a known prefix is still found, and the text still unquotes.
+func TestShapesInEscapedJSON(t *testing.T) {
+	const k = "0123456789abcdefABCDEF" // made up, no known prefix
+	for _, body := range []string{
+		`{"api_key":"` + k + `"}`,
+		`{"x-api-key": "` + k + `", "model": "m"}`,
+		`{"headers":{"Authorization":"Bearer ` + k + `"}}`,
+		`{"url":"https://host.example/v1?key=` + k + `"}`,
+	} {
+		once := fmt.Sprintf("%q", body)
+		for _, in := range []string{once, fmt.Sprintf("%q", once)} {
+			got := Shapes(in)
+			if strings.Contains(got, k) || !strings.Contains(got, "[secret]") {
+				t.Errorf("Shapes(%s) = %s", in, got)
+			}
+		}
+		got, err := strconv.Unquote(Shapes(once))
+		if err != nil || strings.Contains(got, k) {
+			t.Errorf("Shapes(%s) unquotes to %q, %v", once, got, err)
+		}
+	}
+	for _, in := range []string{`"{\"api_key\":\"[secret:provider:a]\"}"`, `"{\"model\":\"0123456789abcdefABCDEF\"}"`} {
+		if got := Shapes(in); got != in {
+			t.Errorf("Shapes(%s) = %s, want it as it was", in, got)
+		}
 	}
 }

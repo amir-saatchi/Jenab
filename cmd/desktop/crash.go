@@ -2,6 +2,7 @@ package main
 
 import (
 	"path/filepath"
+	"sync"
 
 	"github.com/amir-saatchi/jenab/internal/appinfo"
 	"github.com/amir-saatchi/jenab/internal/config"
@@ -17,7 +18,21 @@ import (
 // also hides every other secret the keychain still holds for the app, where
 // the keychain can list them (Windows), and then whatever looks like a key
 // (secret.Shapes), for a key the keychain no longer has (TASK-076).
+//
+// It reads the keychain at its first call only: Collect calls it for crash
+// output alone, so a start with no crash to collect doesn't read every
+// secret before the window shows (TASK-078).
 func crashRedactor(s config.Settings, secrets *secret.Store) func(string) string {
+	var once sync.Once
+	var redact func(string) string
+	return func(text string) string {
+		once.Do(func() { redact = buildCrashRedactor(s, secrets) })
+		return redact(text)
+	}
+}
+
+// buildCrashRedactor reads the secrets crashRedactor hides.
+func buildCrashRedactor(s config.Settings, secrets *secret.Store) func(string) string {
 	var names []string
 	for name, ps := range s.LLM.Providers {
 		names = append(names, provider.KeyName(name))
