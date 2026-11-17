@@ -33,11 +33,23 @@ type fixture struct {
 // open shows chat ch of p with the messages ms.
 func open(t *testing.T, dark bool, ms ...jc.Message) *fixture {
 	t.Helper()
-	x := &fixture{f: statetest.New(), loop: &statetest.Loop{}}
+	return openOn(t, dark, statetest.New(), ms...)
+}
+
+// openOn is open on the fake services f.
+func openOn(t *testing.T, dark bool, f *statetest.Fake, ms ...jc.Message) *fixture {
+	t.Helper()
+	return openWith(t, dark, f, f.API(), ms...)
+}
+
+// openWith is open on api, with f its chats.
+func openWith(t *testing.T, dark bool, f *statetest.Fake, api state.API, ms ...jc.Message) *fixture {
+	t.Helper()
+	x := &fixture{f: f, loop: &statetest.Loop{}}
 	x.p, _ = x.f.AddProject("Demo")
 	x.ch = x.f.AddChat(x.p, "Notes")
 	x.f.AddMessages(x.ch, ms...)
-	x.st = state.NewStores(x.f.API(), x.loop.Post)
+	x.st = state.NewStores(api, x.loop.Post)
 	t.Cleanup(x.st.Close)
 	x.scr = chat.New(x.st)
 	x.scr.Now = func() time.Time { return time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC) }
@@ -48,6 +60,11 @@ func open(t *testing.T, dark bool, ms ...jc.Message) *fixture {
 	tt, err := kit.NewTester(func(c *kit.Context) {
 		kit.Root(c, func() {
 			if th := x.st.Threads.Threads[x.ch]; th != nil {
+				kit.Bar(c, func() { // the chat's header, as the shell's
+					kit.Title(c, th.Chat.Title)
+					kit.Spacer(c)
+					x.scr.HeaderActions(c, th)
+				})
 				x.scr.View(c, th, false, false)
 			}
 		})
@@ -405,4 +422,42 @@ func TestTimesFollowTheRegion(t *testing.T) {
 			t.Error("the 12-hour time still shows with a 24-hour clock")
 		}
 	})
+}
+
+// A deleted chat's views, chips, cards' input and what was unfolded go
+// once a fresh list no longer has it; the chat shown stays, since the
+// list may predate it.
+func TestADeletedChatsStateGoes(t *testing.T) {
+	x := open(t, false,
+		statetest.Text(1, jc.RoleUser, "Search the site"),
+		answer(1, notice(jc.Notice{Kind: jc.NoticeDesktopSaved, Text: "Macro saved: site_search (2 steps)",
+			Target: "desktop:macro:3", Change: "12", Details: "1. click Search"})),
+	)
+	click(t, x, "View steps")
+	click(t, x, "Undo")
+	x.until(t, "the undo", func() bool { return x.f.IsUndone("desktop:12") })
+	var ms []id.Message
+	for _, m := range x.st.Threads.Threads[x.ch].Messages {
+		ms = append(ms, m.ID)
+	}
+	before := x.scr.Keeps(x.ch, ms)
+	if before < 4 {
+		t.Fatalf("the chat keeps %d things before", before)
+	}
+	// Deleted while shown: it stays.
+	x.f.RemoveChat(x.p, x.ch)
+	x.st.Chats.Load(x.p)
+	x.draw()
+	if got := x.scr.Keeps(x.ch, ms); got != before {
+		t.Errorf("the chat shown keeps %d things, was %d", got, before)
+	}
+	// Another chat shows: the next list drops it.
+	other := x.f.AddChat(x.p, "Other")
+	x.st.OpenChat(x.p, other)
+	x.until(t, "the other chat", func() bool { return x.st.Threads.Threads[other] != nil })
+	x.st.Chats.Load(x.p)
+	x.draw()
+	if got := x.scr.Keeps(x.ch, ms); got != 0 {
+		t.Errorf("the deleted chat still keeps %d things", got)
+	}
 }

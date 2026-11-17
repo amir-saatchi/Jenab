@@ -19,6 +19,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // Sent is a message the screens sent.
@@ -27,6 +28,7 @@ type Sent struct {
 	Chat    id.Chat
 	Text    string
 	Quote   *chat.Quote
+	ID      id.Message // the message Send made
 }
 
 // Fake is every service the stores use, in memory. Its fields are read
@@ -46,7 +48,23 @@ type Fake struct {
 	rewinds  []int
 	rewound  []id.Chat // the chats of rewinds, in order
 	stops    int
+	retries  int
 	n        int
+	// Undone is what the chips' undo reverted: "memory:", "desktop:" or
+	// "refresh:" and the change, true while it is undone.
+	Undone map[string]bool
+	// Changed makes the chips' undo of these changes find them changed
+	// since, as a section edited after its chip.
+	Changed map[string]bool
+	// Estimate is RefreshEstimate's answer; Refreshes records each
+	// refresh started, true for a full one.
+	Estimate  agent.RefreshEstimate
+	Refreshes []bool
+	// TurnUndo is what Undo turn and Redo turn would do now; undoTurns
+	// records them.
+	TurnUndo  agent.TurnUndoState
+	undoTurns []agent.UndoRequest
+	live      map[id.Chat]agent.Live // each chat's running turn, for Snapshot
 	// Bucket is the projects' files and the bottom bar's readings.
 	Bucket FakeBucket
 	admin  ProjectAdmin // the project screens' part (fake_project.go)
@@ -55,7 +73,8 @@ type Fake struct {
 // New makes an empty Fake.
 func New() *Fake {
 	return &Fake{Mothers: map[id.Project]id.Chat{}, Chats: map[id.Project][]app.ChatItem{},
-		Msgs: map[id.Chat][]chat.Message{}, SetTo: map[id.Chat]string{}}
+		Msgs: map[id.Chat][]chat.Message{}, SetTo: map[id.Chat]string{},
+		Undone: map[string]bool{}, Changed: map[string]bool{}}
 }
 
 // API is the stores' services, all of them f.
@@ -81,6 +100,14 @@ func (f *Fake) AddChat(p id.Project, title string) id.Chat {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.addChat(p, title, "").ID
+}
+
+// RemoveChat takes chat c out of project p's list, as a delete elsewhere
+// does.
+func (f *Fake) RemoveChat(p id.Project, c id.Chat) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Chats[p] = slices.DeleteFunc(f.Chats[p], func(it app.ChatItem) bool { return it.Chat.ID == c })
 }
 
 func (f *Fake) addChat(p id.Project, title, role string) chat.Chat {
@@ -182,7 +209,17 @@ func (f *Fake) Snapshot(_ context.Context, _ id.Project, c id.Chat) (app.ChatSna
 	if m, ok := f.SetTo[c]; ok {
 		ch.Model = m
 	}
-	return app.ChatSnapshot{Chat: ch, Messages: slices.Clone(f.Msgs[c]), From: 1}, nil
+	return app.ChatSnapshot{Chat: ch, Messages: slices.Clone(f.Msgs[c]), From: 1, Live: f.live[c]}, nil
+}
+
+// SetLive sets the turn running in chat c, as a snapshot reads it.
+func (f *Fake) SetLive(c id.Chat, l agent.Live) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.live == nil {
+		f.live = map[id.Chat]agent.Live{}
+	}
+	f.live[c] = l
 }
 
 func (f *Fake) Messages(_ context.Context, _ id.Project, c id.Chat, from, to int) ([]chat.Message, error) {
@@ -230,8 +267,9 @@ func (f *Fake) Send(_ context.Context, p id.Project, c id.Chat, text string, quo
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.n++
-	f.sent = append(f.sent, Sent{Project: p, Chat: c, Text: text, Quote: quote})
-	return id.Message(fmt.Sprintf("sent%05d", f.n)), nil
+	m := id.Message(fmt.Sprintf("sent%05d", f.n))
+	f.sent = append(f.sent, Sent{Project: p, Chat: c, Text: text, Quote: quote, ID: m})
+	return m, nil
 }
 
 func (f *Fake) Stop(context.Context, id.Project, id.Chat) error {
@@ -241,7 +279,120 @@ func (f *Fake) Stop(context.Context, id.Project, id.Chat) error {
 	return nil
 }
 
-func (f *Fake) Retry(context.Context, id.Project, id.Chat) error { return nil }
+// Retry counts the retries.
+func (f *Fake) Retry(context.Context, id.Project, id.Chat) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.retries++
+	return nil
+}
+
+// Retries is how many times Retry was called.
+func (f *Fake) Retries() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.retries
+}
+
+// flip undoes or redoes key, as the chips' undo does: already as asked is
+// not done, and a change made since is left as it is.
+func (f *Fake) flip(key string, redo bool) (done, changed, undone bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch {
+	case f.Changed[key]:
+		return false, true, f.Undone[key]
+	case f.Undone[key] == !redo:
+		return false, false, f.Undone[key]
+	}
+	f.Undone[key] = !redo
+	return true, false, !redo
+}
+
+// IsUndone tells whether the chips' undo reverted key.
+func (f *Fake) IsUndone(key string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.Undone[key]
+}
+
+// SetChanged makes key changed since its chip, so its undo does nothing.
+func (f *Fake) SetChanged(key string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Changed[key] = true
+}
+
+func (f *Fake) MemoryUndone(_ context.Context, _ id.Project, r app.MemoryUndoRequest) (bool, error) {
+	return f.IsUndone("memory:" + r.Change), nil
+}
+
+// UndoMemory undoes or redoes the memory chip's change.
+func (f *Fake) UndoMemory(_ context.Context, _ id.Project, r app.MemoryUndoRequest) (app.MemoryUndo, error) {
+	done, changed, undone := f.flip("memory:"+r.Change, r.Redo)
+	return app.MemoryUndo{Done: done, Changed: changed, Undone: undone}, nil
+}
+
+func (f *Fake) DesktopSaveUndone(_ context.Context, r app.DesktopUndoRequest) (bool, error) {
+	return f.IsUndone("desktop:" + r.Change), nil
+}
+
+// UndoDesktopSave undoes or redoes the desktop chip's save.
+func (f *Fake) UndoDesktopSave(_ context.Context, r app.DesktopUndoRequest) (store.DesktopUndo, error) {
+	done, changed, undone := f.flip("desktop:"+r.Change, r.Redo)
+	return store.DesktopUndo{Done: done, Changed: changed, Undone: undone}, nil
+}
+
+func (f *Fake) RefreshEstimate(context.Context, id.Project, id.Chat, bool) (agent.RefreshEstimate, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.Estimate, nil
+}
+
+// SetEstimate sets RefreshEstimate's answer while the screen runs.
+func (f *Fake) SetEstimate(e agent.RefreshEstimate) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Estimate = e
+}
+
+// Refreshed is each refresh started so far, true for a full one.
+func (f *Fake) Refreshed() []bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]bool(nil), f.Refreshes...)
+}
+
+// RefreshMemory records the refresh.
+func (f *Fake) RefreshMemory(_ context.Context, _ id.Project, _ id.Chat, full bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Refreshes = append(f.Refreshes, full)
+	return nil
+}
+
+func batchKey(edits []chat.MemoryDiff) string {
+	k := "refresh:"
+	for _, e := range edits {
+		k += e.Change + ","
+	}
+	return k
+}
+
+func (f *Fake) RefreshUndone(_ context.Context, _ id.Project, edits []chat.MemoryDiff) (bool, error) {
+	return f.IsUndone(batchKey(edits)), nil
+}
+
+// UndoRefresh undoes or redoes the batch; a changed one names its first
+// section, as the service does.
+func (f *Fake) UndoRefresh(_ context.Context, _ id.Project, r app.RefreshUndoRequest) (app.RefreshUndo, error) {
+	done, changed, undone := f.flip(batchKey(r.Edits), r.Redo)
+	res := app.RefreshUndo{Done: done, Changed: changed, Undone: undone}
+	if changed && len(r.Edits) > 0 {
+		res.Sections = []string{r.Edits[0].Target}
+	}
+	return res, nil
+}
 
 // Answer records the answer.
 func (f *Fake) Answer(_ context.Context, _ id.Project, _ id.Chat, a agent.Answer) error {
@@ -293,12 +444,32 @@ func (f *Fake) SetLevel(_ context.Context, _ id.Project, _ id.Chat, level string
 	return nil
 }
 
+// UndoState is TurnUndo, what Undo turn and Redo turn would do now.
 func (f *Fake) UndoState(context.Context, id.Project, id.Chat, int) (agent.TurnUndoState, error) {
-	return agent.TurnUndoState{}, nil
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.TurnUndo, nil
 }
 
-func (f *Fake) UndoTurn(context.Context, id.Project, id.Chat, agent.UndoRequest) (agent.TurnUndo, error) {
-	return agent.TurnUndo{}, nil
+// UndoTurn records the request, and an undo or redo that has changes to
+// make makes them: TurnUndo's plans trade places.
+func (f *Fake) UndoTurn(_ context.Context, _ id.Project, _ id.Chat, r agent.UndoRequest) (agent.TurnUndo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.undoTurns = append(f.undoTurns, r)
+	u := &f.TurnUndo
+	if (r.Redo && u.Redo.Changes == 0) || (!r.Redo && u.Undo.Changes == 0) {
+		return agent.TurnUndo{Turn: r.Turn, Redo: r.Redo}, nil
+	}
+	u.Undo, u.Redo = u.Redo, u.Undo
+	return agent.TurnUndo{Turn: r.Turn, Redo: r.Redo, Done: true}, nil
+}
+
+// UndoTurns is each Undo turn and Redo turn asked for.
+func (f *Fake) UndoTurns() []agent.UndoRequest {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.undoTurns)
 }
 
 func (f *Fake) last(c id.Chat) int {

@@ -49,6 +49,16 @@ func BarIconButton(c *Context, icon *SVG, label string) Element {
 	return IconButton(c, icon, label, Ghost).Size(BarButton, BarButton).Shrink(0).FocusRingOffset(0)
 }
 
+// BarMenuButton is a bar icon button opening the menu build fills, lined
+// up with the button's end, as a button near the window's end has it.
+// *open is whether the menu shows, so what the menu lists can be fetched
+// as it opens rather than each frame; label names the button and is its
+// tooltip. Disabled, it opens none.
+func BarMenuButton(c *Context, icon *SVG, label string, open *bool, off bool, build func(m *Menu)) Element {
+	b := Disable(BarIconButton(c, icon, label), off)
+	return b.PopoverMenuButton(build, ui.PopoverMenuButtonOptions{At: ui.AnchorBottomEnd, Self: ui.AnchorTopEnd, Open: open})
+}
+
 // barPadding is a bar's padding on its start and end edges.
 const barPadding = 12
 

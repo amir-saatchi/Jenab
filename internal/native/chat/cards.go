@@ -347,8 +347,8 @@ func optionLabel(o jc.Option) string {
 }
 
 // failedCard is a turn a provider error stopped; Retry continues it
-// (8.3). The Connect card for a chat with no provider set up is not
-// built on MyGo yet.
+// (8.3). With no provider set up, the Connect card shows in its place
+// (connect.go).
 func (s *Screen) failedCard(c *kit.Context, t *state.Thread, text string) {
 	k := s.cardOf("failed:" + string(t.Chat.ID))
 	kit.Card(c, "The turn stopped", func() {

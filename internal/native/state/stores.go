@@ -97,6 +97,10 @@ type Stores struct {
 	// chat that starts to wait gets a notification unless it is shown in
 	// an active window.
 	WindowActive func() bool
+	// OnPrune gets, after each fresh chat list, the project, the chats it
+	// lists, and the chat shown in it, which stays: a screen drops what it
+	// keeps for the project's other chats, which were deleted.
+	OnPrune []func(p id.Project, listed []id.Chat, shown id.Chat)
 
 	post    Post
 	system  SystemAPI
@@ -178,6 +182,9 @@ func (s *Stores) listed(p id.Project, chats []id.Chat) {
 	}
 	s.Nav.Prune(p, chats, shown)
 	s.Shell.Prune(p, chats, shown)
+	for _, fn := range s.OnPrune {
+		fn(p, chats, shown)
+	}
 }
 
 // Error shows err in a toast.
@@ -387,6 +394,12 @@ func (s *Stores) OpenMemory(p id.Project, target string) {
 	} else {
 		s.Nav.Go(Place{View: ViewProjectSettings, Project: p, Section: "Memory"})
 	}
+}
+
+// OpenDesktop opens Settings › Desktop, where the macros and recipes are
+// (SPEC 8.11).
+func (s *Stores) OpenDesktop() {
+	s.Nav.Go(Place{View: ViewSettings, Section: "Desktop"})
 }
 
 // BackToChats leaves Settings for the chat used last, or the first-run

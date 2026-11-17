@@ -8,6 +8,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // ActionsAPI is what the chat screen asks the chat service to do;
@@ -25,6 +26,16 @@ type ActionsAPI interface {
 	Rewind(ctx context.Context, p id.Project, c id.Chat, turn int) (agent.RewindResult, error)
 	UndoRewind(ctx context.Context, p id.Project, c id.Chat, rewind int64) error
 	RewindUndoState(ctx context.Context, p id.Project, c id.Chat, rewind int64) (agent.TurnUndoState, error)
+
+	// The chips' undo (SPEC 3.3, 3.5, 8.11) and Refresh memory (3.5).
+	MemoryUndone(ctx context.Context, p id.Project, r app.MemoryUndoRequest) (bool, error)
+	UndoMemory(ctx context.Context, p id.Project, r app.MemoryUndoRequest) (app.MemoryUndo, error)
+	DesktopSaveUndone(ctx context.Context, r app.DesktopUndoRequest) (bool, error)
+	UndoDesktopSave(ctx context.Context, r app.DesktopUndoRequest) (store.DesktopUndo, error)
+	RefreshEstimate(ctx context.Context, p id.Project, c id.Chat, full bool) (agent.RefreshEstimate, error)
+	RefreshMemory(ctx context.Context, p id.Project, c id.Chat, full bool) error
+	RefreshUndone(ctx context.Context, p id.Project, edits []chat.MemoryDiff) (bool, error)
+	UndoRefresh(ctx context.Context, p id.Project, r app.RefreshUndoRequest) (app.RefreshUndo, error)
 }
 
 var _ ActionsAPI = (*app.ChatService)(nil)
@@ -140,6 +151,54 @@ func (a *Actions) Rewind(p id.Project, c id.Chat, turn int, then func(agent.Rewi
 // UndoRewind brings back the turns a rewind took out.
 func (a *Actions) UndoRewind(p id.Project, c id.Chat, rewind int64, then func(error)) {
 	done(a, func(ctx context.Context) error { return a.api.UndoRewind(ctx, p, c, rewind) }, then)
+}
+
+// MemoryUndone tells whether a memory chip's edit is undone now, so the
+// chip offers Redo after a reload or an undo of its turn.
+func (a *Actions) MemoryUndone(p id.Project, r app.MemoryUndoRequest, then func(bool, error)) {
+	call(a, func(ctx context.Context) (bool, error) { return a.api.MemoryUndone(ctx, p, r) }, then)
+}
+
+// UndoMemory reverts a memory chip's edit, or with r.Redo puts it back
+// (SPEC 3.3).
+func (a *Actions) UndoMemory(p id.Project, r app.MemoryUndoRequest, then func(app.MemoryUndo, error)) {
+	call(a, func(ctx context.Context) (app.MemoryUndo, error) { return a.api.UndoMemory(ctx, p, r) }, then)
+}
+
+// DesktopSaveUndone tells whether a desktop save's chip is undone now.
+func (a *Actions) DesktopSaveUndone(r app.DesktopUndoRequest, then func(bool, error)) {
+	call(a, func(ctx context.Context) (bool, error) { return a.api.DesktopSaveUndone(ctx, r) }, then)
+}
+
+// UndoDesktopSave reverts a macro or recipe the agent saved, or with
+// r.Redo puts it back (SPEC 8.11).
+func (a *Actions) UndoDesktopSave(r app.DesktopUndoRequest, then func(store.DesktopUndo, error)) {
+	call(a, func(ctx context.Context) (store.DesktopUndo, error) { return a.api.UndoDesktopSave(ctx, r) }, then)
+}
+
+// RefreshEstimate is what a refresh of the chat would cost now; full
+// reviews the whole chat again (SPEC 3.5).
+func (a *Actions) RefreshEstimate(p id.Project, c id.Chat, full bool, then func(agent.RefreshEstimate, error)) {
+	call(a, func(ctx context.Context) (agent.RefreshEstimate, error) {
+		return a.api.RefreshEstimate(ctx, p, c, full)
+	}, then)
+}
+
+// RefreshMemory starts a refresh; the chat's status shows its progress,
+// and Stop cancels it.
+func (a *Actions) RefreshMemory(p id.Project, c id.Chat, full bool, then func(error)) {
+	done(a, func(ctx context.Context) error { return a.api.RefreshMemory(ctx, p, c, full) }, then)
+}
+
+// RefreshUndone tells whether a refresh chip's batch is undone now.
+func (a *Actions) RefreshUndone(p id.Project, edits []chat.MemoryDiff, then func(bool, error)) {
+	call(a, func(ctx context.Context) (bool, error) { return a.api.RefreshUndone(ctx, p, edits) }, then)
+}
+
+// UndoRefresh reverts a refresh's batch, all or nothing, or with r.Redo
+// puts it back.
+func (a *Actions) UndoRefresh(p id.Project, r app.RefreshUndoRequest, then func(app.RefreshUndo, error)) {
+	call(a, func(ctx context.Context) (app.RefreshUndo, error) { return a.api.UndoRefresh(ctx, p, r) }, then)
 }
 
 // Attach stores the file at path in the project's bucket.
