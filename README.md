@@ -4,7 +4,7 @@
 
 A desktop AI agent that keeps its work in per-project databases, not long chats, and turns it into reusable dashboards and scheduled pipelines. Dashboards are built from tables, charts, stats and forms. Any model, local or cloud. Go, with a native UI on MyGo.
 
-> **Status:** in design. There is no app to use yet: the design, the spikes that tested it, the UI mockups and the first code skeleton are here. Phase 1 coding starts after Gate 3, with the [Phase 1 tickets](Docs/Tickets/README.md#phase-1).
+> **Status:** in development, not released yet. Phase 1 (the chat loop) and Phase 2 (structured memory: tables, project memory and undo) are done, in the native app. Pages and pipelines (Phases 3 and 4) are next. There are no release builds yet; to run it, build it from source with [Development](Docs/DEVELOPMENT.md).
 
 ## Why
 
@@ -17,7 +17,7 @@ Today's agent apps keep what they learn in the chat. Long chats waste tokens, ge
 
 It works with Anthropic, OpenAI, Gemini, OpenAI-compatible APIs and Ollama, with your own keys.
 
-**Needs:** 64-bit Windows 11, macOS 12 or later, or Linux x64 (beta); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. Local models need their own memory on top.
+**Needs:** 64-bit Windows 11 (the only system it is built and tested on so far; macOS 12 or later and Linux x64 are planned); 2 CPU cores, 4 GB of memory (8 GB recommended) and an SSD. Local models need their own memory on top.
 
 ## Read more
 
@@ -27,7 +27,7 @@ It works with Anthropic, OpenAI, Gemini, OpenAI-compatible APIs and Ollama, with
 - [Code design](Docs/Code-Design): how the Go code is structured
 - [Development](Docs/DEVELOPMENT.md): build, run and test
 - [Tickets](Docs/Tickets): the spikes and their results; their code is in [`spikes/`](spikes)
-- [Mockups](mockups): the high-fidelity UI, built with React and shadcn/ui
+- [Mockups](mockups): design mockups of the UI, made with React and shadcn/ui before the app moved to a native UI; not the app itself
 
 ## License
 

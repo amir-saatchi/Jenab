@@ -123,6 +123,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-067](TASK-067-native-crash-and-updates.md) | Crash log, and updates that wait for all work | Task | Done | 3 |
 | [TASK-068](TASK-068-native-settings-fixes.md) | Settings forms: keys, dialogs and the data folder | Task | Done | 3 |
 | [TASK-069](TASK-069-native-polish.md) | Small native fixes: digits, text direction, tooltips, old comments | Task | Done | 3 |
+| [TASK-070](TASK-070-wails-leftovers.md) | Remove the code and text the Wails app left behind | Task | Open | 3 |
 
 ## Phase 1
 
