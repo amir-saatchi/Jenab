@@ -187,4 +187,18 @@ func TestPrivateHostsSettings(t *testing.T) {
 	} else {
 		uiErr(t, err, KindNotFound)
 	}
+
+	// An edit changes the list as stored (TASK-079), with the same checks.
+	got, err = ps.EditPrivateHosts(ctx, op.ID, func(hs []string) []string { return append(hs, "Printer.local") })
+	if want := []string{"127.0.0.1", "::1", "nas.local", "printer.local"}; err != nil || !slices.Equal(got, want) {
+		t.Fatalf("EditPrivateHosts = %q, %v; want %q", got, err, want)
+	}
+	if _, err := ps.EditPrivateHosts(ctx, op.ID, func(hs []string) []string { return append(hs, "127.0.0.1:8099") }); err == nil {
+		t.Error("an edit stored a host with a port")
+	} else {
+		uiErr(t, err, KindInvalid)
+	}
+	if hs, err := ps.PrivateHosts(ctx, op.ID); err != nil || len(hs) != 4 {
+		t.Errorf("after a refused edit: %q, %v", hs, err)
+	}
 }

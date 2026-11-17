@@ -211,7 +211,7 @@ func (g *gatedHosts) PrivateHosts(context.Context, id.Project) ([]string, error)
 	return g.reads.wait(), nil
 }
 
-func (g *gatedHosts) SetPrivateHosts(context.Context, id.Project, []string) ([]string, error) {
+func (g *gatedHosts) EditPrivateHosts(context.Context, id.Project, func([]string) []string) ([]string, error) {
 	return nil, errors.New("not here")
 }
 

@@ -18,7 +18,8 @@ import (
 // Fake's lock.
 type ProjectAdmin struct {
 	Hosts map[id.Project][]string
-	// HostsErr fails SetPrivateHosts, as the Go side refuses a host.
+	// HostsErr fails SetPrivateHosts and EditPrivateHosts, as the Go side
+	// refuses a host.
 	HostsErr error
 	// CreateErr fails Create, as the Go side refuses a project's name.
 	CreateErr error
@@ -68,6 +69,22 @@ func (p projects) SetPrivateHosts(_ context.Context, pid id.Project, hosts []str
 	}
 	p.f.admin.Hosts[pid] = slices.Clone(hosts)
 	return slices.Clone(hosts), nil
+}
+
+// EditPrivateHosts changes the hosts with edit, at once, as the service
+// does under the project's lock.
+func (p projects) EditPrivateHosts(_ context.Context, pid id.Project, edit func([]string) []string) ([]string, error) {
+	p.f.mu.Lock()
+	defer p.f.mu.Unlock()
+	if err := p.f.admin.HostsErr; err != nil {
+		return nil, err
+	}
+	next := edit(slices.Clone(p.f.admin.Hosts[pid]))
+	if p.f.admin.Hosts == nil {
+		p.f.admin.Hosts = map[id.Project][]string{}
+	}
+	p.f.admin.Hosts[pid] = slices.Clone(next)
+	return slices.Clone(next), nil
 }
 
 func (p projects) ExportEstimate(context.Context, id.Project) (project.ExportEstimate, error) {
