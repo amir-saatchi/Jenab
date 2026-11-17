@@ -5,6 +5,7 @@ package state
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -140,4 +141,37 @@ func TestNoticesBecomeToasts(t *testing.T) {
 	s.Apply(app.EventNotice, project.Notice{Project: "p1", Kind: project.NoticeRecovered, Text: "recovered"})
 	same(t, s.TakeToasts(), []Toast{{Text: "damaged", Warning: true, Sticky: true}, {Text: "recovered"}})
 	same(t, len(s.TakeToasts()), 0)
+}
+
+// The Files panel lists a file stored from the app at once, and its folder
+// again when a turn ends, since the agent may have saved files.
+func TestTheFilesPanelHearsOfNewFiles(t *testing.T) {
+	s, _, _, l := newStores(t)
+	s.Actions.Upload = func(_ context.Context, p id.Project, path string) (app.Uploaded, error) {
+		if path == "bad" {
+			return app.Uploaded{}, errors.New("no such file")
+		}
+		return app.Uploaded{Key: "uploads/" + path}, nil
+	}
+	var got []error
+	s.Actions.Attach("p1", "a.md", func(_ app.Uploaded, err error) {
+		same(t, s.Shell.Rev["p1"], 1) // told before the composer hears
+		got = append(got, err)
+	})
+	until(t, l, func() bool { return len(got) == 1 })
+	s.Actions.Attach("p1", "b.md", func(_ app.Uploaded, err error) { got = append(got, err) })
+	until(t, l, func() bool { return len(got) == 2 })
+	same(t, s.Shell.Rev["p1"], 2)
+	s.Actions.Attach("p1", "bad", func(_ app.Uploaded, err error) { got = append(got, err) })
+	until(t, l, func() bool { return len(got) == 3 })
+	same(t, s.Shell.Rev["p1"], 2) // a failed upload stored nothing
+
+	// A turn: working, then idle. An idle for a chat that wasn't busy,
+	// as after a reload, changes nothing.
+	s.Apply(app.EventStatus, waitStatus("a", chat.StateIdle, nil))
+	same(t, s.Shell.Rev["p1"], 2)
+	s.Apply(app.EventStatus, waitStatus("a", chat.StateWorking, nil))
+	same(t, s.Shell.Rev["p1"], 2)
+	s.Apply(app.EventStatus, waitStatus("a", chat.StateIdle, nil))
+	same(t, s.Shell.Rev["p1"], 3)
 }

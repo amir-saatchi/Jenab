@@ -86,7 +86,7 @@ See [directory layout examples](references/directory-layouts.md) for universal, 
 
 Every Go project should include at the root:
 
-- **Build automation** — Jenab's build tool is chosen in Gate 3 (Wails v3 uses a Taskfile). The [Makefile template](assets/Makefile) is only a reference
+- **Build automation** — Jenab has no Taskfile or Makefile: it builds with `go tool mygo build` and `go tool mygo dev`, and tests with `go vet` and `go test` (see `Docs/DEVELOPMENT.md`). The [Makefile template](assets/Makefile) is only a reference
 - **.gitignore** — git ignore patterns. See [.gitignore template](assets/.gitignore)
 - **.golangci.yml** — linter config. See the `samber/cc-skills-golang@golang-lint` skill for the recommended configuration
 

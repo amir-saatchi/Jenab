@@ -57,6 +57,10 @@ type Actions struct {
 	// PickFiles asks the user for files to attach, blocking; nil means
 	// the composer has no button for it.
 	PickFiles func() []string
+	// OnStored is told, on the UI thread, that Attach stored a file in
+	// project p, before Attach's then: the stores have the Files panel
+	// list it.
+	OnStored func(p id.Project)
 }
 
 // NewActions makes the actions. onError shows the errors no caller takes.
@@ -201,14 +205,24 @@ func (a *Actions) UndoRefresh(p id.Project, r app.RefreshUndoRequest, then func(
 	call(a, func(ctx context.Context) (app.RefreshUndo, error) { return a.api.UndoRefresh(ctx, p, r) }, then)
 }
 
-// Attach stores the file at path in the project's bucket.
+// Attach stores the file at path in the project's bucket, and tells
+// OnStored when it is in.
 func (a *Actions) Attach(p id.Project, path string, then func(app.Uploaded, error)) {
 	call(a, func(ctx context.Context) (app.Uploaded, error) {
 		if a.Upload == nil {
 			return app.Uploaded{}, errors.New("attachments are off")
 		}
 		return a.Upload(ctx, p, path)
-	}, then)
+	}, func(up app.Uploaded, err error) {
+		if err == nil && a.OnStored != nil {
+			a.OnStored(p)
+		}
+		if then != nil {
+			then(up, err)
+		} else if err != nil {
+			a.onError(err)
+		}
+	})
 }
 
 // Pick asks for files to attach, off the UI thread, and gives their paths

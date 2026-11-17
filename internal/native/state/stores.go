@@ -133,6 +133,8 @@ func NewStores(api API, post Post) *Stores {
 		actions, _ = api.Chats.(ActionsAPI)
 	}
 	s.Actions = NewActions(actions, post, s.Error)
+	// A file stored from the app shows in the Files panel at once.
+	s.Actions.OnStored = s.Shell.Changed
 	s.Files = NewFiles(api.Bucket, post)
 	s.bucket = api.Bucket
 	s.Bar = NewBar(api.Status, post)
@@ -251,6 +253,11 @@ func (s *Stores) onStatus(st chat.Status) {
 	}
 	s.Chats.Status(st)
 	s.Threads.Status(st)
+	// A turn that ended may have saved or changed files, so the Files
+	// panel lists its folder again and an open file is read again.
+	if st.State == chat.StateIdle && before != "" {
+		s.Shell.Changed(st.Project)
+	}
 	// A chat:status event carries no title, so a new chat or a generated
 	// title shows after the list is read again.
 	if listed && (st.State == chat.StateIdle || !slices.ContainsFunc(items, func(it app.ChatItem) bool { return it.Chat.ID == st.Chat })) {

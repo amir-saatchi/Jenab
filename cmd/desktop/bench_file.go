@@ -3,11 +3,12 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/id"
 )
 
@@ -27,13 +28,26 @@ func (b *bench) file(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no chat open", http.StatusConflict)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-	defer cancel()
-	up, err := b.st.Actions.Upload(ctx, p, r.URL.Query().Get("path"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Attach, as the composer does, so the Files panel hears of the file.
+	type result struct {
+		up  app.Uploaded
+		err error
+	}
+	done := make(chan result, 1)
+	path := r.URL.Query().Get("path")
+	b.ui(func() {
+		b.st.Actions.Attach(p, path, func(up app.Uploaded, err error) { done <- result{up, err} })
+	})
+	var res result
+	select {
+	case res = <-done:
+	case <-time.After(30 * time.Second):
+		res.err = errors.New("the upload took longer than 30 s")
+	}
+	if res.err != nil {
+		http.Error(w, res.err.Error(), http.StatusInternalServerError)
 		return
 	}
-	b.ui(func() { b.st.OpenFile(p, ch, up.Key) })
-	json.NewEncoder(w).Encode(up)
+	b.ui(func() { b.st.OpenFile(p, ch, res.up.Key) })
+	json.NewEncoder(w).Encode(res.up)
 }
