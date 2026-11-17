@@ -76,7 +76,10 @@ type Chats struct {
 	// OnList, if set, gets each project's chats as a new list has them,
 	// after the threads of the chats gone are dropped; the stores prune
 	// what else they keep per chat with it.
-	OnList func(p id.Project, chats []id.Chat)
+	OnList func(p id.Project, chats []id.Chat, stamp int)
+	// Stamp, if set, is read as a list's read starts, and OnList gets it
+	// with the list, so what was added since can be told apart.
+	Stamp func() int
 
 	api     ChatsAPI
 	post    Post
@@ -100,6 +103,10 @@ func (s *Chats) Load(p id.Project) <-chan error {
 	done := make(chan error, 1)
 	s.loads[p]++
 	seq := s.loads[p]
+	stamp := 0
+	if s.Stamp != nil {
+		stamp = s.Stamp()
+	}
 	go func() {
 		items, err := s.api.List(background, p)
 		s.post(func() {
@@ -114,7 +121,7 @@ func (s *Chats) Load(p id.Project) <-chan error {
 					s.threads.Gone(p, ids)
 				}
 				if s.OnList != nil {
-					s.OnList(p, ids)
+					s.OnList(p, ids, stamp)
 				}
 			}
 			done <- err

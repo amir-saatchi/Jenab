@@ -128,6 +128,12 @@ type Nav struct {
 	// SidebarHidden hides the left sidebar and puts its chats into the
 	// rail, as while a page is open (5.12).
 	SidebarHidden bool
+
+	// ticks counts the chats that came into MRU; entered is the tick each
+	// one in it came at. Prune keeps a chat that came after the list it
+	// gets was read: that list may predate the chat.
+	ticks   int
+	entered map[ChatRef]int
 }
 
 // NewNav is a Nav at no place.
@@ -142,10 +148,34 @@ func (n *Nav) noCycle() { n.Cycle, n.cycleFrom = -1, nil }
 func (n *Nav) Go(p Place) {
 	n.History = Push(n.History, p)
 	if p.View == ViewChat {
-		n.MRU = Used(n.MRU, ChatRef{p.Project, p.Chat})
+		n.use(ChatRef{p.Project, p.Chat})
 	}
 	n.noCycle()
 }
+
+// use moves c to the front of MRU, noting when it came in if it is new
+// there.
+func (n *Nav) use(c ChatRef) {
+	if n.entered == nil {
+		n.entered = map[ChatRef]int{}
+	}
+	if _, ok := n.entered[c]; !ok || !slices.Contains(n.MRU, c) {
+		n.ticks++
+		n.entered[c] = n.ticks
+	}
+	n.MRU = Used(n.MRU, c)
+	if len(n.entered) > len(n.MRU) {
+		for r := range n.entered {
+			if !slices.Contains(n.MRU, r) {
+				delete(n.entered, r)
+			}
+		}
+	}
+}
+
+// Stamp is the time, in Nav's ticks, of a chat list's read as it starts:
+// give it to Prune with the list.
+func (n *Nav) Stamp() int { return n.ticks }
 
 // Back goes back a place; the chat landed on counts as used.
 func (n *Nav) Back() { n.moved(Step(n.History, -1)) }
@@ -156,7 +186,7 @@ func (n *Nav) Forward() { n.moved(Step(n.History, 1)) }
 func (n *Nav) moved(h History) {
 	n.History = h
 	if p := h.At(); p != nil && p.View == ViewChat {
-		n.MRU = Used(n.MRU, ChatRef{p.Project, p.Chat})
+		n.use(ChatRef{p.Project, p.Chat})
 	}
 	n.noCycle()
 }
@@ -193,15 +223,20 @@ func (n *Nav) NextChat(by int) {
 }
 
 // Prune drops from the MRU list the chats of project p that its new
-// chat list doesn't have, but keep, the chat shown, which the list may
-// predate. During a Ctrl+Tab cycle it waits for the next list, so the
-// cycle's place in the list holds.
-func (n *Nav) Prune(p id.Project, listed []id.Chat, keep id.Chat) {
+// chat list doesn't have. It keeps keep, the chat shown, and the chats
+// that came into MRU after the list's read started, at stamp (Stamp):
+// the list may predate them. During a Ctrl+Tab cycle it waits for the
+// next list, so the cycle's place in the list holds.
+func (n *Nav) Prune(p id.Project, listed []id.Chat, keep id.Chat, stamp int) {
 	if n.Cycle >= 0 {
 		return
 	}
 	n.MRU = slices.DeleteFunc(n.MRU, func(r ChatRef) bool {
-		return r.Project == p && r.Chat != keep && !slices.Contains(listed, r.Chat)
+		gone := r.Project == p && r.Chat != keep && !slices.Contains(listed, r.Chat) && n.entered[r] <= stamp
+		if gone {
+			delete(n.entered, r)
+		}
+		return gone
 	})
 }
 
@@ -210,6 +245,6 @@ func (n *Nav) EndCycle() {
 	if n.Cycle < 0 {
 		return
 	}
-	n.MRU = Used(n.MRU, n.MRU[n.Cycle])
+	n.use(n.MRU[n.Cycle])
 	n.noCycle()
 }

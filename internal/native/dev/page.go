@@ -27,7 +27,10 @@ type Screen struct {
 
 	// starting is the read of what this start used while it runs. The
 	// stores fill it on the UI thread, so View takes it there.
-	starting  <-chan error
+	starting <-chan error
+	// failed is why that read failed; it is shown with Try again, which
+	// reads again.
+	failed    string
 	chosen    map[string]int // the request chosen, per turn
 	blockOpen bool           // the block text's dialog
 	lines     kit.ListState  // the block text's place
@@ -55,12 +58,15 @@ func (s *Screen) View(c *kit.Context, place *state.Place) {
 	started := s.st.Settings.Started
 	if s.starting != nil {
 		select {
-		case <-s.starting:
+		case err := <-s.starting:
 			s.starting = nil
+			if err != nil && s.st.Settings.Started == nil {
+				s.failed = state.ErrorText(err)
+			}
 		default:
 		}
 	}
-	if started == nil && s.starting == nil {
+	if started == nil && s.starting == nil && s.failed == "" {
 		s.starting = s.st.Settings.LoadStarted()
 	}
 	on := started != nil && started.DevTools
@@ -91,6 +97,11 @@ func (s *Screen) View(c *kit.Context, place *state.Place) {
 					}
 				})
 				switch {
+				case started == nil && s.failed != "":
+					kit.Alert(c, kit.Red, "What this start used couldn't be read", s.failed)
+					if kit.Button(c, "Try again", kit.Outline).AlignSelf(kit.Start).Clicked() {
+						s.failed = ""
+					}
 				case started == nil:
 					kit.Spinner(c, "Loading").AlignSelf(kit.Start)
 				case !on:

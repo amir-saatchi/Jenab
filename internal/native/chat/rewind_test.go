@@ -58,3 +58,47 @@ func TestTheRewindDialogActsOnItsOwnChat(t *testing.T) {
 		t.Error("the dialog shows over b")
 	}
 }
+
+// The dialog shows the plan of its own opening (TASK-072): an earlier
+// opening's plan, coming last, doesn't take its place.
+func TestTheRewindDialogShowsItsOwnPlan(t *testing.T) {
+	x := open(t, false,
+		statetest.Text(1, jc.RoleUser, "First"), answer(1, text("One")),
+		statetest.Text(2, jc.RoleUser, "Second "+persian), answer(2, text("Two")))
+	a := x.ch
+	b := x.f.AddChat(x.p, "Other")
+	x.f.AddMessages(b,
+		statetest.Text(1, jc.RoleUser, "Elsewhere"), answer(1, text("Three")),
+		statetest.Text(2, jc.RoleUser, "Again"), answer(2, text("Four")))
+	x.st.OpenChat(x.p, b)
+	if !x.loop.Drain(func() bool { return x.st.Threads.Threads[b] != nil }) {
+		t.Fatal("the other chat did not open")
+	}
+	release := make(chan struct{})
+	x.f.HoldRewindState = func(c id.Chat) {
+		if c == a {
+			<-release
+		}
+	}
+	x.draw()
+
+	clickLast(t, x.tt, "Edit and resend") // in a: its plan is held back
+	x.ch = b
+	x.draw()
+	clickLast(t, x.tt, "Edit and resend") // in b
+	x.until(t, "b's dialog", func() bool { return x.tt.HasText("Edit and resend?") })
+	close(release) // a's plan comes last
+	x.draw()
+	if !x.tt.HasText("Edit and resend?") {
+		t.Fatal("a's late plan put b's dialog away")
+	}
+	clickLast(t, x.tt, "Edit and resend") // the dialog's
+	x.until(t, "the rewind", func() bool { return len(x.f.Rewinds()) == 1 })
+	if got := x.f.Rewound(); !slices.Equal(got, []id.Chat{b}) {
+		t.Errorf("rewound %v, want %v", got, []id.Chat{b})
+	}
+	x.draw()
+	if m, _ := x.tt.Access("Message"); m.Value != "Again" {
+		t.Errorf("b's composer holds %q", m.Value)
+	}
+}

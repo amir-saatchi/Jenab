@@ -126,7 +126,7 @@ func NewStores(api API, post Post) *Stores {
 	s.Projects = NewProjects(api.Projects, post)
 	s.Threads = NewThreads(api.Chats, post, s.Error)
 	s.Chats = NewChats(api.Chats, post, s.Threads)
-	s.Chats.OnList = s.listed
+	s.Chats.OnList, s.Chats.Stamp = s.listed, s.Nav.Stamp
 	s.Settings = NewSettings(api.Settings, post, s.Error)
 	actions := api.Actions
 	if actions == nil {
@@ -177,12 +177,12 @@ func (s *Stores) Close() {
 // listed prunes what Nav and Shell keep for the chats of p that its new
 // chat list no longer has, as Threads.Gone drops their threads: the chat
 // shown stays, since the list may predate it.
-func (s *Stores) listed(p id.Project, chats []id.Chat) {
+func (s *Stores) listed(p id.Project, chats []id.Chat, stamp int) {
 	var shown id.Chat
 	if at := s.Nav.Current(); at != nil && at.View == ViewChat && at.Project == p {
 		shown = at.Chat
 	}
-	s.Nav.Prune(p, chats, shown)
+	s.Nav.Prune(p, chats, shown, stamp)
 	s.Shell.Prune(p, chats, shown)
 	for _, fn := range s.OnPrune {
 		fn(p, chats, shown)
