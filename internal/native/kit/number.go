@@ -56,22 +56,26 @@ func latinDigits(s string) string {
 
 // Number is a whole-number field as NumberInput built it in this frame.
 // Committed is set in the frame the user committed a new value, Value
-// then (nil for an emptied optional field); a failed save calls Failed.
+// then (nil for an emptied optional field); the commit's save then calls
+// Saved, or Failed if it failed.
 type Number struct {
 	Element
 	Committed bool
 	Value     *int
 	st        *numberState
+	send      int // the commit's number, for Saved
 }
 
 type numberState struct {
 	text, shown string
 	bad         string // the tooltip while the field is marked
 	// sent is the value last committed, as text, while sending holds:
-	// until the value shown changes or its save fails, so Enter and then
-	// leaving the field commit it once.
+	// until its save ends (Saved or Failed) or the value shown changes, so
+	// Enter and then leaving the field commit it once. sends counts the
+	// commits, so an older commit's save doesn't end a newer one's.
 	sent    string
 	sending bool
+	sends   int
 }
 
 // NumberSpec is what a number field takes: the least value, and whether
@@ -111,7 +115,8 @@ func NumberInput(c *Context, value *int, label string, spec NumberSpec) Number {
 				st.bad = ""
 				if sent := numberText(v); !st.sending || sent != st.sent {
 					st.sent, st.sending = sent, true
-					n.Committed, n.Value = true, v
+					st.sends++
+					n.Committed, n.Value, n.send = true, v, st.sends
 				}
 			}
 		}
@@ -121,6 +126,15 @@ func NumberInput(c *Context, value *int, label string, spec NumberSpec) Number {
 		n.Element = in
 	})
 	return n
+}
+
+// Saved ends the commit's save: the same text commits again, even if the
+// value shown stayed as it was (TASK-076). A newer commit's save, still
+// on its way, still holds.
+func (n Number) Saved() {
+	if n.st != nil && n.send == n.st.sends {
+		n.st.sending = false
+	}
 }
 
 // Failed marks the field as not saved and puts back the value shown, as

@@ -16,6 +16,9 @@ import (
 // ErrNotFound means the keychain has no entry with that name.
 var ErrNotFound = errors.New("secret: not found")
 
+// ErrNotListable means the keychain can't name the secrets it holds.
+var ErrNotListable = errors.New("secret: the keychain can't list its entries here")
+
 // Size limits for a value: the Windows credential store takes at most
 // 2,560 bytes (SPIKE-006).
 const (
@@ -75,6 +78,12 @@ type Keyring interface {
 	Delete(name string) error // ErrNotFound when missing
 }
 
+// Lister is a keychain that can name every secret it holds for the app.
+// The OS keychain can on Windows only (ErrNotListable elsewhere).
+type Lister interface {
+	Names() ([]string, error)
+}
+
 // Store reads secrets when they are needed and never keeps their values
 // (SPEC 6.7). It remembers only the names it has seen, for Redact.
 type Store struct {
@@ -119,6 +128,17 @@ func (s *Store) Delete(name string) error {
 	delete(s.names, name)
 	s.mu.Unlock()
 	return nil
+}
+
+// Stored names every secret the keychain holds for the app, such as the
+// key of a provider that was removed from the settings but not from the
+// keychain. ErrNotListable means this keychain can't tell.
+func (s *Store) Stored() ([]string, error) {
+	l, ok := s.kr.(Lister)
+	if !ok {
+		return nil, ErrNotListable
+	}
+	return l.Names()
 }
 
 // Redact replaces every secret this store has read or written with

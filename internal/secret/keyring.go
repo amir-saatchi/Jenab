@@ -2,6 +2,7 @@ package secret
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/zalando/go-keyring"
 )
@@ -33,4 +34,16 @@ func mapErr(err error) error {
 		return ErrNotFound
 	}
 	return err
+}
+
+// namesUnder turns the keychain's target names into secret names: those
+// under "<service>:", without it.
+func namesUnder(service string, targets []string) []string {
+	var out []string
+	for _, t := range targets {
+		if n, ok := strings.CutPrefix(t, service+":"); ok && n != "" {
+			out = append(out, n)
+		}
+	}
+	return out
 }

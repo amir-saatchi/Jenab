@@ -71,6 +71,9 @@ type Fake struct {
 	// HoldRewindState, if set, runs before RewindState answers, outside
 	// mu: a test holds a chat's answer back with it.
 	HoldRewindState func(c id.Chat)
+	// HoldUndoState, if set, runs after UndoState read TurnUndo and before
+	// it answers, outside mu: a test holds an older answer back with it.
+	HoldUndoState func(turn int)
 	// Bucket is the projects' files and the bottom bar's readings.
 	Bucket FakeBucket
 	admin  ProjectAdmin // the project screens' part (fake_project.go)
@@ -470,10 +473,21 @@ func (f *Fake) SetLevel(_ context.Context, _ id.Project, _ id.Chat, level string
 }
 
 // UndoState is TurnUndo, what Undo turn and Redo turn would do now.
-func (f *Fake) UndoState(context.Context, id.Project, id.Chat, int) (agent.TurnUndoState, error) {
+func (f *Fake) UndoState(_ context.Context, _ id.Project, _ id.Chat, turn int) (agent.TurnUndoState, error) {
+	f.mu.Lock()
+	st, hold := f.TurnUndo, f.HoldUndoState
+	f.mu.Unlock()
+	if hold != nil {
+		hold(turn)
+	}
+	return st, nil
+}
+
+// SetTurnUndo changes TurnUndo while the chat shows.
+func (f *Fake) SetTurnUndo(st agent.TurnUndoState) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.TurnUndo, nil
+	f.TurnUndo = st
 }
 
 // UndoTurn records the request, and an undo or redo that has changes to
