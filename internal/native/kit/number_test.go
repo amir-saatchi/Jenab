@@ -200,3 +200,50 @@ func TestNumberInputCommitsOnce(t *testing.T) {
 		}
 	})
 }
+
+// TASK-076: a save that ends without changing the value shown ends the
+// commit too, so the same text commits again; an older commit's save
+// doesn't end a newer one's.
+func TestNumberInputCommitsAgainAfterASave(t *testing.T) {
+	var value *int
+	var commits []int
+	var saves []Number
+	view := func(c *Context) {
+		between(c, func() {
+			n := NumberInput(c, value, "Parallel calls", NumberSpec{Min: 1})
+			if n.Committed {
+				commits = append(commits, *n.Value)
+				saves = append(saves, n)
+			}
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		four := 4
+		value, commits, saves = &four, nil, nil
+		tt.Frame()
+		tabTo(t, tt, "Parallel calls")
+		commit := func(text string) {
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Type(text)
+			tt.Key(0, ui.KeyEnter)
+			tt.Frame()
+		}
+		commit("8")
+		saves[0].Saved() // saved, but the value shown is still 4
+		tt.Frame()
+		commit("8")
+		if len(commits) != 2 {
+			t.Fatalf("after its save, 8 again committed %v, want [8 8]", commits)
+		}
+
+		// 9 is sent, then 8's second save ends: 9 still holds.
+		commit("9")
+		saves[1].Saved()
+		tt.Frame()
+		tt.Key(0, ui.KeyTab)
+		tt.Frame()
+		if len(commits) != 3 || commits[2] != 9 {
+			t.Errorf("an older save let 9 commit twice: %v", commits)
+		}
+	})
+}

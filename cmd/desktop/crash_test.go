@@ -22,6 +22,15 @@ func (k testKeyring) Get(name string) (string, error) {
 func (k testKeyring) Set(name, value string) error { k[name] = value; return nil }
 func (k testKeyring) Delete(name string) error     { delete(k, name); return nil }
 
+// Names lists the keychain, as Credential Manager can.
+func (k testKeyring) Names() ([]string, error) {
+	var out []string
+	for n := range k {
+		out = append(out, n)
+	}
+	return out, nil
+}
+
 // The start after a crash turns its output into a log without the keys
 // and tells the user, with a button that opens the log (TASK-067).
 func TestTheNextStartShowsTheCrash(t *testing.T) {
@@ -68,6 +77,44 @@ func TestALostCrashLogIsTold(t *testing.T) {
 	for _, want := range []string{"closed unexpectedly", "couldn't be written", "deleted"} {
 		if !strings.Contains(toast.Text, want) {
 			t.Errorf("the text has no %q: %q", want, toast.Text)
+		}
+	}
+}
+
+// A crash from before a provider was removed keeps that provider's key
+// out of its log (TASK-076): the keychain still has it, so it is hidden by
+// value; a key the keychain no longer has is hidden by its shape.
+func TestACrashHidesARemovedProvidersKey(t *testing.T) {
+	dir := t.TempDir()
+	const (
+		kept    = "sk-test-0123456789abcdef"
+		removed = "removed-0123456789abcdef"   // no known shape: found by value
+		gone    = "gone0123456789abcdefABCDEF" // not in the keychain
+	)
+	raw := filepath.Join(dir, "crash-20261117-100000-8.raw")
+	out := "panic: the call broke\n" +
+		"POST /v1/chat headers map[Authorization:[Bearer " + removed + "]]\n" +
+		"GET /v1/models Authorization: Bearer " + gone + "\n" +
+		"kept " + kept + "\n\ngoroutine 1 [running]:\n"
+	if err := os.WriteFile(raw, []byte(out), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var s config.Settings
+	s.LLM.Providers = map[string]config.ProviderSettings{"test": {Kind: "openai"}}
+	secrets := secret.New(testKeyring{"provider:test": kept, "provider:old": removed})
+	res, err := crash.Collect(dir, "", crashRedactor(s, secrets))
+	if err != nil || len(res.Logs) != 1 {
+		t.Fatalf("Collect: %v, %v", res, err)
+	}
+	b, _ := os.ReadFile(res.Logs[0])
+	for _, k := range []string{kept, removed, gone} {
+		if strings.Contains(string(b), k) {
+			t.Errorf("the crash log shows %q:\n%s", k, b)
+		}
+	}
+	for _, want := range []string{"[secret:provider:test]", "[secret:provider:old]", "Bearer [secret]", "goroutine 1 [running]"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("the crash log has no %q:\n%s", want, b)
 		}
 	}
 }

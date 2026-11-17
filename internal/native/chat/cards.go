@@ -554,8 +554,12 @@ type undo struct {
 	state *agent.TurnUndoState
 	// reads counts the state's reads started, and shown is the one whose
 	// answer state holds: an older answer that comes last is dropped.
-	reads  int
-	shown  int
+	reads int
+	shown int
+	// then waits for the newest read started to answer, so the dialog is
+	// opened with the newest state, not with the answer of the read the
+	// click started when a later read was made (TASK-076).
+	then   func(agent.TurnUndoState)
 	seen   int
 	read   bool
 	busy   bool
@@ -582,20 +586,24 @@ func (s *Screen) undoTurn(c *kit.Context, t *state.Thread, turn int, rewind int6
 	read := func(then func(agent.TurnUndoState)) {
 		u.reads++
 		n := u.reads
+		if then != nil {
+			u.then = then
+		}
 		s.st.Actions.UndoState(p, ch, turn, rewind, func(st agent.TurnUndoState, err error) {
-			if err != nil {
-				if then != nil {
-					u.busy = false
-					s.st.Error(err)
-				}
-				return
-			}
-			if n > u.shown {
+			if err == nil && n > u.shown {
 				u.shown, u.state = n, &st
 			}
-			if then != nil {
-				then(st)
+			if n != u.reads || u.then == nil {
+				return // a newer read answers the waiting dialog
 			}
+			then := u.then
+			u.then = nil
+			if err != nil {
+				u.busy = false
+				s.st.Error(err)
+				return
+			}
+			then(*u.state)
 		})
 	}
 	if !u.read || u.seen != len(t.Messages) {

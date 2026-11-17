@@ -13,7 +13,10 @@ import (
 
 // crashRedactor hides every provider key and base-URL field the settings
 // name, as the logs and exports do (SPEC 6.7), for the crash logs
-// (TASK-067).
+// (TASK-067). The crash may come from before a provider was removed, so it
+// also hides every other secret the keychain still holds for the app, where
+// the keychain can list them (Windows), and then whatever looks like a key
+// (secret.Shapes), for a key the keychain no longer has (TASK-076).
 func crashRedactor(s config.Settings, secrets *secret.Store) func(string) string {
 	var names []string
 	for name, ps := range s.LLM.Providers {
@@ -26,7 +29,11 @@ func crashRedactor(s config.Settings, secrets *secret.Store) func(string) string
 			names = append(names, provider.FieldName(name, f))
 		}
 	}
-	return secrets.Redactor(names...)
+	if stored, err := secrets.Stored(); err == nil {
+		names = append(names, stored...)
+	}
+	redact := secrets.Redactor(names...)
+	return func(text string) string { return secret.Shapes(redact(text)) }
 }
 
 // crashNotice is the toast that tells the user an earlier run crashed,

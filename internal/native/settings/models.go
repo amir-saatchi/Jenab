@@ -109,7 +109,9 @@ func (s *Screen) providerRow(c *kit.Context, set config.Settings, pr logic.Provi
 						if err != nil {
 							n.Failed()
 							s.st.Error(err)
+							return
 						}
+						n.Saved()
 					})
 				}
 			})
@@ -402,7 +404,9 @@ func (s *Screen) limits(c *kit.Context, set config.Settings) {
 							if err != nil {
 								n.Failed()
 								s.st.Error(err)
+								return
 							}
+							n.Saved()
 						})
 					}
 				})
