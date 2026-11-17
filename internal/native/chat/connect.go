@@ -3,11 +3,13 @@ package chat
 import (
 	"errors"
 
+	"github.com/amir-saatchi/jenab/internal/agent"
 	"github.com/amir-saatchi/jenab/internal/app"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
 	"github.com/amir-saatchi/jenab/internal/native/settings"
 	"github.com/amir-saatchi/jenab/internal/native/state"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // The Connect card (ProviderCard, SPEC 3.9): a message sent with no
@@ -42,20 +44,30 @@ func (s *Screen) keepConnect(ch id.Chat, shows bool) {
 // sendKept sends chat ch's kept message once a connect started from its
 // card is done. It does so even when the card stopped showing meanwhile:
 // the settings, with the new provider, are read before its models are, so
-// a frame between the two drops the card. A chat whose turn went on in
-// the meantime, by Retry or a new message, or that was deleted, has no
-// message waiting, and that is no error.
+// a frame between the two drops the card.
+//
+// A refusal that means the message went or has nowhere to go is dropped:
+// the chat is in a turn, its last turn no longer stopped on an error (the
+// user pressed Retry or sent a message, so it went on), or the chat is
+// gone. Any other refusal, such as a memory refresh running, is shown, and
+// the Retry card, which shows in the Connect card's place once a provider
+// is set up, still sends the message.
 func (s *Screen) sendKept(p id.Project, ch id.Chat) {
 	k := s.cardOf("failed:" + string(ch))
 	k.busy = true
 	s.st.Actions.Retry(p, ch, func(err error) {
 		k.busy = false
-		var ue *app.UIError
-		if errors.As(err, &ue) && (ue.Kind == app.KindBusy || ue.Kind == app.KindNotFound) {
+		if keptGone(err) {
 			return
 		}
 		s.st.Error(err)
 	})
+}
+
+// keptGone tells whether a Retry refused with err leaves no kept message
+// to send: it went with a turn, or the chat is gone.
+func keptGone(err error) bool {
+	return errors.Is(err, agent.ErrInTurn) || errors.Is(err, agent.ErrNoRetry) || errors.Is(err, store.ErrNotFound)
 }
 
 // connectCard is "Notes needs an AI model to answer" with the form.

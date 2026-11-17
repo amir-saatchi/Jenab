@@ -31,10 +31,13 @@ type chip struct {
 }
 
 // ask reads whether the chip's change is undone, if it hasn't since the
-// chat's newest turn undo, undo. A read that fails leaves the chip as it
-// was and known, so a click says what is wrong.
+// chat's newest turn undo, undo. It waits while the chip's own undo or redo
+// runs: a read then may run before that lands, and would take back what
+// it does. Once it ends, the next frame reads if a turn undo came
+// meanwhile. A read that fails leaves the chip as it was and known, so a
+// click says what is wrong.
 func (k *chip) ask(undo id.Message, read func(then func(bool, error))) {
-	if k.read && k.undo == undo {
+	if k.busy || (k.read && k.undo == undo) {
 		return
 	}
 	k.read, k.undo, k.known = true, undo, false
@@ -51,8 +54,9 @@ func (k *chip) ask(undo id.Message, read func(then func(bool, error))) {
 	})
 }
 
-// sent marks an undo or redo sent; it returns the check that its answer
-// is still the newest, since a turn undo meanwhile asks again.
+// sent marks an undo or redo sent, which holds the chip's reads until it
+// ends; it returns the check that its answer is still the newest the chip
+// asked for.
 func (k *chip) sent() func() bool {
 	k.busy = true
 	k.asks++

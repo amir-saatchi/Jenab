@@ -104,3 +104,31 @@ func TestUIErrorQuiet(t *testing.T) {
 		t.Errorf("log %q", buf.String())
 	}
 }
+
+// A UIError made from a known error still matches it with errors.Is, and
+// carries only the sentinel, not the error's text.
+func TestUIErrorKeepsItsKnownCause(t *testing.T) {
+	b := base{log: slog.New(slog.DiscardHandler), redact: func(s string) string { return s }}
+	all := []error{agent.ErrInTurn, agent.ErrNoRetry, agent.ErrRefreshing, store.ErrNotFound}
+	for _, known := range all {
+		var err error = fmt.Errorf("chat 01J: %w", known)
+		b.guard("test", &err)
+		if !errors.Is(err, known) {
+			t.Errorf("%v: lost its cause: %#v", known, err)
+		}
+		for _, other := range all {
+			if other != known && errors.Is(err, other) {
+				t.Errorf("%v matches %v", known, other)
+			}
+		}
+		var ue *UIError
+		if errors.As(err, &ue) && ue.Cause != known {
+			t.Errorf("%v: the cause is %v, not the sentinel alone", known, ue.Cause)
+		}
+	}
+	var odd error = errors.New("disk full")
+	b.guard("test", &odd)
+	if errors.Unwrap(odd) != nil {
+		t.Errorf("an unknown error has a cause: %#v", odd)
+	}
+}
