@@ -73,32 +73,48 @@ type Chats struct {
 	ByProject map[id.Project][]app.ChatItem
 	Waiting   []app.WaitingItem
 
+	// OnList, if set, gets each project's chats as a new list has them,
+	// after the threads of the chats gone are dropped; the stores prune
+	// what else they keep per chat with it.
+	OnList func(p id.Project, chats []id.Chat)
+
 	api     ChatsAPI
 	post    Post
 	threads *Threads
+	// loads and waiting count the reads started, so an answer older than
+	// the last one started is dropped, as Pages.LoadUsage does.
+	loads   map[id.Project]int
+	waiting int
 }
 
 // NewChats makes the store; a chat a new list no longer has is dropped
 // from threads.
 func NewChats(api ChatsAPI, post Post, threads *Threads) *Chats {
-	return &Chats{ByProject: map[id.Project][]app.ChatItem{}, api: api, post: post, threads: threads}
+	return &Chats{ByProject: map[id.Project][]app.ChatItem{}, api: api, post: post, threads: threads, loads: map[id.Project]int{}}
 }
 
-// Load reads a project's chat list.
+// Load reads a project's chat list. When two reads overlap, the one
+// started last is kept, whichever answers last; the channel of the other
+// gets its error or nil.
 func (s *Chats) Load(p id.Project) <-chan error {
 	done := make(chan error, 1)
+	s.loads[p]++
+	seq := s.loads[p]
 	go func() {
 		items, err := s.api.List(background, p)
 		s.post(func() {
-			if err == nil {
+			if err == nil && seq == s.loads[p] {
 				s.ByProject[p] = items
+				ids := make([]id.Chat, len(items))
+				for i, it := range items {
+					ids[i] = it.Chat.ID
+				}
 				// A chat no longer listed was deleted: its thread goes too.
 				if s.threads != nil {
-					ids := make([]id.Chat, len(items))
-					for i, it := range items {
-						ids[i] = it.Chat.ID
-					}
 					s.threads.Gone(p, ids)
+				}
+				if s.OnList != nil {
+					s.OnList(p, ids)
 				}
 			}
 			done <- err
@@ -107,13 +123,16 @@ func (s *Chats) Load(p id.Project) <-chan error {
 	return done
 }
 
-// LoadWaiting reads the chats that wait for the user.
+// LoadWaiting reads the chats that wait for the user, keeping the read
+// started last as Load does.
 func (s *Chats) LoadWaiting() <-chan error {
 	done := make(chan error, 1)
+	s.waiting++
+	seq := s.waiting
 	go func() {
 		ws, err := s.api.Waiting(background)
 		s.post(func() {
-			if err == nil {
+			if err == nil && seq == s.waiting {
 				s.Waiting = ws
 			}
 			done <- err

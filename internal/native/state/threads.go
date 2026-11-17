@@ -42,6 +42,7 @@ type Threads struct {
 	onError func(error)
 	streams map[id.Chat]*Stream
 	reading map[id.Chat]*readRun // reads in flight; events that come meanwhile wait in queue
+	stale   map[id.Chat]bool     // threads whose read failed: the next event reads them
 	older   map[id.Chat]bool
 	recent  []id.Chat
 }
@@ -49,6 +50,7 @@ type Threads struct {
 type readRun struct {
 	queue []Event
 	again bool
+	tries int // failed reads of a thread shown, tried again after retryWaits
 	then  []func(error)
 }
 
@@ -61,7 +63,7 @@ func NewThreads(api ThreadAPI, post Post, onError func(error)) *Threads {
 	return &Threads{
 		Threads: map[id.Chat]*Thread{}, Failed: map[id.Chat]string{}, Drafts: map[id.Chat]string{}, Fills: map[id.Chat]string{},
 		api: api, post: post, onError: onError,
-		streams: map[id.Chat]*Stream{}, reading: map[id.Chat]*readRun{}, older: map[id.Chat]bool{},
+		streams: map[id.Chat]*Stream{}, reading: map[id.Chat]*readRun{}, stale: map[id.Chat]bool{}, older: map[id.Chat]bool{},
 	}
 }
 
@@ -69,13 +71,19 @@ func NewThreads(api ThreadAPI, post Post, onError func(error)) *Threads {
 func (s *Threads) Stream(c id.Chat) *Stream { return s.streams[c] }
 
 // read reads the chat again and replays the events that came meanwhile.
-// A read already running reads once more instead; then, if given, runs
-// when the read is done.
+// A read already running reads once more instead. then, if given, runs
+// when the read is applied, or has failed.
+//
+// A failed read of a thread shown keeps the events that came meanwhile
+// and is tried again after retryWaits. When every try fails the events
+// are applied to the thread as it is, so a turn's end still ends it, and
+// the thread is marked stale: the next event reads it again. A first
+// read, of a chat not shown yet, is tried again by Open instead.
 func (s *Threads) read(p id.Project, c id.Chat, then func(error)) {
 	if r := s.reading[c]; r != nil {
 		r.again = true
 		if then != nil {
-			then(nil)
+			r.then = append(r.then, then)
 		}
 		return
 	}
@@ -92,26 +100,64 @@ func (s *Threads) readOnce(p id.Project, c id.Chat, run *readRun) {
 	go func() {
 		snap, err := s.api.Snapshot(background, p, c)
 		s.post(func() {
+			if s.reading[c] != run {
+				// Forgotten meanwhile: the answer must not bring it back.
+				s.done(run, nil)
+				return
+			}
 			if err == nil {
 				live := FromLive(snap.Live)
 				s.Threads[c] = FromSnapshot(s.Threads[c], p, snap)
 				s.streams[c] = live
+				delete(s.stale, c)
 				queue := run.queue
 				run.queue = nil
 				for _, e := range Fresh(queue, live) {
 					s.apply(e)
 				}
 				if run.again {
+					run.tries = 0
 					s.readOnce(p, c, run)
 					return
 				}
+				delete(s.reading, c)
+				s.done(run, nil)
+				return
+			}
+			if s.Threads[c] != nil && run.tries < len(retryWaits) {
+				wait := retryWaits[run.tries]
+				run.tries++
+				time.AfterFunc(wait, func() {
+					s.post(func() {
+						if s.reading[c] != run {
+							s.done(run, nil)
+							return
+						}
+						s.readOnce(p, c, run)
+					})
+				})
+				return
 			}
 			delete(s.reading, c)
-			for _, fn := range run.then {
-				fn(err)
+			if s.Threads[c] != nil {
+				s.stale[c] = true
+				queue := run.queue
+				run.queue = nil
+				for _, e := range queue {
+					s.apply(e)
+				}
 			}
+			s.done(run, err)
 		})
 	}()
+}
+
+// done runs a read's thens.
+func (s *Threads) done(run *readRun, err error) {
+	for _, fn := range run.then {
+		fn(err)
+	}
+	run.then = nil
 }
 
 func (s *Threads) report(err error) {
@@ -168,6 +214,9 @@ func (s *Threads) endStream(c id.Chat, message id.Message) {
 }
 
 func (s *Threads) event(c id.Chat, e Event) {
+	if t := s.Threads[c]; t != nil && s.stale[c] && s.reading[c] == nil {
+		s.read(t.Project, c, s.report)
+	}
 	if r := s.reading[c]; r != nil {
 		r.queue = append(r.queue, e)
 		return
@@ -219,7 +268,8 @@ func (s *Threads) tryOpen(p id.Project, c id.Chat, i int, done chan error) {
 		}
 		time.AfterFunc(retryWaits[i], func() {
 			s.post(func() {
-				if s.Threads[c] != nil {
+				if s.Threads[c] != nil || !slices.Contains(s.recent, c) {
+					// Read meanwhile, or forgotten.
 					done <- nil
 					return
 				}
@@ -293,9 +343,13 @@ func (s *Threads) Reload(c id.Chat) <-chan error {
 	return done
 }
 
-// Forget drops a chat's thread and stream; a deleted chat's draft too.
+// Forget drops a chat's thread and stream; a deleted chat's draft too. A
+// read in flight is dropped with them, so its answer doesn't bring the
+// thread back.
 func (s *Threads) Forget(c id.Chat, deleted bool) {
 	delete(s.streams, c)
+	delete(s.reading, c)
+	delete(s.stale, c)
 	if deleted {
 		delete(s.Drafts, c)
 		s.recent = slices.DeleteFunc(s.recent, func(r id.Chat) bool { return r == c })

@@ -30,15 +30,20 @@ type Hosts struct {
 	api     HostsAPI
 	post    Post
 	onError func(error)
+	// seq counts each project's reads and changes started: an answer
+	// older than the last one started doesn't overwrite its list.
+	seq map[id.Project]int
 }
 
 // NewHosts makes the store. onError shows the errors no caller takes.
 func NewHosts(api HostsAPI, post Post, onError func(error)) *Hosts {
-	return &Hosts{ByProject: map[id.Project][]string{}, Busy: map[id.Project]bool{}, api: api, post: post, onError: onError}
+	return &Hosts{ByProject: map[id.Project][]string{}, Busy: map[id.Project]bool{}, api: api, post: post, onError: onError, seq: map[id.Project]int{}}
 }
 
 // Load reads the project's list.
 func (h *Hosts) Load(p id.Project) {
+	h.seq[p]++
+	seq := h.seq[p]
 	go func() {
 		hosts, err := h.api.PrivateHosts(background, p)
 		h.post(func() {
@@ -46,7 +51,9 @@ func (h *Hosts) Load(p id.Project) {
 				h.onError(err)
 				return
 			}
-			h.ByProject[p] = orEmpty(hosts)
+			if seq == h.seq[p] {
+				h.ByProject[p] = orEmpty(hosts)
+			}
 		})
 	}()
 }
@@ -55,6 +62,8 @@ func (h *Hosts) Load(p id.Project) {
 // since the page read it, and gives then the error, if any.
 func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(error)) {
 	h.Busy[p] = true
+	h.seq[p]++
+	seq := h.seq[p]
 	go func() {
 		stored, err := h.api.PrivateHosts(background, p)
 		var saved []string
@@ -63,7 +72,7 @@ func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(err
 		}
 		h.post(func() {
 			delete(h.Busy, p)
-			if err == nil {
+			if err == nil && seq == h.seq[p] {
 				h.ByProject[p] = orEmpty(saved)
 			}
 			then(err)

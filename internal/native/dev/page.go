@@ -25,7 +25,9 @@ type Screen struct {
 	// Now is the clock for how long work has run; nil is time.Now.
 	Now func() time.Time
 
-	starting  bool           // reading what this start used
+	// starting is the read of what this start used while it runs. The
+	// stores fill it on the UI thread, so View takes it there.
+	starting  <-chan error
 	chosen    map[string]int // the request chosen, per turn
 	blockOpen bool           // the block text's dialog
 	lines     kit.ListState  // the block text's place
@@ -51,10 +53,15 @@ func (s *Screen) now() time.Time {
 // View builds the developer tool at place: the inspector or the runtime.
 func (s *Screen) View(c *kit.Context, place *state.Place) {
 	started := s.st.Settings.Started
-	if started == nil && !s.starting {
-		s.starting = true
-		done := s.st.Settings.LoadStarted()
-		go func() { <-done; s.starting = false }()
+	if s.starting != nil {
+		select {
+		case <-s.starting:
+			s.starting = nil
+		default:
+		}
+	}
+	if started == nil && s.starting == nil {
+		s.starting = s.st.Settings.LoadStarted()
 	}
 	on := started != nil && started.DevTools
 	title, description := "Runtime", "What runs now. Reads again every second."

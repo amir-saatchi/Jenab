@@ -44,11 +44,12 @@ type Fake struct {
 	sent     []Sent
 	answers  []agent.Answer
 	rewinds  []int
+	rewound  []id.Chat // the chats of rewinds, in order
 	stops    int
 	n        int
 	// Bucket is the projects' files and the bottom bar's readings.
 	Bucket FakeBucket
-	admin    ProjectAdmin // the project screens' part (fake_project.go)
+	admin  ProjectAdmin // the project screens' part (fake_project.go)
 }
 
 // New makes an empty Fake.
@@ -240,7 +241,8 @@ func (f *Fake) Stop(context.Context, id.Project, id.Chat) error {
 	return nil
 }
 
-func (f *Fake) Retry(context.Context, id.Project, id.Chat) error                { return nil }
+func (f *Fake) Retry(context.Context, id.Project, id.Chat) error { return nil }
+
 // Answer records the answer.
 func (f *Fake) Answer(_ context.Context, _ id.Project, _ id.Chat, a agent.Answer) error {
 	f.mu.Lock()
@@ -261,6 +263,13 @@ func (f *Fake) Rewinds() []int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.rewinds)
+}
+
+// Rewound returns the chats rewound, in the order of Rewinds.
+func (f *Fake) Rewound() []id.Chat {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.rewound)
 }
 
 func (f *Fake) SetModel(_ context.Context, _ id.Project, c id.Chat, model string) error {
@@ -312,6 +321,7 @@ func (f *Fake) Rewind(_ context.Context, _ id.Project, c id.Chat, turn int) (age
 	defer f.mu.Unlock()
 	last := f.last(c)
 	f.rewinds = append(f.rewinds, turn)
+	f.rewound = append(f.rewound, c)
 	f.Msgs[c] = slices.DeleteFunc(f.Msgs[c], func(m chat.Message) bool { return m.Turn > turn })
 	return agent.RewindResult{Rewind: int64(len(f.rewinds)), Turn: turn, LastTurn: last}, nil
 }
