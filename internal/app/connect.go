@@ -163,7 +163,7 @@ func (s *SettingsService) Connect(ctx context.Context, req ConnectRequest) (r Co
 	}
 	s.models.Forget(req.Name) // the next call reads the new key
 	r = ConnectResult{Provider: req.Name, Models: len(c.Settings.Models), Other: []string{}, NoModelList: c.NoModelList,
-		View: settingsView(loaded, problems)}
+		View: s.withKeys(settingsView(loaded, problems))}
 	for _, m := range c.Other {
 		r.Other = append(r.Other, m.ID)
 	}
@@ -233,7 +233,7 @@ func (s *SettingsService) Remove(ctx context.Context, name string) (v SettingsVi
 	if err != nil {
 		return v, err
 	}
-	v = settingsView(loaded, problems)
+	v = s.withKeys(settingsView(loaded, problems))
 	if s.secrets == nil {
 		return v, nil
 	}

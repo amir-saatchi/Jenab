@@ -228,7 +228,6 @@ func TestAProviderOnThisComputerNeedsNoKey(t *testing.T) {
 		x.st.Settings.Load()
 		x.settle(func() bool { x.tt.Frame(); return kit.Shows(x.tt, "lmstudio") })
 		shows(t, x.tt, "On this computer · no key needed · 1 model on", "Replace the key of gemini")
-		hides(t, x.tt, "Replace the key of lmstudio", "Replace the key of local")
 		connects(x, nil)
 
 		// No key: Connect works with the field empty.

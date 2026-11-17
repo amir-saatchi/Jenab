@@ -843,6 +843,11 @@ func (r *Registry) Connect(ctx context.Context, name string, kind Kind, baseURL,
 			if err := r.d.Secrets.Set(KeyName(name), key); err != nil {
 				return Connected{}, fmt.Errorf("provider %s: storing the key: %w", name, err)
 			}
+		} else if err := r.d.Secrets.Delete(KeyName(name)); err != nil {
+			// Only a provider on this computer gets here: it was checked
+			// without a key, so a token saved for it before goes
+			// (TASK-074).
+			return Connected{}, fmt.Errorf("provider %s: removing the old key: %w", name, err)
 		}
 		for _, f := range Placeholders(baseURL) {
 			if err := r.d.Secrets.Set(FieldName(name, f), fields[f]); err != nil {

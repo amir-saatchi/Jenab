@@ -85,13 +85,16 @@ func ProviderLimit(name string, v *int) func(*config.Settings) {
 type Provider struct {
 	Name string
 	config.ProviderSettings
+	// Key: a provider on this computer has a key in the keychain, a token
+	// its server asks for (TASK-074). The others always have one.
+	Key bool
 }
 
 // Providers are the connected providers by name.
 func Providers(s config.Settings) []Provider {
 	var out []Provider
 	for name, p := range s.LLM.Providers {
-		out = append(out, Provider{name, p})
+		out = append(out, Provider{Name: name, ProviderSettings: p})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
@@ -108,7 +111,9 @@ func (p Provider) Local() bool {
 // are on.
 func (p Provider) Line() string {
 	where := "Key in the keychain"
-	if p.Local() {
+	if p.Local() && p.Key {
+		where = "On this computer · key in the keychain"
+	} else if p.Local() {
 		where = "On this computer · no key needed"
 	}
 	n := len(p.Models)

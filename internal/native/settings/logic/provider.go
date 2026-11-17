@@ -84,14 +84,27 @@ type FormShape struct {
 
 // Replace names a connected provider whose key is replaced; its models
 // stay.
-type Replace struct{ Name, Kind, BaseURL string }
+type Replace struct {
+	Name, Kind, BaseURL string
+	// Keyed: the provider has a key in the keychain. One on this computer
+	// may have none; its key is optional, and an empty one removes it
+	// (TASK-074).
+	Keyed bool
+}
+
+// Local tells whether the provider runs on this computer, so its key is
+// optional.
+func (r Replace) Local() bool {
+	return provider.LocalURL(provider.Kind(r.Kind), r.BaseURL)
+}
 
 // FormFor is what the form asks for once pick is chosen. A replaced key
 // keeps its provider's placeholders.
 func FormFor(pick string, presets []app.PresetItem, replace *Replace) FormShape {
 	switch {
 	case replace != nil:
-		return FormShape{Chosen: true, Key: true, Fields: Placeholders(replace.BaseURL)}
+		local := replace.Local()
+		return FormShape{Chosen: true, Key: !local, OptionalKey: local, Fields: Placeholders(replace.BaseURL)}
 	case pick == Other:
 		return FormShape{Chosen: true, Other: true, Key: true, Fields: []string{}}
 	}
@@ -146,6 +159,12 @@ func FreeName[V any](name string, taken map[string]V) string {
 			return s
 		}
 	}
+}
+
+// KeyRemovedText is the toast after the key of a provider on this
+// computer was removed.
+func KeyRemovedText(name string) string {
+	return name + ": the key is removed; the server answers without one"
 }
 
 // ConnectedText is the toast after a provider is connected, or its key

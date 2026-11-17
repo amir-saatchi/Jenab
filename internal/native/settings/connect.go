@@ -64,6 +64,12 @@ func (f *ConnectForm) Clear() {
 	clear(f.fields)
 }
 
+// removes tells whether saving removes the key of a provider on this
+// computer: its optional key is left empty (TASK-074).
+func (f *ConnectForm) removes(shape logic.FormShape) bool {
+	return f.Replace != nil && shape.OptionalKey && strings.TrimSpace(f.key) == ""
+}
+
 // ready tells whether the form can be sent.
 func (f *ConnectForm) ready(shape logic.FormShape) bool {
 	if f.busy || !shape.Chosen {
@@ -74,6 +80,9 @@ func (f *ConnectForm) ready(shape logic.FormShape) bool {
 	}
 	if shape.Key && strings.TrimSpace(f.key) == "" {
 		return false
+	}
+	if f.removes(shape) && !f.Replace.Keyed {
+		return false // no key to remove
 	}
 	for _, w := range shape.Fields {
 		if strings.TrimSpace(f.fields[w]) == "" {
@@ -104,6 +113,7 @@ func (f *ConnectForm) request(st *state.Stores, shape logic.FormShape) app.Conne
 func (f *ConnectForm) connect(st *state.Stores, shape logic.FormShape) {
 	f.busy = true
 	req := f.request(st, shape)
+	removed := f.removes(shape)
 	st.Settings.Connect(req, func(r app.ConnectResult, err error) {
 		f.busy = false
 		if err != nil {
@@ -115,7 +125,11 @@ func (f *ConnectForm) connect(st *state.Stores, shape logic.FormShape) {
 		if f.Replace == nil && !shape.Other && shape.Preset != nil {
 			name = shape.Preset.Name
 		}
-		st.Toasts = append(st.Toasts, state.Toast{Text: logic.ConnectedText(name, r, f.Replace != nil)})
+		text := logic.ConnectedText(name, r, f.Replace != nil)
+		if removed {
+			text = logic.KeyRemovedText(name)
+		}
+		st.Toasts = append(st.Toasts, state.Toast{Text: text})
 		if f.Connected != nil {
 			f.Connected(r)
 		}
@@ -197,7 +211,11 @@ func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 		} else if shape.OptionalKey {
 			field(c, "API key (optional)", func() {
 				kit.TextInput(c, &f.key, "API key (optional)").Password()
-				kit.Hint(c, "Only if the server asks for a token · stored in the OS keychain")
+				hint := "Only if the server asks for a token · stored in the OS keychain"
+				if f.Replace != nil && f.Replace.Keyed {
+					hint = "Leave it empty to remove the saved key · checked with the server first"
+				}
+				kit.Hint(c, hint)
 			})
 		}
 		if p := shape.Preset; p != nil && p.NoKey {
@@ -208,7 +226,10 @@ func (f *ConnectForm) View(c *kit.Context, st *state.Stores) {
 			kit.Hint(c, text)
 		}
 		label := "Connect"
-		if f.Replace != nil {
+		switch {
+		case f.removes(shape) && f.Replace.Keyed:
+			label = "Remove key"
+		case f.Replace != nil:
 			label = "Save key"
 		}
 		ok := f.ready(shape)
