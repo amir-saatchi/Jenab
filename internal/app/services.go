@@ -31,7 +31,7 @@ type Services struct {
 	OpenFile func(path string) error  // opens a file with the system's app
 }
 
-// Bound are the services the frontend calls (Q31): one thin service per
+// Bound are the services the UI calls (Q31): one thin service per
 // area. Every method takes ctx first, returns typed structs, and ends with
 // guard, so its errors are *UIError values logged once. Later tickets add
 // the methods their screens need; PageService and PipelineService come
@@ -45,9 +45,8 @@ type Bound struct {
 	Dev      *DevService // bound only with the developer tools on
 }
 
-// NewServices builds the services. They work without Wails, so tests
-// drive them directly, and both apps (cmd/desktop, cmd/desktop-native)
-// build them the same way.
+// NewServices builds the services. They work without a UI, so tests
+// drive them directly as cmd/desktop does.
 func NewServices(s Services) Bound {
 	if s.Log == nil {
 		s.Log = slog.New(slog.DiscardHandler)

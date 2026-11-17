@@ -32,7 +32,7 @@ type Notification struct {
 	Body    string     `json:"body"`
 }
 
-// Notify shows n. The frontend calls it when a chat starts to wait while
+// Notify shows n. The UI calls it when a chat starts to wait while
 // it isn't on screen or the window isn't focused (8.8).
 func (s *SystemService) Notify(ctx context.Context, n Notification) (err error) {
 	defer s.guard("system.notify", &err)

@@ -24,7 +24,7 @@ type Served struct {
 // when there is no such project or key.
 type Opener func(ctx context.Context, p id.Project, key string) (Served, error)
 
-// Route is where the frontend loads objects: /objects/<project_id>/<key>
+// Route is the objects route: /objects/<project_id>/<key>
 // (SPEC 4.5).
 const Route = "/objects/"
 
@@ -40,7 +40,8 @@ const sandboxCSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'
 //     opened any other way it is text;
 //   - types that are not shown in the app are downloads, never opened.
 //
-// It is mounted on the Wails asset server in P1-13.
+// The app reads files in its own process (app.NativeBucket); the handler
+// keeps these rules for anything served over HTTP.
 func Handler(open Opener) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()

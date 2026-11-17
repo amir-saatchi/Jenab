@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -22,8 +23,11 @@ type Series struct {
 // the focus, and the arrows, Home and End choose a bar, whose values show
 // above the plot and are read out; Escape clears the choice. The chart
 // is laid out left to right in a right-to-left language too, as charts
-// are. label names it.
+// are. label names it. A nil format writes the values as plain numbers.
 func BarChart(c *Context, label string, bars []string, series []Series, format func(float64) string) Element {
+	if format == nil {
+		format = func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
+	}
 	k := TokensOf(c)
 	col := Column(c).Gap(8)
 	sel := ui.Local(col, "bar", func() int { return -1 })

@@ -1,18 +1,21 @@
 package kit
 
+import "golang.org/x/text/unicode/bidi"
+
 // RightToLeft reports whether s reads right to left: whether its first
-// strong character is Hebrew, Arabic or Persian, as dir="auto" finds it
-// and as the frontend's textDir (lib/dir.ts) does. Arabic and Persian
-// digits are weak, like Latin ones.
+// strong character, by its Unicode bidi class, is right to left (R or AL:
+// Hebrew, Arabic, Persian…), as dir="auto" finds it. A strong left-to-right
+// character first (L: Latin, Greek, Cyrillic, Chinese, Japanese, Thai,
+// Devanagari…) makes it left to right. Digits, Arabic and Persian ones
+// too, punctuation and signs such as × and ÷ are weak or neutral and are
+// passed over.
 func RightToLeft(s string) bool {
 	for _, r := range s {
-		switch {
-		case r >= 0x0660 && r <= 0x0669, r >= 0x06f0 && r <= 0x06f9:
-			continue
-		case r >= 0x0590 && r <= 0x08ff, r >= 0xfb1d && r <= 0xfdff, r >= 0xfe70 && r <= 0xfeff:
+		p, _ := bidi.LookupRune(r)
+		switch p.Class() {
+		case bidi.R, bidi.AL:
 			return true
-		case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= 0x00c0 && r <= 0x024f,
-			r >= 0x0370 && r <= 0x03ff, r >= 0x0400 && r <= 0x04ff:
+		case bidi.L:
 			return false
 		}
 	}

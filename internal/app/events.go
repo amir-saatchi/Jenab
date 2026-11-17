@@ -6,7 +6,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/project"
 )
 
-// The events the frontend gets (Q32). Each payload carries its IDs, and
+// The events the UI gets (Q32). Each payload carries its IDs, and
 // chat events the chat's sequence number.
 const (
 	EventDelta    = "chat:delta"
@@ -26,10 +26,9 @@ type Open struct {
 }
 
 // Publisher sends events to the UI. It implements the Publisher of agent
-// and of project. Emitting never blocks. The UI layer gives it emit: the
-// Wails app sends the events to the frontend (internal/webui), the native
-// app applies them to its stores (internal/native). internal/webui
-// registers the events' types for the bindings.
+// and of project. Emitting never blocks. The UI layer gives it emit:
+// cmd/desktop posts each event to the UI thread, which applies it to the
+// stores (internal/native/state).
 type Publisher struct {
 	emit func(name string, data any)
 }

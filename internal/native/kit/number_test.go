@@ -33,7 +33,13 @@ func TestReadNumber(t *testing.T) {
 		{"", "4", 0, false, "bad"}, // empty is no zero
 		{"", "4", 1, true, "nil"},
 		{"", "", 1, true, "same"},
-		{"۴", "4", 1, false, "bad"}, // Persian digits are not read
+		// Persian and Arabic digits are the same numbers (TASK-069).
+		{"۴", "4", 1, false, "same"},
+		{"۱۲", "4", 1, false, 12},
+		{"١٢", "4", 1, false, 12},
+		{" ۱2 ", "4", 1, false, 12},
+		{"۰", "4", 1, false, "bad"},
+		{"۱٫۵", "4", 1, false, "bad"},
 	}
 	for _, tc := range cases {
 		if got := val(ReadNumber(tc.text, tc.shown, tc.min, tc.optional)); got != tc.want {
@@ -125,6 +131,72 @@ func TestNumberInput(t *testing.T) {
 		tt.Frame()
 		if !Shows(tt, "3") || last.st.bad != "Not saved" {
 			t.Errorf("a failed save shows %q, marked %q", tt.Texts(), last.st.bad)
+		}
+	})
+}
+
+// TASK-069: Enter and then leaving the field commit a value once while its
+// save is still on its way; a new value, or the same one after the value
+// shown changed or the save failed, commits again.
+func TestNumberInputCommitsOnce(t *testing.T) {
+	var value *int
+	var commits []int
+	var last Number
+	view := func(c *Context) {
+		between(c, func() {
+			n := NumberInput(c, value, "Parallel calls", NumberSpec{Min: 1})
+			if n.Committed {
+				commits = append(commits, *n.Value) // saved later: value stays
+			}
+			last = n
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		four := 4
+		value, commits = &four, nil
+		tt.Frame()
+		tabTo(t, tt, "Parallel calls")
+		tt.Key(ui.Ctrl, ui.KeyA)
+		tt.Type("۸")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		tt.Key(0, ui.KeyTab)
+		tt.Frame()
+		if len(commits) != 1 || commits[0] != 8 {
+			t.Fatalf("Enter, then Tab committed %v, want [8]", commits)
+		}
+
+		// Another value while the first is on its way commits.
+		tabTo(t, tt, "Parallel calls")
+		tt.Key(ui.Ctrl, ui.KeyA)
+		tt.Type("9")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if len(commits) != 2 || commits[1] != 9 {
+			t.Fatalf("a new value committed %v, want [8 9]", commits)
+		}
+
+		// The save failed: the same value again commits.
+		last.Failed()
+		tt.Frame()
+		tt.Key(ui.Ctrl, ui.KeyA)
+		tt.Type("9")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if len(commits) != 3 {
+			t.Fatalf("after a failed save, 9 committed %v", commits)
+		}
+
+		// The value arrived: the field shows it, and the same text is no change.
+		nine := 9
+		value = &nine
+		tt.Frame()
+		tt.Key(ui.Ctrl, ui.KeyA)
+		tt.Type("٩")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if len(commits) != 3 {
+			t.Errorf("the value shown, typed again, committed %v", commits)
 		}
 	})
 }

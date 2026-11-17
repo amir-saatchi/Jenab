@@ -80,7 +80,7 @@ func TestUIError(t *testing.T) {
 	if string(j) != `{"kind":"busy","message":"Wait.","details":"d"}` {
 		t.Errorf("JSON %s", j)
 	}
-	// As Wails marshals a returned error: through the error interface.
+	// Marshalled as an error value too: through the error interface.
 	var asErr error = &UIError{Kind: KindInternal, Message: "Something went wrong."}
 	j, _ = json.Marshal(&asErr)
 	if string(j) != `{"kind":"internal","message":"Something went wrong."}` {

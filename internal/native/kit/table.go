@@ -11,8 +11,9 @@ type TableColumn struct {
 
 // Table is a small table, as shadcn's Table: a row of headings, then the
 // rows, a line under each. The first column takes the room the others
-// leave; text cut to one line shows whole in its tooltip. label names
-// it. For a long list, use List.
+// leave. Text is cut to one line; a cell whose text is cut, in any
+// column, shows it whole in its tooltip. label names it. For a long list,
+// use List.
 func Table(c *Context, label string, cols []TableColumn, rows [][]string) Element {
 	k := TokensOf(c)
 	cell := func(i int, s string, head bool) {
@@ -22,11 +23,11 @@ func Table(c *Context, label string, cols []TableColumn, rows [][]string) Elemen
 		}
 		if i == 0 {
 			t.Grow(1).Shrink(1).MinWidth(0)
-			if !head && s != "" {
-				t.Tooltip(s)
-			}
 		} else {
 			t.Width(96).Shrink(0)
+		}
+		if !head && s != "" && cut(c, t, s) {
+			t.Tooltip(s)
 		}
 		if i < len(cols) && cols[i].Numeric {
 			t.TextAlign(ui.End).FontFeatures("tnum").Direction(ui.LeftToRight)
@@ -50,4 +51,19 @@ func Table(c *Context, label string, cols []TableColumn, rows [][]string) Elemen
 			row(r, false)
 		}
 	})
+}
+
+// cut reports whether t, a one-line text of s at 14 px, was too narrow
+// for it in the last frame. As the width changes, the frame is built
+// again with the new answer.
+func cut(c *Context, t Element, s string) bool {
+	w, _ := c.MeasureText(0, ui.Span{Text: s, Size: 14})
+	short := func(box float32) bool { return box > 0 && w > box+0.5 }
+	was := short(t.LayoutBounds().W)
+	t.Draw(func(_ *ui.Painter, r ui.Rect) {
+		if short(r.W) != was {
+			c.Invalidate()
+		}
+	})
+	return was
 }

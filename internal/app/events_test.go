@@ -20,7 +20,7 @@ func TestPublisher(t *testing.T) {
 	if got := s.names(); !slices.Equal(got, want) {
 		t.Errorf("events %v", got)
 	}
-	// The payloads go out as the registered types, which Wails checks.
+	// The payloads go out as their own types, which the stores switch on.
 	if _, ok := s.events[0].data.(chat.Delta); !ok {
 		t.Errorf("delta payload %T", s.events[0].data)
 	}

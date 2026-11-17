@@ -41,7 +41,7 @@ func TestSnapshotWindow(t *testing.T) {
 }
 
 // A rename during a turn moves the turn's later events past the
-// snapshot's sequence number, so the frontend keeps them (Q32).
+// snapshot's sequence number, so the UI keeps them (Q32).
 func TestWriteDuringTurn(t *testing.T) {
 	ctx := context.Background()
 	e := newEnv(t, t.TempDir())

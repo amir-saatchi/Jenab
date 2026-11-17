@@ -86,3 +86,21 @@ func TestFewTicks(t *testing.T) {
 		t.Error("fewTicks dropped ticks it had room for")
 	}
 }
+
+// TASK-069: a chart without a format writes plain numbers.
+func TestBarChartWithoutFormat(t *testing.T) {
+	view := func(c *Context) {
+		between(c, func() {
+			Column(c).Width(500).Children(func() {
+				BarChart(c, "Calls", []string{"Mon", "Tue"}, []Series{{Name: "Calls", Tone: Blue, Values: []float64{3, 7}}}, nil)
+			})
+		})
+	}
+	themes(t, view, func(t *testing.T, tt *ui.Tester) {
+		tt.UseScreenReader()
+		tabTo(t, tt, "Calls")
+		tt.Key(0, ui.KeyEnd)
+		tt.Frame()
+		shows(t, tt, "Mon", "Tue", "Tue: Calls 7")
+	})
+}
