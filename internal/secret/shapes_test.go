@@ -20,6 +20,12 @@ func TestShapes(t *testing.T) {
 		// Left as they are:
 		{"Authorization: Bearer [secret:provider:a]", "Authorization: Bearer [secret:provider:a]"},
 		{`{"api_key":"[secret:provider:a]"}`, `{"api_key":"[secret:provider:a]"}`},
+		{"api_key: [secret:provider:openai]", "api_key: [secret:provider:openai]"},
+		{"api_key=[secret:openai] x-api-key: [secret:anthropic]", "api_key=[secret:openai] x-api-key: [secret:anthropic]"},
+		{`"x-api-key": "[secret:anthropic]"`, `"x-api-key": "[secret:anthropic]"`},
+		{"map[X-Api-Key:[[secret:anthropic]]]", "map[X-Api-Key:[[secret:anthropic]]]"},
+		{"GET /v1/models?key=[secret:gemini]&alt=sse", "GET /v1/models?key=[secret:gemini]&alt=sse"},
+		{"map[X-Api-Key:[0123456789abcdefABCDEF]]", "map[X-Api-Key:[[secret]]]"},
 		{"claude/task-076-review-leftovers-and-more", "claude/task-076-review-leftovers-and-more"},
 		{"goroutine 1 [running]:\nmain.main()\n\tD:/src/main.go:12 +0x1d", "goroutine 1 [running]:\nmain.main()\n\tD:/src/main.go:12 +0x1d"},
 		{"the key is short: api_key=abc", "the key is short: api_key=abc"},

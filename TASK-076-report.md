@@ -21,7 +21,7 @@ Now the crash logs hide three kinds of secret:
    - `?key=…`, `&api_key=…`, `&token=…` in a URL, as Gemini takes its key;
    - a token with a known prefix: `sk-` (OpenAI, Anthropic), `gsk_` (Groq), `nvapi-` (NVIDIA), `xai-`, `hf_`, `AIza` (Google), `ghp_`, `github_pat_`, `glpat-`.
 
-   Each value of 8 characters or more becomes `[secret]`. The header or field name stays, so the log still says what was sent. A value already replaced, `[secret:NAME]`, is left as it is.
+   Each value of 8 characters or more becomes `[secret]`. The header or field name stays, so the log still says what was sent. A value already replaced, `[secret:NAME]`, is left as it is, quoted or not (`api_key: [secret:NAME]` too).
 
 What is still not found: a key the keychain no longer has, with no known prefix, sent in a header or field of another name. For example, a bare 32-character key in a custom header. Nothing in the text marks it as a key.
 
@@ -44,7 +44,7 @@ Now `Number.Saved()` ends the commit's save, whatever the value shown. Settings 
 | Fault | Test | On the old code |
 |---|---|---|
 | 1 | `cmd/desktop/crash_test.go`: `TestACrashHidesARemovedProvidersKey`. Settings name one provider; the keychain also holds a removed one's key; a third key, in an `Authorization: Bearer` header, is in neither. | Fails: the log shows both keys. |
-| 1 | `internal/secret/shapes_test.go`: `TestShapes`, `TestStoredListsTheKeychain`, `TestNamesUnder`. The shapes, what they leave (`[secret:NAME]`, a branch name with `task-`, a Go stack), and the Credential Manager names. | New API. |
+| 1 | `internal/secret/shapes_test.go`: `TestShapes`, `TestStoredListsTheKeychain`, `TestNamesUnder`. The shapes, what they leave (`[secret:NAME]` quoted, unquoted, in a Go map or a URL; a branch name with `task-`; a Go stack), and the Credential Manager names. | New API. The review's case, `api_key: [secret:NAME]`, failed on the first commit: it became `api_key: [[secret]]`. |
 | 2 | `chat/undo_test.go`: `TestUndoTurnOpensWithTheNewestState`. The click's read is held back (`statetest.Fake.HoldUndoState`); the turn is undone and a message comes, so a newer read answers first. | Fails: "the dialog opened with the older state: Undo turn 1?" |
 | 3 | `kit/number_test.go`: `TestNumberInputCommitsAgainAfterASave`. A save that leaves the value shown, then the same text again; then an older save ending while 9 is on its way. | Doesn't build: `Saved` is new. With a do-nothing `Saved` added to the old file, it fails: "after its save, 8 again committed [8], want [8 8]". |
 

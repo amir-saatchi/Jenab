@@ -1,11 +1,16 @@
 package secret
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // shapes find a key by how it looks, for one no longer in the keychain: a
 // removed provider's key in a crash log written before it was removed.
 // Each keeps its group 1 (the header or field name) and hides the rest.
-// A value already replaced, [secret:NAME], starts with "[" and is left.
+// A value already replaced, [secret:NAME], is left: the values can't start
+// with "[", and Shapes leaves one that starts with "secret:", as in
+// "api_key: [secret:NAME]", where group 1 takes the "[".
 var shapes = []*regexp.Regexp{
 	// Authorization: Bearer <token>, also as a JSON or Go map field.
 	regexp.MustCompile(`(?i)(\bauthorization["']?\s*[:=]\s*\[?["']?(?:bearer|basic|token)\s+)([A-Za-z0-9._~+/=-]{8,})`),
@@ -26,7 +31,13 @@ var shapes = []*regexp.Regexp{
 // such shape, sent in a header of another name, isn't found.
 func Shapes(text string) string {
 	for _, re := range shapes {
-		text = re.ReplaceAllString(text, "${1}[secret]")
+		text = re.ReplaceAllStringFunc(text, func(m string) string {
+			g := re.FindStringSubmatch(m)
+			if len(g) > 2 && strings.HasPrefix(g[2], "secret:") {
+				return m
+			}
+			return g[1] + "[secret]"
+		})
 	}
 	return text
 }
