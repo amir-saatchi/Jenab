@@ -222,17 +222,33 @@ func (n *Nav) NextChat(by int) {
 	n.History = Push(from, ChatPlace(n.MRU[at].Project, n.MRU[at].Chat))
 }
 
-// Prune drops from the MRU list the chats of project p that its new
-// chat list doesn't have. It keeps keep, the chat shown, and the chats
-// that came into MRU after the list's read started, at stamp (Stamp):
-// the list may predate them. During a Ctrl+Tab cycle it waits for the
-// next list, so the cycle's place in the list holds.
-func (n *Nav) Prune(p id.Project, listed []id.Chat, keep id.Chat, stamp int) {
+// Keep is what a chat list of project p, read from stamp (Stamp) on,
+// leaves of the project's chats: the chats it lists, shown (the chat
+// shown, if any), and the chats that came into MRU after the read started,
+// which the list may predate. A deleted chat came in before the next
+// list's read, so that list drops it.
+func (n *Nav) Keep(p id.Project, listed []id.Chat, shown id.Chat, stamp int) []id.Chat {
+	keep := slices.Clone(listed)
+	if shown != "" {
+		keep = append(keep, shown)
+	}
+	for _, r := range n.MRU {
+		if r.Project == p && n.entered[r] > stamp {
+			keep = append(keep, r.Chat)
+		}
+	}
+	return keep
+}
+
+// Prune drops from the MRU list the chats of project p not in keep (Keep).
+// During a Ctrl+Tab cycle it waits for the next list, so the cycle's place
+// in the list holds.
+func (n *Nav) Prune(p id.Project, keep []id.Chat) {
 	if n.Cycle >= 0 {
 		return
 	}
 	n.MRU = slices.DeleteFunc(n.MRU, func(r ChatRef) bool {
-		gone := r.Project == p && r.Chat != keep && !slices.Contains(listed, r.Chat) && n.entered[r] <= stamp
+		gone := r.Project == p && !slices.Contains(keep, r.Chat)
 		if gone {
 			delete(n.entered, r)
 		}

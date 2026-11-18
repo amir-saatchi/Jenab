@@ -132,11 +132,11 @@ func (s *Shell) Close(c ChatRef) {
 	s.Drawer[c] = false
 }
 
-// Prune drops what the shell keeps for the chats of project p that its
-// new chat list doesn't have, but keep, the chat shown, which the list may
-// predate.
-func (s *Shell) Prune(p id.Project, listed []id.Chat, keep id.Chat) {
-	gone := func(c ChatRef) bool { return c.Project == p && c.Chat != keep && !slices.Contains(listed, c.Chat) }
+// Prune drops what the shell keeps for the chats of project p not in keep
+// (Nav.Keep): the chats a new chat list doesn't have, but the chat shown
+// and the chats made since the list was read.
+func (s *Shell) Prune(p id.Project, keep []id.Chat) {
+	gone := func(c ChatRef) bool { return c.Project == p && !slices.Contains(keep, c.Chat) }
 	for _, m := range []map[ChatRef]bool{s.ChatHidden, s.Drawer} {
 		for c := range m {
 			if gone(c) {

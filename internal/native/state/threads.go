@@ -358,15 +358,17 @@ func (s *Threads) Forget(c id.Chat, deleted bool) {
 	delete(s.Failed, c)
 }
 
-// Gone forgets the project's chats a new chat list no longer has, but the
-// one shown, which the list may predate.
-func (s *Threads) Gone(p id.Project, chats []id.Chat) {
+// Gone forgets the project's chats not in keep, with their drafts: the
+// chats a new chat list no longer has, which were deleted. keep is the
+// list's chats, or Nav.Keep, which adds the chats made since the list was
+// read. The chat shown last stays too, since the list may predate it.
+func (s *Threads) Gone(p id.Project, keep []id.Chat) {
 	var shown id.Chat
 	if n := len(s.recent); n > 0 {
 		shown = s.recent[n-1]
 	}
 	for _, c := range slices.Collect(maps.Keys(s.Threads)) {
-		if t := s.Threads[c]; t.Project == p && !slices.Contains(chats, c) && c != shown {
+		if t := s.Threads[c]; t.Project == p && !slices.Contains(keep, c) && c != shown {
 			s.Forget(c, true)
 		}
 	}

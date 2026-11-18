@@ -73,9 +73,10 @@ type Chats struct {
 	ByProject map[id.Project][]app.ChatItem
 	Waiting   []app.WaitingItem
 
-	// OnList, if set, gets each project's chats as a new list has them,
-	// after the threads of the chats gone are dropped; the stores prune
-	// what else they keep per chat with it.
+	// OnList, if set, gets each project's chats as a new list has them;
+	// the stores prune with it what they keep per chat, the threads too
+	// (Threads.Gone). Unset, the threads of the chats gone are dropped
+	// here.
 	OnList func(p id.Project, chats []id.Chat, stamp int)
 	// Stamp, if set, is read as a list's read starts, and OnList gets it
 	// with the list, so what was added since can be told apart.
@@ -117,11 +118,10 @@ func (s *Chats) Load(p id.Project) <-chan error {
 					ids[i] = it.Chat.ID
 				}
 				// A chat no longer listed was deleted: its thread goes too.
-				if s.threads != nil {
-					s.threads.Gone(p, ids)
-				}
 				if s.OnList != nil {
 					s.OnList(p, ids, stamp)
+				} else if s.threads != nil {
+					s.threads.Gone(p, ids)
 				}
 			}
 			done <- err
