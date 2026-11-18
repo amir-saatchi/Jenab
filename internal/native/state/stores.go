@@ -97,10 +97,11 @@ type Stores struct {
 	// chat that starts to wait gets a notification unless it is shown in
 	// an active window.
 	WindowActive func() bool
-	// OnPrune gets, after each fresh chat list, the project, the chats it
-	// lists, and the chat shown in it, which stays: a screen drops what it
-	// keeps for the project's other chats, which were deleted.
-	OnPrune []func(p id.Project, listed []id.Chat, shown id.Chat)
+	// OnPrune gets, after each fresh chat list, the project and the chats
+	// to keep (Nav.Keep): those it lists, the chat shown, and those made
+	// since the list was read. A screen drops what it keeps for the
+	// project's other chats, which were deleted.
+	OnPrune []func(p id.Project, keep []id.Chat)
 
 	post    Post
 	system  SystemAPI
@@ -174,18 +175,20 @@ func (s *Stores) Close() {
 	})
 }
 
-// listed prunes what Nav and Shell keep for the chats of p that its new
-// chat list no longer has, as Threads.Gone drops their threads: the chat
-// shown stays, since the list may predate it.
+// listed prunes what Nav, Shell and the OnPrune hooks keep for the chats
+// of p that its new chat list no longer has, as Threads.Gone drops their
+// threads. The chat shown and the chats that came into Nav after the read
+// started, at stamp, stay, since the list may predate them (Nav.Keep).
 func (s *Stores) listed(p id.Project, chats []id.Chat, stamp int) {
 	var shown id.Chat
 	if at := s.Nav.Current(); at != nil && at.View == ViewChat && at.Project == p {
 		shown = at.Chat
 	}
-	s.Nav.Prune(p, chats, shown, stamp)
-	s.Shell.Prune(p, chats, shown)
+	keep := s.Nav.Keep(p, chats, shown, stamp)
+	s.Nav.Prune(p, keep)
+	s.Shell.Prune(p, keep)
 	for _, fn := range s.OnPrune {
-		fn(p, chats, shown)
+		fn(p, keep)
 	}
 }
 

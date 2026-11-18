@@ -56,13 +56,14 @@ func New(st *state.Stores) *Screen {
 }
 
 // prune drops what the screen keeps for project p's chats that were
-// deleted: those its fresh list doesn't have, but the chat shown. What
-// it keeps by key, a card's input or what is unfolded, is under a key
+// deleted: those not in keep (state.Nav.Keep), which has the chats a fresh
+// list has, the chat shown and the chats made since the list was read.
+// What it keeps by key, a card's input or what is unfolded, is under a key
 // with the chat's ID or one of its messages' IDs between its colons.
-func (s *Screen) prune(p id.Project, listed []id.Chat, shown id.Chat) {
+func (s *Screen) prune(p id.Project, keep []id.Chat) {
 	gone := map[string]bool{}
 	for ch, v := range s.views {
-		if v.thread == nil || v.thread.Project != p || ch == shown || slices.Contains(listed, ch) {
+		if v.thread == nil || v.thread.Project != p || slices.Contains(keep, ch) {
 			continue
 		}
 		gone[string(ch)] = true

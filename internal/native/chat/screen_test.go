@@ -45,6 +45,15 @@ func openOn(t *testing.T, dark bool, f *statetest.Fake, ms ...jc.Message) *fixtu
 // openWith is open on api, with f its chats.
 func openWith(t *testing.T, dark bool, f *statetest.Fake, api state.API, ms ...jc.Message) *fixture {
 	t.Helper()
+	x := newFixture(t, f, api, ms...)
+	x.show(t, dark)
+	return x
+}
+
+// newFixture makes the stores and the chat screen on api, and chat ch of
+// p with the messages ms, but doesn't open it: show does.
+func newFixture(t *testing.T, f *statetest.Fake, api state.API, ms ...jc.Message) *fixture {
+	t.Helper()
 	x := &fixture{f: f, loop: &statetest.Loop{}}
 	x.p, _ = x.f.AddProject("Demo")
 	x.ch = x.f.AddChat(x.p, "Notes")
@@ -53,6 +62,12 @@ func openWith(t *testing.T, dark bool, f *statetest.Fake, api state.API, ms ...j
 	t.Cleanup(x.st.Close)
 	x.scr = chat.New(x.st)
 	x.scr.Now = func() time.Time { return time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC) }
+	return x
+}
+
+// show opens chat ch and draws it.
+func (x *fixture) show(t *testing.T, dark bool) {
+	t.Helper()
 	x.st.OpenChat(x.p, x.ch)
 	if !x.loop.Drain(func() bool { return x.st.Threads.Threads[x.ch] != nil }) {
 		t.Fatal("the chat did not open")
@@ -75,7 +90,6 @@ func openWith(t *testing.T, dark bool, f *statetest.Fake, api state.API, ms ...j
 	tt.UseScreenReader()
 	x.tt = tt
 	x.draw()
-	return x
 }
 
 // draw runs the work queued, then draws twice: a list lays out its rows
