@@ -11,7 +11,7 @@ The app is `cmd/desktop`, a native app on [MyGo](https://github.com/egoist/mygo)
 | Go | 1.27.3 or newer | `go.mod` needs Go 1.27.3; with `GOTOOLCHAIN=auto` (the default) Go downloads it on the first build |
 | Git | any recent | the build takes the commit from it |
 
-- MyGo comes through `go.mod`, pinned (v0.9.1), and its CLI is a `tool` there, so `go tool mygo` needs no install.
+- MyGo comes through `go.mod`, pinned (v0.10.0), and its CLI is a `tool` there, so `go tool mygo` needs no install.
 - No C compiler is needed (N-51): MyGo is pure Go. No Node, Bun or other JavaScript tool is needed either.
 - The app runs on Windows 11 only for now; macOS and Linux come with TASK-060.
 
@@ -154,4 +154,4 @@ A failure on any other model is recorded, not worked around. Fixes are made the 
 
 - Sign off every commit with `git commit -s` ([CONTRIBUTING](../CONTRIBUTING.md)).
 - `.gitattributes` normalizes line endings, so Windows and macOS checkouts give the same diffs.
-- MyGo is pinned in `go.mod` (v0.9.1). It is pre-v1 and releases often, so a move to a new version is its own change: it touches only `internal/native/kit` and `cmd/desktop` (CODE-OUTLINE 10), and the kit's tests must pass. Ask before downloading a new version.
+- MyGo is pinned in `go.mod` (v0.10.0). It is pre-v1 and releases often, so a move to a new version is its own change: it touches only `internal/native/kit` and `cmd/desktop` (CODE-OUTLINE 10), and the kit's tests must pass. Ask before downloading a new version.

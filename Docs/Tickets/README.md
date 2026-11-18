@@ -107,7 +107,7 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-051](TASK-051-query-wording.md) | The `query` tool points to the card, not `sqlite_master` | Task | Done | 3 |
 | [TASK-052](TASK-052-provider-select.md) | Pick the provider from a list in *Add provider* | Task | Done | 3 |
 | [TASK-053](TASK-053-native-ui-docs.md) | The SPEC and design docs for the native UI | Task | Done | 3 |
-| [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | Done, except item 3 (follows a MyGo release with #1929; not a blocker) | 3 |
+| [TASK-054](TASK-054-native-chat-gaps.md) | Close the native chat's gaps | Task | Done | 3 |
 | [TASK-055](TASK-055-native-settings.md) | Settings in the native app | Task | Done | 3 |
 | [TASK-056](TASK-056-native-files-and-dock.md) | The files panel, the file view and the dock in the native app | Task | Done | 3 |
 | [TASK-057](TASK-057-native-project-screens.md) | Project screens in the native app | Task | Done | 3 |
@@ -135,6 +135,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-079](TASK-079-host-edits-under-the-lock.md) | A card's host lost to a page change | Task | Done | 3 |
 | [TASK-080](TASK-080-retried-turn-notice.md) | What the model reads of a failed turn's notice | Task | Done | 3 |
 | [TASK-081](TASK-081-prune-hooks-stamp.md) | Pruning keeps what came after the chat list's read | Task | Done | 3 |
+| [TASK-082](TASK-082-mygo-0-10.md) | Move to MyGo v0.10.0 | Task | Done | 3 |
+| [TASK-083](TASK-083-file-view-player.md) | Play audio and video in the file view | Task | Open | 3 |
 
 ## Phase 1
 
