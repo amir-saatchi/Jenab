@@ -175,9 +175,9 @@ func (s *Stores) Close() {
 	})
 }
 
-// listed prunes what Nav, Shell and the OnPrune hooks keep for the chats
-// of p that its new chat list no longer has, as Threads.Gone drops their
-// threads. The chat shown and the chats that came into Nav after the read
+// listed prunes what Threads, Nav, Shell and the OnPrune hooks keep for
+// the chats of p that its new chat list no longer has, which were
+// deleted. The chat shown and the chats that came into Nav after the read
 // started, at stamp, stay, since the list may predate them (Nav.Keep).
 func (s *Stores) listed(p id.Project, chats []id.Chat, stamp int) {
 	var shown id.Chat
@@ -185,6 +185,7 @@ func (s *Stores) listed(p id.Project, chats []id.Chat, stamp int) {
 		shown = at.Chat
 	}
 	keep := s.Nav.Keep(p, chats, shown, stamp)
+	s.Threads.Gone(p, keep)
 	s.Nav.Prune(p, keep)
 	s.Shell.Prune(p, keep)
 	for _, fn := range s.OnPrune {

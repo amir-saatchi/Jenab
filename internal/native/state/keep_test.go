@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/amir-saatchi/jenab/internal/app"
+	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 )
 
@@ -59,4 +60,45 @@ func TestPruneKeepsAChatMadeSinceTheListWasRead(t *testing.T) {
 		t.Errorf("the hooks were told to keep %v", hooked)
 	}
 	same(t, s.Nav.MRU, []ChatRef{c1})
+}
+
+func TestAChatMadeSinceTheListWasReadKeepsItsDraft(t *testing.T) {
+	g, l := &gatedChats{}, newLoop()
+	s, _, _, _ := newStores(t)
+	s.Chats = NewChats(g, l.post, s.Threads)
+	s.Chats.OnList, s.Chats.Stamp = s.listed, s.Nav.Stamp
+	draft := func(c id.Chat, text string) {
+		s.Threads.Threads[c] = &Thread{Project: "p1", Chat: chat.Chat{ID: c}}
+		s.Threads.Drafts[c] = text
+	}
+	s.Nav.Go(ChatPlace("p1", "c1"))
+	s.Nav.Go(ChatPlace("p1", "c2"))
+	draft("c2", "deleted below")
+	loaded := s.Chats.Load("p1") // reads the list before c3 is made
+	g.lists.came(t, l, 1)
+	s.Nav.Go(ChatPlace("p1", "c3")) // made
+	draft("c3", "half a thought")
+	s.Nav.Go(ChatPlace("p1", "c1")) // and left
+	g.lists.answer(0, []app.ChatItem{item("c1", nil, "")})
+	await(t, l, loaded)
+
+	same(t, s.Threads.Drafts["c3"], "half a thought")
+	if s.Threads.Threads["c3"] == nil {
+		t.Error("c3's thread was forgotten")
+	}
+	if _, ok := s.Threads.Drafts["c2"]; ok {
+		t.Error("the deleted chat's draft is still kept")
+	}
+
+	// A list read after c3 was deleted drops its thread and draft.
+	loaded = s.Chats.Load("p1")
+	g.lists.came(t, l, 2)
+	g.lists.answer(1, []app.ChatItem{item("c1", nil, "")})
+	await(t, l, loaded)
+	if _, ok := s.Threads.Drafts["c3"]; ok {
+		t.Error("the deleted chat's draft is still kept at the next list")
+	}
+	if s.Threads.Threads["c3"] != nil {
+		t.Error("the deleted chat's thread is still kept at the next list")
+	}
 }
