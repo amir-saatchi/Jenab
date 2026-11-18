@@ -324,7 +324,8 @@ func (r *runner) plainWindow(ctx context.Context, t *turn) error {
 // turns before the last cut, and those trimmed in a turn, as stubs (3.7).
 // A skill's text joins the result after it; before the last cut, a skill
 // in block 1 leaves a stub (8.9). A tool call without a result, left by a
-// crash, gets one, so every provider accepts the history.
+// crash, gets one, so every provider accepts the history. A failed
+// turn's notice is a line of fact, not the user's advice (failedPart).
 func shape(ms []chat.Message, w *window) []chat.Message {
 	newest := newestOfSeries(ms)
 	out := make([]chat.Message, 0, len(ms))
@@ -341,7 +342,7 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 		out = append(out, chat.Message{Chat: from.Chat, Turn: from.Turn, Role: chat.RoleTool, Parts: parts})
 		open = nil
 	}
-	for _, m := range ms {
+	for k, m := range ms {
 		switch m.Role {
 		case chat.RoleAssistant:
 			closeOpen()
@@ -407,6 +408,10 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 				m.Parts = slices.Clone(m.Parts)
 				m.Parts[i] = quotePart(m.Chat, m.Parts[i].Quote)
 			}
+			if i := slices.IndexFunc(m.Parts, isFailed); i >= 0 {
+				m.Parts = slices.Clone(m.Parts)
+				m.Parts[i] = failedPart(m.Parts[i].Notice, k == len(ms)-1 || ms[k+1].Turn == m.Turn)
+			}
 		}
 		out = append(out, m)
 	}
@@ -415,6 +420,23 @@ func shape(ms []chat.Message, w *window) []chat.Message {
 }
 
 func isThinking(p chat.Part) bool { return p.Thinking != nil }
+
+func isFailed(p chat.Part) bool { return p.Notice != nil && p.Notice.Kind == chat.NoticeTurnFailed }
+
+// failedPart is what the model reads of a failed turn's notice: that the
+// turn stopped there, and whether the user retried it, which a message of
+// the same turn after it, or none at all, shows. The notice's text is
+// advice for the user, such as adding credit or picking another model,
+// and the model can't act on it; what went wrong in a tool call is
+// already in its result (8.3, TASK-080).
+func failedPart(n *chat.Notice, retried bool) chat.Part {
+	c := *n
+	c.Text = "[the turn stopped here on an error]"
+	if retried {
+		c.Text = "[the turn stopped here on an error, and the user retried it]"
+	}
+	return chat.Part{Kind: chat.PartNotice, Notice: &c}
+}
 
 // newestOfSeries is the call id of each series' newest result in ms.
 func newestOfSeries(ms []chat.Message) map[string]string {

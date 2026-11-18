@@ -158,7 +158,7 @@ func TestTurnGivesUpAfterTenMinutes(t *testing.T) {
 		if got := texts(ms[len(ms)-1:]); !slices.Equal(got, []string{"assistant: back"}) || ms[len(ms)-1].Turn != 1 {
 			t.Errorf("after Retry: %q in turn %d", got, ms[len(ms)-1].Turn)
 		}
-		if got := texts(h.fp.Calls()[tries].Messages); got[len(got)-1] != "user: "+last.Parts[0].Notice.Text {
+		if got := texts(h.fp.Calls()[tries].Messages); got[len(got)-1] != "user: [the turn stopped here on an error, and the user retried it]" {
 			t.Errorf("the retried request ends with %q", got[len(got)-1])
 		}
 		if err := h.o.Retry(context.Background(), h.pid, c.ID); !errors.Is(err, ErrNoRetry) {
@@ -300,4 +300,49 @@ func TestHeartbeatsMoveTheTurn(t *testing.T) {
 			t.Fatalf("messages = %+v", ms)
 		}
 	})
+}
+
+// TestWhatTheModelReadsOfAFailedTurn: a failed turn's notice is advice for
+// the user. The model reads only that the turn stopped there, and whether
+// the user retried it; the stored notice the user sees is unchanged
+// (8.3, TASK-080).
+func TestWhatTheModelReadsOfAFailedTurn(t *testing.T) {
+	h := newHarness(t, t.TempDir(), "", testSettings())
+	defer h.stop()
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	quota := &provider.Error{Kind: provider.Quota, Provider: "p", Status: 429, Message: "daily limit"}
+	h.fp.Push(fake.Fail(quota), fake.Text("ten"))
+	h.turn(c.ID, "price?")
+	if err := h.o.Retry(context.Background(), h.pid, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	h.wait()
+	retried := "user: [the turn stopped here on an error, and the user retried it]"
+	if got, want := texts(h.fp.Calls()[1].Messages), []string{"user: price?", retried}; !slices.Equal(got, want) {
+		t.Errorf("the retried request:\n got %q\nwant %q", got, want)
+	}
+
+	// A turn that failed and wasn't retried: the user asked on.
+	h.fp.Push(fake.Fail(quota), fake.Text("eleven"))
+	h.turn(c.ID, "and tomorrow?")
+	h.turn(c.ID, "once more")
+	want := []string{"user: price?", retried, "assistant: ten", "user: and tomorrow?", "user: [the turn stopped here on an error]", "user: once more"}
+	if got := texts(h.fp.Calls()[3].Messages); !slices.Equal(got, want) {
+		t.Errorf("the next turn's request:\n got %q\nwant %q", got, want)
+	}
+
+	var shown int
+	for _, m := range h.messages(c.ID) {
+		for _, p := range m.Parts {
+			if n := p.Notice; n != nil && n.Kind == chat.NoticeTurnFailed {
+				shown++
+				if !strings.Contains(n.Text, "Add credit, or pick another model") {
+					t.Errorf("the user's notice is %q", n.Text)
+				}
+			}
+		}
+	}
+	if shown != 2 {
+		t.Errorf("%d failed notices stored, want 2", shown)
+	}
 }
