@@ -8,7 +8,7 @@ import (
 // The Apps entry (TASK-062): the installer writes the app's entry in
 // Windows' Installed apps under HKCU\Software\Microsoft\Windows\
 // CurrentVersion\Uninstall\<identifier>, with the version it installed.
-// MyGo's updater (v0.9.1, still so in v0.9.2) swaps the files but leaves
+// MyGo's updater (v0.9.1, still so in v0.10.0) swaps the files but leaves
 // the entry, so after an update it showed the old version. Jenab brings
 // the version up to date at every start.
 

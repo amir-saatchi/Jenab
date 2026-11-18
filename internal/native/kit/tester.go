@@ -40,7 +40,7 @@ func NewTester(view func(c *Context), w, h int, dark bool) (*Tester, error) {
 // Shows reports whether the window shows s: a text containing it, an
 // element named it, or a text field whose text or placeholder contains it.
 // MyGo's Tester.Texts, Find and HasText have only the texts drawn as
-// labels, not what a text field holds (still so in v0.9.1); a screen
+// labels, not what a text field holds (still so in v0.10.0); a screen
 // reader gets that as the field's Value and Placeholder, which is where
 // Shows reads it.
 func Shows(tt *Tester, s string) bool {

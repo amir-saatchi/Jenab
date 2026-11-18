@@ -98,8 +98,10 @@ func (s *Screen) content(c *kit.Context, p id.Project, key string, o app.Object,
 			}
 		}
 	}
-	// Audio and video aren't played on MyGo (v0.9.1 has no player): they
-	// open with the system app, as the types the app doesn't show.
+	// Audio and video aren't played in the app: MyGo decodes and plays
+	// them (its audio and ui/video packages) but has no player controls,
+	// and the kit has no player yet (v0.10.0). They open with the system
+	// app, as the types the app doesn't show.
 	s.other(c, p, o)
 }
 

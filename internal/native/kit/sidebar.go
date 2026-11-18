@@ -10,7 +10,7 @@ import "github.com/egoist/mygo/ui"
 // The item chosen is in shadcn's sidebar-accent gray, with or without the
 // focus, as in the web app. MyGo's sidebar fills it with Theme.Accent while
 // it has the focus, as AppKit's, and has no setting for it (still so in
-// v0.9.1): SidebarItem paints it again, and AccentText, which MyGo gives
+// v0.10.0): SidebarItem paints it again, and AccentText, which MyGo gives
 // its icon, is the sidebar-accent foreground.
 func Sidebar(c *Context, selected *string, fn func()) Element {
 	k := TokensOf(c)

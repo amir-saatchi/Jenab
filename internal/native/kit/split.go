@@ -10,7 +10,7 @@ import "github.com/egoist/mygo/ui"
 // at least as much; with less room side keeps min. start puts side on the
 // start edge, the left, and otherwise on the end. label names the panes'
 // group for assistive technology; MyGo names the line itself, "Divider",
-// with no setting for it (v0.9.1).
+// with no setting for it (still so in v0.10.0).
 func Split(c *Context, width *float32, min float32, start bool, label string, main, side func()) Element {
 	row := ui.Row(c).Grow(1).Shrink(1).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Role(ui.RoleGroup).Label(label)
 	// The room as the last frame laid it out, 0 in the first.
