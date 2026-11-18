@@ -42,7 +42,14 @@ func (g *storedHosts) PrivateHosts(context.Context, id.Project) ([]string, error
 	return hs, nil
 }
 
-func (g *storedHosts) SetPrivateHosts(_ context.Context, _ id.Project, hs []string) ([]string, error) {
+// EditPrivateHosts reads and saves as the two calls did before TASK-079,
+// each answered when the test says.
+func (g *storedHosts) EditPrivateHosts(ctx context.Context, p id.Project, edit func([]string) []string) ([]string, error) {
+	hs, err := g.PrivateHosts(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	hs = edit(hs)
 	if err := g.saves.wait(); err != nil {
 		return nil, err
 	}

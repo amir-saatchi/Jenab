@@ -66,6 +66,16 @@ func (f *fakeHosts) SetPrivateHosts(_ context.Context, _ id.Project, hosts []str
 	return slices.Clone(hosts), nil
 }
 
+func (f *fakeHosts) EditPrivateHosts(_ context.Context, _ id.Project, edit func([]string) []string) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	f.stored = slices.Clone(edit(slices.Clone(f.stored)))
+	return slices.Clone(f.stored), nil
+}
+
 func TestHostsChangeStartsFromTheStoredList(t *testing.T) {
 	l := newLoop()
 	f := &fakeHosts{}

@@ -136,6 +136,19 @@ func (s *ProjectService) SetPrivateHosts(ctx context.Context, p id.Project, host
 	return stored, err
 }
 
+// EditPrivateHosts changes the exceptions with edit and returns them as
+// stored, reading and saving them in one hold of the project's lock, so
+// an approval card's "Allow in this project" isn't lost to it (TASK-079).
+// A host that isn't one is KindInvalid, and nothing changes.
+func (s *ProjectService) EditPrivateHosts(ctx context.Context, p id.Project, edit func([]string) []string) (stored []string, err error) {
+	defer s.guard("project.edit_private_hosts", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		stored, err = proj.EditPrivateHosts(ctx, edit)
+		return err
+	})
+	return stored, err
+}
+
 // FolderWarning says whether the data folder is a bad place for the
 // projects, for the banner in 2.1; nil when it is fine.
 func (s *ProjectService) FolderWarning(ctx context.Context) (w *project.FolderWarning, err error) {

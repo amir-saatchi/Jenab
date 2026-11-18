@@ -89,6 +89,38 @@ func (e *HostError) Unwrap() error { return e.Err }
 // (punycode), addresses in their standard form. Empty ones are skipped;
 // any other that isn't a host is a *HostError, and nothing changes.
 func (p *Project) SetPrivateHosts(ctx context.Context, hosts []string) ([]string, error) {
+	out, err := checkHosts(hosts)
+	if err != nil {
+		return nil, err
+	}
+	p.hostsMu.Lock()
+	defer p.hostsMu.Unlock()
+	return out, p.storeHosts(ctx, out)
+}
+
+// EditPrivateHosts reads the exceptions, changes them with edit and saves
+// them, all in one hold of hostsMu, and returns them as stored. A card's
+// AddPrivateHost lands before or after it, never between its read and its
+// save, so neither loses the other's host (TASK-079). The hosts are
+// checked as SetPrivateHosts checks them: one that isn't a host is a
+// *HostError, and nothing changes. edit gets a list of its own.
+func (p *Project) EditPrivateHosts(ctx context.Context, edit func([]string) []string) ([]string, error) {
+	p.hostsMu.Lock()
+	defer p.hostsMu.Unlock()
+	hs, err := p.PrivateHosts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out, err := checkHosts(edit(hs))
+	if err != nil {
+		return nil, err
+	}
+	return out, p.storeHosts(ctx, out)
+}
+
+// checkHosts is hosts as they are stored: each in the spelling requests
+// use, sorted, once, without empty ones; or the first that isn't a host.
+func checkHosts(hosts []string) ([]string, error) {
 	out := []string{}
 	for _, h := range hosts {
 		if strings.TrimSpace(h) == "" {
@@ -101,10 +133,7 @@ func (p *Project) SetPrivateHosts(ctx context.Context, hosts []string) ([]string
 		out = append(out, c)
 	}
 	slices.Sort(out)
-	out = slices.Compact(out)
-	p.hostsMu.Lock()
-	defer p.hostsMu.Unlock()
-	return out, p.storeHosts(ctx, out)
+	return slices.Compact(out), nil
 }
 
 // AddPrivateHost adds one host to the exceptions, as an approval card's

@@ -11,9 +11,12 @@ import (
 )
 
 // HostsAPI is what Hosts reads and writes; *app.ProjectService has it.
+// A change goes through EditPrivateHosts, which reads, changes and saves
+// the list at once: a read and then a save would lose a card's host added
+// between them (TASK-079).
 type HostsAPI interface {
 	PrivateHosts(ctx context.Context, p id.Project) ([]string, error)
-	SetPrivateHosts(ctx context.Context, p id.Project, hosts []string) ([]string, error)
+	EditPrivateHosts(ctx context.Context, p id.Project, edit func([]string) []string) ([]string, error)
 }
 
 // Hosts is each project's private-network exceptions (SPEC 5.12, 6.7),
@@ -68,7 +71,8 @@ func (h *Hosts) Load(p id.Project) {
 }
 
 // Change saves next of the stored list, which a card may have changed
-// since the page read it, and gives then the error, if any. It runs once
+// since the page read it, and gives then the error, if any. The service
+// runs next on the list as stored, in one hold with the save. It runs once
 // the project's earlier changes have ended. A failed change reads the
 // list again, as a read made while it ran was dropped.
 func (h *Hosts) Change(p id.Project, next func([]string) []string, then func(error)) {
@@ -96,11 +100,7 @@ func (h *Hosts) runNext(p id.Project) {
 
 func (h *Hosts) change(p id.Project, next func([]string) []string, then func(error)) {
 	go func() {
-		stored, err := h.api.PrivateHosts(background, p)
-		var saved []string
-		if err == nil {
-			saved, err = h.api.SetPrivateHosts(background, p, next(orEmpty(stored)))
-		}
+		saved, err := h.api.EditPrivateHosts(background, p, func(stored []string) []string { return next(orEmpty(stored)) })
 		h.post(func() {
 			if err == nil {
 				h.ByProject[p] = orEmpty(saved)

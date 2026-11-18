@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"testing"
+	"time"
 )
 
 func TestLevel(t *testing.T) {
@@ -100,5 +101,49 @@ func TestPrivateHostsChecked(t *testing.T) {
 	}
 	if got, err := p.SetPrivateHosts(ctx, nil); err != nil || got == nil || len(got) != 0 {
 		t.Errorf("cleared: %q, %v", got, err)
+	}
+}
+
+// A card's AddPrivateHost that comes while an edit holds the list waits
+// for the edit's save, and is kept (TASK-079). The edit lets it run for a
+// while: had the edit read and then saved the list apart, the card's host
+// would be saved over.
+func TestAnEditKeepsACardsHost(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	defer e.stop(t)
+	ctx := context.Background()
+	p := open(t, e.m, create(t, e.m, "Edit"))
+	defer p.Release()
+	if _, err := p.SetPrivateHosts(ctx, []string{"nas.local"}); err != nil {
+		t.Fatal(err)
+	}
+	added := make(chan error, 1)
+	got, err := p.EditPrivateHosts(ctx, func(hs []string) []string {
+		go func() { added <- p.AddPrivateHost(ctx, "printer.local") }()
+		select {
+		case err := <-added: // it didn't wait
+			added <- err
+		case <-time.After(300 * time.Millisecond):
+		}
+		return append(hs, "127.0.0.1")
+	})
+	if want := []string{"127.0.0.1", "nas.local"}; err != nil || !slices.Equal(got, want) {
+		t.Errorf("EditPrivateHosts = %q, %v; want %q", got, err, want)
+	}
+	if err := <-added; err != nil {
+		t.Fatal(err)
+	}
+	if hs, _ := p.PrivateHosts(ctx); !slices.Equal(hs, []string{"127.0.0.1", "nas.local", "printer.local"}) {
+		t.Errorf("after the edit and the card: %q", hs)
+	}
+
+	// A host that isn't one changes nothing.
+	_, err = p.EditPrivateHosts(ctx, func(hs []string) []string { return append(hs, "nas.local:80") })
+	var he *HostError
+	if !errors.As(err, &he) || he.Host != "nas.local:80" {
+		t.Errorf("a bad host: %v", err)
+	}
+	if hs, _ := p.PrivateHosts(ctx); len(hs) != 3 {
+		t.Errorf("a refused edit changed the hosts: %q", hs)
 	}
 }

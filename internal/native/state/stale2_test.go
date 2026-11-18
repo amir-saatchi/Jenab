@@ -13,7 +13,8 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 )
 
-// savingHosts answers PrivateHosts and SetPrivateHosts when the test says.
+// savingHosts answers PrivateHosts, and EditPrivateHosts's read and save,
+// when the test says.
 type savingHosts struct {
 	reads, saves gate[[]string]
 }
@@ -22,7 +23,8 @@ func (g *savingHosts) PrivateHosts(context.Context, id.Project) ([]string, error
 	return g.reads.wait(), nil
 }
 
-func (g *savingHosts) SetPrivateHosts(context.Context, id.Project, []string) ([]string, error) {
+func (g *savingHosts) EditPrivateHosts(_ context.Context, _ id.Project, edit func([]string) []string) ([]string, error) {
+	edit(g.reads.wait())
 	return g.saves.wait(), nil
 }
 
