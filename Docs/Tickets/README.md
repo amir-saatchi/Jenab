@@ -133,6 +133,8 @@ The reports the ticket sessions wrote are in [reports/](reports/), linked from e
 | [TASK-077](TASK-077-connect-retry-and-chip-reads.md) | The Connect card's refused retry, and a chip's read during its own undo | Task | Done | 3 |
 | [TASK-078](TASK-078-shapes-crash-start-and-hosts.md) | Key shapes in escaped JSON, the crash redactor at start, and overlapping host changes | Task | Done | 3 |
 | [TASK-079](TASK-079-host-edits-under-the-lock.md) | A card's host lost to a page change | Task | Done | 3 |
+| [TASK-080](TASK-080-retried-turn-notice.md) | What the model reads of a failed turn's notice | Task | Done | 3 |
+| [TASK-081](TASK-081-prune-hooks-stamp.md) | Pruning keeps what came after the chat list's read | Task | Done | 3 |
 
 ## Phase 1
 
