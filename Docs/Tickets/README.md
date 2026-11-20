@@ -185,6 +185,26 @@ Phase 2 is structured memory (PROPOSAL 9). The data layer comes first (P2-01 to 
 | [P2-13](P2-13-benchmark.md) | Token and accuracy benchmark | P2-05, P2-09, P2-10, P2-11, TASK-013 | Done |
 | [P2-14](P2-14-phase-2-acceptance.md) | Phase 2 acceptance | P2-01 to P2-13 | Done |
 
+## Phase 3
+
+Phase 3 is views and pages (PROPOSAL 9, SPEC 5). The Go side comes first: storage (P3-01), validation and the block registry (P3-02), then the tools (P3-03), migrations (P3-04), running views (P3-05) and their writes (P3-06). The kit blocks (P3-07, P3-08) take plain Go data, so they can start at once. The page screen (P3-09) and the shell (P3-10) join them, and the Links tab (P3-11) needs nothing else. `run_pipeline` actions wait for Phase 4.
+
+| ID | Title | Needs | Status |
+|---|---|---|---|
+| [P3-01](P3-01-config-storage.md) | Views and pages: storage, change log and undo | P2-02, P2-03, P2-04 | Open |
+| [P3-02](P3-02-config-validation.md) | Validation of views and pages, and the block registry | P2-01, P3-01 | Open |
+| [P3-03](P3-03-config-tools.md) | Agent tools for views and pages | P3-01, P3-02 | Open |
+| [P3-04](P3-04-migrations-and-dependents.md) | Migrations keep views and forms working | P3-01, P3-02, P2-06 | Open |
+| [P3-05](P3-05-view-runtime.md) | Running views: queries, filters, tables, charts and stats | P3-01, P3-02 | Open |
+| [P3-06](P3-06-view-writes.md) | Forms and row actions write data | P3-05 | Open |
+| [P3-07](P3-07-table-stat-filter-blocks.md) | Kit blocks: table, stat and filters | – | Open |
+| [P3-08](P3-08-chart-form-blocks.md) | Kit blocks: chart and form | – | Open |
+| [P3-09](P3-09-page-screen.md) | The page screen | P3-05 to P3-08 | Open |
+| [P3-10](P3-10-pages-in-the-shell.md) | Pages in the shell: the Pages tab, the dock and the layout per chat | P3-09, P3-03 | Open |
+| [P3-11](P3-11-links-tab.md) | The Links tab | P1-05 | Open |
+| [P3-12](P3-12-page-speed.md) | Page speed: six blocks in under 1.5 s | P3-09 | Open |
+| [P3-13](P3-13-phase-3-acceptance.md) | Phase 3 acceptance | P3-01 to P3-12 | Open |
+
 ## Notes
 
 The spikes ran under the working name Burrow, so their code, results and transcripts in `spikes/` still use it (`_burrow_` tables, `burrow.lock`). The tickets use the final name, Jenab.

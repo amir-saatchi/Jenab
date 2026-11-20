@@ -1626,6 +1626,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | `read_config(id)` | The stored view, form, page or pipeline as YAML, for editing (SPIKE-021) |
 | `open_page(id, filters)` | Open a page in this chat, e.g. after building or changing it (5.9) |
 | `validate(config)` | Validate without saving |
+| `delete_config(id)` | Delete a view or page. A view that a page or `open_form` still uses is refused, with their names. In the change log and undone with its turn; no approval, since it can be undone (P3-03) |
 | `dry_run(pipeline, inputs)` | Dry run (6.8) |
 | `run_pipeline(id, inputs)` | Start a run; returns the run ID |
 | `run_status(run_id)` | Status and step summaries; a finish notice follows, so there is no need to poll (8.3) |
@@ -1893,7 +1894,7 @@ Every project has one **Mother chat**: the project's home, which directs the oth
   |---|---|---|
   | Read | `query`, `describe_table`, `read_config`, `run_status`, `open_page` | read the project's tables, views, pages, pipelines and runs |
   | Change data | `insert`, `request_schema_change` | add rows and ask the schema agent for tables or columns |
-  | Build and run | `save_view`, `save_page`, `save_pipeline`, `validate`, `dry_run`, `run_pipeline` | build, check and run views, pages and pipelines |
+  | Build and run | `save_view`, `save_page`, `save_pipeline`, `delete_config`, `validate`, `dry_run`, `run_pipeline` | build, check and run views, pages and pipelines |
   | Files | `bucket_*`, `list_files`, `read_file`, `search_code` | the project's files (the bucket) and the linked folder |
   | Web | `web_search`, `fetch_page`, `read_feed`, `save_link`, `call_api`, `connect_api` | search and read the web, feeds and APIs |
   | Memory | `update_memory` | edit user and project memory |
@@ -2198,7 +2199,7 @@ Each bad field gives its own error, naming the file and the field.
 
 | Skill | Content | `load_with` |
 |---|---|---|
-| `config-guide` | Views (table, chart, stat and form), filters, formats, actions and row actions, page rows and blocks (5), with examples | `save_view`, `save_page` |
+| `config-guide` | Views (table, chart, stat and form), filters, formats, actions and row actions, page rows and blocks (5), with examples, and when to delete one | `save_view`, `save_page`, `delete_config` |
 | `pipelines` | Steps, expressions, `for_each`, schedules, dry runs (6). The description says to load it for anything that runs on a schedule | `save_pipeline`, `dry_run` |
 | `database-design` | Tables, keys, annotations, when to widen a table (8.2 guidelines) | – |
 | `migrations` | Migration steps, destructive changes, updating dependents (7.5, 8.2) | `request_schema_change` |
