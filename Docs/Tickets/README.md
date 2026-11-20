@@ -198,7 +198,7 @@ Phase 3 is views and pages (PROPOSAL 9, SPEC 5). The Go side comes first: storag
 | [P3-05](P3-05-view-runtime.md) | Running views: queries, filters, tables, charts and stats | P3-01, P3-02 | Open |
 | [P3-06](P3-06-view-writes.md) | Forms and row actions write data | P3-05 | Open |
 | [P3-07](P3-07-table-stat-filter-blocks.md) | Kit blocks: table, stat and filters | – | Done |
-| [P3-08](P3-08-chart-form-blocks.md) | Kit blocks: chart and form | – | Open |
+| [P3-08](P3-08-chart-form-blocks.md) | Kit blocks: chart and form | – | Done |
 | [P3-09](P3-09-page-screen.md) | The page screen | P3-05 to P3-08 | Open |
 | [P3-10](P3-10-pages-in-the-shell.md) | Pages in the shell: the Pages tab, the dock and the layout per chat | P3-09, P3-03 | Open |
 | [P3-11](P3-11-links-tab.md) | The Links tab | P1-05 | Open |

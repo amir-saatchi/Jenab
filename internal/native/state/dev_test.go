@@ -102,7 +102,10 @@ func TestTheInspectorOpensAtTheNewestTurn(t *testing.T) {
 	until(t, l, func() bool { return d.Pick != nil })
 	same(t, *d.Pick, TurnRef{"p", "c2", 3})
 
-	// At a turn, as Inspect opens it, it stays there.
+	// At a turn, as Inspect opens it, it stays there. Turns is cleared
+	// first so until waits for this load, not the first one, which a
+	// load landing late could otherwise refill below.
+	d.Turns = nil
 	d.OpenInspector(&TurnRef{"p", "c1", 2})
 	until(t, l, func() bool { return d.Turns != nil })
 	same(t, *d.Pick, TurnRef{"p", "c1", 2})

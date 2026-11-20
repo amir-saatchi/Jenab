@@ -1,6 +1,6 @@
 # P3-08 — Kit blocks: chart and form
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 3)
 **Needs:** –
 **Requirements:** R-41, R-43, R-116
@@ -20,3 +20,17 @@ The kit components for the chart and form blocks (SPEC 5.4, 5.5, 5.11), on MyGo'
 ## Done when
 - Headless tests for each chart type, each control and each state.
 - Screenshots in light and dark, kept outside the repo.
+
+## Result
+Done on 2026-11-21. Report: [P3-08-report](reports/P3-08-report.md).
+
+- **Chart:** `ChartBlock` draws line, bar, scatter and pie charts on MyGo's `ui/chart`. It has formatted axes, a legend and series in a fixed tone order.
+  - The keyboard moves a readout over every point, and the numbers are in the user's locale.
+  - A line breaks at missing values, and a pie draws at most 12 slices, "Other" among them.
+  - A time axis follows 5.3's date rule: days in UTC, other times in the computer's zone.
+- **Form:** `FormBlock` has text, textarea, number, date, select, checkbox and file controls. File uploads take a progress callback.
+  - It has required fields, errors on their field (others above the button), a busy state and update forms filled from values.
+  - A whole number is kept exactly (`FormValue.Int`).
+- **States:** both blocks use P3-07's `BlockState` and `BlockBody`; the 10,000-row notice is `BlockState.Notice`.
+- **Speed:** every chart stays inside a 60 fps frame, so SPEC 5.4's size rules are rewritten from these numbers. There is no downsampling, and the 1,000-bar cap stays.
+- **Review:** two Medium and ten Low points are fixed, plus the time zone and the series order. The pie draws 12 slices, and a submitted date is a copy.

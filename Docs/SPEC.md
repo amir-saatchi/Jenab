@@ -923,17 +923,19 @@ row_actions:
 | `series_by` | no | Field used to split rows into series (e.g. `coin`); `y` then has exactly one entry |
 
 - The runtime wraps the query as `SELECT * FROM (<query>) LIMIT 10001`. If more than 10,000 rows come back, the first 10,000 are shown with a notice to aggregate in the query.
-- Line and scatter charts are sorted by `x`.
+- Line and scatter charts are sorted by `x`. A line breaks at a missing value instead of joining across it.
+- Several series in a bar chart are grouped side by side.
+- A time `x` is shown in the computer's zone, unless every value falls on midnight UTC: then the axis is days, in UTC, as 5.3's dates are. A time outside the years 1 to 9999 is an error on the block.
 - **Pie charts:**
   - `x` is the label field and `y` has exactly one entry, the value. `series_by` isn't allowed.
-  - At most 12 slices are drawn, largest first; the rest are summed into "Other".
-  - Negative values are an error shown on the block.
-- **Size rules** (SPIKE-022). The runtime applies these from the data size; they aren't config fields.
-  - **Up to 1,000 points:** Recharts' normal animation and dots.
-  - **Above 1,000 points:** no animation and no dots. With the defaults, 10,000 points took 1.0–2.2 s to draw and up to 4.7 s to resize.
-  - **Line and scatter above 2,000 points:** downsampled in Go to 2,000 points with LTTB before sending. This draws in about 130 ms. Scatter wasn't measured, so it follows the line rule until it is.
-  - **Bar charts above 1,000 bars:** the first 1,000 are shown, with a notice to aggregate in the query, like the 10,000-row notice. 10,000 SVG bars stay over 1.5 s even without animation.
-  - If exact 10,000-point charts are needed later, uPlot (canvas) drew them in about 100 ms.
+  - At most 12 slices are drawn, "Other" among them: the 11 largest, and the rest summed into "Other".
+  - Zero and empty values are skipped. Negative values are an error shown on the block, naming the slice.
+- **Size rules** (P3-08, measured on MyGo's chart package). The runtime applies these from the data size; they aren't config fields.
+  - **The 10,000-row limit** stays, with its notice. It holds back memory and query time, not drawing.
+  - **No downsampling.** A line keeps each pixel column's lowest and highest value, so its shape and peaks are exact at any width. Scatter draws every point. A 10,000-point line took 1.7 ms to draw and a 10,000-point scatter about 5 ms; on the GPU every chart stayed inside a 60 fps frame at p95, with new data every frame.
+  - **No animation.** Dots on a line show only when there is room for them, about 12 px a point, decided at each width.
+  - **Bar charts above 1,000 bars:** the first 1,000 are shown, with a notice to aggregate in the query, like the 10,000-row notice. 1,000 bars took about 1 ms a frame; 10,000 bars took about 20 ms to resize, and at that size the bars are thinner than a pixel.
+  - Resizing the window costs about 20 ms for any chart, most of it MyGo resizing the window's surface.
 
 ### 5.5 Form
 
@@ -946,6 +948,9 @@ Forms write only through their `submit` action. Their writes go through the proj
 | `load` | for update | Query that fills the fields; receives the row key as `:key` |
 
 - Controls: `text`, `textarea`, `number`, `date`, `select`, `checkbox`, `file`.
+  - `number` reads Persian digits and separators, and keeps a whole number exactly, for `INTEGER` columns past 2^53.
+  - A required `checkbox` must be checked. An optional `select` has a "None" choice.
+  - `date` starts empty, with a "Choose a date" button.
 - `options` can be a static list or `{ query: "SELECT ..." }`.
 - A `file` control uploads into the bucket under `prefix` (e.g. `uploads/`) and stores the key.
 
@@ -1111,7 +1116,7 @@ rows:
   - Each tone has a light and a dark value, and text in each tone meets WCAG AA contrast (4.5:1) in both themes. In the kit, a tone is a text colour and a soft fill (`kit.ToneColors`). The kit's `contrast_test.go` checks its text colours against that threshold, in light and dark.
   - Validation rejects anything else, such as hex colours.
   - So every page the agent builds looks right in both themes.
-- **Charts:** series take the tones in a fixed order. Changes (`stat.change`) are green or red.
+- **Charts:** series take the tones in a fixed order: blue, green, amber, red, purple, then neutral. After the sixth, the order repeats, faded toward the background. Changes (`stat.change`) are green or red.
 - **Later:** accent colours, custom themes, high contrast.
 
 ### 5.12 App shell
