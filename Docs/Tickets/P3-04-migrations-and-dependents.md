@@ -10,7 +10,7 @@ A migration and the updates to the views and forms that depend on it commit in o
 
 ## Scope
 - **Dependents:** from the stored configs, find the views, forms and `rows_from` that use each table and column (the same data the card lists, P3-03).
-- **The schema agent (8.2):** its input lists the dependents with the columns they use; it reads full configs with `read_config` and returns updated configs with the migration. The migration and those config saves commit together, each config save validated against the new schema first.
+- **The schema agent (8.2):** its input lists the dependents with the columns they use; it reads full configs with `read_config` and returns updated configs with the migration. The migration and those config saves commit together, each config save validated against the new schema first. Save them with the store's `SaveConfigTx` in the migration's transaction; it doesn't publish, so send `project:configs` for them after the commit (P3-01).
 - **Re-validation:** after a migration, open views re-validate on their next load. A view that fails shows an error state on its block (P3-09) and is marked in the project card.
 - **Undo:** config saves made by a migration have the source `migration:<id>` and are not reverted by *Undo turn*, as migrations aren't (2.6).
 - **Scenario:** in `scenarios/views-and-pages` (or a new set), rename a column used by a table view and a form; the view and form keep working.

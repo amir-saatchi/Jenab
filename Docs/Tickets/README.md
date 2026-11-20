@@ -191,13 +191,13 @@ Phase 3 is views and pages (PROPOSAL 9, SPEC 5). The Go side comes first: storag
 
 | ID | Title | Needs | Status |
 |---|---|---|---|
-| [P3-01](P3-01-config-storage.md) | Views and pages: storage, change log and undo | P2-02, P2-03, P2-04 | Open |
+| [P3-01](P3-01-config-storage.md) | Views and pages: storage, change log and undo | P2-02, P2-03, P2-04 | Done |
 | [P3-02](P3-02-config-validation.md) | Validation of views and pages, and the block registry | P2-01, P3-01 | Open |
 | [P3-03](P3-03-config-tools.md) | Agent tools for views and pages | P3-01, P3-02 | Open |
 | [P3-04](P3-04-migrations-and-dependents.md) | Migrations keep views and forms working | P3-01, P3-02, P2-06 | Open |
 | [P3-05](P3-05-view-runtime.md) | Running views: queries, filters, tables, charts and stats | P3-01, P3-02 | Open |
 | [P3-06](P3-06-view-writes.md) | Forms and row actions write data | P3-05 | Open |
-| [P3-07](P3-07-table-stat-filter-blocks.md) | Kit blocks: table, stat and filters | – | Open |
+| [P3-07](P3-07-table-stat-filter-blocks.md) | Kit blocks: table, stat and filters | – | Done |
 | [P3-08](P3-08-chart-form-blocks.md) | Kit blocks: chart and form | – | Open |
 | [P3-09](P3-09-page-screen.md) | The page screen | P3-05 to P3-08 | Open |
 | [P3-10](P3-10-pages-in-the-shell.md) | Pages in the shell: the Pages tab, the dock and the layout per chat | P3-09, P3-03 | Open |

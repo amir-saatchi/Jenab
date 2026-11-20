@@ -280,6 +280,11 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 		}
 		return fmt.Errorf("project %s: %w", p.ID, err)
 	}
+	// Changes to views and pages go to the UI, so open pages read them
+	// again and a deleted page closes (SPEC 5.9).
+	p.DB.OnConfigs(func(cs []store.ConfigChange) {
+		m.d.Events.Configs(ConfigsChanged{Project: p.ID, Changes: cs})
+	})
 	if crashed && p.Damage == nil {
 		// Recovery step 4: bytes a put wrote before it crashed (SPEC 2.7).
 		rep, err := p.DB.SweepObjects(ctx)

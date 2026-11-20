@@ -34,13 +34,14 @@ type Services struct {
 // Bound are the services the UI calls (Q31): one thin service per
 // area. Every method takes ctx first, returns typed structs, and ends with
 // guard, so its errors are *UIError values logged once. Later tickets add
-// the methods their screens need; PageService and PipelineService come
-// with the pages and pipelines.
+// the methods their screens need; PipelineService comes with the
+// pipelines.
 type Bound struct {
 	Project  *ProjectService
 	Chat     *ChatService
 	Settings *SettingsService
 	Bucket   *BucketService
+	Config   *ConfigService // views and pages
 	System   *SystemService
 	Dev      *DevService // bound only with the developer tools on
 }
@@ -65,6 +66,7 @@ func NewServices(s Services) Bound {
 		Settings: &SettingsService{base: b, settings: s.Settings, models: s.Models, secrets: s.Secrets, registry: s.Registry,
 			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},
 		Bucket: &BucketService{base: b, projects: s.Projects, openFile: s.OpenFile},
+		Config: &ConfigService{base: b, projects: s.Projects},
 		System: &SystemService{base: b, notify: s.Notify},
 		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, traces: s.Traces, logs: s.Logs, now: time.Now},
 	}

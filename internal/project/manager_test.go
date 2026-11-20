@@ -24,6 +24,13 @@ type recorder struct {
 	mu       sync.Mutex
 	notices  []Notice
 	activity []Activity
+	configs  []ConfigsChanged
+}
+
+func (r *recorder) Configs(c ConfigsChanged) {
+	r.mu.Lock()
+	r.configs = append(r.configs, c)
+	r.mu.Unlock()
 }
 
 func (r *recorder) Notice(n Notice) {

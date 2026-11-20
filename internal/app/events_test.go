@@ -16,7 +16,8 @@ func TestPublisher(t *testing.T) {
 	p.Status(chat.Status{})
 	p.Notice(project.Notice{})
 	p.Activity(project.Activity{})
-	want := []string{"chat:delta", "chat:part", "chat:status", "project:notice", "project:activity"}
+	p.Configs(project.ConfigsChanged{})
+	want := []string{"chat:delta", "chat:part", "chat:status", "project:notice", "project:activity", "project:configs"}
 	if got := s.names(); !slices.Equal(got, want) {
 		t.Errorf("events %v", got)
 	}

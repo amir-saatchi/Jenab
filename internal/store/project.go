@@ -38,6 +38,7 @@ var ProjectFormat = Format{Name: "project", Steps: []func(*sql.Tx) error{
 	changeTables,
 	memoryTables,
 	skipEntries,
+	configTables,
 }}
 
 // projectPragmas are for the project.db writer: a 64 MB cache, and a WAL
@@ -54,6 +55,7 @@ type ProjectDB struct {
 	objMu   sync.RWMutex
 	workers *sqlworker.Pool // for agent queries (SPEC 2.2)
 	deps    dependents      // configs that migrations update and check (SPEC 7.5)
+	configs configHook      // where changes to views and pages go (OnConfigs)
 }
 
 func newProjectDB(db *DB, dir string) *ProjectDB {

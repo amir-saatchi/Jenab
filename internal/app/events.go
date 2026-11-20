@@ -16,6 +16,9 @@ const (
 	EventActivity = "project:activity"
 	EventOpen     = "app:open" // a desktop notification was clicked
 	EventExport   = "project:export"
+	// EventConfigs is a change to views and pages (project.ConfigsChanged):
+	// open pages read them again, and a deleted one closes (SPEC 5.9).
+	EventConfigs = "project:configs"
 	// run:status comes with the pipelines (Phase 3).
 )
 
@@ -39,11 +42,12 @@ func NewPublisher(emit func(name string, data any)) *Publisher {
 	return &Publisher{emit: emit}
 }
 
-func (p *Publisher) Delta(d chat.Delta)          { p.emit(EventDelta, d) }
-func (p *Publisher) Part(d chat.PartDone)        { p.emit(EventPart, d) }
-func (p *Publisher) Status(s chat.Status)        { p.emit(EventStatus, s) }
-func (p *Publisher) Notice(n project.Notice)     { p.emit(EventNotice, n) }
-func (p *Publisher) Activity(a project.Activity) { p.emit(EventActivity, a) }
+func (p *Publisher) Delta(d chat.Delta)               { p.emit(EventDelta, d) }
+func (p *Publisher) Part(d chat.PartDone)             { p.emit(EventPart, d) }
+func (p *Publisher) Status(s chat.Status)             { p.emit(EventStatus, s) }
+func (p *Publisher) Notice(n project.Notice)          { p.emit(EventNotice, n) }
+func (p *Publisher) Activity(a project.Activity)      { p.emit(EventActivity, a) }
+func (p *Publisher) Configs(c project.ConfigsChanged) { p.emit(EventConfigs, c) }
 
 // Open asks the UI to show a chat, after its notification was clicked.
 func (p *Publisher) Open(o Open) { p.emit(EventOpen, o) }

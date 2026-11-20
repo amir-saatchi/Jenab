@@ -449,6 +449,9 @@ func TestSkipEntriesOldUndos(t *testing.T) {
 			if st, _ := p.UndoState(ctx, turn); st.Undo.Changes != 0 {
 				t.Fatalf("the old engine's state reads in effect: %+v", st)
 			}
+			// A format 4 file has none of the later steps' tables.
+			mustExec(t, p.DB, `DROP TABLE _jenab_views`)
+			mustExec(t, p.DB, `DROP TABLE _jenab_pages`)
 			mustExec(t, p.DB, `PRAGMA user_version = 4`)
 			p.Close(ctx)
 			p, err = OpenProject(ctx, dir)

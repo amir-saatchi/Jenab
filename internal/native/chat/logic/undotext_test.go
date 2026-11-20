@@ -35,6 +35,8 @@ func TestItemName(t *testing.T) {
 		{store.UndoItem{Table: "_jenab_chat_role", Key: "01CHAT"}, "the chat's role"},
 		{store.UndoItem{Table: "prices", Key: ""}, "the table " + i("prices")},
 		{store.UndoItem{Table: "_jenab_memory", Key: "memory:project/goals"}, "the project memory section " + i("goals")},
+		{store.UndoItem{Table: "_jenab_views", Key: "view:btc_prices"}, "the view " + i("btc_prices")},
+		{store.UndoItem{Table: "_jenab_pages", Key: "page:bitcoin"}, "the page " + i("bitcoin")},
 		{store.UndoItem{Table: "_jenab_user_memory", Key: "ترجیحات"}, "the user memory section " + i("ترجیحات")},
 	}
 	for _, c := range cases {

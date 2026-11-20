@@ -8,10 +8,19 @@ import (
 )
 
 // Publisher sends project events to the UI; app.Publisher implements it
-// (project:notice, project:activity). It must not block.
+// (project:notice, project:activity, project:configs). It must not block.
 type Publisher interface {
 	Notice(Notice)
 	Activity(Activity)
+	Configs(ConfigsChanged)
+}
+
+// ConfigsChanged is a committed change to a project's views and pages: a
+// save, a delete, or an undo or redo that put them back (SPEC 5.9). Each
+// write sends its own; an undo sends all it reverted at once.
+type ConfigsChanged struct {
+	Project id.Project           `json:"project"`
+	Changes []store.ConfigChange `json:"changes"`
 }
 
 // NoticeKind says what a notice reports. Readers accept kinds they don't
@@ -77,5 +86,6 @@ type Activity struct {
 
 type noPublisher struct{}
 
-func (noPublisher) Notice(Notice)     {}
-func (noPublisher) Activity(Activity) {}
+func (noPublisher) Notice(Notice)          {}
+func (noPublisher) Activity(Activity)      {}
+func (noPublisher) Configs(ConfigsChanged) {}

@@ -123,15 +123,19 @@ type UndoResult struct {
 	Skipped    []UndoItem     `json:"skipped,omitempty"`    // items left as they are
 	Migrations []id.Change    `json:"migrations,omitempty"` // migrations kept
 	Conflicts  []UndoConflict `json:"conflicts,omitempty"`
+	// Configs are the views and pages it put back, as OnConfigs gets them.
+	Configs []ConfigChange `json:"configs,omitempty"`
 }
 
-// internalNouns name the internal targets in a summary. Phase 3 and 4 add
-// views and pipelines.
+// internalNouns name the internal targets in a summary. Phase 4 adds
+// pipelines.
 var internalNouns = map[string][2]string{
 	"_jenab_objects": {"file", "files"},
 	RoleItem:         {"chat role", "chat roles"},
 	memoryTable:      {"project memory section", "project memory sections"},
 	UserMemoryItem:   {"user memory section", "user memory sections"},
+	viewTable:        {"view", "views"},
+	pageTable:        {"page", "pages"},
 }
 
 // Summary is the plan in a few words, e.g. "12 rows in btc_prices, 1 file".
@@ -552,14 +556,14 @@ func (p *ProjectDB) Undo(ctx context.Context, sources []id.Source, o UndoOptions
 		}
 	}
 	var res UndoResult // kept outside, so a rolled-back undo still reports
-	_, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
+	_, err := doThen(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
 		res = UndoResult{}
 		err := undoTx(tx, bySources(sources), o, &res)
 		if err == nil && o.Check {
 			err = errChecked
 		}
 		return struct{}{}, err
-	})
+	}, func(struct{}) { p.configsChanged(res.Configs) }) // a check rolls back, so it sends nothing
 	if errors.Is(err, errChecked) {
 		err = nil
 	}
@@ -579,14 +583,14 @@ func (p *ProjectDB) UndoChanges(ctx context.Context, cs []id.Change, o UndoOptio
 		return UndoResult{}, ErrNothingToUndo
 	}
 	var res UndoResult
-	_, err := Do(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
+	_, err := doThen(ctx, p.DB, limit.Interactive, func(tx *sql.Tx) (struct{}, error) {
 		res = UndoResult{}
 		err := undoTx(tx, undoBase{srcs: "[]", ids: idsJSON(cs)}, o, &res)
 		if err == nil && o.Check {
 			err = errChecked
 		}
 		return struct{}{}, err
-	})
+	}, func(struct{}) { p.configsChanged(res.Configs) })
 	if errors.Is(err, errChecked) {
 		err = nil
 	}
@@ -736,6 +740,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	// Every item skipped reverts nothing and writes nothing: the turn
 	// stays as it was, and its undo can be tried again.
 	res.Plan.Changes = len(res.Reverted)
+	res.Configs = u.configs
 	return nil
 }
 
@@ -811,6 +816,7 @@ type undoRun struct {
 	first     map[id.Change]int64       // the rowid of each reverted change's first row entry
 	logged    []rowEntry                // the undo's own row entries, for checkKeys
 	conflicts []UndoConflict
+	configs   []ConfigChange // the views and pages it put back
 }
 
 func (u *undoRun) conflict(c UndoConflict) {
@@ -1424,12 +1430,15 @@ func (u *undoRun) put(tab *agentTable, es []undoEntry) (*chunkLog, error) {
 
 // reverter puts an internal target back to its revision before change c,
 // and logs what it did with u.log. It runs once per change, at the newest
-// of the change's entries for the target. P2-09 adds memory sections.
+// of the change's entries for the target. P2-09 adds memory sections,
+// P3-01 views and pages.
 type reverter func(u *undoRun, c *undoChange) error
 
 var reverters = map[string]reverter{
 	"_jenab_objects": (*undoRun).revertObject,
 	memoryTable:      (*undoRun).revertMemory,
+	viewTable:        (*undoRun).revertConfig,
+	pageTable:        (*undoRun).revertConfig,
 }
 
 func (u *undoRun) revertInternal(e undoEntry, es []undoEntry) error {

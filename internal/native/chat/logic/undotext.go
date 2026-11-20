@@ -14,6 +14,8 @@ const (
 	roleItem          = "_jenab_chat_role"   // store.RoleItem; key the chat ID
 	projectMemoryItem = "_jenab_memory"      // key memory:project/<section>
 	userMemoryItem    = "_jenab_user_memory" // store.UserMemoryItem; key the section
+	viewItem          = "_jenab_views"       // key view:<id>
+	pageItem          = "_jenab_pages"       // key page:<id>
 )
 
 // Isolate keeps a name's direction from reordering the sentence around it,
@@ -58,6 +60,10 @@ func ItemName(it store.UndoItem) string {
 		return "the project memory section " + Isolate(strings.TrimPrefix(it.Key, "memory:project/"))
 	case it.Table == userMemoryItem:
 		return "the user memory section " + Isolate(it.Key)
+	case it.Table == viewItem:
+		return "the view " + Isolate(strings.TrimPrefix(it.Key, "view:"))
+	case it.Table == pageItem:
+		return "the page " + Isolate(strings.TrimPrefix(it.Key, "page:"))
 	case it.Key == "":
 		return "the table " + Isolate(it.Table)
 	}

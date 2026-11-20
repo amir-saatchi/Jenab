@@ -18,6 +18,7 @@ Every view and page is checked before it is saved, and all errors come back toge
   5. SQL: the text check, then the prepare and EXPLAIN check of the SQL guard (2.2), with NULL bound to every parameter, run through the query worker. `columns[].field`, `x`, `y`, `series_by` and the `stat` fields are checked against the prepared query's result columns. A table query with `ORDER BY` is a warning, not an error. A `stat` query may have `ORDER BY` and `LIMIT`.
   Steps 2 and 6–9 are for pipelines (Phase 4).
 - **Messages:** SPEC 10's form (`line 4:13 columns[2].field: 'avg' is not a result column of the query; it has date, price`), leaf errors only, YAML fix hints ("quote this value: it contains `: `"), warnings returned but not blocking.
+- **IDs:** check a config's `id` with the store's `CheckConfigID` and normalize it with `NormConfigID` (NFC) before comparing it with a saved ID (P3-01).
 - **Filters:** controls, `required`, relative date defaults parsed (`today-90d`, `start_of_month`, …), a parameter in `params` or `filters` but not both, `select` options as a list or `{query}`.
 
 ## Rules

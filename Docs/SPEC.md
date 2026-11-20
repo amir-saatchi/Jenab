@@ -99,7 +99,8 @@ Holds the tables the agent designs, plus internal tables:
 |---|---|
 | `_jenab_meta` | Project ID, name, schema version, storage format version, bucket lifecycle rules |
 | `_jenab_columns` | Column annotations, e.g. `kind: object_ref` (4.5) |
-| `_jenab_views` | View configs with revision |
+| `_jenab_views` | View configs (the YAML as written) with type, title and revision (5) |
+| `_jenab_pages` | Page configs, the same way (5.9) |
 | `_jenab_pipelines` | Pipeline configs with revision, and the *Pause schedule* flag (6.10) |
 | `_jenab_memory` | Project memory sections with revision (3.3) |
 | `_jenab_changes`, `_jenab_change_rows` | Change log and the row keys each change touched (2.5) |
@@ -241,7 +242,7 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 |---|---|
 | `id`, `at` | Entry ID and time |
 | `source` | `message:<id>`, `run:<id>`, `form:<view_id>`, `user`, `migration:<id>`, `refresh:<chat_id>`, `undo:<change_id>` (the source format below) |
-| `target` | `table:<name>`, `view:<id>`, `pipeline:<id>`, `memory:<scope>/<section>`, `object:<key>`, `schema` |
+| `target` | `table:<name>`, `view:<id>`, `page:<id>`, `pipeline:<id>`, `memory:<scope>/<section>`, `object:<key>`, `schema` |
 | `op` | `insert`, `update`, `upsert`, `delete`, `save`, `migrate` |
 | `before`, `after` | Previous revision for configs, memory and objects. Row changes keep their before-images in `_jenab_change_rows`; after cleanup, `after` holds the row counts per kind |
 
@@ -325,6 +326,7 @@ The app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind 
   - Each `.db` stores it in `PRAGMA user_version`.
   - A newer app backs the file up with `VACUUM INTO` into `snapshots/`, then migrates in one transaction.
   - `project.db` step 5 (TASK-022) adds the `s` entries that older undos left out: for each undo in a chain, one for each of the chain's items it has no entry for. Where an old undo really changed nothing for an item, the item reads as skipped too, so that turn reads partly undone until one more undo or redo.
+  - `project.db` step 6 (P3-01) adds `_jenab_views` and `_jenab_pages`.
   - An older app refuses a newer file without touching it and asks the user to update.
 
 ### 2.9 index.db
@@ -834,7 +836,7 @@ The bucket sits behind an `ObjectStore` interface (`put`, `get`, `head`, `list`,
 | Field | Required | Description |
 |---|---|---|
 | `version` | yes | Always `1` |
-| `id` | yes | Unique view ID |
+| `id` | yes | Unique among the project's views and pages, since `read_config` and `delete_config` take an ID alone. 1–64 letters, digits, `_` or `-`, starting with a letter or digit; stored in Unicode NFC, so two spellings of a Persian ID are one (P3-01) |
 | `title` | yes | Label shown above the block |
 | `type` | yes | `table`, `chart`, `stat` (5.10) or `form` |
 | `description` | no | Short text shown under the title |
@@ -858,7 +860,10 @@ filters:
 - Controls: `text`, `number`, `date`, `select`, `checkbox`.
 - `required: true` prevents the user from clearing the filter.
 - Date defaults accept an ISO date or a relative form: `today`, `today-7d`, `today-3m`, `today-1y`, `start_of_month`, `start_of_year`.
-- A cleared optional filter binds `NULL`. Queries handle this explicitly: `(:coin IS NULL OR coin = :coin)`.
+- A cleared optional filter binds `NULL`. Queries handle this explicitly: `(:coin IS NULL OR coin = :coin)`. An optional checkbox binds `NULL` when unchecked; a required one binds false.
+- A date filter binds its date as ISO text (`2026-11-20`), as SQLite compares dates. Relative dates go back only; months and years run on as SQLite's do (March 31 less one month is March 3).
+- A number filter reads the user's regional formats, and grouping must fit their pattern: "1,5" is no number in English. What it can't read, or an emptied required filter, goes back with the reason shown under it (P3-07).
+- A required select with no value takes its first option.
 - `select` options can be a static list or `{ query: "SELECT ..." }`, as in forms (5.5). The query returns one column.
 
 ### 5.3 Table
@@ -866,7 +871,7 @@ filters:
 | Field | Required | Description |
 |---|---|---|
 | `columns` | yes | List of `{ field, label, format, format_options, align }` |
-| `default_sort` | yes | `{ field, direction }`, the initial sort; the user can re-sort by clicking a column |
+| `default_sort` | yes | `{ field, direction }`, the initial sort; the user can re-sort by clicking a column heading, or with Enter or Space on it |
 | `page_size` | no | Rows per page, default 50 |
 | `rows_from` | for row actions | `{ table, key }`: the base table and its key column; the query must select the key |
 | `row_actions` | no | Buttons per row (below) |
@@ -884,7 +889,12 @@ An `ORDER BY` inside a table query is ignored and produces a validation warning.
 - Rows reach a page as column names plus array rows, not objects. In SPIKE-022 that was 36 % smaller: a 500-row page was about 83 KB and took about 10 ms.
 - The table renders virtual rows. It scrolled 10,000 rows × 12 columns at 60 fps.
 
-**Formats:** `text`, `number`, `currency`, `percent`, `date`, `datetime`, `url`, `boolean`, `badge`, `image`, `file`. `image` and `file` expect a bucket key and show a thumbnail or a download link. Format options go in `format_options`, e.g. `{ currency: USD, decimals: 2 }`.
+**Formats:** `text`, `number`, `currency`, `percent`, `date`, `datetime`, `url`, `boolean`, `badge`, `image`, `file`. `image` and `file` expect a bucket key and show a thumbnail or a link, each opening the file view. Format options go in `format_options`, e.g. `{ currency: USD, decimals: 2 }`.
+
+- `percent` shows up to one decimal unless `decimals` is set, so 0.004 is "0.4%".
+- NULL, and a time that is zero, show blank; NaN and the infinities show a dash.
+- `date` and `datetime`: a date alone, or a time at midnight in its own zone, is a calendar day, shown as it is. Any other time is shown in the computer's zone; a timestamp without a zone is read as UTC, as `datetime('now')` writes it.
+- A table whose column labels read right to left runs its columns right to left. Plain text takes its own direction in each cell; other formats line up with their heading, numbers at the column's end (P3-07).
 
 **`badge`** shows a value as a coloured label, e.g. a status. `format_options: { tones: { new: blue, read: neutral, failed: red } }` maps values to tones (5.11); other values are `neutral`.
 
@@ -900,7 +910,7 @@ row_actions:
 - **`set`** updates fields of that row without a form, e.g. `{ label: "Mark read", set: { read: true }, bulk: true }`.
   - The fields must be columns of `rows_from.table`. The key and `_run_id` / `_fetched_at` can't be set.
   - Values are literals, `now()` or `today()`, checked against the column types.
-- **`bulk: true`** (for `set` and `delete`): the table gets a checkbox column, and the action also works on the selected rows of the loaded page, at most 500. It is one write request and one change-log entry.
+- **`bulk: true`** (for `set` and `delete`): the table gets a checkbox column, and the action also works on the selected rows of the loaded page, at most 500. It is one write request and one change-log entry. *Choose all* chooses at most 500 rows, and with any chosen it clears them. Past 500 chosen, the bulk actions are off and a note says why.
 - **Writes:** `set` and `delete` go through the writer queue, are recorded in the change log and can be undone.
 
 ### 5.4 Chart
@@ -1062,6 +1072,7 @@ rows:
   - A new chat starts full width, or with its `default_page` (8.6). The dock side defaults to the project's last choice.
   - The same page can be open in several chats, each with its own filter values.
   - A page changed by another chat refreshes live. A deleted page closes, and the chat goes back to full width.
+  - Every committed save, delete, undo or redo of a view or page sends `project:configs`, with the IDs, kinds, ops and new revisions, in commit order (P3-01).
 - **The agent knows the open page:** opening a page or changing its filters adds a notice to the chat (3.1), e.g. `[user opened page bitcoin: from_date = 2026-07-01]`, so questions like "why did this chart drop?" work.
 - **`open_page(id, filters)`:** the agent can open a page in its own chat, e.g. after building or changing it (8.1).
 
@@ -1084,6 +1095,8 @@ rows:
 | `caption` | no | Short text under the number |
 
 - The query must return exactly one row. Any other result shows an error on the block.
+- A NULL, NaN or infinite value shows as a dash.
+- The change is signed, and muted at zero. With no format it is a number; a change that is no number has no arrow (P3-07).
 - `ORDER BY` and `LIMIT` are allowed in a `stat` query, unlike in table queries. Example: `SELECT price, price / LAG(price) OVER (ORDER BY date) - 1 AS change FROM btc_prices ORDER BY date DESC LIMIT 1`.
 
 ### 5.11 Theme

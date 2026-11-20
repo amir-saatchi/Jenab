@@ -222,6 +222,7 @@ type result[T any] struct {
 type txJob[T any] struct {
 	st    atomic.Int32
 	fn    func(*sql.Tx) (T, error)
+	after func(T)        // runs on the writer once fn's transaction is committed (doThen)
 	reply chan result[T] // room for one, so the writer never waits on a caller that left
 }
 
@@ -231,7 +232,17 @@ func (j *txJob[T]) fail(err error)       { j.reply <- result[T]{err: err} }
 func (j *txJob[T]) run(ctx context.Context, c *sql.Conn) func() {
 	var r result[T]
 	r.v, r.err = inTx(ctx, c, j.fn)
+	if r.err == nil && j.after != nil {
+		afterCommit(j.after, r.v)
+	}
 	return func() { j.reply <- r }
+}
+
+// afterCommit runs after with v. The write is committed by then, so a
+// panic in after loses only what after was doing, not the write's answer.
+func afterCommit[T any](after func(T), v T) {
+	defer func() { _ = recover() }()
+	after(v)
 }
 
 // inTx runs fn in one transaction. A panic rolls back before it goes on up.
@@ -268,11 +279,19 @@ func inTx[T any](ctx context.Context, c *sql.Conn, fn func(*sql.Tx) (T, error)) 
 // database work (SPEC 7.4). Code outside store uses the typed requests, not
 // Do.
 func Do[T any](ctx context.Context, db *DB, p limit.Priority, fn func(*sql.Tx) (T, error)) (T, error) {
+	return doThen(ctx, db, p, fn, nil)
+}
+
+// doThen is Do with after, which runs on the writer right after fn's
+// transaction commits and before the next request starts, so calls to it
+// come in commit order. It doesn't run when fn or the commit fails. after
+// must not block, as it holds up every write.
+func doThen[T any](ctx context.Context, db *DB, p limit.Priority, fn func(*sql.Tx) (T, error), after func(T)) (T, error) {
 	if db.w == nil {
 		var zero T
 		return zero, ErrReadOnly
 	}
-	j := &txJob[T]{fn: fn, reply: make(chan result[T], 1)}
+	j := &txJob[T]{fn: fn, after: after, reply: make(chan result[T], 1)}
 	return await(ctx, db.w, p, j, j.reply)
 }
 
