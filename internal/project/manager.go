@@ -285,6 +285,8 @@ func (m *Manager) load(ctx context.Context, p *Project) error {
 	p.DB.OnConfigs(func(cs []store.ConfigChange) {
 		m.d.Events.Configs(ConfigsChanged{Project: p.ID, Changes: cs})
 	})
+	// So do changes to saved links, for the Links tab (P3-11).
+	p.DB.OnLinks(func() { m.d.Events.Links(LinksChanged{Project: p.ID}) })
 	if crashed && p.Damage == nil {
 		// Recovery step 4: bytes a put wrote before it crashed (SPEC 2.7).
 		rep, err := p.DB.SweepObjects(ctx)

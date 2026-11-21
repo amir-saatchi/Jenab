@@ -326,7 +326,7 @@ The app (5.8) updates itself with MyGo's signed updater, `mygo.Updater`, behind 
   - Each `.db` stores it in `PRAGMA user_version`.
   - A newer app backs the file up with `VACUUM INTO` into `snapshots/`, then migrates in one transaction.
   - `project.db` step 5 (TASK-022) adds the `s` entries that older undos left out: for each undo in a chain, one for each of the chain's items it has no entry for. Where an old undo really changed nothing for an item, the item reads as skipped too, so that turn reads partly undone until one more undo or redo.
-  - `project.db` step 6 (P3-01) adds `_jenab_views` and `_jenab_pages`.
+  - `project.db` step 6 (P3-01) adds `_jenab_views` and `_jenab_pages`, and step 7 (P3-11) adds `_jenab_links`.
   - An older app refuses a newer file without touching it and asks the user to update.
 
 ### 2.9 index.db
@@ -777,7 +777,15 @@ _jenab_links(id, url UNIQUE, title, note, tags, created_by, created_at)
 
 `created_by` is a source (2.5).
 
-Shown next to the bucket in the **Resources** panel. The agent saves sources with `save_link`; the user can add, edit and delete links.
+Shown in the right sidebar's **Links** tab (5.12). The agent saves sources with `save_link` (P3-14); the user can add, edit and delete links (P3-11).
+
+- Newest first, searchable by title, host and tag, with the chat search's fold (2.3); a space also matches a half-space (ZWNJ).
+- Only http, https and mailto links open, through SafeLink (4.5). Others show *Doesn't open* and can still be copied.
+- A URL is stored normalized: the scheme and host in lower case, and "/" for an empty http path. It may hold no spaces, control characters or direction characters. Titles, notes and tags lose direction overrides, and are shown isolated in their own direction.
+- Tags have no commas, since commas separate them.
+- `save_link` on a URL that is saved already updates that link; a field it leaves empty keeps its value.
+- A delete is a change by `user`, with *Undo* in its notice. Every committed write, undo or redo sends `project:links`.
+- `_jenab_links` came in `project.db` format step 7 (2.8).
 
 ### 4.7 Showing untrusted files
 
@@ -1125,7 +1133,7 @@ Agreed in the Gate-2 low-fidelity review (screens 01, 02, 08 and 11).
 
 The frame is `internal/native/shell`, built from the kit's frame pieces (5.8):
 - **Kit pieces:** `kit.Root` (the window, left to right), `kit.Rail` (56 px, on the start edge) with `kit.RailTile` (a bar on the start edge marks the open one), `kit.SidePanel` (the chat list, 256 px), `kit.Bar` (a screen's top bar, one line as high as the window's buttons, 32 px on Windows 11, or 40 px where the system keeps its title bar; its empty parts move the window), `kit.BarIconButton` (a bar's 28 px icon button), `kit.PanelHead` (a side panel's part of that bar), `kit.ControlsRoom` (the room left for the window's buttons), `kit.BarToggle` and `kit.BarGroup` (the right sidebar's tab icons), `kit.PanelTitle` (the right sidebar's small title), `kit.Main` (the main area, a landmark for assistive technology), `kit.List` (virtual lists), `kit.Dialog` and `kit.Toasts`. The rail and the side panel take the sidebar tokens (5.11).
-- **What it has now** (SPIKE-048, TASK-056): the rail (projects, *New project*, *Waiting*, Settings, and the project's chats while the chat list is hidden), the chat list, the main area with the chat, a file in the main area with the chat in the dock (`kit.Split`), the right sidebar with the Files tab (`kit.Tree`), and the bottom bar with work, provider pauses and memory. While the developer tools are on, the rail has *Developer tools*, which opens the turn inspector and *Runtime* (8.4, TASK-058). Settings came with TASK-055, and project settings uses its frame (`kit.SettingsLayout`, TASK-062). Below 900 px (TASK-062, `shell/narrow.go`): the rail and the chat list open as an overlay from ☰ on the start edge, the right sidebar from its tab icons on the end edge (`kit.Sheet`), a docked chat opens as a 448 px drawer over the file from *Chat*, a page without a chat gets a header with ☰, the settings list narrows to 176 px, and the bottom bar is hidden. The bottom bar's commands, pipelines and context use come with the screens they belong to.
+- **What it has now** (SPIKE-048, TASK-056): the rail (projects, *New project*, *Waiting*, Settings, and the project's chats while the chat list is hidden), the chat list, the main area with the chat, a file in the main area with the chat in the dock (`kit.Split`), the right sidebar with the Files tab (`kit.Tree`) and the Links tab (P3-11: each link's title, host, note, tags, who saved it and when; search; a row menu with *Open*, *Copy link*, *Edit* and *Delete*; an add and edit dialog), and the bottom bar with work, provider pauses and memory. While the developer tools are on, the rail has *Developer tools*, which opens the turn inspector and *Runtime* (8.4, TASK-058). Settings came with TASK-055, and project settings uses its frame (`kit.SettingsLayout`, TASK-062). Below 900 px (TASK-062, `shell/narrow.go`): the rail and the chat list open as an overlay from ☰ on the start edge, the right sidebar from its tab icons on the end edge (`kit.Sheet`), a docked chat opens as a 448 px drawer over the file from *Chat*, a page without a chat gets a header with ☰, the settings list narrows to 176 px, and the bottom bar is hidden. The bottom bar's commands, pipelines and context use come with the screens they belong to.
 - **Title bar** (TASK-063, `kit/titlebar.go`, `shell/titlebar.go`): on Windows the window has no system title bar. The top row of each column lines up as one bar in its place, one line as high as Windows' buttons (32 px on Windows 11), with a rule under it: the chat list's head with the project's name and menu, the chat's or the file's header, and the right sidebar's head. The bar's buttons are 28 px and centered with Windows' buttons. The project's folder is the name's tooltip, and a long chat or file title is cut, with all of it as its tooltip. What a chat does and when it was last active show on its row in the chat list, not in the bar. The rail's top is an empty strip as high as the bar, which moves the window too. Windows' own minimize, maximize and close buttons stay at the top end corner, with snap layouts, and take the app's light or dark theme. The bar keeps clear of them. Its empty parts move the window, and a double-click maximizes it. Settings, project settings, the developer tools and pages without a chat have the same bar. macOS and Linux keep the system's title bar until TASK-060.
   - **The right sidebar's tabs** are four icons at the end of the bar, just before the window's buttons: *Pages*, *Pipelines*, *Files* and *Links*, each a toggle button with a tooltip and that name. A click opens the sidebar on that tab. A click on the open tab's icon hides the sidebar, and the open tab's icon shows pressed. The icons sit in the right sidebar's head while it shows, and at the end of the chat's or the file's header while it is hidden, in the same place. The sidebar has a small title naming its tab in place of a tab row; *Files* has none, since its path bar starts with *Files*. A `jenab://` link opens *Files* and shows the sidebar. Below 900 px the icons open the right overlay on their tab. Whether the sidebar is hidden is kept for the session, not saved.
 - **Not yet:** the dot on the chat button for new activity, and the chat row's ⋯ always shown below 900 px. An overlay gives the focus to its first control as it opens, as MyGo's dialogs do. MyGo names the dock's divider "Divider" for assistive technology, and the kit can't rename it in v0.10.0.
@@ -1698,7 +1706,7 @@ Every tool here is a native tool with its full schema. SPIKE-028 tried a short i
 | `bucket_put(key, content or from_ref)` | Store content, or keep a cached object under a permanent key |
 | `bucket_delete(key)` | Delete a key (bytes kept until the sweep) |
 | `bucket_search(query, prefix, limit)` | **Later** (4.9): search the project's files; returns passages with key, byte offset, heading path, snippet and `matched`, so `read_ref(key, offset)` continues there |
-| `save_link(url, title, note, tags)` | Save a link to the Resources panel |
+| `save_link(url, title, note, tags)` | Save a link to the Links tab (4.6, P3-14) |
 
 **Other**
 

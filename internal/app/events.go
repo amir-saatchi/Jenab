@@ -19,6 +19,9 @@ const (
 	// EventConfigs is a change to views and pages (project.ConfigsChanged):
 	// open pages read them again, and a deleted one closes (SPEC 5.9).
 	EventConfigs = "project:configs"
+	// EventLinks is a change to the saved links (project.LinksChanged): the
+	// Links tab reads them again (SPEC 4.6, P3-11).
+	EventLinks = "project:links"
 	// run:status comes with the pipelines (Phase 3).
 )
 
@@ -48,6 +51,7 @@ func (p *Publisher) Status(s chat.Status)             { p.emit(EventStatus, s) }
 func (p *Publisher) Notice(n project.Notice)          { p.emit(EventNotice, n) }
 func (p *Publisher) Activity(a project.Activity)      { p.emit(EventActivity, a) }
 func (p *Publisher) Configs(c project.ConfigsChanged) { p.emit(EventConfigs, c) }
+func (p *Publisher) Links(c project.LinksChanged)     { p.emit(EventLinks, c) }
 
 // Open asks the UI to show a chat, after its notification was clicked.
 func (p *Publisher) Open(o Open) { p.emit(EventOpen, o) }

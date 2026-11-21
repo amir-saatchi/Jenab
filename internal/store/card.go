@@ -290,8 +290,8 @@ func cardBucket(ctx context.Context, tx *sql.Tx) (string, error) {
 	if err != nil || links == 0 {
 		return s, err
 	}
-	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_links`).Scan(&links); err != nil {
-		return "", err
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM _jenab_links`).Scan(&links); err != nil || links == 0 {
+		return s, err // no line for none (P3-11)
 	}
 	return s + " Saved links: " + strconv.Itoa(links) + ".", nil
 }

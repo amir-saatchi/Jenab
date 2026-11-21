@@ -61,6 +61,9 @@ type UndoConflict struct {
 	At      *time.Time     `json:"at,omitempty"`
 	Reached *UndoItem      `json:"reached,omitempty"` // the other row, for ConflictCascade and ConflictReferenced
 	Detail  string         `json:"detail,omitempty"`
+	// Name is what the user calls Item when its key doesn't say it, as a
+	// saved link's title or host for the key link:<id>.
+	Name string `json:"name,omitempty"`
 }
 
 // UndoOptions adjust an undo.
@@ -125,6 +128,8 @@ type UndoResult struct {
 	Conflicts  []UndoConflict `json:"conflicts,omitempty"`
 	// Configs are the views and pages it put back, as OnConfigs gets them.
 	Configs []ConfigChange `json:"configs,omitempty"`
+	// Links tells that it put saved links back, as OnLinks gets it.
+	Links bool `json:"links,omitempty"`
 }
 
 // internalNouns name the internal targets in a summary. Phase 4 adds
@@ -136,6 +141,7 @@ var internalNouns = map[string][2]string{
 	UserMemoryItem:   {"user memory section", "user memory sections"},
 	viewTable:        {"view", "views"},
 	pageTable:        {"page", "pages"},
+	linksTable:       {"saved link", "saved links"},
 }
 
 // Summary is the plan in a few words, e.g. "12 rows in btc_prices, 1 file".
@@ -563,7 +569,7 @@ func (p *ProjectDB) Undo(ctx context.Context, sources []id.Source, o UndoOptions
 			err = errChecked
 		}
 		return struct{}{}, err
-	}, func(struct{}) { p.configsChanged(res.Configs) }) // a check rolls back, so it sends nothing
+	}, func(struct{}) { p.configsChanged(res.Configs); p.linksChanged(res.Links) }) // a check rolls back, so it sends nothing
 	if errors.Is(err, errChecked) {
 		err = nil
 	}
@@ -590,7 +596,7 @@ func (p *ProjectDB) UndoChanges(ctx context.Context, cs []id.Change, o UndoOptio
 			err = errChecked
 		}
 		return struct{}{}, err
-	}, func(struct{}) { p.configsChanged(res.Configs) })
+	}, func(struct{}) { p.configsChanged(res.Configs); p.linksChanged(res.Links) })
 	if errors.Is(err, errChecked) {
 		err = nil
 	}
@@ -741,6 +747,7 @@ func undoTx(tx *sql.Tx, b undoBase, o UndoOptions, res *UndoResult) error {
 	// stays as it was, and its undo can be tried again.
 	res.Plan.Changes = len(res.Reverted)
 	res.Configs = u.configs
+	res.Links = u.links
 	return nil
 }
 
@@ -817,9 +824,13 @@ type undoRun struct {
 	logged    []rowEntry                // the undo's own row entries, for checkKeys
 	conflicts []UndoConflict
 	configs   []ConfigChange // the views and pages it put back
+	links     bool           // it put saved links back
 }
 
 func (u *undoRun) conflict(c UndoConflict) {
+	if c.Item.Table == linksTable && c.Name == "" {
+		c.Name = u.linkName(c.Item.Key)
+	}
 	for _, x := range u.conflicts {
 		if x.Item == c.Item && x.Reason == c.Reason && x.Change == c.Change && (x.Reached == nil) == (c.Reached == nil) &&
 			(x.Reached == nil || *x.Reached == *c.Reached) {
@@ -1439,6 +1450,7 @@ var reverters = map[string]reverter{
 	memoryTable:      (*undoRun).revertMemory,
 	viewTable:        (*undoRun).revertConfig,
 	pageTable:        (*undoRun).revertConfig,
+	linksTable:       (*undoRun).revertLink,
 }
 
 func (u *undoRun) revertInternal(e undoEntry, es []undoEntry) error {

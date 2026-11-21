@@ -12,6 +12,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/native/files"
 	"github.com/amir-saatchi/jenab/internal/native/kit"
+	"github.com/amir-saatchi/jenab/internal/native/links"
 	"github.com/amir-saatchi/jenab/internal/native/projects"
 	"github.com/amir-saatchi/jenab/internal/native/state"
 )
@@ -43,6 +44,8 @@ type Shell struct {
 	// Files shows the bucket: the Files tab and a file opened next to the
 	// chat (TASK-056); nil shows no files.
 	Files *files.Screen
+	// Links shows the Links tab's saved links (P3-11); nil shows none.
+	Links *links.Screen
 	// Settings is the Settings view (TASK-055); nil shows a placeholder.
 	Settings SettingsScreen
 	// Post runs work on the UI thread, as the stores' does.
@@ -63,7 +66,7 @@ type SettingsScreen interface {
 
 // New makes the shell's view.
 func New(stores *state.Stores, screen ChatScreen, post state.Post) *Shell {
-	return &Shell{Stores: stores, Chat: screen, Files: files.New(stores), Post: post, Projects: projects.New(stores, post)}
+	return &Shell{Stores: stores, Chat: screen, Files: files.New(stores), Links: links.New(stores), Post: post, Projects: projects.New(stores, post)}
 }
 
 // Start loads what the window shows first, on the UI thread.
@@ -87,6 +90,9 @@ func (s *Shell) report(done <-chan error) {
 
 // View builds the window.
 func (s *Shell) View(c *kit.Context) {
+	if s.Links != nil {
+		defer s.Links.EndFrame()
+	}
 	kit.Root(c, func() {
 		for _, t := range s.Stores.TakeToasts() {
 			kind := kit.ToastInfo

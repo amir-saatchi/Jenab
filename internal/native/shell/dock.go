@@ -97,7 +97,7 @@ func (s *Shell) dockControls(c *kit.Context, ref state.ChatRef, closeLabel strin
 
 // rightSidebar holds the project's Pages, Pipelines, Files and Links
 // (right-sidebar.tsx). Pages and pipelines come in later phases; Files is
-// the bucket. A jenab:// link in the chat switches to Files. It is at the
+// the bucket; Links is the saved links (P3-11). A jenab:// link in the chat switches to Files. It is at the
 // window's end edge, so its bar has the tabs' icons (TASK-063); its tab
 // shows as a small title over its content, or as the Files panel's path
 // bar.
@@ -117,7 +117,9 @@ func (s *Shell) rightSidebar(c *kit.Context, p id.Project) {
 		case state.TabPipelines:
 			nothing(c, "No pipelines yet", "Pipelines are built by the agent and run on a schedule.")
 		case state.TabLinks:
-			nothing(c, "No links yet", "Links the agent saves for this project show here.")
+			if s.Links != nil {
+				s.Links.Panel(c, p)
+			}
 		default:
 			nothing(c, "No pages yet", "Pages are built by the agent. Ask in the chat to add one.")
 		}

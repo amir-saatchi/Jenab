@@ -426,7 +426,7 @@ func TestConfigFormatUpdate(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "project.db")
-	before := Format{Name: "project", Steps: ProjectFormat.Steps[:len(ProjectFormat.Steps)-1]}
+	before := Format{Name: "project", Steps: ProjectFormat.Steps[:5]} // before step 6, views and pages
 	old, err := Open(ctx, path, Options{Format: before, Snapshots: filepath.Join(dir, "snapshots")})
 	if err != nil {
 		t.Fatal(err)
@@ -446,7 +446,7 @@ func TestConfigFormatUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v := one[int](t, p.DB, "PRAGMA user_version"); v != len(before.Steps)+1 {
+	if v := one[int](t, p.DB, "PRAGMA user_version"); v != len(ProjectFormat.Steps) {
 		t.Fatalf("user_version %d", v)
 	}
 	backups, _ := filepath.Glob(filepath.Join(dir, "snapshots", "project-pre-update-*-v5.db"))

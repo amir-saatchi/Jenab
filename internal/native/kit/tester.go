@@ -85,6 +85,8 @@ var roles = map[string]ui.Role{
 	"dialog": ui.RoleDialog,
 	// TASK-064: the links in a text.
 	"link": ui.RoleLink,
+	// P3-11: the Links tab's rows.
+	"treeitem": ui.RoleTreeItem,
 }
 
 // WindowsButtons gives the tester's window the room of Windows 11's

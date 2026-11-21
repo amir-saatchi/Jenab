@@ -52,6 +52,8 @@ type API struct {
 	// Memory is a project's memory, for its settings; nil when Projects
 	// has it, as the project service does.
 	Memory ProjectMemoryAPI
+	// Links is the Links tab's saved links (P3-11); nil shows none.
+	Links LinksAPI
 }
 
 // Toast is a message for the window's toasts: a project notice, or an
@@ -84,6 +86,7 @@ type Stores struct {
 	Quotes   Quotes
 	Actions  *Actions
 	Files    *Files
+	Links    *Links
 	Bar      *Bar
 	Hosts    *Hosts
 	Exports  *Exports
@@ -106,6 +109,7 @@ type Stores struct {
 	post    Post
 	system  SystemAPI
 	bucket  BucketAPI
+	links   LinksAPI
 	states  map[id.Chat]chat.State // each busy chat's last state, to see when it starts to wait
 	reloads chan id.Project
 	stop    chan struct{}
@@ -138,6 +142,8 @@ func NewStores(api API, post Post) *Stores {
 	s.Actions.OnStored = s.Shell.Changed
 	s.Files = NewFiles(api.Bucket, post)
 	s.bucket = api.Bucket
+	s.Links = NewLinks(api.Links, post, s.Error)
+	s.links = api.Links
 	s.Bar = NewBar(api.Status, post)
 	hosts, exports, chatExport := api.Hosts, api.Exports, api.ChatExport
 	if hosts == nil {
@@ -239,6 +245,10 @@ func (s *Stores) Apply(name string, data any) {
 	case app.EventExport:
 		if pr, ok := data.(project.ExportProgress); ok {
 			s.Exports.Event(pr)
+		}
+	case app.EventLinks:
+		if c, ok := data.(project.LinksChanged); ok {
+			s.Links.Changed(c.Project)
 		}
 	case app.EventNotice:
 		if n, ok := data.(project.Notice); ok {
@@ -364,6 +374,7 @@ func (s *Stores) OpenProject(p id.Project, c id.Chat) {
 		if now := s.Nav.Current(); seq != s.opening || (from != now && !SamePlace(from, now)) {
 			return
 		}
+		s.Links.Keep(p)
 		if c == "" {
 			c = op.Mother
 			if i := slices.IndexFunc(s.Nav.MRU, func(m ChatRef) bool { return m.Project == p }); i >= 0 {

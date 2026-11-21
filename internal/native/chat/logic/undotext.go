@@ -16,6 +16,7 @@ const (
 	userMemoryItem    = "_jenab_user_memory" // store.UserMemoryItem; key the section
 	viewItem          = "_jenab_views"       // key view:<id>
 	pageItem          = "_jenab_pages"       // key page:<id>
+	linkItem          = "_jenab_links"       // key link:<id>; the conflict's Name names it
 )
 
 // Isolate keeps a name's direction from reordering the sentence around it,
@@ -64,6 +65,8 @@ func ItemName(it store.UndoItem) string {
 		return "the view " + Isolate(strings.TrimPrefix(it.Key, "view:"))
 	case it.Table == pageItem:
 		return "the page " + Isolate(strings.TrimPrefix(it.Key, "page:"))
+	case it.Table == linkItem:
+		return "a saved link"
 	case it.Key == "":
 		return "the table " + Isolate(it.Table)
 	}
@@ -92,6 +95,15 @@ func changedBy(c agent.TurnConflict) string {
 	return ""
 }
 
+// conflictItem names a conflict's item: a saved link by the title or host
+// the store gave as its Name, as its key is only an ID; else ItemName.
+func conflictItem(x store.UndoConflict) string {
+	if x.Item.Table == linkItem && x.Name != "" {
+		return "the link " + Isolate(x.Name)
+	}
+	return ItemName(x.Item)
+}
+
 // ConflictText says why an item stands in the undo's way.
 func ConflictText(c agent.TurnConflict) string {
 	x := c.Conflict
@@ -101,26 +113,26 @@ func ConflictText(c agent.TurnConflict) string {
 	}
 	switch x.Reason {
 	case store.ConflictChanged:
-		return ItemName(x.Item) + " changed since" + changedBy(c)
+		return conflictItem(x) + " changed since" + changedBy(c)
 	case store.ConflictCascade:
 		if x.Reached != nil {
-			return "undoing " + ItemName(x.Item) + " would also change " + ItemName(*x.Reached)
+			return "undoing " + conflictItem(x) + " would also change " + ItemName(*x.Reached)
 		}
-		return "undoing " + ItemName(x.Item) + " would change other rows"
+		return "undoing " + conflictItem(x) + " would change other rows"
 	case store.ConflictReferenced:
 		if x.Reached != nil {
-			return ItemName(*x.Reached) + " refers to " + ItemName(x.Item)
+			return ItemName(*x.Reached) + " refers to " + conflictItem(x)
 		}
-		return ItemName(x.Item) + " refers to a row that is gone"
+		return conflictItem(x) + " refers to a row that is gone"
 	case store.ConflictSchema:
 		if x.Item.Key == "" {
-			return "a later migration changed " + ItemName(x.Item)
+			return "a later migration changed " + conflictItem(x)
 		}
-		return "the table or a column of " + ItemName(x.Item) + " is gone"
+		return "the table or a column of " + conflictItem(x) + " is gone"
 	case store.ConflictConstraint:
-		return "putting back " + ItemName(x.Item) + " breaks a rule of its table" + detail
+		return "putting back " + conflictItem(x) + " breaks a rule of its table" + detail
 	}
-	return ItemName(x.Item) + " can't be undone" + detail
+	return conflictItem(x) + " can't be undone" + detail
 }
 
 // SkipAll adds the conflicts' items to skip, each once.

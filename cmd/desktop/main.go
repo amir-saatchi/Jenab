@@ -222,7 +222,7 @@ func run() (err error) {
 	go b.CleanOpened()
 
 	stores = state.NewStores(state.API{Projects: b.Project, Chats: b.Chat, Settings: b.Settings, System: b.System,
-		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}}, mailbox.Post)
+		Bucket: app.NativeBucket{BucketService: b.Bucket}, Status: barStatus{b.System, b.Settings}, Links: b.Links}, mailbox.Post)
 	defer stores.Close()
 	if t, ok := crashNotice(crashes, mygo.Shell.OpenPath); ok {
 		mailbox.Post(func() { stores.Toasts = append(stores.Toasts, t) })

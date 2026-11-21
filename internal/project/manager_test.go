@@ -25,11 +25,18 @@ type recorder struct {
 	notices  []Notice
 	activity []Activity
 	configs  []ConfigsChanged
+	links    []LinksChanged
 }
 
 func (r *recorder) Configs(c ConfigsChanged) {
 	r.mu.Lock()
 	r.configs = append(r.configs, c)
+	r.mu.Unlock()
+}
+
+func (r *recorder) Links(c LinksChanged) {
+	r.mu.Lock()
+	r.links = append(r.links, c)
 	r.mu.Unlock()
 }
 
@@ -544,5 +551,36 @@ func TestDamagedProjectOpensReadOnly(t *testing.T) {
 	}
 	if kinds := e.pub.noticeKinds(); !slices.Equal(kinds, []NoticeKind{NoticeDamaged}) {
 		t.Errorf("notices = %v", kinds)
+	}
+}
+
+// A write to the saved links, and its undo, reach the Publisher as
+// project:links for the project, as the Links tab reads them again.
+func TestLinkWritesArePublished(t *testing.T) {
+	e := newEnv(t, t.TempDir())
+	defer e.stop(t)
+	pid := create(t, e.m, "Links")
+	p := open(t, e.m, pid)
+	defer p.Release()
+	ctx := context.Background()
+	s, err := p.DB.SaveLink(ctx, store.LinkSave{URL: "https://example.com/a", Title: "A", Source: id.SourceUser})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.DB.UndoChange(ctx, s.Change, store.UndoOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	links := func() []LinksChanged {
+		e.pub.mu.Lock()
+		defer e.pub.mu.Unlock()
+		return slices.Clone(e.pub.links)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for len(links()) < 2 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	got := links()
+	if len(got) != 2 || got[0].Project != pid || got[1].Project != pid {
+		t.Fatalf("project:links %+v", got)
 	}
 }

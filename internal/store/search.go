@@ -457,6 +457,12 @@ func fold(s string, offs *[]int) []rune {
 	return out
 }
 
+// FoldText is s folded as search compares text (fold): lower case, the
+// SPEC 2.3 rules with ZWNJ removed, Arabic presentation forms as plain
+// letters, Latin letters without their marks. The Links tab's search and
+// its tags use it (P3-11).
+func FoldText(s string) string { return string(fold(s, nil)) }
+
 // foldBytes is fold as UTF-8, appended to dst, for the substring scan.
 func foldBytes(dst []byte, s string) []byte {
 	var buf [4]rune

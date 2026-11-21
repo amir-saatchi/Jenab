@@ -37,6 +37,7 @@ func TestItemName(t *testing.T) {
 		{store.UndoItem{Table: "_jenab_memory", Key: "memory:project/goals"}, "the project memory section " + i("goals")},
 		{store.UndoItem{Table: "_jenab_views", Key: "view:btc_prices"}, "the view " + i("btc_prices")},
 		{store.UndoItem{Table: "_jenab_pages", Key: "page:bitcoin"}, "the page " + i("bitcoin")},
+		{store.UndoItem{Table: "_jenab_links", Key: "link:01HLINK"}, "a saved link"},
 		{store.UndoItem{Table: "_jenab_user_memory", Key: "ترجیحات"}, "the user memory section " + i("ترجیحات")},
 	}
 	for _, c := range cases {
@@ -76,6 +77,7 @@ func TestConflictText(t *testing.T) {
 	row := "row " + i("2") + " of " + i("prices")
 	order := "row " + i("7") + " of " + i("orders")
 	reached := &store.UndoItem{Table: "orders", Key: "[7]"}
+	link := store.UndoItem{Table: "_jenab_links", Key: "link:01HLINK"}
 	cases := []struct {
 		c    agent.TurnConflict
 		want string
@@ -85,6 +87,10 @@ func TestConflictText(t *testing.T) {
 		{conflict(store.UndoConflict{Reason: store.ConflictReferenced, Reached: reached}, ""), order + " refers to " + row},
 		{conflict(store.UndoConflict{Reason: store.ConflictCascade, Reached: reached}, ""), "undoing " + row + " would also change " + order},
 		{conflict(store.UndoConflict{Reason: store.ConflictSchema, Item: store.UndoItem{Table: "prices", Key: ""}}, ""), "a later migration changed the table " + i("prices")},
+		{conflict(store.UndoConflict{Source: "user", Item: link, Name: "اخبار بیت‌کوین"}, ""), "the link " + i("اخبار بیت‌کوین") + " changed since by you"},
+		{conflict(store.UndoConflict{Reason: store.ConflictConstraint, Item: link, Name: "example.com", Detail: "another saved link has this URL now"}, ""),
+			"putting back the link " + i("example.com") + " breaks a rule of its table: another saved link has this URL now"},
+		{conflict(store.UndoConflict{Source: "user", Item: link}, ""), "a saved link changed since by you"},
 	}
 	for _, c := range cases {
 		if got := ConflictText(c.c); got != c.want {

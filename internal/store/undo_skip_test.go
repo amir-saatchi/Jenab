@@ -452,6 +452,7 @@ func TestSkipEntriesOldUndos(t *testing.T) {
 			// A format 4 file has none of the later steps' tables.
 			mustExec(t, p.DB, `DROP TABLE _jenab_views`)
 			mustExec(t, p.DB, `DROP TABLE _jenab_pages`)
+			mustExec(t, p.DB, `DROP TABLE _jenab_links`)
 			mustExec(t, p.DB, `PRAGMA user_version = 4`)
 			p.Close(ctx)
 			p, err = OpenProject(ctx, dir)

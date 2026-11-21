@@ -42,6 +42,7 @@ type Bound struct {
 	Settings *SettingsService
 	Bucket   *BucketService
 	Config   *ConfigService // views and pages
+	Links    *LinkService   // saved links
 	System   *SystemService
 	Dev      *DevService // bound only with the developer tools on
 }
@@ -67,6 +68,7 @@ func NewServices(s Services) Bound {
 			started: s.Started, ollamaUp: ollamaRunning, now: time.Now},
 		Bucket: &BucketService{base: b, projects: s.Projects, openFile: s.OpenFile},
 		Config: &ConfigService{base: b, projects: s.Projects},
+		Links:  &LinkService{base: b, projects: s.Projects},
 		System: &SystemService{base: b, notify: s.Notify},
 		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, traces: s.Traces, logs: s.Logs, now: time.Now},
 	}

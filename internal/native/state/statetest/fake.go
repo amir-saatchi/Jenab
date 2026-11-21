@@ -82,7 +82,9 @@ type Fake struct {
 	HoldUndoState func(turn int)
 	// Bucket is the projects' files and the bottom bar's readings.
 	Bucket FakeBucket
-	admin  ProjectAdmin // the project screens' part (fake_project.go)
+	// Links is the projects' saved links (links.go).
+	Links FakeLinks
+	admin ProjectAdmin // the project screens' part (fake_project.go)
 }
 
 // New makes an empty Fake.
@@ -94,7 +96,7 @@ func New() *Fake {
 
 // API is the stores' services, all of them f.
 func (f *Fake) API() state.API {
-	return state.API{Projects: projects{f}, Chats: f, Settings: f, System: f, Actions: f, Bucket: bucket{f}, Status: status{f}}
+	return state.API{Projects: projects{f}, Chats: f, Settings: f, System: f, Actions: f, Bucket: bucket{f}, Status: status{f}, Links: links{f}}
 }
 
 // AddProject adds a project with its Mother chat and returns both.
