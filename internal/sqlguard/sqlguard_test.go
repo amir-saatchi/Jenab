@@ -597,3 +597,90 @@ func TestCheckExpr(t *testing.T) {
 		}
 	}
 }
+
+// OuterClauses finds the ORDER BY, LIMIT and OFFSET of the outermost
+// SELECT only (P3-02: a table view warns about them).
+func TestOuterClauses(t *testing.T) {
+	cases := []struct{ q, want string }{
+		{"SELECT * FROM data", ""},
+		{"SELECT * FROM data ORDER BY id", "ORDER BY 1:20"},
+		{"SELECT * FROM data\nORDER BY id LIMIT 5 OFFSET 2", "ORDER BY 2:1, LIMIT 2:13, OFFSET 2:21"},
+		{"SELECT * FROM (SELECT * FROM data ORDER BY id LIMIT 5)", ""},
+		{"WITH t AS (SELECT * FROM data LIMIT 3) SELECT * FROM t", ""},
+		{"SELECT id, LAG(val) OVER (ORDER BY id) FROM data", ""},
+		{"SELECT group_concat(name ORDER BY id) FROM data", ""},
+		{"SELECT 'order by' AS \"limit\" FROM data -- ORDER BY", ""},
+		{"select * from data order   by id", "ORDER BY 1:20"},
+		{"SELECT * FROM data ORDER BY id; -- done", "ORDER BY 1:20"},
+		// OFFSET is a keyword only after LIMIT.
+		{"SELECT name AS offset FROM data AS offset", ""},
+		{"SELECT * FROM data LIMIT 5 OFFSET 2", "LIMIT 1:20, OFFSET 1:28"},
+		{"SELECT offset FROM (SELECT name AS offset FROM data) LIMIT 3", "LIMIT 1:54"},
+	}
+	for _, c := range cases {
+		cls, err := OuterClauses(c.q)
+		if err != nil {
+			t.Errorf("%q: %v", c.q, err)
+			continue
+		}
+		var got []string
+		for _, cl := range cls {
+			got = append(got, fmt.Sprintf("%s %d:%d", cl.Name, cl.Line, cl.Col))
+		}
+		if g := strings.Join(got, ", "); g != c.want {
+			t.Errorf("%q: got %q, want %q", c.q, g, c.want)
+		}
+	}
+	if _, err := OuterClauses("DELETE FROM data"); err == nil {
+		t.Error("a DELETE passes")
+	}
+}
+
+// Columns gives a query's result columns, without running it, and the
+// table columns they come straight from, also through a subquery.
+func TestColumns(t *testing.T) {
+	_, c := openTest(t)
+	ctx := context.Background()
+	q := "SELECT d.name, d.val * 2 AS twice, x.note, 1 AS one FROM (SELECT * FROM data) d JOIN child x ON x.parent_id = d.id WHERE d.id = :id"
+	g := New()
+	if err := g.Explain(ctx, c, q); err != nil {
+		t.Fatal(err)
+	}
+	cols, err := Columns(c, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(cols); got != "[{name data name} {twice  } {note child note} {one  }]" {
+		t.Errorf("columns %s", got)
+	}
+	if _, err := Columns(c, "SELECT nope FROM data"); err == nil || !strings.Contains(err.Error(), "no such column: nope") {
+		t.Errorf("unknown column: %v", err)
+	}
+}
+
+// A compound SELECT's column has an origin only when every arm reads the
+// same table column.
+func TestColumnsCompound(t *testing.T) {
+	_, c := openTest(t)
+	ctx := context.Background()
+	for q, want := range map[string]string{
+		"SELECT name FROM data UNION SELECT note FROM child":                                        "[{name  }]",
+		"SELECT name, id FROM data UNION ALL SELECT name, val FROM data ORDER BY 1 LIMIT 3":         "[{name data name} {id  }]",
+		"SELECT name FROM data INTERSECT SELECT name FROM data EXCEPT SELECT note FROM child":       "[{name  }]",
+		"WITH t AS (SELECT name FROM data) SELECT name FROM t UNION SELECT name FROM data; -- x":    "[{name data name}]",
+		"SELECT * FROM (SELECT name FROM data UNION SELECT name FROM data)":                         "[{name  }]",
+		"SELECT name FROM data WHERE id IN (SELECT id FROM data UNION SELECT parent_id FROM child)": "[{name  }]",
+		"VALUES (1) UNION SELECT id FROM data":                                                      "[{column1  }]",
+	} {
+		if err := New().Explain(ctx, c, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+		cols, err := Columns(c, q)
+		if err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+		if got := fmt.Sprint(cols); got != want {
+			t.Errorf("%s: columns %s, want %s", q, got, want)
+		}
+	}
+}

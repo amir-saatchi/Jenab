@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/chart.json",
+  "title": "A chart view (SPEC 5.4)",
+  "$ref": "defs.json#/$defs/queryView",
+  "required": ["chart_type", "x", "y"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {}, "id": {}, "title": {}, "description": {}, "actions": {},
+    "query": {}, "params": {}, "filters": {},
+    "type": { "const": "chart" },
+    "chart_type": { "enum": ["line", "bar", "scatter", "pie"] },
+    "x": {
+      "type": "object",
+      "required": ["field"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "defs.json#/$defs/name" },
+        "label": { "type": "string", "maxLength": 200 },
+        "format": { "$ref": "defs.json#/$defs/format" }
+      }
+    },
+    "y": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["field"],
+        "additionalProperties": false,
+        "properties": {
+          "field": { "$ref": "defs.json#/$defs/name" },
+          "label": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "series_by": { "$ref": "defs.json#/$defs/name" }
+  }
+}

@@ -1,6 +1,6 @@
 # P3-02 — Validation of views and pages, and the block registry
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 3)
 **Needs:** P2-01, P3-01
 **Requirements:** R-47, R-53
@@ -29,3 +29,13 @@ Every view and page is checked before it is saved, and all errors come back toge
 - A test per check with a passing and a failing config, and one config with many errors that returns all of them with paths.
 - SPEC 9.3's six views and 5.9's page (without its `run_pipeline` action) validate against a fixture Bitcoin database.
 - A test registers a made-up block type and validates a page that uses it, with no change outside its unit.
+
+## Result
+Done on 2026-11-21. Report: [P3-02-report](reports/P3-02-report.md).
+
+- **`internal/view`:** a YAML v4 loader with fix hints and limits; JSON Schemas for the table, chart, stat and form views and the page with its seven blocks; and a block registry (`Register`) with a schema, a Go check and a slot for the kit component.
+- **Checks:** SPEC 10's steps 1, 3, 4 and 5, against the project's tables and the query worker. All errors come back together, with path and line:col, capped at 50; warnings don't block. `run_pipeline` fails until Phase 4.
+- **For later tickets:** the parsed types `View` and `Page`, with `ParseView` and `ParsePage`, for P3-05 and P3-09; `Validator` for P3-03's tools. Result columns are matched as written, and P3-05 matches them the same way.
+- **Supporting changes:** `sqlguard.Columns` and `OuterClauses`; a prepare-only worker request that returns each result column's source; `store.QueryColumns` and `TableShape`.
+- **Decisions:** blocks without a span share what is left of the 12. A form's unchecked checkbox writes false, so it covers a `NOT NULL` column. Only `:name` parameters bind, and a table query's `LIMIT` and `OFFSET` are errors.
+- **Review:** three Medium and twelve Low points are fixed. A float span is read as a whole number, `@name` is refused, and compound queries keep a column's source only when every arm agrees.

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/stat.json",
+  "title": "A stat view: one number (SPEC 5.10)",
+  "$ref": "defs.json#/$defs/queryView",
+  "required": ["value"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {}, "id": {}, "title": {}, "description": {}, "actions": {},
+    "query": {}, "params": {}, "filters": {},
+    "type": { "const": "stat" },
+    "value": {
+      "type": "object",
+      "required": ["field"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "defs.json#/$defs/name" },
+        "format": { "$ref": "defs.json#/$defs/format" },
+        "format_options": { "$ref": "defs.json#/$defs/formatOptions" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "required": ["field"],
+      "additionalProperties": false,
+      "properties": {
+        "field": { "$ref": "defs.json#/$defs/name" },
+        "format": { "$ref": "defs.json#/$defs/format" }
+      }
+    },
+    "caption": { "type": "string", "maxLength": 200 }
+  }
+}

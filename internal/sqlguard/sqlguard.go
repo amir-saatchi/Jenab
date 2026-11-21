@@ -471,3 +471,58 @@ func limits(c *sql.Conn, ls [][2]int) error {
 	}
 	return nil
 }
+
+// Clause is one of the clauses that end a query: ORDER BY, LIMIT or
+// OFFSET, where it starts in the query.
+type Clause struct {
+	Name      string // "ORDER BY", "LIMIT" or "OFFSET"
+	Pos       int    // byte offset in the query
+	Line, Col int    // Pos as a 1-based line and column; Col counts characters
+}
+
+// OuterClauses returns the ORDER BY, LIMIT and OFFSET clauses of q's
+// outermost SELECT, which must pass Check: those outside any brackets, so
+// not a subquery's, a CTE's, a window's or an aggregate's. A view that
+// sorts and pages its rows itself warns about them (SPEC 5.3).
+func OuterClauses(q string) ([]Clause, error) {
+	c, err := check(q)
+	if err != nil {
+		return nil, err
+	}
+	var out []Clause
+	depth, limit := 0, false
+	for i, t := range c.toks {
+		if t.kind == punct {
+			switch t.text {
+			case "(":
+				depth++
+			case ")":
+				depth--
+			}
+			continue
+		}
+		if depth != 0 || t.kind != word {
+			continue
+		}
+		name := ""
+		switch lower(t.text) {
+		case "order":
+			if i+1 < len(c.toks) && c.toks[i+1].kind == word && lower(c.toks[i+1].text) == "by" {
+				name = "ORDER BY"
+			}
+		case "limit":
+			name, limit = "LIMIT", true
+		case "offset":
+			// OFFSET is a keyword only after LIMIT; elsewhere it can be a
+			// name, as in SELECT date AS offset.
+			if limit {
+				name = "OFFSET"
+			}
+		}
+		if name != "" {
+			e := reject(q, 1, t.pos, "")
+			out = append(out, Clause{Name: name, Pos: t.pos, Line: e.Line, Col: e.Col})
+		}
+	}
+	return out, nil
+}

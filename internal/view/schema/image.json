@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/image.json",
+  "title": "An image block: a picture from the bucket (SPEC 5.9)",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["image"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "image": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "alt": { "type": "string", "maxLength": 500 }
+  }
+}

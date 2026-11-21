@@ -764,3 +764,63 @@ func TestOddPaths(t *testing.T) {
 		}
 	}
 }
+
+// QueryColumns prepares a view's query without running it: its result
+// columns and the table columns they come from (P3-02).
+func TestQueryColumns(t *testing.T) {
+	p, _ := openAgentProject(t, 1)
+	ctx := context.Background()
+	cols, err := p.QueryColumns(ctx, "SELECT d.name, d.val * 2 AS twice, c.note FROM data d JOIN child c ON c.parent_id = d.id WHERE d.id > :from")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(cols); got != "[{name data name} {twice  } {note child note}]" {
+		t.Errorf("columns %s", got)
+	}
+	if _, err := p.QueryColumns(ctx, "SELECT nope FROM data"); !sqlworker.IsSQLite(err) || !strings.Contains(err.Error(), "no such column: nope") {
+		t.Errorf("unknown column: %v", err)
+	}
+	var re *sqlguard.RejectError
+	if _, err := p.QueryColumns(ctx, "DELETE FROM data"); !errors.As(err, &re) || re.Layer != 1 {
+		t.Errorf("a DELETE: %v", err)
+	}
+	if _, err := p.QueryColumns(ctx, "SELECT * FROM _jenab_flags"); !errors.As(err, &re) {
+		t.Errorf("an internal table: %v", err)
+	}
+	// Nothing ran: a query that would fail when run prepares.
+	if _, err := p.QueryColumns(ctx, "SELECT json_extract('not json', '$') AS j FROM data"); err != nil {
+		t.Errorf("prepare only: %v", err)
+	}
+	if err := p.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.QueryColumns(ctx, "SELECT 1"); !errors.Is(err, ErrClosed) {
+		t.Errorf("closed: %v", err)
+	}
+}
+
+// TableShape is DescribeTable without the row count.
+func TestTableShape(t *testing.T) {
+	p, _ := openAgentProject(t, 1)
+	ctx := context.Background()
+	full, err := p.DescribeTable(ctx, "data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shape, err := p.TableShape(ctx, "DATA")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if full.Rows != 2000 || shape.Rows != 0 {
+		t.Errorf("rows %d and %d", full.Rows, shape.Rows)
+	}
+	full.Rows = 0
+	if fmt.Sprint(full) != fmt.Sprint(shape) {
+		t.Errorf("shape %+v\nwant  %+v", shape, full)
+	}
+	for _, name := range []string{"_jenab_flags", "nope"} {
+		if _, err := p.TableShape(ctx, name); !errors.Is(err, ErrNotFound) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

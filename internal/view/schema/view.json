@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/view.json",
+  "title": "A view block: a saved view on a page (SPEC 5.9)",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["view"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "view": { "$ref": "defs.json#/$defs/ref" }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/defs.json",
+  "title": "Definitions the view and page schemas share (SPEC 5)",
+  "$defs": {
+    "id": {
+      "description": "A view's or page's ID; Go checks its letters (CheckConfigID)",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "ref": {
+      "description": "The ID of a view, page, form or pipeline",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": { "type": "string", "maxLength": 1000 },
+    "name": {
+      "description": "A column, field or parameter name",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scalar": { "type": ["string", "number", "boolean"] },
+    "format": {
+      "enum": ["text", "number", "currency", "percent", "date", "datetime", "url", "boolean", "badge", "image", "file"]
+    },
+    "tone": { "enum": ["neutral", "blue", "green", "amber", "red", "purple"] },
+    "formatOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "decimals": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "tones": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tone" }
+        }
+      }
+    },
+    "options": {
+      "description": "A select's options: a list, or a query that returns one column",
+      "anyOf": [
+        { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/scalar" } },
+        {
+          "type": "object",
+          "required": ["query"],
+          "additionalProperties": false,
+          "properties": { "query": { "type": "string", "minLength": 1 } }
+        }
+      ]
+    },
+    "filter": {
+      "type": "object",
+      "required": ["param", "control"],
+      "additionalProperties": false,
+      "properties": {
+        "param": { "$ref": "#/$defs/name" },
+        "control": { "enum": ["text", "number", "date", "select", "checkbox"] },
+        "label": { "type": "string", "maxLength": 200 },
+        "default": { "$ref": "#/$defs/scalar" },
+        "required": { "type": "boolean" },
+        "options": { "$ref": "#/$defs/options" }
+      }
+    },
+    "filters": { "type": "array", "items": { "$ref": "#/$defs/filter" } },
+    "params": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/scalar" }
+    },
+    "viewAction": {
+      "description": "A button of a view (SPEC 5.6)",
+      "type": "object",
+      "required": ["label", "run_pipeline"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "$ref": "#/$defs/label" },
+        "run_pipeline": { "$ref": "#/$defs/ref" },
+        "confirm": { "type": "boolean" }
+      }
+    },
+    "pageAction": {
+      "description": "A button in a page's header (SPEC 5.9); Go checks it has one target",
+      "type": "object",
+      "required": ["label"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "$ref": "#/$defs/label" },
+        "run_pipeline": { "$ref": "#/$defs/ref" },
+        "open_page": { "$ref": "#/$defs/ref" },
+        "open_form": { "$ref": "#/$defs/ref" },
+        "confirm": { "type": "boolean" }
+      }
+    },
+    "view": {
+      "description": "The fields every saved view has (SPEC 5.1); a unit's schema lists them again for additionalProperties",
+      "type": "object",
+      "required": ["version", "id", "title", "type"],
+      "properties": {
+        "version": { "const": 1 },
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/label" },
+        "type": { "type": "string" },
+        "description": { "$ref": "#/$defs/description" },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/viewAction" } }
+      }
+    },
+    "queryView": {
+      "description": "The fields of a view with a query (table, chart, stat)",
+      "allOf": [{ "$ref": "#/$defs/view" }],
+      "required": ["query"],
+      "properties": {
+        "query": { "type": "string", "minLength": 1 },
+        "params": { "$ref": "#/$defs/params" },
+        "filters": { "$ref": "#/$defs/filters" }
+      }
+    },
+    "block": {
+      "description": "The fields every page block has (SPEC 5.9)",
+      "type": "object",
+      "properties": {
+        "span": { "type": "integer", "minimum": 1, "maximum": 12 }
+      }
+    },
+    "rows": {
+      "description": "Rows of 1 to 4 blocks each; each block is checked by its own unit",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 4,
+        "items": { "type": "object" }
+      }
+    }
+  }
+}

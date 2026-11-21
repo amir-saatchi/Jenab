@@ -39,6 +39,46 @@ func (p *ProjectDB) AgentQuery(ctx context.Context, q string, args []any, max in
 	return p.guardedQuery(ctx, q, args, max, agentTimeout)
 }
 
+// viewTimeout bounds a view's query (SPEC 5.7), and the check of one
+// before it is saved.
+const viewTimeout = 2 * time.Second
+
+// QueryColumn is a result column of a query, and the table column its
+// values come straight from: Table and Column are "" for an expression, a
+// constant, or a column SQLite can't trace to one table column.
+type QueryColumn struct {
+	Name, Table, Column string
+}
+
+// QueryColumns is the SQL check of SPEC 10 (step 5) for a view's query: the
+// text check here, then in a worker the text check again, the prepare and
+// EXPLAIN check with NULL bound to every parameter, and the result columns
+// of the prepared query. The query is not run. Refusals are
+// *sqlguard.RejectError, and SQLite's own errors (no such column) come back
+// with their text.
+func (p *ProjectDB) QueryColumns(ctx context.Context, q string) ([]QueryColumn, error) {
+	if err := sqlguard.Check(q); err != nil {
+		return nil, err
+	}
+	r, err := p.workers.Query(ctx, sqlworker.Request{Query: q, Prepare: true, Timeout: viewTimeout})
+	switch {
+	case errors.Is(err, sqlworker.ErrClosed):
+		return nil, ErrClosed
+	case errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil:
+		return nil, fmt.Errorf("preparing the query took longer than %v and was stopped: %w", viewTimeout, err)
+	case err != nil:
+		return nil, err
+	}
+	out := make([]QueryColumn, len(r.Columns))
+	for i, name := range r.Columns {
+		out[i].Name = name
+		if i < len(r.Sources) {
+			out[i].Table, out[i].Column = r.Sources[i].Table, r.Sources[i].Column
+		}
+	}
+	return out, nil
+}
+
 // guardedQuery is AgentQuery with the caller's deadline d: 10 s for query
 // and db.query, 2 s for views (2.2), not counting the time a worker takes
 // to start. Layer 1 runs here first, so a query it refuses costs no
@@ -56,5 +96,5 @@ func (p *ProjectDB) guardedQuery(ctx context.Context, q string, args []any, n in
 	case err != nil:
 		return Rows{}, err
 	}
-	return Rows(r), nil
+	return Rows{Columns: r.Columns, Values: r.Values, Total: r.Total, Cut: r.Cut, Capped: r.Capped, Full: r.Full}, nil
 }

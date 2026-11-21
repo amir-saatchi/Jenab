@@ -148,6 +148,7 @@ Every agent query passes three layers, in this order. None of them depends on a 
 3. **Query worker.** SQLite can't interrupt a query while it prepares it or inside one long function call, and it has no per-query memory limit, so agent queries run in a separate worker process that the OS can cap and kill (P2-01). The `copy_data` query is the exception: it runs on the writer, inside the migration.
    - The worker is the app's own executable, started in worker mode. Each project has up to 2, started when needed (one in the background when the project opens), stopped after 3 minutes idle and closed with the project. They die with the app.
    - The app runs layer 1. The worker runs layer 1 again, then layer 2 and the query, on its own connection: opened read-only, with `query_only`, `SQLITE_LIMIT_ATTACHED = 0` (without it, a read-only connection can attach and read any other file, such as another project's database), `SQLITE_LIMIT_LENGTH = 1 MiB` and `SQLITE_LIMIT_VARIABLE_NUMBER = 999`. A stored value over 1 MiB can't be read by agent SQL; `length()` still works. Each query reads its own snapshot.
+   - A prepare-only request runs the layers without running the query, and returns the result columns with the `table.column` each comes from. Validation uses it (10, P3-02).
    - Memory: 256 MiB per worker. On Windows, a Job Object enforces it; elsewhere a watchdog in the worker checks every 20 ms. A query over it is stopped with "the query used more than 256 MiB and was stopped". Sorts spill to temp files, which SQLite deletes when the worker ends.
    - Time: a `context` deadline, 2 s for views (5.7) and 10 s for `query` and `db.query`. Waiting for a free worker counts against the deadline; starting a new one does not (it has its own 30 s limit). At the deadline, or when the caller cancels, the worker is killed and the next query starts a new one (about 35–70 ms, longer on the first start after an update). A killed worker leaves the database, the WAL and the writer intact.
    - At most 8 MiB of rows are returned to `query`. The rest are left out, as with rows past the maximum, and the result says so.
@@ -872,7 +873,7 @@ filters:
 - A date filter binds its date as ISO text (`2026-11-20`), as SQLite compares dates. Relative dates go back only; months and years run on as SQLite's do (March 31 less one month is March 3).
 - A number filter reads the user's regional formats, and grouping must fit their pattern: "1,5" is no number in English. What it can't read, or an emptied required filter, goes back with the reason shown under it (P3-07).
 - A required select with no value takes its first option.
-- `select` options can be a static list or `{ query: "SELECT ..." }`, as in forms (5.5). The query returns one column.
+- `select` options can be a static list or `{ query: "SELECT ..." }`, as in forms (5.5). The query returns one column and takes no parameters. A `select` needs `options`, and only a `select` has them.
 
 ### 5.3 Table
 
@@ -884,7 +885,7 @@ filters:
 | `rows_from` | for row actions | `{ table, key }`: the base table and its key column; the query must select the key |
 | `row_actions` | no | Buttons per row (below) |
 
-**Pagination and sorting.** The query does not contain `ORDER BY`, `LIMIT` or `OFFSET`. The runtime wraps it:
+**Pagination and sorting.** The query does not contain `ORDER BY`, `LIMIT` or `OFFSET`: an outer `LIMIT` or `OFFSET` fails validation, and an outer `ORDER BY` is a warning. The runtime wraps it:
 
 ```sql
 SELECT * FROM (<query>) ORDER BY <sort> LIMIT ? OFFSET ?
@@ -960,7 +961,8 @@ Forms write only through their `submit` action. Their writes go through the proj
   - A required `checkbox` must be checked. An optional `select` has a "None" choice.
   - `date` starts empty, with a "Choose a date" button.
 - `options` can be a static list or `{ query: "SELECT ..." }`.
-- A `file` control uploads into the bucket under `prefix` (e.g. `uploads/`) and stores the key.
+- A `file` control uploads into the bucket under `prefix` (e.g. `uploads/`) and stores the key. A `file` field needs a `prefix`, and has no default.
+- In a form, an unchecked checkbox writes false, never NULL, so a checkbox covers a `NOT NULL` column.
 
 ```yaml
 submit:
@@ -1070,7 +1072,7 @@ rows:
 - **Page header:** the page's `title`, `description`, filters and `actions` are drawn at the top, so pages don't need a heading block for their title.
 - **Writing data** stays with `form` views and row actions; `filter` blocks only set query parameters.
 
-- **Span:** 1–12 columns. The default is 12 divided by the number of blocks in the row. The spans of a row add up to at most 12.
+- **Span:** 1–12 columns. The spans of a row add up to at most 12. A block without a span shares what the others leave: [`span: 8`, no span] gives 8 and 4, and when it doesn't divide, the first blocks get one more. If nothing is left for a block without a span, the row fails validation (P3-02).
 - **Narrow windows:** below about 900 px, rows stack into one column, and the chat becomes a drawer over the page (5.12).
 - **No other layout:** no CSS and no positions. Simple shapes are what models write reliably (SPIKE-021).
 - **Where pages open:**
@@ -1096,6 +1098,7 @@ rows:
   - Data blocks (saved views): `table`, `chart`, `stat`, `form`.
   - Page blocks: `heading`, `text`, `card`, `filter`, `button`, `image`.
 - The page screen looks the type up in a registry. A new block type is added by registering one unit, with no change to pages.
+  - The registry is `internal/view` (P3-02). A page-block type can't be named `span`, `rows` or another block's field, and a block's fields can't be block types.
 - A block's component is built from the kit like any other, with a headless test, and it takes its colours from the tokens and tones (5.11).
 - More types are expected later, e.g. kanban, tabs and lists. Each one uses tones (5.11), not colours.
 
@@ -2538,24 +2541,28 @@ After approval, a snapshot is taken, and the seven steps and the dependent updat
 
 Every view and pipeline passes these checks, in order:
 
-1. **Parse** YAML/JSON and check it against the format's JSON Schema. For **pages**, also check that:
-   - every `view` exists
-   - every row has 1–4 blocks, with spans adding up to at most 12, also inside cards; no card inside a card
+1. **Parse** the YAML (JSON is YAML too) and check it against the format's JSON Schema.
+   - The loader refuses anchors, aliases, merge keys, tags, duplicate keys, NaN and infinity, leading zeros, a second document, nesting over 64 and files over 256 KiB. `8.0` reads as the whole number 8.
+   - The ID is checked in NFC; views and pages share IDs, so a page's ID can't be a view's.
+   For **pages**, also check that:
+   - every row has 1–4 blocks, with spans adding up to at most 12 and at least 1 column left for each block without a span (5.9), also inside cards; no card inside a card
    - every page filter binds to a parameter of at least one block
    - every `filter` block names a page filter, and each page filter is shown at most once
-   - every `button` and action target exists
    - tones are from the list in 5.11
    - a missing `image` key is a warning, since a pipeline may create it later
 2. **Step check** — every `use` exists in the catalog, and every `with` matches that step's input schema.
-3. **Reference check** — every `steps.<id>` points to an earlier step; every `inputs.<name>` is declared; every `connection` exists and has its key in the keychain; every `open_form` and `run_pipeline` target exists; form fields for `run_pipeline` match the pipeline's declared inputs.
-4. **Schema check** — every table and column used by `db.*` steps, forms and `rows_from` exists in the project database; no `_jenab_*` table is referenced; every `NOT NULL` column without a default is covered by a required form field; `image` and `file` formats and `file` controls use object-reference columns.
-5. **SQL check** — every query first passes the text check (2.2, layer 1), and only then is prepared with SQLite (without running it) to catch syntax errors and unknown columns and to run the EXPLAIN check (layer 2). View `columns[].field`, `x`, `y`, `series_by` and the `stat` fields are checked against the **result columns of the prepared query**, not against table columns, so aliases like `AVG(price) AS avg_price` work.
+3. **Reference check** — every `steps.<id>` points to an earlier step; every `inputs.<name>` is declared; every `connection` exists and has its key in the keychain; every page's `view`, `button` and action target exists; every `open_form` names a form view and every `open_page` a page; every `run_pipeline` target exists (until pipelines can be saved in Phase 4, every `run_pipeline` fails); form fields for `run_pipeline` match the pipeline's declared inputs.
+4. **Schema check** — every table and column used by `db.*` steps, forms and `rows_from` exists in the project database; no `_jenab_*` table is referenced; every `NOT NULL` column without a default is covered by a required form field or a checkbox; an `update` form has `load`, which uses only `:key`, and doesn't list the key column as a field; `image` and `file` formats and `file` controls use object-reference columns.
+5. **SQL check** — every query first passes the text check (2.2, layer 1), and only then is prepared with SQLite (without running it) to catch syntax errors and unknown columns and to run the EXPLAIN check (layer 2). View `columns[].field`, `x`, `y`, `series_by` and the `stat` fields are checked against the **result columns of the prepared query**, not against table columns, so aliases like `AVG(price) AS avg_price` work. They are matched as written, so `Date` is not `date`.
+   - Only `:name` parameters are bound; `?`, `@name` and `$name` fail. A `:name` with no param or filter is a warning, since a page filter may bind it.
+   - A table query's outer `LIMIT` and `OFFSET` fail, and its `ORDER BY` is a warning (5.3).
+   - An `image` or `file` column must come straight from an object-reference column, in every arm of a compound `SELECT`.
 6. **Expression check** — every expression compiles with the allowed functions; type errors are reported where types are known.
 7. **Trigger check** — cron expressions parse, and time zones are valid IANA names.
 8. **Network check** — literal hosts are listed for approval; `api.get` paths stay on the connection's host; only `http` and `https` URLs.
 9. **Optional dry run** — see 6.8.
 
-All errors are returned together, each with its path, so the LLM can fix everything in one attempt.
+All errors are returned together, each with its path, so the LLM can fix everything in one attempt. At most 50 errors are listed, then "and N more errors; fix these first"; warnings are capped at 50 apart (P3-02).
 
 **Repair loop** (SPIKE-021). It is the same for every model (1).
 - **Rounds:** after a failed save, the agent gets at most 4 more attempts per config in the turn. Then it stops and shows the user the remaining errors.
@@ -2571,7 +2578,7 @@ All errors are returned together, each with its path, so the LLM can fix everyth
   - Unknown fields, missing fields and wrong whole objects point at the key.
   - All other errors point at the value.
 - **Message form:** `line 4:13 trigger.schedule: '0 8 * *' is not valid cron: needs 5 fields`.
-- **Checked in Go instead:** unique step IDs, and `propertyNames`, which v6.0.3 reports with a wrong path. Warnings (for example, `ORDER BY` in a table query) are returned too but do not block saving.
+- **Checked in Go instead:** unique step IDs, `propertyNames` (which v6.0.3 reports with a wrong path), the 12-column span sums, one action per button, row action or action, `select` options and defaults, and date defaults (`today-90d`, `start_of_month`, an ISO date). Warnings (for example, `ORDER BY` in a table query) are returned too but do not block saving.
 
 ---
 

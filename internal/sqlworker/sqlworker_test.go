@@ -594,3 +594,53 @@ func BenchmarkAnalytic(b *testing.B) {
 		})
 	}
 }
+
+// A Prepare request gives a query's result columns and their table
+// columns, through all three layers, without running it (P3-02).
+func TestPoolPrepare(t *testing.T) {
+	p := newPool(t, openDB(t, 3, 10), Options{})
+	ctx := context.Background()
+	r, err := p.Query(ctx, Request{Query: "SELECT symbol, close AS c, close * 2 AS d FROM prices WHERE day >= :from AND volume > ?", Prepare: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(r.Columns) != "[symbol c d]" || fmt.Sprint(r.Sources) != "[{prices symbol} {prices close} { }]" || r.Values != nil || r.Total != 0 {
+		t.Errorf("result %+v", r)
+	}
+	// An unknown column is SQLite's error; a refusal is the guard's.
+	if _, err := p.Query(ctx, Request{Query: "SELECT nope FROM prices", Prepare: true}); !IsSQLite(err) || !strings.Contains(err.Error(), "no such column: nope") {
+		t.Errorf("unknown column: %v", err)
+	}
+	var re *sqlguard.RejectError
+	if _, err := p.Query(ctx, Request{Query: "SELECT * FROM _jenab_meta", Prepare: true}); !errors.As(err, &re) {
+		t.Errorf("_jenab_meta: %v", err)
+	}
+	// Sources go through the protocol, and a count that doesn't match the
+	// columns is refused.
+	in := Result{Columns: []string{"a", "b"}, Sources: []Source{{"t", "a"}, {"", ""}}}
+	out, err := decodeResponse(encodeResponse(in, nil)[4:])
+	if err != nil || fmt.Sprint(out) != fmt.Sprint(in) {
+		t.Errorf("sources %+v %v", out, err)
+	}
+	f, err := encodeRequest(Request{Query: "SELECT 1", Max: 1, Prepare: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req, err := decodeRequest(f[4:]); err != nil || !req.Prepare {
+		t.Errorf("prepare flag %+v %v", req, err)
+	}
+	e := newEnc()
+	e.byte(respRows)
+	e.uvarint(2)
+	e.str("a")
+	e.str("b")
+	e.uvarint(0)
+	e.byte(0)
+	e.byte(0)
+	e.uvarint(1)
+	e.str("t")
+	e.str("a")
+	if _, err := decodeResponse(e.b[4:]); err == nil {
+		t.Error("one source for two columns decodes")
+	}
+}

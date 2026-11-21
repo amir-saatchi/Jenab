@@ -96,6 +96,12 @@ func (p *ProjectDB) DescribeTable(ctx context.Context, name string) (Table, erro
 	return readTx(ctx, p.DB, func(tx *sql.Tx) (Table, error) { return describe(ctx, tx, name, true) })
 }
 
+// TableShape is DescribeTable without the row count, which reads the
+// whole table: the shape a config is checked against (P3-02).
+func (p *ProjectDB) TableShape(ctx context.Context, name string) (Table, error) {
+	return readTx(ctx, p.DB, func(tx *sql.Tx) (Table, error) { return describe(ctx, tx, name, false) })
+}
+
 // describe describes the agent table name as tx sees it; count adds its
 // rows.
 func describe(ctx context.Context, tx *sql.Tx, name string, count bool) (Table, error) {

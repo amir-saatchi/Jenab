@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/heading.json",
+  "title": "A heading block: a section title (SPEC 5.9)",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["heading"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "heading": { "$ref": "defs.json#/$defs/label" }
+  }
+}

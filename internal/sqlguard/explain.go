@@ -237,3 +237,143 @@ func (g *Guard) tableMap(ctx context.Context, c *sql.Conn) (map[int64]string, er
 	g.mu.Unlock()
 	return m, nil
 }
+
+// Column is a result column of a query as SQLite prepares it: its name as
+// Probe gives it, and the table column its values come straight from.
+type Column struct {
+	Name string
+	// Table and Origin name the table column the values are read from; ""
+	// for an expression, a constant, or a column SQLite can't trace to one
+	// table column.
+	Table, Origin string
+}
+
+// Columns prepares q's Probe statement on c, without running it, and
+// returns q's result columns, which SPEC 10's SQL check compares a view's
+// fields with. Run Explain on c first: only text that passed layer 1 may be
+// prepared, and Explain makes sure SQLite reads it as one statement.
+func Columns(c *sql.Conn, q string) ([]Column, error) {
+	out, err := columnInfo(c, q)
+	if err != nil {
+		return nil, err
+	}
+	// SQLite takes a compound SELECT's origins from one of its arms, so a
+	// column is traced to a table column only when every arm agrees. A
+	// compound inside brackets, in a subquery or a CTE, is not split: its
+	// columns are taken for expressions.
+	arms, nested, err := compoundArms(q)
+	if err != nil {
+		return nil, err
+	}
+	agree := !nested
+	for _, arm := range arms {
+		if !agree {
+			break
+		}
+		ac, err := columnInfo(c, arm)
+		if err != nil || len(ac) != len(out) {
+			agree = false
+			break
+		}
+		for i := range out {
+			if ac[i].Table != out[i].Table || ac[i].Origin != out[i].Origin {
+				out[i].Table, out[i].Origin = "", ""
+			}
+		}
+	}
+	if !agree {
+		for i := range out {
+			out[i].Table, out[i].Origin = "", ""
+		}
+	}
+	return out, nil
+}
+
+// compoundArms splits q, which must pass Check, at the UNION, INTERSECT
+// and EXCEPT of its outermost SELECT into one query for each arm, each
+// with q's WITH clause and without the ORDER BY and LIMIT that end the
+// whole. None when q is not a compound; nested reports one in brackets.
+func compoundArms(q string) (arms []string, nested bool, err error) {
+	c, rerr := check(q)
+	if rerr != nil {
+		return nil, false, rerr
+	}
+	depth, first, end := 0, -1, len(q)
+	var cuts [][2]int // each operator's start and the next arm's start
+	toks := c.toks
+	for i, t := range toks {
+		if t.kind == punct {
+			switch t.text {
+			case "(":
+				depth++
+			case ")":
+				depth--
+			}
+			continue
+		}
+		if t.kind == semi && depth == 0 {
+			end = min(end, t.pos)
+			break
+		}
+		if t.kind != word {
+			continue
+		}
+		w := lower(t.text)
+		switch {
+		case w != "union" && w != "intersect" && w != "except":
+			if depth == 0 && first < 0 && (w == "select" || w == "values") {
+				first = t.pos
+			}
+			if depth == 0 && len(cuts) > 0 && (w == "limit" || w == "order" && i+1 < len(toks) && lower(toks[i+1].text) == "by") {
+				end = min(end, t.pos)
+			}
+		case depth > 0:
+			nested = true
+		case i+1 < len(toks):
+			next := i + 1
+			if w == "union" && toks[next].kind == word && lower(toks[next].text) == "all" {
+				next++
+			}
+			if next < len(toks) {
+				cuts = append(cuts, [2]int{t.pos, toks[next].pos})
+			}
+		}
+	}
+	if len(cuts) == 0 || first < 0 {
+		return nil, nested, nil
+	}
+	prefix, start := q[:first], first
+	for _, cut := range cuts {
+		arms = append(arms, prefix+q[start:cut[0]])
+		start = cut[1]
+	}
+	arms = append(arms, prefix+q[start:end])
+	return arms, nested, nil
+}
+
+// columnInfo prepares q's Probe statement and reads its columns as SQLite
+// gives them.
+func columnInfo(c *sql.Conn, q string) ([]Column, error) {
+	probe, err := Probe(q)
+	if err != nil {
+		return nil, err
+	}
+	var out []Column
+	err = c.Raw(func(dc any) error {
+		ci, ok := dc.(interface {
+			ColumnInfo(string) ([]sqlite.ColumnInfo, error)
+		})
+		if !ok {
+			return fmt.Errorf("sqlguard: driver %T can't prepare a query without running it", dc)
+		}
+		info, err := ci.ColumnInfo(probe)
+		for _, x := range info {
+			out = append(out, Column{Name: x.Name, Table: x.TableName, Origin: x.OriginName})
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}

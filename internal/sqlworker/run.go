@@ -39,6 +39,11 @@ type Request struct {
 	Query string
 	Args  []any
 	Max   int
+	// Prepare asks only for the query's result columns: the query goes
+	// through all three layers, prepared with NULL bound to every
+	// parameter, but it isn't run (SPEC 10's SQL check). The Result has
+	// Columns and Sources, and no rows.
+	Prepare bool
 	// Timeout, if set, is the query's deadline, counted from Pool.Query
 	// without the time a worker takes to start (Pool.Query).
 	Timeout time.Duration
@@ -55,7 +60,13 @@ type Result struct {
 	Cut    bool // Values stops before the last row
 	Capped bool // counting stopped at CountCap rows
 	Full   bool // Values stops early because its rows reached ResultCap
+	// Sources, for a Prepare request, are the table columns that Columns
+	// come straight from, one for each; "" for an expression.
+	Sources []Source
 }
+
+// Source is the table column a result column comes straight from.
+type Source struct{ Table, Column string }
 
 // Run runs req on c, a reader with sqlguard.Prepare and Restrict set, in
 // one read transaction, so the table map, EXPLAIN and the query all see
@@ -83,6 +94,17 @@ func Run(ctx context.Context, c *sql.Conn, g *sqlguard.Guard, req Request) (Resu
 	}()
 	if err := g.Explain(ctx, c, req.Query); err != nil { // layer 2
 		return Result{}, err
+	}
+	if req.Prepare {
+		cols, err := sqlguard.Columns(c, req.Query)
+		if err != nil {
+			return Result{}, err
+		}
+		out := Result{Columns: make([]string, len(cols)), Sources: make([]Source, len(cols))}
+		for i, col := range cols {
+			out.Columns[i], out.Sources[i] = col.Name, Source{col.Table, col.Origin}
+		}
+		return out, nil
 	}
 	// The query's columns, for the statement that also counts the rows.
 	cols, err := columns(ctx, c, probe, req.Args)

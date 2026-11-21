@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/filter.json",
+  "title": "A filter block: a page filter shown here instead of in the header (SPEC 5.9)",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["filter"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "filter": { "$ref": "defs.json#/$defs/name" }
+  }
+}

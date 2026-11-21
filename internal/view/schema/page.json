@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/page.json",
+  "title": "A page: rows of blocks on a 12-column grid (SPEC 5.9); each block is checked by its unit's schema",
+  "type": "object",
+  "required": ["version", "id", "title", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "id": { "$ref": "defs.json#/$defs/id" },
+    "title": { "$ref": "defs.json#/$defs/label" },
+    "description": { "$ref": "defs.json#/$defs/description" },
+    "filters": { "$ref": "defs.json#/$defs/filters" },
+    "actions": { "type": "array", "items": { "$ref": "defs.json#/$defs/pageAction" } },
+    "rows": { "$ref": "defs.json#/$defs/rows" }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/button.json",
+  "title": "A button block (SPEC 5.9); Go checks it has one target",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["button"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "button": { "$ref": "defs.json#/$defs/label" },
+    "run_pipeline": { "$ref": "defs.json#/$defs/ref" },
+    "open_page": { "$ref": "defs.json#/$defs/ref" },
+    "open_form": { "$ref": "defs.json#/$defs/ref" },
+    "tone": { "$ref": "defs.json#/$defs/tone" },
+    "confirm": { "type": "boolean" }
+  }
+}

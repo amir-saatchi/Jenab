@@ -20,8 +20,8 @@ import (
 // side reads a frame over maxFrame, so a worker that misbehaves can't make
 // the app allocate more.
 //
-//	request:  max, query, args (name, value)…
-//	response: 0, columns, rows, total, flags | 1, layer, reason, pos, line, col | 2, code, message
+//	request:  max, prepare, query, args (name, value)…
+//	response: 0, columns, rows, total, flags, sources (table, column)… | 1, layer, reason, pos, line, col | 2, code, message
 //
 // Numbers are uvarints, strings and blobs a uvarint length and the bytes,
 // and a value a tag and its data.
@@ -238,6 +238,7 @@ func (d *dec) value() any {
 func encodeRequest(r Request) ([]byte, error) {
 	e := newEnc()
 	e.uvarint(uint64(max(r.Max, 1)))
+	e.byte(boolByte(r.Prepare))
 	e.str(r.Query)
 	e.uvarint(uint64(len(r.Args)))
 	for i, a := range r.Args {
@@ -271,7 +272,8 @@ func encodeRequest(r Request) ([]byte, error) {
 
 func decodeRequest(b []byte) (Request, error) {
 	d := &dec{b: b}
-	r := Request{Max: int(min(d.uvarint(), math.MaxInt32)), Query: d.str()}
+	r := Request{Max: int(min(d.uvarint(), math.MaxInt32)), Prepare: d.byte() == 1}
+	r.Query = d.str()
 	n := d.count()
 	for range n {
 		name, v := d.str(), d.value()
@@ -327,6 +329,11 @@ func encodeResponse(r Result, err error) []byte {
 			}
 		}
 		e.byte(f)
+		e.uvarint(uint64(len(r.Sources)))
+		for _, s := range r.Sources {
+			e.str(s.Table)
+			e.str(s.Column)
+		}
 	}
 	b, ferr := e.frame()
 	if ferr != nil {
@@ -424,6 +431,17 @@ func decodeResponse(b []byte) (Result, error) {
 	r.Total = int(min(d.uvarint(), math.MaxInt32))
 	f := d.byte()
 	r.Cut, r.Capped, r.Full = f&flagCut != 0, f&flagCapped != 0, f&flagFull != 0
+	// Sources come one for each column, or not at all.
+	if ns := d.count(); ns > 0 {
+		if ns != nc {
+			d.fail()
+		} else {
+			r.Sources = make([]Source, ns)
+			for i := range r.Sources {
+				r.Sources[i] = Source{Table: d.str(), Column: d.str()}
+			}
+		}
+	}
 	if d.err != nil {
 		return Result{}, d.err
 	}

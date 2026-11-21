@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jenab.local/schema/card.json",
+  "title": "A card block: a titled frame around rows of blocks (SPEC 5.9)",
+  "$ref": "defs.json#/$defs/block",
+  "required": ["card", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "span": {},
+    "card": { "$ref": "defs.json#/$defs/label" },
+    "rows": { "$ref": "defs.json#/$defs/rows" }
+  }
+}
