@@ -150,7 +150,7 @@ Every agent query passes three layers, in this order. None of them depends on a 
    - The app runs layer 1. The worker runs layer 1 again, then layer 2 and the query, on its own connection: opened read-only, with `query_only`, `SQLITE_LIMIT_ATTACHED = 0` (without it, a read-only connection can attach and read any other file, such as another project's database), `SQLITE_LIMIT_LENGTH = 1 MiB` and `SQLITE_LIMIT_VARIABLE_NUMBER = 999`. A stored value over 1 MiB can't be read by agent SQL; `length()` still works. Each query reads its own snapshot.
    - A prepare-only request runs the layers without running the query, and returns the result columns with the `table.column` each comes from. Validation uses it (10, P3-02).
    - Memory: 256 MiB per worker. On Windows, a Job Object enforces it; elsewhere a watchdog in the worker checks every 20 ms. A query over it is stopped with "the query used more than 256 MiB and was stopped". Sorts spill to temp files, which SQLite deletes when the worker ends.
-   - Time: a `context` deadline, 2 s for views (5.7) and 10 s for `query` and `db.query`. Waiting for a free worker counts against the deadline; starting a new one does not (it has its own 30 s limit). At the deadline, or when the caller cancels, the worker is killed and the next query starts a new one (about 35–70 ms, longer on the first start after an update). A killed worker leaves the database, the WAL and the writer intact.
+   - Time: a `context` deadline, 2 s for views (5.7) and 10 s for `query` and `db.query`. Waiting for a free worker counts against the deadline; starting a new one does not (it has its own 30 s limit). A view query is the exception: its 2 s start when a worker takes it, and its wait for a worker is bounded by the page run, which closing the page or changing its filters cancels (P3-05). At the deadline, or when the caller cancels, the worker is killed and the next query starts a new one (about 35–70 ms, longer on the first start after an update). A killed worker leaves the database, the WAL and the writer intact.
    - At most 8 MiB of rows are returned to `query`. The rest are left out, as with rows past the maximum, and the result says so.
 
 No single layer is enough on its own: EXPLAIN does not see PRAGMAs, and the worker's settings do not stop reads of internal tables. Only layer 3 stops runaway queries. The cost is about 2–4 µs for layer 1, 100 µs for layer 2 and 0.1–0.25 ms for the round trip to the worker (P2-01). If the driver offers an authorizer callback, it can be installed as an extra layer.
@@ -874,6 +874,10 @@ filters:
 - A number filter reads the user's regional formats, and grouping must fit their pattern: "1,5" is no number in English. What it can't read, or an emptied required filter, goes back with the reason shown under it (P3-07).
 - A required select with no value takes its first option.
 - `select` options can be a static list or `{ query: "SELECT ..." }`, as in forms (5.5). The query returns one column and takes no parameters. A `select` needs `options`, and only a `select` has them.
+  - Options from a query are capped at 1,000. A view's options queries run in parallel.
+- A value of `""` or blanks is cleared. A cleared required filter binds its default, or a select's first option, and says it needs a value (P3-05).
+- A value that can't be read, NaN and infinities included, binds the default and shows why under the filter.
+- On a page, a block's own filter on a parameter the page's filters set is hidden, and the page's value binds.
 
 ### 5.3 Table
 
@@ -881,18 +885,24 @@ filters:
 |---|---|---|
 | `columns` | yes | List of `{ field, label, format, format_options, align }` |
 | `default_sort` | yes | `{ field, direction }`, the initial sort; the user can re-sort by clicking a column heading, or with Enter or Space on it |
-| `page_size` | no | Rows per page, default 50 |
+| `page_size` | no | Rows per page, default 50, at most 500 |
 | `rows_from` | for row actions | `{ table, key }`: the base table and its key column; the query must select the key |
 | `row_actions` | no | Buttons per row (below) |
 
 **Pagination and sorting.** The query does not contain `ORDER BY`, `LIMIT` or `OFFSET`: an outer `LIMIT` or `OFFSET` fails validation, and an outer `ORDER BY` is a warning. The runtime wraps it:
 
 ```sql
-SELECT * FROM (<query>) ORDER BY <sort> LIMIT ? OFFSET ?
+SELECT * FROM (<query>) ORDER BY <sort> LIMIT <n> OFFSET <m>
 SELECT count(*) FROM (<query>)
 ```
 
 An `ORDER BY` inside a table query is ignored and produces a validation warning. If the count query hits the timeout, the table shows "many rows" instead of a total.
+
+- The rows are ordered by the sort column, then by `rows_from.key` when there is one.
+- Any shown column can sort the table, except `image` and `file` columns.
+- The count runs only when the page tells no total, with its own 2 s: after a full page, or a page cut by the 8 MiB result cap, which also shows a notice.
+- A page past the last shows the last.
+- An `image` or `file` key that isn't in the bucket shows blank. When the bucket can't be checked within 2 s, all of them show blank, with a notice on the block.
 
 **Transfer and rendering** (SPIKE-022):
 - Rows reach a page as column names plus array rows, not objects. In SPIKE-022 that was 36 % smaller: a 500-row page was about 83 KB and took about 10 ms.
@@ -934,16 +944,18 @@ row_actions:
 - The runtime wraps the query as `SELECT * FROM (<query>) LIMIT 10001`. If more than 10,000 rows come back, the first 10,000 are shown with a notice to aggregate in the query.
 - Line and scatter charts are sorted by `x`. A line breaks at a missing value instead of joining across it.
 - Several series in a bar chart are grouped side by side.
-- A time `x` is shown in the computer's zone, unless every value falls on midnight UTC: then the axis is days, in UTC, as 5.3's dates are. A time outside the years 1 to 9999 is an error on the block.
+- A time `x` is shown in the computer's zone, unless every value falls on midnight UTC: then the axis is days, in UTC, as 5.3's dates are. A time outside the years 1 to 9999 is left out, as a NULL is.
+- A row whose `x` is NULL is left out: it has no point, bar or slice. A `y` that is NULL, not a number, NaN or infinite is a gap.
+- With `series_by`, series come in the order the query first gives them. On a bar or pie chart, a repeated category keeps its last row.
 - **Pie charts:**
   - `x` is the label field and `y` has exactly one entry, the value. `series_by` isn't allowed.
-  - At most 12 slices are drawn, "Other" among them: the 11 largest, and the rest summed into "Other".
+  - At most 12 slices are drawn, "Other" among them: the 11 largest, and the rest summed into "Other". The runtime passes every row, and the kit folds them.
   - Zero and empty values are skipped. Negative values are an error shown on the block, naming the slice.
 - **Size rules** (P3-08, measured on MyGo's chart package). The runtime applies these from the data size; they aren't config fields.
   - **The 10,000-row limit** stays, with its notice. It holds back memory and query time, not drawing.
   - **No downsampling.** A line keeps each pixel column's lowest and highest value, so its shape and peaks are exact at any width. Scatter draws every point. A 10,000-point line took 1.7 ms to draw and a 10,000-point scatter about 5 ms; on the GPU every chart stayed inside a 60 fps frame at p95, with new data every frame.
   - **No animation.** Dots on a line show only when there is room for them, about 12 px a point, decided at each width.
-  - **Bar charts above 1,000 bars:** the first 1,000 are shown, with a notice to aggregate in the query, like the 10,000-row notice. 1,000 bars took about 1 ms a frame; 10,000 bars took about 20 ms to resize, and at that size the bars are thinner than a pixel.
+  - **Bar charts above 1,000 bars:** the first 1,000 bars, counting each series' bars, are shown, with a notice to aggregate in the query, like the 10,000-row notice. 1,000 bars took about 1 ms a frame; 10,000 bars took about 20 ms to resize, and at that size the bars are thinner than a pixel.
   - Resizing the window costs about 20 ms for any chart, most of it MyGo resizing the window's surface.
 
 ### 5.5 Form
@@ -992,8 +1004,8 @@ The same "already running" rule as in 5.5 applies.
 
 ### 5.7 Runtime rules for views
 
-- Queries run on a **read-only connection** from the project's reader pool (`PRAGMA query_only = ON`). They never wait for the writer (section 7).
-- Views load asynchronously: each block shows its own loading state and fills in when its rows arrive. The blocks of a page query in parallel on the reader pool, so one slow block doesn't hold up the others.
+- Queries run on the **guarded read-only path** through the project's query workers (2.2), as agent queries do, with the view deadline. They never wait for the writer (section 7).
+- Views load asynchronously: each block shows its own loading state and fills in when its rows arrive. The blocks of a page query in parallel on the 2 query workers. Each query's 2 s start when a worker takes it (2.2), so one slow block doesn't hold up the others, and blocks waiting behind slow ones don't time out. A panic is an error on its block only.
 - Only named parameters (`:name`). No string building.
 - Query timeout: 2 seconds per block. Chart result limit: 10,000 rows. Tables are always paginated.
 - No LLM call and no network access when a view opens.

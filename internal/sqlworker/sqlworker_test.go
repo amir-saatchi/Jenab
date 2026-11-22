@@ -644,3 +644,34 @@ func TestPoolPrepare(t *testing.T) {
 		t.Error("one source for two columns decodes")
 	}
 }
+
+// TestPoolTimeoutOnSlot: with TimeoutOnSlot, the wait for the one worker
+// doesn't count against a query's timeout; without it, it does.
+func TestPoolTimeoutOnSlot(t *testing.T) {
+	p := newPool(t, openDB(t, 3, 10), Options{Workers: 1})
+	if _, err := query(t, p, 5*time.Second, "SELECT 1"); err != nil { // a worker started
+		t.Fatal(err)
+	}
+	slow := "WITH RECURSIVE r(i) AS (SELECT 1 UNION ALL SELECT i+1 FROM r) SELECT count(*) FROM r"
+	for _, onSlot := range []bool{true, false} {
+		busy := make(chan error, 1)
+		go func() {
+			_, err := p.Query(context.Background(), Request{Query: slow, Max: 1, Timeout: 600 * time.Millisecond})
+			busy <- err
+		}()
+		time.Sleep(100 * time.Millisecond) // the slow query has the worker
+		begin := time.Now()
+		r, err := p.Query(context.Background(), Request{Query: "SELECT count(*) FROM prices", Max: 1,
+			Timeout: 300 * time.Millisecond, TimeoutOnSlot: onSlot})
+		took := time.Since(begin)
+		if onSlot && (err != nil || r.Values[0][0] != int64(30) || took < 400*time.Millisecond) {
+			t.Errorf("on slot: %v %v after %v", r, err, took)
+		}
+		if !onSlot && !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("counting the wait: %v after %v", err, took)
+		}
+		if err := <-busy; !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("slow query: %v", err)
+		}
+	}
+}

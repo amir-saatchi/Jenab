@@ -97,8 +97,9 @@ func New(path string, o Options) *Pool {
 
 // Query runs req in a worker. When ctx ends, or req.Timeout passes, the
 // worker is killed and Query returns the context's error; the next query
-// starts a new one. The timeout counts the wait for a free worker but not
-// a worker's start, which only ctx and startTimeout bound. A query that
+// starts a new one. The timeout counts the wait for a free worker, unless
+// req.TimeoutOnSlot is set, but not a worker's start, which only ctx and
+// startTimeout bound. A query that
 // reaches the memory cap returns a *MemoryError. Refusals are
 // *sqlguard.RejectError, and SQLite's errors come back with their text.
 func (p *Pool) Query(ctx context.Context, req Request) (Result, error) {
@@ -116,6 +117,9 @@ func (p *Pool) Query(ctx context.Context, req Request) (Result, error) {
 		return Result{}, ctx.Err()
 	}
 	defer func() { <-p.slots }()
+	if req.TimeoutOnSlot {
+		begin = time.Now()
+	}
 	var starts time.Duration
 	for try := 0; ; try++ {
 		if err := ctx.Err(); err != nil {

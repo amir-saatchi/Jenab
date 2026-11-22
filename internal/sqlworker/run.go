@@ -47,6 +47,11 @@ type Request struct {
 	// Timeout, if set, is the query's deadline, counted from Pool.Query
 	// without the time a worker takes to start (Pool.Query).
 	Timeout time.Duration
+	// TimeoutOnSlot counts Timeout from when the query gets a free
+	// worker's slot, not from Pool.Query: the wait for one is bounded
+	// only by the context. A view's 2 s is its own query's (SPEC 5.7),
+	// not the blocks' ahead of it.
+	TimeoutOnSlot bool
 }
 
 // Result is a query's rows.

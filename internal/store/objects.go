@@ -255,6 +255,39 @@ func (p *ProjectDB) HeadObject(ctx context.Context, key string) (Object, error) 
 	return o, nil
 }
 
+// ObjectsExist reports which of keys the bucket has a file at, as
+// HeadObject finds them, in one read per 500 keys. A key that isn't a
+// valid bucket key is not there.
+func (p *ProjectDB) ObjectsExist(ctx context.Context, keys []string) (map[string]bool, error) {
+	out := make(map[string]bool, len(keys))
+	var valid []any
+	for _, k := range keys {
+		if _, seen := out[k]; seen {
+			continue
+		}
+		out[k] = false
+		if bucket.CheckKey(k) == nil {
+			valid = append(valid, k)
+		}
+	}
+	for len(valid) > 0 {
+		n := min(len(valid), 500)
+		q := "SELECT key FROM _jenab_objects WHERE key IN (?" + strings.Repeat(", ?", n-1) + ")"
+		found, err := Query(ctx, p.DB, q, valid[:n], func(r *sql.Rows) (string, error) {
+			var k string
+			return k, r.Scan(&k)
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range found {
+			out[k] = true
+		}
+		valid = valid[n:]
+	}
+	return out, nil
+}
+
 // OpenObject returns key's current version and its content. The caller
 // closes the reader.
 func (p *ProjectDB) OpenObject(ctx context.Context, key string) (Object, io.ReadSeekCloser, error) {

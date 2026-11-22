@@ -43,6 +43,18 @@ func (p *ProjectDB) AgentQuery(ctx context.Context, q string, args []any, max in
 // before it is saved.
 const viewTimeout = 2 * time.Second
 
+// ViewTimeout is a view's query's deadline (SPEC 5.7), not counting the
+// time a worker takes to start.
+const ViewTimeout = viewTimeout
+
+// ViewQuery runs a view's query as AgentQuery does, with a view's 2 s
+// (SPEC 5.7): on the worker's read-only connection, so it never waits for
+// the writer. A query that runs out of time returns an error that
+// matches context.DeadlineExceeded while ctx itself is still live.
+func (p *ProjectDB) ViewQuery(ctx context.Context, q string, args []any, max int) (Rows, error) {
+	return p.guardedRequest(ctx, sqlworker.Request{Query: q, Args: args, Max: max, Timeout: viewTimeout, TimeoutOnSlot: true})
+}
+
 // QueryColumn is a result column of a query, and the table column its
 // values come straight from: Table and Column are "" for an expression, a
 // constant, or a column SQLite can't trace to one table column.
@@ -80,14 +92,22 @@ func (p *ProjectDB) QueryColumns(ctx context.Context, q string) ([]QueryColumn, 
 }
 
 // guardedQuery is AgentQuery with the caller's deadline d: 10 s for query
-// and db.query, 2 s for views (2.2), not counting the time a worker takes
+// and db.query, 2 s for views (2.2; ViewQuery counts it from when a
+// worker takes the query), not counting the time a worker takes
 // to start. Layer 1 runs here first, so a query it refuses costs no
 // worker; the worker runs all three layers again.
 func (p *ProjectDB) guardedQuery(ctx context.Context, q string, args []any, n int, d time.Duration) (Rows, error) {
-	if err := sqlguard.Check(q); err != nil {
+	return p.guardedRequest(ctx, sqlworker.Request{Query: q, Args: args, Max: n, Timeout: d})
+}
+
+// guardedRequest is guardedQuery for a request of any kind.
+func (p *ProjectDB) guardedRequest(ctx context.Context, req sqlworker.Request) (Rows, error) {
+	if err := sqlguard.Check(req.Query); err != nil {
 		return Rows{}, err
 	}
-	r, err := p.workers.Query(ctx, sqlworker.Request{Query: q, Args: args, Max: max(n, 1), Timeout: d})
+	req.Max = max(req.Max, 1)
+	d := req.Timeout
+	r, err := p.workers.Query(ctx, req)
 	switch {
 	case errors.Is(err, sqlworker.ErrClosed):
 		return Rows{}, ErrClosed
