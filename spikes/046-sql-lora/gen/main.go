@@ -73,7 +73,8 @@ func run(root string, check bool) error {
 	write := func(path string, b []byte) error {
 		full := filepath.Join(root, path)
 		old, err := os.ReadFile(full)
-		if err == nil && bytes.Equal(old, b) {
+		// A Windows checkout has CRLF (text=auto); the content is what counts.
+		if err == nil && bytes.Equal(bytes.ReplaceAll(old, []byte("\r\n"), []byte("\n")), b) {
 			return nil
 		}
 		if check {

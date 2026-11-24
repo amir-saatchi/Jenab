@@ -74,11 +74,19 @@ On 2026-11-24 it gave 189 passing runs and 422 chat examples. The scripted repli
 
 `teacher.ipynb` runs the runner and `gemma4:31b` in the same Colab VM:
 
-1. Settings, then Go, a clone of the public repository (no `.env`) and the runner, built with `CGO_ENABLED=0`.
+1. Settings. The first cell prints the GPU's name and memory and picks the teacher settings from it:
+
+   | GPU | Teacher | Context | Runs at a time |
+   |---|---|---|---|
+   | A100 80 GB | `gemma4:31b-it-q8_0` (about 33 GB); `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 2 (up to 4) |
+   | A100 40 GB | `gemma4:31b-it-q8_0` | 16k | 1 |
+   | L4 24 GB (fallback) | `gemma4:31b-it-q4_K_M` | 8k | 1 |
+
+   `*_OVERRIDE` settings change one choice, such as an 8k context if 16k runs out of memory. Then Go, a clone of the public repository (no `.env`) and the runner, built with `CGO_ENABLED=0`.
 2. A scripted smoke of every training set and the export, with no GPU.
-3. Ollama, with the context at 8k on an L4, connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key.
-4. A 10-run check that prints the time per run and an estimate for all training sets.
-5. The training sets in chunks of 10 scenarios. Each chunk saves its report to Drive with a `DONE` file. After a disconnect, run the cells again: finished chunks are skipped.
+3. Ollama, connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key. One model is loaded at a time.
+4. A 10-run check on the first teacher that prints the time per run and an estimate for all training sets.
+5. The training sets in chunks of 10 scenarios, one teacher after the other. Each chunk saves its report to Drive with a `DONE` file. After a disconnect, run the cells again: finished chunks are skipped.
 6. The export to Drive.
 
 The notebook clones `BRANCH` (`main`). The sets and the export must be on that branch first.
