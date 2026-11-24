@@ -1,0 +1,132 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  ledger_avg_btc_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC'
+    - text: 'From the project''s data: 62754.'
+  ledger_avg_btc_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC'
+    - text: 'بر پایهٔ داده‌های پروژه: 62754'
+  ledger_btc_bought_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 4) FROM trades WHERE coin = 'BTC' AND side
+              = 'buy'
+    - text: 'From the project''s data: 0.06.'
+  ledger_btc_bought_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 4) FROM trades WHERE coin = 'BTC' AND side
+              = 'buy'
+    - text: 'بر پایهٔ داده‌های پروژه: 0.06'
+  ledger_buy_days_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT t.date, p.close FROM trades t JOIN prices p ON p.coin = t.coin
+              AND p.date = t.date WHERE t.coin = 'BTC' AND t.side = 'buy' ORDER BY
+              t.date
+    - text: 'From the project''s data: 62536; 63648; 63568.'
+  ledger_count_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'trades'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM trades
+    - text: 'From the project''s data: 9.'
+  ledger_count_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'trades'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM trades
+    - text: 'بر پایهٔ داده‌های پروژه: 9'
+  ledger_fees_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: trades
+    - text: The trades table has no column for that, so the data can't answer it.
+  ledger_fees_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: trades
+    - text: جدول trades ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  ledger_low_eth_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT date, close FROM prices WHERE coin = 'ETH' ORDER BY close
+    - text: 'From the project''s data: 2026-09-04, 2416.'
+  ledger_range_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-09-10' AND '2026-09-20'
+    - text: 'From the project''s data: 62765.45.'
+  ledger_range_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-09-10' AND '2026-09-20'
+    - text: 'بر پایهٔ داده‌های پروژه: 62765.45'
+  ledger_sell_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - amount: 0.2
+                coin: ETH
+                date: "2026-10-01"
+                price: 2600
+                side: sell
+            table: trades
+    - text: 'Done: I added the row to trades.'
+  ledger_sell_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - amount: 0.2
+                coin: ETH
+                date: "2026-10-01"
+                price: 2600
+                side: sell
+            table: trades
+    - text: 'انجام شد: ردیف به trades اضافه شد.'
+  ledger_sells_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM trades WHERE side = 'sell'
+    - text: 'From the project''s data: 3.'
+  ledger_sells_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM trades WHERE side = 'sell'
+    - text: 'بر پایهٔ داده‌های پروژه: 3'
+  ledger_top_eth_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT date, close FROM prices WHERE coin = 'ETH' ORDER BY close
+              DESC
+    - text: 'From the project''s data: 2026-09-30; 2026-09-26; 2026-09-15.'

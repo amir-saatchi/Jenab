@@ -1,0 +1,116 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  cryptowatch_addprice_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - close: 64890
+                coin: BTC
+                currency: USD
+                date: "2026-09-29"
+                high: 65100
+                low: 64010.5
+                open: 64512.3
+            table: prices
+    - text: 'Done: I added the row to prices.'
+  cryptowatch_addprice_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - close: 64890
+                coin: BTC
+                currency: USD
+                date: "2026-09-29"
+                high: 65100
+                low: 64010.5
+                open: 64512.3
+            table: prices
+    - text: 'انجام شد: ردیف به prices اضافه شد.'
+  cryptowatch_avg_aug_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-08-01' AND '2026-08-31'
+    - text: 'From the project''s data: 62229.25.'
+  cryptowatch_avg_aug_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-08-01' AND '2026-08-31'
+    - text: 'بر پایهٔ داده‌های پروژه: 62229.25'
+  cryptowatch_count_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'news'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM news
+    - text: 'From the project''s data: 12.'
+  cryptowatch_count_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'news'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM news
+    - text: 'بر پایهٔ داده‌های پروژه: 12'
+  cryptowatch_eth_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - text: The prices table has no column for that, so the data can't answer it.
+  cryptowatch_eth_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - text: جدول prices ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  cryptowatch_newest_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT title, published_at FROM news ORDER BY published_at DESC
+    - text: 'From the project''s data: Spot bitcoin ETFs log a fourth day of inflows.'
+  cryptowatch_range_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT date, round(high - low, 2) AS gap FROM prices ORDER BY gap
+              DESC
+    - text: 'From the project''s data: 2026-09-12.'
+  cryptowatch_source_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM news WHERE source = 'coindesk.example'
+    - text: 'From the project''s data: 3.'
+  cryptowatch_source_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM news WHERE source = 'coindesk.example'
+    - text: 'بر پایهٔ داده‌های پروژه: 3'
+  cryptowatch_updays_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM prices WHERE close > open AND date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'From the project''s data: 15.'
+  cryptowatch_updays_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM prices WHERE close > open AND date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 15'

@@ -14,6 +14,7 @@ import (
 // Report is a set's run on its models.
 type Report struct {
 	Set     string    `json:"set"`
+	Split   string    `json:"split,omitempty"` // train, heldout or "" (SPIKE-046)
 	Dir     string    `json:"-"`
 	Started time.Time `json:"started"`
 	Took    float64   `json:"took_seconds"`
@@ -85,6 +86,9 @@ type Run struct {
 	MemoryTokens int    `json:"memory_tokens,omitempty"`
 	NotesTokens  int    `json:"notes_tokens,omitempty"`
 	Transcript   string `json:"-"`
+	// Examples are the run's requests and answers as JSONL, with
+	// Options.Examples (SPIKE-046).
+	Examples string `json:"-"`
 }
 
 // TurnStat is one turn's requests: their prompt tokens added up, the
@@ -707,6 +711,11 @@ func (rep *Report) Write(dir string, prev *Report) (string, error) {
 		f := filepath.Join(d, fmt.Sprintf("%s_r%d.md", r.Scenario, r.Rep))
 		if err := os.WriteFile(f, []byte(r.Transcript), 0o644); err != nil {
 			return "", err
+		}
+		if r.Examples != "" {
+			if err := os.WriteFile(ExamplesFile(base, r), []byte(r.Examples), 0o644); err != nil {
+				return "", err
+			}
 		}
 	}
 	return md, nil

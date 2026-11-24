@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_addcustomer_en
+title: 'We have a new customer today: code C-013, from Bremen. Add them.'
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to customers with insert; at the end the check reads C-013|Bremen|2026-10-01
+  00:00:00 +0000 UTC.'
+messages:
+  - text: 'We have a new customer today: code C-013, from Bremen. Add them.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"customers"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"Bremen"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"C-013"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: db_query
+    test: row
+    match: (?m)^C-013\|Bremen\|2026-10-01 00:00:00 \+0000 UTC$
+    query: SELECT code, city, joined FROM customers WHERE code = 'C-013'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

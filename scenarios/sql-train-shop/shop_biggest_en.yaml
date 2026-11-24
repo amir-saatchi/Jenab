@@ -1,0 +1,45 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_biggest_en
+title: What was our largest order in September by total value, and which customer
+  placed it?%!(EXTRA int=1)
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'join: read orders and order_items and customers with query; the answer has C-005,
+  196.5.'
+messages:
+  - text: What was our largest order in September by total value, and which customer
+      placed it?%!(EXTRA int=1)
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\border_items\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bcustomers\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )C-005(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)C-005
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][9۹٩][6۶٦][.\x{066B}/][5۵٥]0*|[1۱١][9۹٩][7۷٧](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

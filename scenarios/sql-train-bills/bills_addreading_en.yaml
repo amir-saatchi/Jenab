@@ -1,0 +1,44 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_addreading_en
+title: Today's electricity meter reading is 15281.5. Save it.
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to readings with insert; at the end the check reads electricity|2026-10-01
+  00:00:00 +0000 UTC|15281.5.'
+messages:
+  - text: Today's electricity meter reading is 15281.5. Save it.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"readings"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"electricity"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]15281\.50*["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^electricity\|2026-10-01 00:00:00 \+0000 UTC\|15281\.5$
+    query: SELECT utility, date, value FROM readings WHERE utility = 'electricity'
+      AND date = '2026-10-01'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

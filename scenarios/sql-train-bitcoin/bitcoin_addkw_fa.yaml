@@ -1,0 +1,40 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_addkw_fa
+title: Add 'mining' to the keywords we watch.
+tests:
+  - insert
+  - row
+  - says
+  - persian
+context: main
+why: 'insert: add the row to watch_keywords with insert; at the end the check reads
+  mining.'
+messages:
+  - text: کلیدواژهٔ «mining» را به کلیدواژه‌هایی که دنبال می‌کنیم اضافه کن.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"watch_keywords"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"mining"
+  - type: db_query
+    test: row
+    match: (?m)^mining$
+    query: SELECT keyword FROM watch_keywords WHERE keyword = 'mining'
+  - type: answer_lacks
+    test: says
+    match: نمی‌توانم|نمیتوانم|امکان‌پذیر نیست|ممکن نیست
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: no_turn_failed
+    test: info

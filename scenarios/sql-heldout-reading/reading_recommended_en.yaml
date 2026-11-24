@@ -1,0 +1,26 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_recommended_en
+title: Who recommended 'Tea and Thunder' to me?
+tests:
+  - says
+context: main
+why: 'noanswer: No table says who recommended a book. The answer says the data doesn''t
+  have it.'
+messages:
+  - text: Who recommended 'Tea and Thunder' to me?
+asserts:
+  - type: answer_contains
+    test: says
+    match: (?i)\bno\b|\bnot\b|n't\b|\bcannot\b|\bunable\b|\bnone\b|\bwithout\b
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,50 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  bills_s_addbill_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - amount: 31.2
+                due: "2026-10-20"
+                period: 2026-09
+                utility: water
+            table: bills
+    - text: 'Done: I added the row to bills.'
+  bills_s_late_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills WHERE utility = 'gas' AND paid_on > due
+    - text: 'From the project''s data: 2.'
+  bills_s_total_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'internet'
+              AND period BETWEEN '2026-04' AND '2026-06'
+    - text: 'From the project''s data: 119.97.'
+  bills_s_total_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'internet'
+              AND period BETWEEN '2026-04' AND '2026-06'
+    - text: 'بر پایهٔ داده‌های پروژه: 119.97'

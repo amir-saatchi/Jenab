@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_gas_jan_en
+title: How much gas did we use in January, in cubic metres, by the meter?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read readings with query; the answer has 302.4.'
+messages:
+  - text: How much gas did we use in January, in cubic metres, by the meter?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\breadings\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )302(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[3۳٣][0۰٠][2۲٢][.\x{066B}/][4۴٤]0*|[3۳٣][0۰٠][2۲٢](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,399 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  shop_addcustomer_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - city: Bremen
+                code: C-013
+                joined: "2026-10-01"
+            table: customers
+    - text: 'Done: I added the row to customers.'
+  shop_addcustomer_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - city: Bremen
+                code: C-013
+                joined: "2026-10-01"
+            table: customers
+    - text: 'انجام شد: ردیف به customers اضافه شد.'
+  shop_addproduct_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - category: office
+                name: Desk lamp
+                price: 34.9
+            table: products
+    - text: 'Done: I added the row to products.'
+  shop_addproduct_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - category: office
+                name: Desk lamp
+                price: 34.9
+            table: products
+    - text: 'انجام شد: ردیف به products اضافه شد.'
+  shop_avgprice_books_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'books'
+    - text: 'From the project''s data: 24.25.'
+  shop_avgprice_books_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'books'
+    - text: 'بر پایهٔ داده‌های پروژه: 24.25'
+  shop_avgprice_kitchen_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'kitchen'
+    - text: 'From the project''s data: 42.13.'
+  shop_avgprice_kitchen_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'kitchen'
+    - text: 'بر پایهٔ داده‌های پروژه: 42.13'
+  shop_avgprice_office_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'office'
+    - text: 'From the project''s data: 12.13.'
+  shop_avgprice_office_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'office'
+    - text: 'بر پایهٔ داده‌های پروژه: 12.13'
+  shop_biggest_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT c.code, round(sum(oi.qty * oi.unit_price), 2) AS total FROM orders o JOIN order_items oi ON oi.order_id = o.id JOIN customers c ON c.id = o.customer_id
+              WHERE o.date BETWEEN '2026-09-01' AND '2026-09-30' GROUP BY o.id ORDER BY total DESC
+    - text: 'From the project''s data: C-005, 196.5.'
+  shop_biggest_fa:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT c.code, round(sum(oi.qty * oi.unit_price), 2) AS total FROM orders o JOIN order_items oi ON oi.order_id = o.id JOIN customers c ON c.id = o.customer_id
+              WHERE o.date BETWEEN '2026-09-01' AND '2026-09-30' GROUP BY o.id ORDER BY total DESC
+    - text: 'بر پایهٔ داده‌های پروژه: C-005, 196.5'
+  shop_city_berlin_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Berlin' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 6.'
+  shop_city_berlin_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Berlin' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 6'
+  shop_city_hamburg_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Hamburg' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 7.'
+  shop_city_hamburg_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Hamburg' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 7'
+  shop_city_munich_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Munich' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 4.'
+  shop_city_munich_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders o JOIN customers c ON c.id = o.customer_id
+              WHERE c.city = 'Munich' AND o.date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 4'
+  shop_count_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'products'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM products
+    - text: 'From the project''s data: 14.'
+  shop_email_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: customers
+    - text: The customers table has no column for that, so the data can't answer it.
+  shop_email_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: customers
+    - text: جدول customers ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  shop_joined_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM customers WHERE joined >= '2026-01-01'
+    - text: 'From the project''s data: 6.'
+  shop_joined_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM customers WHERE joined >= '2026-01-01'
+    - text: 'بر پایهٔ داده‌های پروژه: 6'
+  shop_objref_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - text: 'From the project''s data: photo.'
+  shop_objref_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - text: 'بر پایهٔ داده‌های پروژه: photo'
+  shop_orders_c-003_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT o.date, o.status FROM orders o JOIN customers c ON c.id =
+              o.customer_id WHERE c.code = 'C-003' ORDER BY o.date DESC
+    - text: 'From the project''s data: 2026-09-26; 2026-09-22; 2026-09-11; 2026-09-08;
+        2026-08-28; 2026-08-05; 2026-08-01.'
+  shop_orders_c-008_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT o.date, o.status FROM orders o JOIN customers c ON c.id =
+              o.customer_id WHERE c.code = 'C-008' ORDER BY o.date DESC
+    - text: 'From the project''s data: 2026-09-14; 2026-09-04; 2026-08-29; 2026-08-17;
+        2026-08-14; 2026-08-12.'
+  shop_price1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT price FROM products WHERE name = 'Cast iron pan'
+    - text: 'From the project''s data: 54.'
+  shop_price1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT price FROM products WHERE name = 'Cast iron pan'
+    - text: 'بر پایهٔ داده‌های پروژه: 54'
+  shop_price2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT price FROM products WHERE name = 'Pruning shears'
+    - text: 'From the project''s data: 18.75.'
+  shop_price2_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT price FROM products WHERE name = 'Pruning shears'
+    - text: 'بر پایهٔ داده‌های پروژه: 18.75'
+  shop_range1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-08-01' AND '2026-08-15'
+    - text: 'From the project''s data: 7.'
+  shop_range1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-08-01' AND '2026-08-15'
+    - text: 'بر پایهٔ داده‌های پروژه: 7'
+  shop_range2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-08-16' AND '2026-08-31'
+    - text: 'From the project''s data: 15.'
+  shop_range2_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-08-16' AND '2026-08-31'
+    - text: 'بر پایهٔ داده‌های پروژه: 15'
+  shop_range3_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-09-10' AND '2026-09-20'
+    - text: 'From the project''s data: 7.'
+  shop_range3_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-09-10' AND '2026-09-20'
+    - text: 'بر پایهٔ داده‌های پروژه: 7'
+  shop_sales_garden_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'garden' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'From the project''s data: 408.25.'
+  shop_sales_garden_fa:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'garden' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'بر پایهٔ داده‌های پروژه: 408.25'
+  shop_sales_kitchen_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'kitchen' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'From the project''s data: 360.8.'
+  shop_sales_kitchen_fa:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'kitchen' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'بر پایهٔ داده‌های پروژه: 360.8'
+  shop_sales_toys_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'toys' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'From the project''s data: 101.37.'
+  shop_sales_toys_fa:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'toys' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'بر پایهٔ داده‌های پروژه: 101.37'
+  shop_shipping_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: orders
+    - text: The orders table has no column for that, so the data can't answer it.
+  shop_status_cancelled_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'cancelled' AND date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 4.'
+  shop_status_cancelled_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'cancelled' AND date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 4'
+  shop_status_paid_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'paid' AND date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 4.'
+  shop_status_paid_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'paid' AND date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 4'
+  shop_status_returned_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'returned' AND date BETWEEN
+              '2026-08-01' AND '2026-08-31'
+    - text: 'From the project''s data: 2.'
+  shop_status_returned_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE status = 'returned' AND date BETWEEN
+              '2026-08-01' AND '2026-08-31'
+    - text: 'بر پایهٔ داده‌های پروژه: 2'
+  shop_stock_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - text: The products table has no column for that, so the data can't answer it.
+  shop_stock_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - text: جدول products ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  shop_topcities_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT c.city, count(*) AS n FROM orders o JOIN customers c ON c.id
+              = o.customer_id GROUP BY c.city ORDER BY n DESC
+    - text: 'From the project''s data: Cologne; Hamburg.'
+  shop_topunits_aug_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT p.name, sum(oi.qty) AS units FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE o.date BETWEEN '2026-08-01' AND '2026-08-31' GROUP BY p.id ORDER BY units DESC
+    - text: 'From the project''s data: Desk organizer; Pocket notebook; Card game.'
+  shop_topunits_sep_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT p.name, sum(oi.qty) AS units FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE o.date BETWEEN '2026-09-01' AND '2026-09-30' GROUP BY p.id ORDER BY units DESC
+    - text: 'From the project''s data: Watering can; Gel pens (10); Field guide to
+        birds.'

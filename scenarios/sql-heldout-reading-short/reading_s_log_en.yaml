@@ -1,0 +1,49 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_s_log_en
+title: Log 20 pages of 'Tea and Thunder' for today.
+tests:
+  - describe
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to reading_log with insert; at the end the check reads Tea
+  and Thunder|2026-10-01 00:00:00 +0000 UTC|20.'
+messages:
+  - text: Log 20 pages of 'Tea and Thunder' for today.
+asserts:
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\breading_log\b
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"reading_log"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]13(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]20(?:\.0+)?["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^Tea and Thunder\|2026-10-01 00:00:00 \+0000 UTC\|20$
+    query: SELECT b.title, l.date, l.pages FROM reading_log l JOIN books b ON b.id
+      = l.book_id WHERE l.date = '2026-10-01'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

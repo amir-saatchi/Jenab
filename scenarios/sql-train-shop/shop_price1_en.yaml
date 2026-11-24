@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_price1_en
+title: How much does the cast iron pan cost?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'filter: read products with query; the answer has 54.'
+messages:
+  - text: How much does the cast iron pan cost?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )54(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[5۵٥][4۴٤](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

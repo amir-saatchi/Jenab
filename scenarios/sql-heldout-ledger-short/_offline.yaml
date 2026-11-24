@@ -1,0 +1,33 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  ledger_s_avg_eth_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'ETH'
+    - text: 'From the project''s data: 2500.5.'
+  ledger_s_avg_eth_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'ETH'
+    - text: 'بر پایهٔ داده‌های پروژه: 2500.5'
+  ledger_s_buys_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: trades
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM trades WHERE side = 'buy'
+    - text: 'From the project''s data: 6.'

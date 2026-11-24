@@ -1,0 +1,64 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_addbook_fa
+title: 'Add a book to my list: ''The Glass Harbor'' by K. Ito, 280 pages, a novel
+  in English. I added it today.'
+tests:
+  - insert
+  - row
+  - says
+  - persian
+context: main
+why: 'insert: add the row to books with insert; at the end the check reads سفر به
+  جنوب|ح. یزدانی|210|novel|fa|2026-10-01 00:00:00 +0000 UTC.'
+messages:
+  - text: 'این کتاب را به فهرستم اضافه کن: «سفر به جنوب» از ح. یزدانی، ۲۱۰ صفحه، ژانر
+      novel، زبان fa. امروز اضافه‌اش کردم.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"books"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"ح\. یزدانی"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"novel"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"fa"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]210(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"سفر به جنوب"
+  - type: db_query
+    test: row
+    match: (?m)^سفر به جنوب\|ح\. یزدانی\|210\|novel\|fa\|2026-10-01 00:00:00 \+0000
+      UTC$
+    query: SELECT title, author, pages, genre, language, added FROM books WHERE title
+      = 'سفر به جنوب'
+  - type: answer_lacks
+    test: says
+    match: نمی‌توانم|نمیتوانم|امکان‌پذیر نیست|ممکن نیست
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Crypto ledger (heldout), with the card the app builds from the project.
+title: Crypto ledger
+split: heldout
+project_card: true
+today: "2026-10-01"
+data: ../data-tools/data.sql

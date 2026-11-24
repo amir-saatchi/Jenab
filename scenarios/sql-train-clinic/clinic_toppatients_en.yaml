@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_toppatients_en
+title: Which 3 patients have had the most appointments?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read appointments and patients with query; the answer has P-017; P-010;
+  P-005.'
+messages:
+  - text: Which 3 patients have had the most appointments?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bappointments\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bpatients\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )P-017(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)P-017
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)P-010
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)P-005
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

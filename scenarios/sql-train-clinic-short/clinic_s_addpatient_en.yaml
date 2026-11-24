@@ -1,0 +1,47 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_s_addpatient_en
+title: 'Register a new patient: code P-032, born in 2015, lives in Berlin.'
+tests:
+  - describe
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to patients with insert; at the end the check reads P-032|2015|Berlin.'
+messages:
+  - text: 'Register a new patient: code P-032, born in 2015, lives in Berlin.'
+asserts:
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\bpatients\b
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"patients"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]2015(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"Berlin"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"P-032"
+  - type: db_query
+    test: row
+    match: (?m)^P-032\|2015\|Berlin$
+    query: SELECT code, birth_year, city FROM patients WHERE code = 'P-032'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

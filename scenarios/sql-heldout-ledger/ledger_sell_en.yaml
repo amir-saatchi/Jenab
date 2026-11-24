@@ -1,0 +1,51 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: ledger_sell_en
+title: I sold 0.2 ETH today at 2,600 USD. Log it.
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to trades with insert; at the end the check reads 2026-10-01
+  00:00:00 +0000 UTC|ETH|sell|0.2|2600.'
+messages:
+  - text: I sold 0.2 ETH today at 2,600 USD. Log it.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"trades"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]0\.20*["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"ETH"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]2600(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"sell"
+  - type: db_query
+    test: row
+    match: (?m)^2026-10-01 00:00:00 \+0000 UTC\|ETH\|sell\|0\.2\|2600$
+    query: SELECT date, coin, side, amount, price FROM trades WHERE date = '2026-10-01'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

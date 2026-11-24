@@ -1,0 +1,45 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_s_sales_office_en
+title: How much revenue did our office products bring in during September? Leave out
+  cancelled and returned orders.
+tests:
+  - query
+  - describe
+  - result
+  - answer
+context: main
+why: 'join: read order_items and orders and products with query; the answer has 229.7.'
+messages:
+  - text: How much revenue did our office products bring in during September? Leave
+      out cancelled and returned orders.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\border_items\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\border_items\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )(?:229(?:\.\d+)?|230(?:\.0+)?)(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[2۲٢][2۲٢][9۹٩][.\x{066B}/][7۷٧]0*|[2۲٢][3۳٣][0۰٠](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

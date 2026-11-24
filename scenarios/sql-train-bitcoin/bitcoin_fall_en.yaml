@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_fall_en
+title: By how much did the Bitcoin price fall from 2026-09-26 to 2026-10-05?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read btc_prices with query; the answer has 900.'
+messages:
+  - text: By how much did the Bitcoin price fall from 2026-09-26 to 2026-10-05?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbtc_prices\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )900(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[9۹٩][0۰٠][0۰٠](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

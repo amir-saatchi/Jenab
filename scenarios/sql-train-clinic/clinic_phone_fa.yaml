@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_phone_fa
+title: What's patient P-004's phone number?
+tests:
+  - says
+  - persian
+context: main
+why: 'noanswer: patients has no phone number. The answer says the data doesn''t have
+  it.'
+messages:
+  - text: شمارهٔ تلفن بیمار P-004 چیست؟
+asserts:
+  - type: answer_contains
+    test: says
+    match: ندار|نیست|وجود ندارد|نمی‌توان|نمیتوان|نمی‌شود|ثبت نشده|هیچ
+    final: true
+  - type: answer_lacks
+    test: says
+    match: \d{3}[\s-]?\d{3,}
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

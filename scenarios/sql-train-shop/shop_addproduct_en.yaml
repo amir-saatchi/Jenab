@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_addproduct_en
+title: 'Add a new product: Desk lamp, in the office category, priced at 34.90.'
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to products with insert; at the end the check reads Desk
+  lamp|office|34.9.'
+messages:
+  - text: 'Add a new product: Desk lamp, in the office category, priced at 34.90.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"products"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"office"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"Desk lamp"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]34\.90*["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^Desk lamp\|office\|34\.9$
+    query: SELECT name, category, price FROM products WHERE name = 'Desk lamp'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

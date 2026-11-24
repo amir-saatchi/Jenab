@@ -1,0 +1,50 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_addbill_en
+title: 'Add the September electricity bill: 88.40, due on 2026-10-20. It isn''t paid
+  yet.'
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to bills with insert; at the end the check reads electricity|2026-09|88.4|2026-10-20
+  00:00:00 +0000 UTC|unpaid.'
+messages:
+  - text: 'Add the September electricity bill: 88.40, due on 2026-10-20. It isn''t
+      paid yet.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"bills"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]88\.40*["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-20"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-09"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"electricity"
+  - type: db_query
+    test: row
+    match: (?m)^electricity\|2026-09\|88\.4\|2026-10-20 00:00:00 \+0000 UTC\|unpaid$
+    query: SELECT utility, period, amount, due, coalesce(paid_on, 'unpaid') FROM bills
+      WHERE utility = 'electricity' AND period = '2026-09'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

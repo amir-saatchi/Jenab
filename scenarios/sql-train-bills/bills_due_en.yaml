@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_due_en
+title: How many bills fell due between 2026-05-01 and 2026-06-30?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read bills with query; the answer has 10.'
+messages:
+  - text: How many bills fell due between 2026-05-01 and 2026-06-30?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbills\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )10(?:\.0+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[1۱١][0۰٠](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

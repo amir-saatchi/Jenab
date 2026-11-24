@@ -1,0 +1,42 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: cryptowatch_s_avg_sep_fa
+title: What was Bitcoin's average close in September?
+tests:
+  - query
+  - describe
+  - result
+  - answer
+  - persian
+context: main
+why: 'dates: read prices with query; the answer has 62630.08.'
+messages:
+  - text: میانگین قیمت بسته‌شدن بیت‌کوین در سپتامبر چقدر بود؟
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bprices\b
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\bprices\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )62630(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[6۶٦][2۲٢][,\x{066C}\x{00A0}\x{202F}
+      ]?[6۶٦][3۳٣][0۰٠][.\x{066B}/][0۰٠][8۸٨]0*|[6۶٦][2۲٢][,\x{066C}\x{00A0}\x{202F}
+      ]?[6۶٦][3۳٣][0۰٠](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

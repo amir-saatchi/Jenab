@@ -1,0 +1,38 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_top_en
+title: What were the amounts of our 3 most expensive bills this year?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read bills with query; the answer has 121.12; 117.96; 108.19.'
+messages:
+  - text: What were the amounts of our 3 most expensive bills this year?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbills\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )121(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][2۲٢][1۱١][.\x{066B}/][1۱١][2۲٢]0*|[1۱١][2۲٢][1۱١](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][1۱١][7۷٧][.\x{066B}/][9۹٩][6۶٦]0*|[1۱١][1۱١][8۸٨](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][0۰٠][8۸٨][.\x{066B}/][1۱١][9۹٩]0*|[1۱١][0۰٠][8۸٨](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

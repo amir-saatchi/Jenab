@@ -1,0 +1,44 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_log_en
+title: I read 35 pages of 'Rivers of Glass' today. Log it.
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'Find the book''s ID with query first. insert: add the row to reading_log with
+  insert; at the end the check reads Rivers of Glass|2026-10-01 00:00:00 +0000 UTC|35.'
+messages:
+  - text: I read 35 pages of 'Rivers of Glass' today. Log it.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"reading_log"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]3(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]35(?:\.0+)?["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^Rivers of Glass\|2026-10-01 00:00:00 \+0000 UTC\|35$
+    query: SELECT b.title, l.date, l.pages FROM reading_log l JOIN books b ON b.id
+      = l.book_id WHERE l.date = '2026-10-01'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

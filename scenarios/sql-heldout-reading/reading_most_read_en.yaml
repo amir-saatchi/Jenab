@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_most_read_en
+title: Which 3 books did I read the most pages of in August?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read reading_log and books with query; the answer has Tea and Thunder;
+  خانه‌ای کنار دریا; Ninety Winters.'
+messages:
+  - text: Which 3 books did I read the most pages of in August?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\breading_log\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbooks\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Tea and Thunder(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Tea and Thunder
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)خانه‌ای کنار دریا
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Ninety Winters
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

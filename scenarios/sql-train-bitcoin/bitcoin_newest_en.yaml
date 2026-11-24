@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_newest_en
+title: What's the title of the newest news story?%!(EXTRA int=1)
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read btc_news with query; the answer has Seed story 1.'
+messages:
+  - text: What's the title of the newest news story?%!(EXTRA int=1)
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbtc_news\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Seed story 1(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Seed story 1
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

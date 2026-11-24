@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Bitcoin watch (train), with the card the app builds from the project.
+title: Bitcoin watch
+split: train
+project_card: true
+today: "2026-10-06"
+data: ../fixtures/bitcoin/fixture.sql

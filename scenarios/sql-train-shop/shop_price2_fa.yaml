@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_price2_fa
+title: How much does the pruning shears cost?
+tests:
+  - query
+  - result
+  - answer
+  - persian
+context: main
+why: 'filter: read products with query; the answer has 18.75.'
+messages:
+  - text: قیمت «Pruning shears» چند است؟
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )(?:18(?:\.\d+)?|19(?:\.0+)?)(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][8۸٨][.\x{066B}/][7۷٧][5۵٥]0*)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

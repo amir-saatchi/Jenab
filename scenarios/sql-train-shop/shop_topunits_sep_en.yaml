@@ -1,0 +1,47 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_topunits_sep_en
+title: Which 3 products sold the most units in September?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read order_items and orders and products with query; the answer has Watering
+  can; Gel pens (10); Field guide to birds.'
+messages:
+  - text: Which 3 products sold the most units in September?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\border_items\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Watering can(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Watering can
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Gel pens \(10\)
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Field guide to birds
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

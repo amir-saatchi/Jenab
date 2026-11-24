@@ -1,0 +1,40 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_s_addkw_en
+title: Start watching the keyword 'custody' too.
+tests:
+  - describe
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to watch_keywords with insert; at the end the check reads
+  custody.'
+messages:
+  - text: Start watching the keyword 'custody' too.
+asserts:
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\bwatch_keywords\b
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"watch_keywords"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"custody"
+  - type: db_query
+    test: row
+    match: (?m)^custody$
+    query: SELECT keyword FROM watch_keywords WHERE keyword = 'custody'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

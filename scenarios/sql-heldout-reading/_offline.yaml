@@ -1,0 +1,170 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  reading_addbook_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - added: "2026-10-01"
+                author: K. Ito
+                genre: novel
+                language: en
+                pages: 280
+                title: The Glass Harbor
+            table: books
+    - text: 'Done: I added the row to books.'
+  reading_addbook_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - added: "2026-10-01"
+                author: ح. یزدانی
+                genre: novel
+                language: fa
+                pages: 210
+                title: سفر به جنوب
+            table: books
+    - text: 'انجام شد: ردیف به books اضافه شد.'
+  reading_finished_sep_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT title FROM books WHERE finished BETWEEN '2026-09-01' AND '2026-09-30'
+              ORDER BY finished
+    - text: 'From the project''s data: Ninety Winters; The Salt Road; خانه‌ای کنار
+        دریا; How Bridges Stand.'
+  reading_log_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM books WHERE title = 'Rivers of Glass'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - book_id: 3
+                date: "2026-10-01"
+                pages: 35
+            table: reading_log
+    - text: 'Done: I added the row to reading_log.'
+  reading_log_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM books WHERE title = 'Rivers of Glass'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - book_id: 3
+                date: "2026-10-01"
+                pages: 35
+            table: reading_log
+    - text: 'انجام شد: ردیف به reading_log اضافه شد.'
+  reading_longest_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT title, pages FROM books ORDER BY pages DESC
+    - text: 'From the project''s data: Ninety Winters.'
+  reading_most_read_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT b.title, sum(l.pages) AS p FROM reading_log l JOIN books b ON b.id = l.book_id WHERE l.date BETWEEN '2026-08-01' AND '2026-08-31'
+              GROUP BY b.id ORDER BY p DESC
+    - text: 'From the project''s data: Tea and Thunder; خانه‌ای کنار دریا; Ninety
+        Winters.'
+  reading_objref_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - text: 'From the project''s data: cover.'
+  reading_objref_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - text: 'بر پایهٔ داده‌های پروژه: cover'
+  reading_pages_sep_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(pages) FROM reading_log WHERE date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'From the project''s data: 623.'
+  reading_pages_sep_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(pages) FROM reading_log WHERE date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 623'
+  reading_persian_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM books WHERE language = 'fa'
+    - text: 'From the project''s data: 5.'
+  reading_persian_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM books WHERE language = 'fa'
+    - text: 'بر پایهٔ داده‌های پروژه: 5'
+  reading_price_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - text: The books table has no column for that, so the data can't answer it.
+  reading_price_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - text: جدول books ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  reading_rating_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(rating), 2) FROM books WHERE finished IS NOT NULL
+    - text: 'From the project''s data: 3.5.'
+  reading_rating_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(rating), 2) FROM books WHERE finished IS NOT NULL
+    - text: 'بر پایهٔ داده‌های پروژه: 3.5'
+  reading_recommended_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - text: The books table has no column for that, so the data can't answer it.
+  reading_so_far_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(l.pages) FROM reading_log l JOIN books b ON b.id = l.book_id
+              WHERE b.title = 'Ninety Winters'
+    - text: 'From the project''s data: 185.'
+  reading_so_far_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(l.pages) FROM reading_log l JOIN books b ON b.id = l.book_id
+              WHERE b.title = 'Ninety Winters'
+    - text: 'بر پایهٔ داده‌های پروژه: 185'

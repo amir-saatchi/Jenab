@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Crypto ledger (heldout), with a card with table names only, as the app writes it for a big project, so the chat reads columns with describe_table.
+title: Crypto ledger
+split: heldout
+card: card.md
+today: "2026-10-01"
+data: ../data-tools/data.sql

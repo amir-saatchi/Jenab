@@ -1,0 +1,29 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_email_en
+title: What's the email address of customer C-004?
+tests:
+  - says
+context: main
+why: 'noanswer: customers has no email. The answer says the data doesn''t have it.'
+messages:
+  - text: What's the email address of customer C-004?
+asserts:
+  - type: answer_contains
+    test: says
+    match: (?i)\bno\b|\bnot\b|n't\b|\bcannot\b|\bunable\b|\bnone\b|\bwithout\b
+    final: true
+  - type: answer_lacks
+    test: says
+    match: '@'
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_rating_en
+title: What's the average rating of the books I've finished?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'total: read books with query; the answer has 3.5.'
+messages:
+  - text: What's the average rating of the books I've finished?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbooks\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )(?:3(?:\.\d+)?|4(?:\.0+)?)(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[3۳٣][.\x{066B}/][5۵٥]0*)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

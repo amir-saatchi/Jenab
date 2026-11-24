@@ -1,0 +1,53 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  reading_s_log_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: reading_log
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM books WHERE title = 'Tea and Thunder'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - book_id: 13
+                date: "2026-10-01"
+                pages: 20
+            table: reading_log
+    - text: 'Done: I added the row to reading_log.'
+  reading_s_novels_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: books
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM books WHERE genre = 'novel'
+    - text: 'From the project''s data: 6.'
+  reading_s_pages_aug_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: reading_log
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(pages) FROM reading_log WHERE date BETWEEN '2026-08-01'
+              AND '2026-08-31'
+    - text: 'From the project''s data: 477.'
+  reading_s_pages_aug_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: reading_log
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(pages) FROM reading_log WHERE date BETWEEN '2026-08-01'
+              AND '2026-08-31'
+    - text: 'بر پایهٔ داده‌های پروژه: 477'

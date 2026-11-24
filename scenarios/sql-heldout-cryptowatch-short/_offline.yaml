@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  cryptowatch_s_avg_sep_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 62630.08.'
+  cryptowatch_s_avg_sep_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(close), 2) FROM prices WHERE coin = 'BTC' AND date
+              BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 62630.08'
+  cryptowatch_s_source_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: news
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM news WHERE source = 'reuters.example'
+    - text: 'From the project''s data: 2.'

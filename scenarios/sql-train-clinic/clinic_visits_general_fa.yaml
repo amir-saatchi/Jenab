@@ -1,0 +1,41 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_visits_general_fa
+title: How many general appointments took place in September? Count only the ones
+  that happened.
+tests:
+  - query
+  - result
+  - answer
+  - persian
+context: main
+why: 'join: read appointments and doctors with query; the answer has 11.'
+messages:
+  - text: در سپتامبر چند ویزیت عمومی انجام شد؟ فقط ویزیت‌هایی را بشمار که واقعاً انجام
+      شده‌اند.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bappointments\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bdoctors\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )11(?:\.0+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[1۱١][1۱١](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

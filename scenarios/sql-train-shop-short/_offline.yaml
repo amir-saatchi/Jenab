@@ -1,0 +1,101 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  shop_s_addproduct_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - category: garden
+                name: Herb planter
+                price: 26.5
+            table: products
+    - text: 'Done: I added the row to products.'
+  shop_s_addproduct_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - category: garden
+                name: Herb planter
+                price: 26.5
+            table: products
+    - text: 'انجام شد: ردیف به products اضافه شد.'
+  shop_s_avgprice_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'garden'
+    - text: 'From the project''s data: 18.72.'
+  shop_s_avgprice_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM products WHERE category = 'garden'
+    - text: 'بر پایهٔ داده‌های پروژه: 18.72'
+  shop_s_range_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: orders
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM orders WHERE date BETWEEN '2026-09-01' AND '2026-09-09'
+    - text: 'From the project''s data: 9.'
+  shop_s_sales_office_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: order_items
+    - calls:
+        - name: describe_table
+          args:
+            name: orders
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'office' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'From the project''s data: 229.7.'
+  shop_s_sales_office_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: order_items
+    - calls:
+        - name: describe_table
+          args:
+            name: orders
+    - calls:
+        - name: describe_table
+          args:
+            name: products
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT round(sum(oi.qty * oi.unit_price), 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id
+              WHERE p.category = 'office' AND o.date BETWEEN '2026-09-01' AND '2026-09-30' AND o.status NOT IN ('cancelled', 'returned')
+    - text: 'بر پایهٔ داده‌های پروژه: 229.7'

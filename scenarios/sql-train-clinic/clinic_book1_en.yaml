@@ -1,0 +1,54 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_book1_en
+title: Book patient P-007 with DR-03 on 2026-10-08 at 09:30.
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'Find the patient''s and the doctor''s IDs with query first. insert: add the
+  row to appointments with insert; at the end the check reads P-007|DR-03|2026-10-08
+  00:00:00 +0000 UTC|09:30|booked.'
+messages:
+  - text: Book patient P-007 with DR-03 on 2026-10-08 at 09:30.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"appointments"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-08"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]3(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]7(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"booked"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"09:30"
+  - type: db_query
+    test: row
+    match: (?m)^P-007\|DR-03\|2026-10-08 00:00:00 \+0000 UTC\|09:30\|booked$
+    query: |-
+      SELECT p.code, d.code, a.date, substr(a.time, 1, 5), a.status FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN doctors d ON d.id = a.doctor_id
+      WHERE p.code = 'P-007' AND a.date = '2026-10-08'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

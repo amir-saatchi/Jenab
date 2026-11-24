@@ -90,6 +90,9 @@ type Options struct {
 	// SPIKE-028's earlier turns in a long chat. Spike-only: nil leaves the
 	// chat as the runner makes it.
 	Setup func(ctx context.Context, sc *Scenario, p *project.Project, c id.Chat) error
+	// Examples keeps every request the providers answered, with the
+	// answer, as training examples beside each transcript (SPIKE-046).
+	Examples bool
 }
 
 // DefaultTimeout bounds one run.
@@ -155,7 +158,7 @@ func RunSet(ctx context.Context, s *Set, opt Options) (*Report, error) {
 			}
 		}
 	}
-	rep := &Report{Set: s.Title, Dir: s.Dir, Started: time.Now().UTC(), Scale: opt.Scale, Reps: opt.Reps, Models: opt.Models.Run, Harnesses: opt.Harnesses}
+	rep := &Report{Set: s.Title, Split: s.Split, Dir: s.Dir, Started: time.Now().UTC(), Scale: opt.Scale, Reps: opt.Reps, Models: opt.Models.Run, Harnesses: opt.Harnesses}
 	runs := make([]Run, len(jobs))
 	ch := make(chan job)
 	var wg sync.WaitGroup
@@ -282,6 +285,8 @@ type run struct {
 	// quota is set when a provider answered with provider.Quota: its
 	// daily quota or credit is used up (TASK-048).
 	quota atomic.Bool
+	// capture keeps the requests and answers with Options.Examples.
+	capture *capture
 
 	// day is the clock's day since a message with a day; nil is the set's.
 	day atomic.Pointer[time.Time]
@@ -321,6 +326,7 @@ func (r *run) do(ctx context.Context, rep int) Run {
 		out.TurnStats, out.MemoryTokens, out.NotesTokens = rec.turnStats(), rec.memoryTokens, rec.notesTokens
 		out.Asserts = check(rec, r.sc)
 		out.Transcript = r.opt.Models.redact(rec.transcript())
+		out.Examples = r.opt.Models.redact(r.capture.examples(rec))
 	}
 	return out
 }
@@ -393,6 +399,12 @@ func (r *run) open(ctx context.Context) error {
 		backends = map[provider.Kind]provider.Factory{scriptedKind: r.fp.Factory()}
 	}
 	backends = counted(backends, &r.requests, &r.quota)
+	if r.opt.Examples {
+		if r.capture == nil { // a restart keeps what the run had
+			r.capture = &capture{}
+		}
+		backends = capturing(backends, r.capture)
+	}
 	models := provider.NewRegistry(provider.Deps{
 		Settings: set.LLM, Secrets: secret.New(r.opt.Models.keyring()), Gate: limit.NewGate(set.LLM.MaxParallelCalls),
 		Backends: backends, Catalog: provider.MustCatalog(), Log: r.opt.Log,

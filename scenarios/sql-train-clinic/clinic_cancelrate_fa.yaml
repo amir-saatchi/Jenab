@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_cancelrate_fa
+title: What share of September's appointments were cancelled, in percent, to one decimal?
+tests:
+  - query
+  - result
+  - answer
+  - persian
+context: main
+why: 'total: read appointments with query; the answer has 17.2.'
+messages:
+  - text: چند درصد از نوبت‌های سپتامبر لغو شدند؟ با یک رقم اعشار بگو.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bappointments\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )17(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[1۱١][7۷٧][.\x{066B}/][2۲٢]0*)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_s_pages_aug_en
+title: How many pages did I read in August?
+tests:
+  - query
+  - describe
+  - result
+  - answer
+context: main
+why: 'dates: read reading_log with query; the answer has 477.'
+messages:
+  - text: How many pages did I read in August?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\breading_log\b
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\breading_log\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )477(?:\.0+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[4۴٤][7۷٧][7۷٧](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

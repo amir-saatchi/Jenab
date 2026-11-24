@@ -1,0 +1,47 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_addpatient_fa
+title: 'Register a new patient: code P-031, born in 1990, lives in Potsdam.'
+tests:
+  - insert
+  - row
+  - says
+  - persian
+context: main
+why: 'insert: add the row to patients with insert; at the end the check reads P-031|1990|Potsdam.'
+messages:
+  - text: 'یک بیمار تازه ثبت کن: کد P-031، متولد 1990، ساکن Potsdam.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"patients"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]1990(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"Potsdam"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"P-031"
+  - type: db_query
+    test: row
+    match: (?m)^P-031\|1990\|Potsdam$
+    query: SELECT code, birth_year, city FROM patients WHERE code = 'P-031'
+  - type: answer_lacks
+    test: says
+    match: نمی‌توانم|نمیتوانم|امکان‌پذیر نیست|ممکن نیست
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: no_turn_failed
+    test: info

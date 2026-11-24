@@ -1,0 +1,55 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  bitcoin_s_addkw_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: watch_keywords
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - keyword: custody
+            table: watch_keywords
+    - text: 'Done: I added the row to watch_keywords.'
+  bitcoin_s_avg_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: btc_prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM btc_prices
+    - text: 'From the project''s data: 60550.'
+  bitcoin_s_avg_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: btc_prices
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(price), 2) FROM btc_prices
+    - text: 'بر پایهٔ داده‌های پروژه: 60550'
+  bitcoin_s_kw_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: watch_keywords
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM watch_keywords
+    - text: 'From the project''s data: 3.'
+  bitcoin_s_kw_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: watch_keywords
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM watch_keywords
+    - text: 'بر پایهٔ داده‌های پروژه: 3'

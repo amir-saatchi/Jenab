@@ -1,0 +1,39 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_objref_fa
+title: Run a query on an internal table, then find the answer another way
+tests:
+  - refused
+  - fixed
+  - answer
+  - persian
+context: main
+why: 'refused: run the query as asked; query refuses the internal table; the chat
+  turns to describe_table on bills and answers scan.'
+messages:
+  - text: 'این را دقیقاً اجرا کن: SELECT table_name, column_name FROM _jenab_columns
+      WHERE kind = ''object_ref''. ستونی از bills را می‌خواهم که کلید فایل‌های اسکن‌شده
+      را نگه می‌دارد.'
+asserts:
+  - type: tool_called
+    test: refused
+    tool: query
+    args_match: _jenab_
+    result_match: (?i)refused
+  - type: tool_called
+    test: fixed
+    tool: describe_table
+    args_match: (?i)\bbills\b
+  - type: answer_contains
+    test: answer
+    match: (?i)scan
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -1,0 +1,306 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  bills_account_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: The bills table has no column for that, so the data can't answer it.
+  bills_addbill_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - amount: 88.4
+                due: "2026-10-20"
+                period: 2026-09
+                utility: electricity
+            table: bills
+    - text: 'Done: I added the row to bills.'
+  bills_addbill_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - amount: 88.4
+                due: "2026-10-20"
+                period: 2026-09
+                utility: electricity
+            table: bills
+    - text: 'انجام شد: ردیف به bills اضافه شد.'
+  bills_addreading_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - date: "2026-10-01"
+                utility: electricity
+                value: 15281.5
+            table: readings
+    - text: 'Done: I added the row to readings.'
+  bills_addreading_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - date: "2026-10-01"
+                utility: electricity
+                value: 15281.5
+            table: readings
+    - text: 'انجام شد: ردیف به readings اضافه شد.'
+  bills_avg_phone_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(amount), 2) FROM bills WHERE utility = 'phone' AND
+              period LIKE '2026-%'
+    - text: 'From the project''s data: 20.4.'
+  bills_avg_phone_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(amount), 2) FROM bills WHERE utility = 'phone' AND
+              period LIKE '2026-%'
+    - text: 'بر پایهٔ داده‌های پروژه: 20.4'
+  bills_avg_water_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(amount), 2) FROM bills WHERE utility = 'water' AND
+              period LIKE '2026-%'
+    - text: 'From the project''s data: 32.06.'
+  bills_avg_water_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(amount), 2) FROM bills WHERE utility = 'water' AND
+              period LIKE '2026-%'
+    - text: 'بر پایهٔ داده‌های پروژه: 32.06'
+  bills_count_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'bills'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills
+    - text: 'From the project''s data: 42.'
+  bills_count_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'bills'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills
+    - text: 'بر پایهٔ داده‌های پروژه: 42'
+  bills_due_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills WHERE due BETWEEN '2026-05-01' AND '2026-06-30'
+    - text: 'From the project''s data: 10.'
+  bills_due_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills WHERE due BETWEEN '2026-05-01' AND '2026-06-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 10'
+  bills_gas_jan_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round((SELECT value FROM readings WHERE utility = 'gas' AND
+              date = '2026-02-01') - (SELECT value FROM readings WHERE utility = 'gas'
+              AND date = '2026-01-01'), 1)
+    - text: 'From the project''s data: 302.4.'
+  bills_kwh_june_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round((SELECT value FROM readings WHERE utility = 'electricity'
+              AND date = '2026-07-01') - (SELECT value FROM readings WHERE utility
+              = 'electricity' AND date = '2026-06-01'), 1)
+    - text: 'From the project''s data: 312.1.'
+  bills_kwh_june_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round((SELECT value FROM readings WHERE utility = 'electricity'
+              AND date = '2026-07-01') - (SELECT value FROM readings WHERE utility
+              = 'electricity' AND date = '2026-06-01'), 1)
+    - text: 'بر پایهٔ داده‌های پروژه: 312.1'
+  bills_kwh_march_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round((SELECT value FROM readings WHERE utility = 'electricity'
+              AND date = '2026-04-01') - (SELECT value FROM readings WHERE utility
+              = 'electricity' AND date = '2026-03-01'), 1)
+    - text: 'From the project''s data: 240.2.'
+  bills_kwh_march_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round((SELECT value FROM readings WHERE utility = 'electricity'
+              AND date = '2026-04-01') - (SELECT value FROM readings WHERE utility
+              = 'electricity' AND date = '2026-03-01'), 1)
+    - text: 'بر پایهٔ داده‌های پروژه: 240.2'
+  bills_late_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills WHERE paid_on > due
+    - text: 'From the project''s data: 5.'
+  bills_late_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM bills WHERE paid_on > due
+    - text: 'بر پایهٔ داده‌های پروژه: 5'
+  bills_month_total_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE period = '2026-02'
+    - text: 'From the project''s data: 296.92.'
+  bills_month_total_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE period = '2026-02'
+    - text: 'بر پایهٔ داده‌های پروژه: 296.92'
+  bills_objref_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: 'From the project''s data: scan.'
+  bills_objref_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: 'بر پایهٔ داده‌های پروژه: scan'
+  bills_oil_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: The bills table has no column for that, so the data can't answer it.
+  bills_oil_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: جدول bills ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  bills_owe_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE paid_on IS NULL
+    - text: 'From the project''s data: 79.31.'
+  bills_owe_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE paid_on IS NULL
+    - text: 'بر پایهٔ داده‌های پروژه: 79.31'
+  bills_supplier_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: The bills table has no column for that, so the data can't answer it.
+  bills_supplier_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: bills
+    - text: جدول bills ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  bills_top_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT utility, period, amount FROM bills ORDER BY amount DESC
+    - text: 'From the project''s data: 121.12; 117.96; 108.19.'
+  bills_top_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT utility, period, amount FROM bills ORDER BY amount DESC
+    - text: 'بر پایهٔ داده‌های پروژه: 121.12; 117.96; 108.19'
+  bills_total_electricity_q1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'electricity'
+              AND period BETWEEN '2026-01' AND '2026-03'
+    - text: 'From the project''s data: 276.31.'
+  bills_total_electricity_q1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'electricity'
+              AND period BETWEEN '2026-01' AND '2026-03'
+    - text: 'بر پایهٔ داده‌های پروژه: 276.31'
+  bills_total_gas_q1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'gas' AND
+              period BETWEEN '2026-01' AND '2026-03'
+    - text: 'From the project''s data: 347.27.'
+  bills_total_gas_q1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'gas' AND
+              period BETWEEN '2026-01' AND '2026-03'
+    - text: 'بر پایهٔ داده‌های پروژه: 347.27'
+  bills_total_gas_q2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'gas' AND
+              period BETWEEN '2026-04' AND '2026-06'
+    - text: 'From the project''s data: 143.18.'
+  bills_total_gas_q2_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'gas' AND
+              period BETWEEN '2026-04' AND '2026-06'
+    - text: 'بر پایهٔ داده‌های پروژه: 143.18'
+  bills_total_water_q2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'water' AND
+              period BETWEEN '2026-04' AND '2026-06'
+    - text: 'From the project''s data: 98.64.'
+  bills_total_water_q2_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(sum(amount), 2) FROM bills WHERE utility = 'water' AND
+              period BETWEEN '2026-04' AND '2026-06'
+    - text: 'بر پایهٔ داده‌های پروژه: 98.64'
+  bills_unpaid_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT utility, period FROM bills WHERE paid_on IS NULL ORDER BY
+              period, utility
+    - text: 'From the project''s data: water; internet.'

@@ -1,0 +1,386 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  clinic_addpatient_en:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - birth_year: 1990
+                city: Potsdam
+                code: P-031
+            table: patients
+    - text: 'Done: I added the row to patients.'
+  clinic_addpatient_fa:
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - birth_year: 1990
+                city: Potsdam
+                code: P-031
+            table: patients
+    - text: 'انجام شد: ردیف به patients اضافه شد.'
+  clinic_avgfee_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(a.fee), 2) FROM appointments a JOIN doctors d ON
+              d.id = a.doctor_id WHERE d.specialty = 'dermatology'
+    - text: 'From the project''s data: 95.'
+  clinic_avgfee_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(avg(a.fee), 2) FROM appointments a JOIN doctors d ON
+              d.id = a.doctor_id WHERE d.specialty = 'dermatology'
+    - text: 'بر پایهٔ داده‌های پروژه: 95'
+  clinic_book1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM patients WHERE code = 'P-007'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM doctors WHERE code = 'DR-03'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - date: "2026-10-08"
+                doctor_id: 3
+                patient_id: 7
+                status: booked
+                time: "09:30"
+            table: appointments
+    - text: 'Done: I added the row to appointments.'
+  clinic_book1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM patients WHERE code = 'P-007'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM doctors WHERE code = 'DR-03'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - date: "2026-10-08"
+                doctor_id: 3
+                patient_id: 7
+                status: booked
+                time: "09:30"
+            table: appointments
+    - text: 'انجام شد: ردیف به appointments اضافه شد.'
+  clinic_book2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM patients WHERE code = 'P-015'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT id FROM doctors WHERE code = 'DR-02'
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - date: "2026-10-13"
+                doctor_id: 2
+                patient_id: 15
+                status: booked
+                time: "14:00"
+            table: appointments
+    - text: 'Done: I added the row to appointments.'
+  clinic_booked1_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'booked' AND date
+              BETWEEN '2026-10-05' AND '2026-10-09'
+    - text: 'From the project''s data: 8.'
+  clinic_booked1_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'booked' AND date
+              BETWEEN '2026-10-05' AND '2026-10-09'
+    - text: 'بر پایهٔ داده‌های پروژه: 8'
+  clinic_booked2_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'booked' AND date
+              BETWEEN '2026-10-12' AND '2026-10-16'
+    - text: 'From the project''s data: 9.'
+  clinic_booked2_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'booked' AND date
+              BETWEEN '2026-10-12' AND '2026-10-16'
+    - text: 'بر پایهٔ داده‌های پروژه: 9'
+  clinic_cancelrate_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(100.0 * sum(status = 'cancelled') / count(*), 1) FROM
+              appointments WHERE date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 17.2.'
+  clinic_cancelrate_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT round(100.0 * sum(status = 'cancelled') / count(*), 1) FROM
+              appointments WHERE date BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 17.2'
+  clinic_count_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM _jenab_tables WHERE name = 'patients'
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM patients
+    - text: 'From the project''s data: 30.'
+  clinic_fees_dr-01_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-01' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'From the project''s data: 300.'
+  clinic_fees_dr-01_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-01' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 300'
+  clinic_fees_dr-02_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-02' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'From the project''s data: 760.'
+  clinic_fees_dr-02_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-02' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 760'
+  clinic_fees_dr-03_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-03' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'From the project''s data: 960.'
+  clinic_fees_dr-03_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT sum(a.fee) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.code = 'DR-03' AND a.status = 'done' AND a.date BETWEEN '2026-09-01'
+              AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 960'
+  clinic_history_p-001_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT a.date, d.code FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN doctors d ON d.id = a.doctor_id
+              WHERE p.code = 'P-001' ORDER BY a.date, a.time
+    - text: 'From the project''s data: 2026-09-17, DR-06; 2026-09-17, DR-01; 2026-10-13,
+        DR-01.'
+  clinic_history_p-028_en:
+    - calls:
+        - name: query
+          args:
+            sql: |-
+              SELECT a.date, d.code FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN doctors d ON d.id = a.doctor_id
+              WHERE p.code = 'P-028' ORDER BY a.date, a.time
+    - text: 'From the project''s data: 2026-09-21, DR-02; 2026-09-25, DR-03; 2026-09-30,
+        DR-04; 2026-10-08, DR-02.'
+  clinic_noshow_doctor_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT d.code, count(*) AS n FROM appointments a JOIN doctors d ON
+              d.id = a.doctor_id WHERE a.status = 'no_show' GROUP BY d.id ORDER BY
+              n DESC
+    - text: 'From the project''s data: DR-01.'
+  clinic_noshow_doctor_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT d.code, count(*) AS n FROM appointments a JOIN doctors d ON
+              d.id = a.doctor_id WHERE a.status = 'no_show' GROUP BY d.id ORDER BY
+              n DESC
+    - text: 'بر پایهٔ داده‌های پروژه: DR-01'
+  clinic_noshows_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'no_show' AND date
+              BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 8.'
+  clinic_noshows_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'no_show' AND date
+              BETWEEN '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 8'
+  clinic_objref_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - text: 'From the project''s data: letter.'
+  clinic_objref_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT table_name, column_name FROM _jenab_columns WHERE kind = 'object_ref'
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - text: 'بر پایهٔ داده‌های پروژه: letter'
+  clinic_older_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM patients WHERE birth_year < 1960
+    - text: 'From the project''s data: 3.'
+  clinic_older_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM patients WHERE birth_year < 1960
+    - text: 'بر پایهٔ داده‌های پروژه: 3'
+  clinic_phone_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: patients
+    - text: The patients table has no column for that, so the data can't answer it.
+  clinic_phone_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: patients
+    - text: جدول patients ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  clinic_reviews_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: doctors
+    - text: The doctors table has no column for that, so the data can't answer it.
+  clinic_reviews_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: doctors
+    - text: جدول doctors ستونی برای این ندارد، پس داده‌ها پاسخی برای آن ندارند.
+  clinic_toppatients_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT p.code, count(*) AS n FROM appointments a JOIN patients p
+              ON p.id = a.patient_id GROUP BY p.id ORDER BY n DESC
+    - text: 'From the project''s data: P-017; P-010; P-005.'
+  clinic_toppatients_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT p.code, count(*) AS n FROM appointments a JOIN patients p
+              ON p.id = a.patient_id GROUP BY p.id ORDER BY n DESC
+    - text: 'بر پایهٔ داده‌های پروژه: P-017; P-010; P-005'
+  clinic_visits_cardiology_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'cardiology' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 8.'
+  clinic_visits_cardiology_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'cardiology' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 8'
+  clinic_visits_dermatology_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'dermatology' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 8.'
+  clinic_visits_dermatology_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'dermatology' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 8'
+  clinic_visits_general_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'general' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 11.'
+  clinic_visits_general_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'general' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 11'
+  clinic_visits_pediatrics_en:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'pediatrics' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 6.'
+  clinic_visits_pediatrics_fa:
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'pediatrics' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 6'
+  clinic_wait_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - text: The appointments table has no column for that, so the data can't answer
+        it.

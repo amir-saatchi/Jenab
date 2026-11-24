@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Clinic bookings (train), with a card with table names only, as the app writes it for a big project, so the chat reads columns with describe_table.
+title: Clinic bookings
+split: train
+card: card.md
+today: "2026-10-01"
+data: ../fixtures/clinic/data.sql

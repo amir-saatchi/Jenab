@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: cryptowatch_eth_fa
+title: What was Ethereum's close on 2026-09-20?
+tests:
+  - says
+  - persian
+context: main
+why: 'noanswer: prices has BTC only. The answer says the data doesn''t have it.'
+messages:
+  - text: قیمت بسته‌شدن اتریوم در 2026-09-20 چقدر بود؟
+asserts:
+  - type: answer_contains
+    test: says
+    match: ندار|نیست|وجود ندارد|نمی‌توان|نمیتوان|نمی‌شود|ثبت نشده|هیچ
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

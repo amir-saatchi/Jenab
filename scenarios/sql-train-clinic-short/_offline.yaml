@@ -1,0 +1,60 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Scripted replies that pass: jenab-scenarios run -model scripted:<this file> <set>
+scenarios:
+  clinic_s_addpatient_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: patients
+    - calls:
+        - name: insert
+          args:
+            rows:
+              - birth_year: 2015
+                city: Berlin
+                code: P-032
+            table: patients
+    - text: 'Done: I added the row to patients.'
+  clinic_s_booked_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments WHERE status = 'booked' AND date
+              BETWEEN '2026-10-01' AND '2026-10-02'
+    - text: 'From the project''s data: 3.'
+  clinic_s_visits_en:
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - calls:
+        - name: describe_table
+          args:
+            name: doctors
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'dentistry' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'From the project''s data: 12.'
+  clinic_s_visits_fa:
+    - calls:
+        - name: describe_table
+          args:
+            name: appointments
+    - calls:
+        - name: describe_table
+          args:
+            name: doctors
+    - calls:
+        - name: query
+          args:
+            sql: SELECT count(*) FROM appointments a JOIN doctors d ON d.id = a.doctor_id
+              WHERE d.specialty = 'dentistry' AND a.status = 'done' AND a.date BETWEEN
+              '2026-09-01' AND '2026-09-30'
+    - text: 'بر پایهٔ داده‌های پروژه: 12'

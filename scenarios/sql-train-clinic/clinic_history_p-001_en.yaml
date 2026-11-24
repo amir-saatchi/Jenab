@@ -1,0 +1,51 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_history_p-001_en
+title: List patient P-001's appointments, oldest first, with the date and the doctor.
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'filter: read appointments and patients and doctors with query; the answer has
+  2026-09-17, DR-06; 2026-09-17, DR-01; 2026-10-13, DR-01.'
+messages:
+  - text: List patient P-001's appointments, oldest first, with the date and the doctor.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bappointments\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bpatients\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bdoctors\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )2026-09-17(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-17|\bSep(?:t(?:ember)?)?\.?\s+0?17(?:st|nd|rd|th)?\b|\b0?17(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)DR-06
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)DR-01
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-10-13|\bOct(?:ober)?\.?\s+0?13(?:st|nd|rd|th)?\b|\b0?13(?:st|nd|rd|th)?\s+(?:of\s+)?Oct(?:ober)?\b
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

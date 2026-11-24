@@ -1,0 +1,47 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_topunits_aug_en
+title: Which 3 products sold the most units in August?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read order_items and orders and products with query; the answer has Desk
+  organizer; Pocket notebook; Card game.'
+messages:
+  - text: Which 3 products sold the most units in August?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\border_items\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Desk organizer(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Desk organizer
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Pocket notebook
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Card game
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

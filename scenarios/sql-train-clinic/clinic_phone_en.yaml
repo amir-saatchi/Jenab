@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_phone_en
+title: What's patient P-004's phone number?
+tests:
+  - says
+context: main
+why: 'noanswer: patients has no phone number. The answer says the data doesn''t have
+  it.'
+messages:
+  - text: What's patient P-004's phone number?
+asserts:
+  - type: answer_contains
+    test: says
+    match: (?i)\bno\b|\bnot\b|n't\b|\bcannot\b|\bunable\b|\bnone\b|\bwithout\b
+    final: true
+  - type: answer_lacks
+    test: says
+    match: \d{3}[\s-]?\d{3,}
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

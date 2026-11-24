@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Household bills (train), with the card the app builds from the project.
+title: Household bills
+split: train
+project_card: true
+today: "2026-10-01"
+data: ../fixtures/bills/data.sql

@@ -1,0 +1,38 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: ledger_top_eth_en
+title: Which 3 days had the highest ETH close?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read prices with query; the answer has 2026-09-30; 2026-09-26; 2026-09-15.'
+messages:
+  - text: Which 3 days had the highest ETH close?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bprices\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )2026-09-30(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-30|\bSep(?:t(?:ember)?)?\.?\s+0?30(?:st|nd|rd|th)?\b|\b0?30(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-26|\bSep(?:t(?:ember)?)?\.?\s+0?26(?:st|nd|rd|th)?\b|\b0?26(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-15|\bSep(?:t(?:ember)?)?\.?\s+0?15(?:st|nd|rd|th)?\b|\b0?15(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

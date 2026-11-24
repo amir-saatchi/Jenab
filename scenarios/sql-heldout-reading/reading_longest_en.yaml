@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_longest_en
+title: Which is the longest book on my list?%!(EXTRA int=1)
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read books with query; the answer has Ninety Winters.'
+messages:
+  - text: Which is the longest book on my list?%!(EXTRA int=1)
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbooks\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Ninety Winters(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Ninety Winters
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

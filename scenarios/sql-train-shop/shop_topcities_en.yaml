@@ -1,0 +1,38 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_topcities_en
+title: Which 2 cities do most of our orders come from?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read orders and customers with query; the answer has Cologne; Hamburg.'
+messages:
+  - text: Which 2 cities do most of our orders come from?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bcustomers\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Cologne(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Cologne
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)Hamburg
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

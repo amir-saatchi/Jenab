@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_kwh_june_en
+title: How many kWh of electricity did we use in June, going by the meter readings?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read readings with query; the answer has 312.1.'
+messages:
+  - text: How many kWh of electricity did we use in June, going by the meter readings?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\breadings\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )312(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[3۳٣][1۱١][2۲٢][.\x{066B}/][1۱١]0*|[3۳٣][1۱١][2۲٢](?:[.\x{066B}/]0+)?)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

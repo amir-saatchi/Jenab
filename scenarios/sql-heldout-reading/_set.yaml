@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Reading list (heldout), with the card the app builds from the project.
+title: Reading list
+split: heldout
+project_card: true
+today: "2026-10-01"
+data: ../fixtures/reading/data.sql

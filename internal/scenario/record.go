@@ -50,7 +50,10 @@ type record struct {
 	events   []event
 	requests []agent.RequestTrace
 	reqTurn  []int // each request's turn
-	checks   []groundCheck
+	// reqs are the requests as sent, beside requests, whose texts
+	// Traces.List leaves out; an empty one where the trace let them go.
+	reqs   []provider.Request
+	checks []groundCheck
 	// sub are the subagents' parts, read from their transcripts (8.6), in
 	// the order of the calls that ran them.
 	sub []event
@@ -192,8 +195,16 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	rec.cards, rec.window = map[int]string{}, map[int]string{}
 	for _, t := range slices.Backward(list) {
 		if b, ok := base[t.Chat]; ok {
-			if full, ok := traces.Turn(agent.TraceKey{Project: t.Project, Chat: t.Chat, Turn: t.Turn}); ok && len(full.Requests) > 0 {
+			full, ok := traces.Turn(agent.TraceKey{Project: t.Project, Chat: t.Chat, Turn: t.Turn})
+			if ok && len(full.Requests) > 0 {
 				rec.cards[b+t.Turn], rec.window[b+t.Turn] = splitCards(full.Requests[0].Req.Messages, t.Turn)
+			}
+			for i := range t.Requests {
+				var q provider.Request
+				if ok && i < len(full.Requests) {
+					q = full.Requests[i].Req
+				}
+				rec.reqs = append(rec.reqs, q)
 			}
 			for _, c := range t.Checks {
 				rec.checks = append(rec.checks, groundCheck{turn: b + t.Turn, request: len(rec.requests) + c.Request, GroundingCheck: c})

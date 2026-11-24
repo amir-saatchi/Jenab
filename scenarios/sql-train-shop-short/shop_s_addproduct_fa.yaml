@@ -1,0 +1,53 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_s_addproduct_fa
+title: 'Add a new product: Herb planter, in the garden category, priced at 26.50.'
+tests:
+  - describe
+  - insert
+  - row
+  - says
+  - persian
+context: main
+why: 'insert: add the row to products with insert; at the end the check reads Herb
+  planter|garden|26.5.'
+messages:
+  - text: 'محصول تازه‌ای اضافه کن: Herb planter، دستهٔ garden، قیمت 26.50.'
+asserts:
+  - type: tool_called
+    test: describe
+    tool: describe_table
+    args_match: (?i)\bproducts\b
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"products"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"garden"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"Herb planter"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]26\.50*["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^Herb planter\|garden\|26\.5$
+    query: SELECT name, category, price FROM products WHERE name = 'Herb planter'
+  - type: answer_lacks
+    test: says
+    match: نمی‌توانم|نمیتوانم|امکان‌پذیر نیست|ممکن نیست
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: no_turn_failed
+    test: info

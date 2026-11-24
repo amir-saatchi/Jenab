@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: ledger_fees_fa
+title: How much did I pay in trading fees in September?
+tests:
+  - says
+  - persian
+context: main
+why: 'noanswer: trades has no fees. The answer says the data doesn''t have it.'
+messages:
+  - text: در سپتامبر چقدر کارمزد معامله پرداختم؟
+asserts:
+  - type: answer_contains
+    test: says
+    match: ندار|نیست|وجود ندارد|نمی‌توان|نمیتوان|نمی‌شود|ثبت نشده|هیچ
+    final: true
+  - type: tool_called
+    test: info
+    tools:
+      - describe_table
+      - query
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

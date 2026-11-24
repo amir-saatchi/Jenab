@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_finished_sep_en
+title: Which books did I finish in September?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read books with query; the answer has Ninety Winters; The Salt Road;
+  خانه‌ای کنار دریا; How Bridges Stand.'
+messages:
+  - text: Which books did I finish in September?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbooks\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Ninety Winters(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Ninety Winters
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)The Salt Road
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)خانه‌ای کنار دریا
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)How Bridges Stand
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

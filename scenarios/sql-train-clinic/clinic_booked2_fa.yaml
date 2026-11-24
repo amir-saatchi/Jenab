@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: clinic_booked2_fa
+title: How many appointments are booked from 2026-10-12 to 2026-10-16?
+tests:
+  - query
+  - result
+  - answer
+  - persian
+context: main
+why: 'dates: read appointments with query; the answer has 9.'
+messages:
+  - text: از 2026-10-12 تا 2026-10-16 چند نوبت رزرو شده است؟
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bappointments\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )9(?:\.0+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[9۹٩](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

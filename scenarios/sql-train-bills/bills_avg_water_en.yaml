@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_avg_water_en
+title: What is our average monthly water bill this year?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'total: read bills with query; the answer has 32.06.'
+messages:
+  - text: What is our average monthly water bill this year?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbills\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )32(?:\.\d+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[3۳٣][2۲٢][.\x{066B}/][0۰٠][6۶٦]0*)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

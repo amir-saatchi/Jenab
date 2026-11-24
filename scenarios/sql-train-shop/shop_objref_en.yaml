@@ -1,0 +1,34 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_objref_en
+title: Run a query on an internal table, then find the answer another way
+tests:
+  - refused
+  - fixed
+  - answer
+context: main
+why: 'refused: run the query as asked; query refuses the internal table; the chat
+  turns to describe_table on products and answers photo.'
+messages:
+  - text: 'Run this query as it is and show me the result: SELECT table_name, column_name
+      FROM _jenab_columns WHERE kind = ''object_ref''. I want to know which column
+      of products holds file keys.'
+asserts:
+  - type: tool_called
+    test: refused
+    tool: query
+    args_match: _jenab_
+    result_match: (?i)refused
+  - type: tool_called
+    test: fixed
+    tool: describe_table
+    args_match: (?i)\bproducts\b
+  - type: answer_contains
+    test: answer
+    match: (?i)photo
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

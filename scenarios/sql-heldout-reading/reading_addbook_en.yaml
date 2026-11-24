@@ -1,0 +1,59 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: reading_addbook_en
+title: 'Add a book to my list: ''The Glass Harbor'' by K. Ito, 280 pages, a novel
+  in English. I added it today.'
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to books with insert; at the end the check reads The Glass
+  Harbor|K. Ito|280|novel|en|2026-10-01 00:00:00 +0000 UTC.'
+messages:
+  - text: 'Add a book to my list: ''The Glass Harbor'' by K. Ito, 280 pages, a novel
+      in English. I added it today.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"books"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-01"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"K\. Ito"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"novel"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"en"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]280(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"The Glass Harbor"
+  - type: db_query
+    test: row
+    match: (?m)^The Glass Harbor\|K\. Ito\|280\|novel\|en\|2026-10-01 00:00:00 \+0000
+      UTC$
+    query: SELECT title, author, pages, genre, language, added FROM books WHERE title
+      = 'The Glass Harbor'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info

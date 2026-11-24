@@ -1,0 +1,55 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: shop_orders_c-008_en
+title: List the orders of customer C-008, newest first, with their dates and status.
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'filter: read orders and customers with query; the answer has 2026-09-14; 2026-09-04;
+  2026-08-29; 2026-08-17; 2026-08-14; 2026-08-12.'
+messages:
+  - text: List the orders of customer C-008, newest first, with their dates and status.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\borders\b
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bcustomers\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )2026-09-14(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-14|\bSep(?:t(?:ember)?)?\.?\s+0?14(?:st|nd|rd|th)?\b|\b0?14(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-09-04|\bSep(?:t(?:ember)?)?\.?\s+0?4(?:st|nd|rd|th)?\b|\b0?4(?:st|nd|rd|th)?\s+(?:of\s+)?Sep(?:t(?:ember)?)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-08-29|\bAug(?:ust)?\.?\s+0?29(?:st|nd|rd|th)?\b|\b0?29(?:st|nd|rd|th)?\s+(?:of\s+)?Aug(?:ust)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-08-17|\bAug(?:ust)?\.?\s+0?17(?:st|nd|rd|th)?\b|\b0?17(?:st|nd|rd|th)?\s+(?:of\s+)?Aug(?:ust)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-08-14|\bAug(?:ust)?\.?\s+0?14(?:st|nd|rd|th)?\b|\b0?14(?:st|nd|rd|th)?\s+(?:of\s+)?Aug(?:ust)?\b
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)2026-08-12|\bAug(?:ust)?\.?\s+0?12(?:st|nd|rd|th)?\b|\b0?12(?:st|nd|rd|th)?\s+(?:of\s+)?Aug(?:ust)?\b
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

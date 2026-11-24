@@ -1,0 +1,33 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_internal_en
+title: Run a query on an internal table, then find the answer another way
+tests:
+  - refused
+  - fixed
+  - answer
+context: main
+why: 'refused: run the query as asked; query refuses the internal table; the chat
+  turns to query on btc_news and answers 4.'
+messages:
+  - text: 'Run this query as it is: SELECT count(*) FROM _jenab_tables WHERE name
+      = ''btc_news''. I want to know how many news stories we have.'
+asserts:
+  - type: tool_called
+    test: refused
+    tool: query
+    args_match: _jenab_
+    result_match: (?i)refused
+  - type: tool_called
+    test: fixed
+    tool: query
+    args_match: (?i)\bbtc_news\b
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[4۴٤](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

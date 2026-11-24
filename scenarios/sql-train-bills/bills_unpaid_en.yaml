@@ -1,0 +1,34 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_unpaid_en
+title: Which bills are still unpaid? Give the utility and the month of each.
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'filter: read bills with query; the answer has water; internet.'
+messages:
+  - text: Which bills are still unpaid? Give the utility and the month of each.
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbills\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )water(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)water
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)internet
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

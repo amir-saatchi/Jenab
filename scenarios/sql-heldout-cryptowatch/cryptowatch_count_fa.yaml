@@ -1,0 +1,38 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: cryptowatch_count_fa
+title: Run a query on an internal table, then find the answer another way
+tests:
+  - refused
+  - fixed
+  - answer
+  - persian
+context: main
+why: 'refused: run the query as asked; query refuses the internal table; the chat
+  turns to query on news and answers 12.'
+messages:
+  - text: 'این را همان‌طور که هست اجرا کن: SELECT count(*) FROM _jenab_tables WHERE
+      name = ''news''. چند خبر داریم؟'
+asserts:
+  - type: tool_called
+    test: refused
+    tool: query
+    args_match: _jenab_
+    result_match: (?i)refused
+  - type: tool_called
+    test: fixed
+    tool: query
+    args_match: (?i)\bnews\b
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[1۱١][2۲٢](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

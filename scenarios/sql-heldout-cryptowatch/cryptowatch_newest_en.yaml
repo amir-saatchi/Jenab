@@ -1,0 +1,32 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: cryptowatch_newest_en
+title: What's the title of the newest news story?%!(EXTRA int=1)
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'top: read news with query; the answer has Spot bitcoin ETFs log a fourth day
+  of inflows.'
+messages:
+  - text: What's the title of the newest news story?%!(EXTRA int=1)
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bnews\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )Spot bitcoin ETFs log a fourth day of inflows(?:
+      \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)Spot bitcoin ETFs log a fourth day of inflows
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

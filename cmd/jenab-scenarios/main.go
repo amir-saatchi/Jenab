@@ -44,9 +44,11 @@ const usage = `usage:
   jenab-scenarios run [flags] <dir>...   run the sets on models and write reports
   jenab-scenarios check <dir>...         load the sets and report errors; no models
   jenab-scenarios list <dir>...          list the scenarios and which run now
+  jenab-scenarios export [flags] <report or dir>...
+                                         gather passing runs' examples for training (SPIKE-046)
 
 A dir is a set (a folder with _set.yaml) or a folder of sets.
-Run "jenab-scenarios run -h" for the run flags.
+Run "jenab-scenarios run -h" and "jenab-scenarios export -h" for the flags.
 `
 
 func main() {
@@ -65,6 +67,8 @@ func main() {
 		err = check(args, os.Stdout)
 	case "list":
 		err = list(args, os.Stdout)
+	case "export":
+		err = export(args, os.Stdout)
 	case "-h", "-help", "--help", "help":
 		fmt.Print(usage)
 	default:
@@ -185,6 +189,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 		harness    = fs.String("harness", "", "P2-13: harnesses to run each scenario in, comma-separated: jenab, plain (a plain chat harness); the report shows them side by side")
 		ctxFlag    = fs.String("context", "", "context settings over the sets', as key=value, comma-separated, such as history_max_turns=12,history_min_turns=4 (P2-13's tuning)")
 		usageLog   = fs.String("usage-log", "", "a JSONL file that gets every provider request's tokens: input, cache read and write, output and thinking; each set's totals are printed too")
+		examples   = fs.Bool("examples", false, "SPIKE-046: keep each request and its answer as training examples, <scenario>_r<rep>.examples.jsonl beside the transcript; jenab-scenarios export gathers them")
 	)
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -273,6 +278,7 @@ func run(ctx context.Context, args []string, w io.Writer) error {
 			Models: models, Backends: all, Reps: *reps, Scale: *scale, Timeout: *timeout,
 			Parallel: *parallel, Only: ids, Keep: *keep, Log: log, Script: script, Grounding: ground,
 			Harnesses: split(*harness), Settings: override, Quotas: quotas,
+			Examples: *examples,
 			Progress: func(r scenario.Run) { fmt.Fprintln(w, " ", line(r)) },
 			QuotaStop: func(model string, at scenario.Run) {
 				fmt.Fprintf(w, "  %s: the provider says the quota or credit is used up; no more runs on it\n", model)

@@ -1,0 +1,30 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_news_en
+title: How many news stories did we save in October?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'dates: read btc_news with query; the answer has 4.'
+messages:
+  - text: How many news stories did we save in October?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbtc_news\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )4(?:\.0+)?(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[4۴٤](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

@@ -35,6 +35,9 @@ const SetFile = "_set.yaml"
 type Set struct {
 	Dir   string
 	Title string
+	// Split marks a set as training data (train) or as a test that never
+	// trains (heldout), for SPIKE-046's export; "" is neither.
+	Split string
 	Card  string // the project card (3.2), block 4
 	// ProjectCard: the app builds the card from the run's project, as it
 	// does outside the runner (P2-08), instead of a fixture's.
@@ -60,6 +63,7 @@ type Set struct {
 // setFile is _set.yaml.
 type setFile struct {
 	Title        string             `yaml:"title"`
+	Split        string             `yaml:"split"`         // train or heldout (SPIKE-046)
 	Card         string             `yaml:"card"`          // a file in the set
 	ProjectCard  bool               `yaml:"project_card"`  // the app builds the card from the project
 	Today        string             `yaml:"today"`         // YYYY-MM-DD, the day the fixture is from
@@ -365,7 +369,12 @@ func Load(dir string) (*Set, error) {
 	if err := strict(b, &f); err != nil {
 		return nil, fmt.Errorf("%s: %w", SetFile, err)
 	}
-	s := &Set{Dir: dir, Title: f.Title, Chats: f.Chats, Tools: f.Tools, Rules: f.Rules, Configs: map[string]string{}}
+	switch f.Split {
+	case "", "train", "heldout":
+	default:
+		return nil, fmt.Errorf("%s: split %q is not train or heldout", SetFile, f.Split)
+	}
+	s := &Set{Dir: dir, Title: f.Title, Split: f.Split, Chats: f.Chats, Tools: f.Tools, Rules: f.Rules, Configs: map[string]string{}}
 	if s.Title == "" {
 		s.Title = filepath.Base(dir)
 	}

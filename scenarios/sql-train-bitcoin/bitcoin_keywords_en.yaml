@@ -1,0 +1,38 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_keywords_en
+title: Which keywords are we watching, in alphabetical order?
+tests:
+  - query
+  - result
+  - answer
+context: main
+why: 'filter: read watch_keywords with query; the answer has ETF; halving; regulation.'
+messages:
+  - text: Which keywords are we watching, in alphabetical order?
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bwatch_keywords\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )ETF(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?i)ETF
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)halving
+    final: true
+  - type: answer_contains
+    test: answer
+    match: (?i)regulation
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

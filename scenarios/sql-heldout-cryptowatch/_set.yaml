@@ -1,0 +1,7 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+# Crypto watch (heldout), with the card the app builds from the project.
+title: Crypto watch
+split: heldout
+project_card: true
+today: "2026-09-29"
+data: ../fixtures/crypto-watch/fixture.sql

@@ -1,0 +1,43 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bitcoin_addprice_fa
+title: Today's Bitcoin price is 60,050 USD. Add it.
+tests:
+  - insert
+  - row
+  - says
+  - persian
+context: main
+why: 'insert: add the row to btc_prices with insert; at the end the check reads 2026-10-06|60050.'
+messages:
+  - text: قیمت امروز بیت‌کوین ۶۰٬۰۵۰ دلار است. آن را اضافه کن.
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"btc_prices"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-10-06"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]60050(?:\.0+)?["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^2026-10-06\|60050$
+    query: SELECT date, price FROM btc_prices WHERE date = '2026-10-06'
+  - type: answer_lacks
+    test: says
+    match: نمی‌توانم|نمیتوانم|امکان‌پذیر نیست|ممکن نیست
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: no_turn_failed
+    test: info

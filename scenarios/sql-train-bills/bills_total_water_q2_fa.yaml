@@ -1,0 +1,35 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: bills_total_water_q2_fa
+title: What did the water bills add up to in the second quarter of 2026?
+tests:
+  - query
+  - result
+  - answer
+  - persian
+context: main
+why: 'total: read bills with query; the answer has 98.64.'
+messages:
+  - text: جمع قبض‌های آب در سه‌ماههٔ دوم ۲۰۲۶ چقدر شد؟
+asserts:
+  - type: tool_called
+    test: query
+    tool: query
+    args_match: (?i)\bbills\b
+  - type: tool_called
+    test: result
+    tool: query
+    result_match: '(?mi)(?:^|\| )(?:98(?:\.\d+)?|99(?:\.0+)?)(?: \||$)'
+  - type: answer_contains
+    test: answer
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])(?:[9۹٩][8۸٨][.\x{066B}/][6۶٦][4۴٤]0*)(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    final: true
+  - type: answer_contains
+    test: persian
+    match: \p{Arabic}
+    final: true
+  - type: max_calls
+    test: info
+    tool: query
+    "n": 4
+  - type: no_turn_failed
+    test: info

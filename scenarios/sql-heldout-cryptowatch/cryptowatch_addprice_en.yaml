@@ -1,0 +1,60 @@
+# SPIKE-046: written by spikes/046-sql-lora/gen; edit that, not this file.
+id: cryptowatch_addprice_en
+title: 'Add today''s BTC prices in USD: open 64,512.30, high 65,100, low 64,010.50,
+  close 64,890.'
+tests:
+  - insert
+  - row
+  - says
+context: main
+why: 'insert: add the row to prices with insert; at the end the check reads BTC|2026-09-29|64512.3|65100|64010.5|64890.'
+messages:
+  - text: 'Add today''s BTC prices in USD: open 64,512.30, high 65,100, low 64,010.50,
+      close 64,890.'
+asserts:
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '"table":\s*"prices"'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]64890(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"BTC"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"USD"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: (?i)"2026-09-29"
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]65100(?:\.0+)?["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]64010\.50*["\s,}\]]'
+  - type: tool_called
+    test: insert
+    tool: insert
+    args_match: '[:\[,\s"]64512\.30*["\s,}\]]'
+  - type: db_query
+    test: row
+    match: (?m)^BTC\|2026-09-29\|64512\.3\|65100\|64010\.5\|64890$
+    query: SELECT coin, date, open, high, low, close FROM prices WHERE date = '2026-09-29'
+  - type: answer_lacks
+    test: says
+    match: (?i)can't|cannot|unable|not (yet )?(possible|supported)
+    final: true
+  - type: max_calls
+    test: info
+    tool: insert
+    "n": 1
+  - type: no_turn_failed
+    test: info
