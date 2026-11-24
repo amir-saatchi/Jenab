@@ -23,7 +23,7 @@ asserts:
     args_match: (?i)\bproducts\b
   - type: answer_contains
     test: answer
-    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[1۱١][4۴٤](?:[.\x{066B}/]0+)?(?:[.\x{066B}/]0+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
+    match: (?:^|[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}])[1۱١][4۴٤](?:[.\x{066B}/][0۰٠]+)?(?:[.\x{066B}/][0۰٠]+)?(?:[^0-9\x{06F0}-\x{06F9}\x{0660}-\x{0669}]|$)
     final: true
   - type: max_calls
     test: info

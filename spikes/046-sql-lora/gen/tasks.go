@@ -433,6 +433,9 @@ const (
 	decimalPt = `[.\x{066B}/]`                  // Persian writes the decimal point as ٫ or /
 )
 
+// zero is a 0 in any of the scripts, for trailing zeros such as ۲۰٫۴۰.
+var zero = digitClass[0]
+
 // answerRe matches v in an answer: a number in the ways it is written
 // (separators, Persian digits, rounded to cents or to a whole number), a
 // date as English writes it, or text as it is.
@@ -441,7 +444,7 @@ func answerRe(v any, date bool) string {
 	case nil:
 		return ""
 	case int64:
-		return `(?:^|` + notDigit + `)` + numForm(strconv.FormatInt(x, 10)) + `(?:` + decimalPt + `0+)?(?:` + notDigit + `|$)`
+		return `(?:^|` + notDigit + `)` + numForm(strconv.FormatInt(x, 10)) + `(?:` + decimalPt + zero + `+)?(?:` + notDigit + `|$)`
 	case float64:
 		forms := []string{strconv.FormatFloat(x, 'f', -1, 64), strconv.FormatFloat(x, 'f', 2, 64)}
 		if math.Abs(x) >= 100 {
@@ -485,14 +488,14 @@ func numForm(s string) string {
 	}
 	frac = strings.TrimRight(frac, "0")
 	if frac == "" {
-		b.WriteString(`(?:` + decimalPt + `0+)?`)
+		b.WriteString(`(?:` + decimalPt + zero + `+)?`)
 		return b.String()
 	}
 	b.WriteString(decimalPt)
 	for _, r := range frac {
 		b.WriteString(digitClass[r-'0'])
 	}
-	b.WriteString(`0*`)
+	b.WriteString(zero + `*`)
 	return b.String()
 }
 
