@@ -47,7 +47,7 @@ lfm3:1.7b is the best local model we tested (SPIKE-038), and Liquid says it is m
 5. **Teacher runs in Colab.** The runner and the teacher run in the same Colab VM, so the data comes from real Jenab runs (the real prompt, tools, SQLite database and asserts) without a tunnel to the PC. `jenab-scenarios` builds for Linux with `CGO_ENABLED=0`, since its SQLite driver is pure Go (checked 2026-11-24); it hasn't been run on Linux yet, so the first session checks that. A notebook in `spikes/046-sql-lora/`:
    - clones the repository (no `.env`), builds the runner, installs Ollama and pulls `gemma4:31b`;
    - connects it as an ordinary `ollama` connection at `http://127.0.0.1:11434`, the same setup as any user's;
-   - runs the training sets, saves the reports and the export to Drive after each set, and resumes after a disconnect;
+   - runs the training sets and downloads the reports and the export as a zip at the end; with Drive on, it saves them to Drive after each chunk and resumes after a disconnect;
    - starts with a 10-run check, to measure time and compute units before the larger runs.
 
    GPUs: on an L4 (24 GB), gemma4:31b at 4-bit with Ollama's context set to 8k; on an A100, a larger quantization, a longer context and parallel runs. A 4-bit teacher is a little weaker; the asserts drop its failures, which costs more runs, not worse data. Run until there are 1,000-3,000 passing examples, after the pilot says that many are worth it. Record how many runs failed and why, and the GPU hours and units used.
