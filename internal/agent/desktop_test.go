@@ -148,7 +148,7 @@ func TestReminderBeforeAnswer(t *testing.T) {
 		act := tool.Func(tool.Spec{Name: "act", Description: "Acts.", Schema: json.RawMessage(`{"type": "object"}`), UserTurns: true},
 			func(_ context.Context, env *tool.Env, _ struct{}) (tool.Result, error) {
 				model = env.Model
-				env.BeforeAnswer(func() string {
+				env.BeforeAnswer(chat.NoticeReminder, func() string {
 					asked++
 					if asked == 1 {
 						return "Before you answer: save it."

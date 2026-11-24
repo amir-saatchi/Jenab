@@ -1,0 +1,25 @@
+id: V3_fix_error
+title: 'Save a view the validator refuses, then fix it'
+tests: ["refused", "fixed", "saved"]
+context: main
+why: 'Save the config as written; save_view refuses it (no default_sort, and a warning on its ORDER BY); fix it and save it again.'
+messages:
+  - text: |
+      Save this view exactly as I wrote it. If the app refuses it, fix what it says and save it again.
+      ```yaml
+      version: 1
+      id: btc_news_count
+      title: News per day
+      type: table
+      query: |
+        SELECT date, count(*) AS items FROM btc_news GROUP BY date ORDER BY date DESC
+      columns:
+        - { field: date, label: "Date", format: date }
+        - { field: items, label: "Items", format: number }
+      ```
+asserts:
+  - {type: tool_called, test: refused, tool: save_view, args_match: 'btc_news_count', result_match: '^Not saved'}
+  - {type: tool_called, test: fixed, tool: save_view, args_match: 'btc_news_count', result_match: '^Saved view btc_news_count'}
+  - {type: db_query, test: saved, query: "SELECT config FROM _jenab_views WHERE id = 'btc_news_count'", match: 'default_sort'}
+  - {type: max_calls, test: info, tool: save_view, n: 3}
+  - {type: no_turn_failed, test: info}

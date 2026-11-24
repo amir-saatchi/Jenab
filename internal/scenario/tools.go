@@ -32,6 +32,11 @@ var dataTools = []string{"query", "describe_table", "insert"}
 // on the project's empty database.
 var schemaTools = []string{"request_schema_change", "apply_migration"}
 
+// configTools save, read and open views and pages (P3-03). A set that
+// fakes one of them, or a data tool, gets none of the real ones, which
+// would work on the project's database beside the fakes.
+var configTools = []string{"save_view", "save_page", "validate", "read_config", "open_page", "delete_config"}
+
 // tools are the run's tools: the real ones that need no network, with the
 // set's fakes in place of real ones of the same name.
 func (r *run) tools() *tool.Registry {
@@ -62,11 +67,12 @@ func (s *Set) realTools() []tool.Tool {
 	}
 	fakesData := fakes(dataTools)
 	fakesSchema := fakesData || fakes(schemaTools)
+	fakesConfig := fakesData || fakes(configTools)
 	var out []tool.Tool
 	for _, t := range append(tool.Builtin(tool.Deps{}), agent.Tools()...) {
 		n := t.Spec().Name
 		if !slices.Contains(realOff, n) && s.tool(n) == nil && !(fakesData && slices.Contains(dataTools, n)) &&
-			!(fakesSchema && n == "request_schema_change") {
+			!(fakesSchema && n == "request_schema_change") && !(fakesConfig && slices.Contains(configTools, n)) {
 			out = append(out, t)
 		}
 	}

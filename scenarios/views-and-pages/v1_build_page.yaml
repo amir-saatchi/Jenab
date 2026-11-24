@@ -1,0 +1,19 @@
+id: V1_build_page
+title: 'Build a page of daily moves: a bar chart and a stat'
+tests: ["load", "views", "page", "chart", "stat"]
+context: main
+why: 'Load config-guide, save a bar chart of the daily price change and a stat of the biggest daily rise, then a page that shows both.'
+messages:
+  - text: 'Make me a page called "BTC moves" with a bar chart of the daily price change (each day''s price minus the day before) and a stat that shows the biggest daily rise.'
+asserts:
+  - {type: skill_loaded_before, test: load, skills: [config-guide], tools: [save_view, save_page]}
+  # Two new views, live, both on a new page.
+  - {type: db_query, test: views, query: "SELECT count(*) FROM _jenab_views WHERE config <> '' AND id NOT IN ('btc_price_chart', 'btc_last_price', 'btc_news_list')", match: '^[2-9]$'}
+  - {type: db_query, test: page, query: "SELECT count(*) FROM _jenab_pages p, _jenab_views v WHERE p.id <> 'bitcoin' AND p.config <> '' AND v.config <> '' AND v.id NOT IN ('btc_price_chart', 'btc_last_price', 'btc_news_list') AND instr(p.config, v.id) > 0", match: '^[2-9]$'}
+  - {type: db_query, test: chart, query: "SELECT config FROM _jenab_views WHERE type = 'chart' AND config <> '' AND id <> 'btc_price_chart'", match: 'chart_type:\s*"?bar'}
+  - {type: db_query, test: stat, query: "SELECT count(*) FROM _jenab_views WHERE type = 'stat' AND config <> '' AND id <> 'btc_last_price'", match: '^[1-9]$'}
+  # The page bitcoin stays as it was.
+  - {type: db_query, test: info, query: "SELECT revision FROM _jenab_pages WHERE id = 'bitcoin'", match: '^1$'}
+  - {type: tool_called, test: info, tool: open_page}
+  - {type: max_calls, test: info, tool: save_view, n: 6}
+  - {type: no_turn_failed, test: info}

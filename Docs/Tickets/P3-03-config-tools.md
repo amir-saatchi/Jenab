@@ -1,6 +1,6 @@
 # P3-03 — Agent tools for views and pages
 **Type:** Feature
-**Status:** Open
+**Status:** Done
 **Gate:** 3 (Phase 3)
 **Needs:** P3-01, P3-02
 **Requirements:** R-53, R-49
@@ -23,3 +23,14 @@ The agent builds and changes views and pages with tools, fixes failed saves in t
 ## Done when
 - Tool tests for each tool, the repair limit, the early-stop notice and the card lines, and for `delete_config`: a refused delete that names the users, a delete and its undo.
 - The scenario set passes on both reference models with 3 reps, or the failures are recorded with their causes.
+
+## Result
+Done on 2026-11-24. Report: [P3-03-report](reports/P3-03-report.md).
+
+- **Tools:** `save_view`, `save_page`, `validate`, `read_config`, `open_page` and `delete_config`, in block 1 with the data tools. Saves validate first and return every error with its line. They take the revision the model read, and check their references again in the write.
+- **Repair loop:** 4 more tries per config in a turn or subagent run, then the model is told to stop. The early-stop notice comes when a turn ends after a failed save that wasn't retried.
+- **Deletes:** `delete_config` refuses, in its write, a view, form or page other configs use, naming them. A delete is undone with its turn, and tables are never touched.
+- **Card and chips:** the project card lists views, pages and, per table, the views and forms that use it, and is rebuilt at the next turn after a config change. Saved and deleted views and pages show as chips; a page's chip has *Open*, which docks the page (drawn from P3-10). A deleted page closes everywhere.
+- **config-guide:** five tested examples and a section on removing views.
+- **Scenarios:** `scenarios/views-and-pages` passed 15/15 on gemini-3.5-flash-lite and on mistral-large-4. The first version of its remove scenario led both models to drop the news table too; the message now names the view, and config-guide says removing views leaves tables and data alone.
+- **Review:** two Medium and seven Low points are fixed. The reference checks run in the write, saves take a `revision`, subagents get the repair limit, and `open_page` checks its values.

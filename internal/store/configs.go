@@ -143,6 +143,11 @@ type ConfigSave struct {
 	// 0 saves over whatever is there.
 	Expected int
 	Source   id.Source
+	// Check, when set, runs in the save's transaction with every live
+	// view and page, before the write: an error refuses the save, wrapped
+	// in ErrInvalid. It checks what the config refers to (P3-03), which
+	// may have gone since it was validated.
+	Check func(all []Config) error
 }
 
 // ConfigDelete is a delete of one config. Kind "" finds the view or the
@@ -152,6 +157,7 @@ type ConfigDelete struct {
 	ID       string
 	Expected int // as in ConfigSave
 	Source   id.Source
+	Check    func(all []Config) error // as in ConfigSave: nothing may use it
 }
 
 // ConfigWrite says what a save or a delete did.
@@ -379,6 +385,9 @@ func SaveConfigTx(tx *sql.Tx, s ConfigSave) (ConfigWrite, error) {
 	if other != nil {
 		return ConfigWrite{}, fault("%w: the %s %s", ErrConfigIDTaken, other.Kind, other.ID)
 	}
+	if err := checkConfigs(tx, s.Check); err != nil {
+		return ConfigWrite{}, err
+	}
 	next := Config{Kind: s.Kind, ID: s.ID, Type: s.Type, Title: s.Title, YAML: s.YAML, Revision: 1, UpdatedAt: now(), UpdatedBy: s.Source}
 	if cur != nil {
 		if sameConfig(cur, &next) {
@@ -413,9 +422,32 @@ func deleteConfigTx(tx *sql.Tx, d ConfigDelete) (ConfigWrite, error) {
 	if err := checkExpected(cur.Kind, cur.ID, cur, d.Expected); err != nil {
 		return ConfigWrite{}, err
 	}
+	if err := checkConfigs(tx, d.Check); err != nil {
+		return ConfigWrite{}, err
+	}
 	next := *cur
 	next.YAML, next.Revision, next.UpdatedAt, next.UpdatedBy = "", cur.Revision+1, now(), d.Source
 	return writeConfig(tx, cur, next, "delete")
+}
+
+// checkConfigs runs check, if any, on the live views and pages in tx. Its
+// error is wrapped in ErrInvalid, so the writer goes on.
+func checkConfigs(tx *sql.Tx, check func([]Config) error) error {
+	if check == nil {
+		return nil
+	}
+	var all []Config
+	for _, k := range ConfigKinds {
+		cs, err := ConfigsTx(tx, k)
+		if err != nil {
+			return err
+		}
+		all = append(all, cs...)
+	}
+	if err := check(all); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalid, err)
+	}
+	return nil
 }
 
 // SaveConfig saves a view or a page as an interactive write with its

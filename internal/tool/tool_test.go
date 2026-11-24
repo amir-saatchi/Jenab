@@ -101,8 +101,9 @@ func contains(t *testing.T, got string, want ...string) {
 func TestBuiltinSpecs(t *testing.T) {
 	r := NewRegistry()
 	r.Add(Builtin(Deps{Web: web.NewClient(web.Options{})})...) // panics on a bad schema or name
-	want := []string{"bucket_delete", "bucket_list", "bucket_put", "bucket_read", "describe_table", "fetch_page", "insert",
-		"list_chats", "query", "read_messages", "read_ref", "search_history", "search_ref", "update_memory", "update_session_notes"}
+	want := []string{"bucket_delete", "bucket_list", "bucket_put", "bucket_read", "delete_config", "describe_table", "fetch_page", "insert",
+		"list_chats", "open_page", "query", "read_config", "read_messages", "read_ref", "save_page", "save_view", "search_history", "search_ref",
+		"update_memory", "update_session_notes", "validate"}
 	var got []string
 	for _, tl := range r.For(chat.KindChat) {
 		s := tl.Spec()

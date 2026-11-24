@@ -255,3 +255,25 @@ func (s *Screen) refreshChip(c *kit.Context, t *state.Thread, key string, n *jc.
 		})
 	})
 }
+
+// configChip is a view or a page the agent saved or deleted (P3-03):
+// "View saved: btc_price_chart", or "Page saved: bitcoin [Open]". It has
+// no undo of its own: Undo turn takes it back, and then the chip says
+// "· undone". A saved page's Open shows it in the main area; so does the
+// Open of open_page's chip, "Page: bitcoin [Open]", with its filter
+// values. The notice's kind decides it, never its text.
+func (s *Screen) configChip(c *kit.Context, t *state.Thread, key string, n *jc.Notice) {
+	p, ch := t.Project, t.Chat.ID
+	k := s.chipOf(ch, key)
+	if n.Change != "" {
+		k.ask(s.viewOf(t).undo, func(then func(bool, error)) { s.st.Actions.ConfigUndone(p, n.Change, then) })
+	}
+	kind, page, _ := store.ParseConfigTarget(n.Target)
+	open := kind == store.KindPage && !k.undone && (n.Kind == jc.NoticeOpenPage || n.Kind == jc.NoticeConfigSaved)
+	kit.Row(c).Gap(6).Wrap().AlignItems(kit.Center).Children(func() {
+		kit.Record(c, kit.IconPagesTab, kit.Neutral, func() { kit.Text(c, chipText(n.Text, k.undone)) })
+		if open && chipButton(c, "Open", false) {
+			s.st.OpenPage(p, ch, page, n.Details)
+		}
+	})
+}

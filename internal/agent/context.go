@@ -53,7 +53,7 @@ type window struct {
 	date       string             // the date line the model has, in block 1 or a note
 	notes      []winNote          // what changed since the cut, in the order it was told (TASK-047)
 	mem        map[string]memSeen // memory sections as the chat has seen them, by target; set at cuts (3.3)
-	schema     int                // the schema version of the project card the model has, in block 4 or a note
+	cardAt     cardVer            // the version of the project card the model has, in block 4 or a note
 	cardFail   int                // the turn whose card failed: it is tried again in the next turn
 	skills     map[string]bool    // the skills in block 1, from the last cut
 	tools      []tool.Tool        // the tools in the requests, set at cuts (TASK-033); nil for all
@@ -139,11 +139,11 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 		}
 		w.chatList = list
 	}
-	sys, schema, err := r.system(ctx, t)
+	sys, at, err := r.system(ctx, t)
 	if err != nil {
 		return err
 	}
-	w.system, w.schema, w.day, w.date = sys, schema, today(r.o.d.Now()), today(r.o.d.Now())
+	w.system, w.cardAt, w.day, w.date = sys, at, today(r.o.d.Now()), today(r.o.d.Now())
 	r.offerTools(ctx, t)
 	w.skills = map[string]bool{}
 	for _, name := range t.ch.Skills {
@@ -156,17 +156,17 @@ func (r *runner) cutIfDue(ctx context.Context, t *turn) error {
 
 // steady reports whether a cut now would build the same system blocks,
 // but for the date, and the same tool list (TASK-047). The project card
-// counts as the same while the schema version is: its counts are "as of"
-// the cut anyway (3.2). Anything else that changed, such as memory, the
+// counts as the same while its version is (cardVer): its counts are "as
+// of" the cut anyway (3.2). Anything else that changed, such as memory, the
 // notes, a loaded skill or Mother's chat list, lets the cut go ahead.
 func (r *runner) steady(ctx context.Context, t *turn) (bool, error) {
 	w := &r.cs.win
-	if w.schema == noCard {
+	if w.cardAt == noCard {
 		return false, nil
 	}
 	if r.o.d.Card != nil {
-		v, err := r.p.DB.SchemaVersion(ctx)
-		if err != nil || v != w.schema {
+		v, err := r.cardVersion(ctx)
+		if err != nil || v != w.cardAt {
 			return false, nil
 		}
 	}
@@ -498,15 +498,15 @@ func (r *runner) trim(t *turn, msgs []chat.Message) bool {
 }
 
 // system is blocks 1–5 of the context (3.1) for the window, and the
-// schema version its project card was built at. It has the system
+// version its project card was built at. It has the system
 // prompt, the date, the role, the skills, memory, the project card,
 // Mother's chat list and the session notes. The cache point is after the
 // last block.
-func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, int, error) {
-	card, schema, _ := r.card(ctx, t)
+func (r *runner) system(ctx context.Context, t *turn) ([]provider.Block, cardVer, error) {
+	card, at, _ := r.card(ctx, t)
 	blocks, seen := r.blocks(ctx, t, card)
 	r.cs.win.mem = seen
-	return blocks, schema, nil
+	return blocks, at, nil
 }
 
 // blocks are blocks 1–5 with the given card, and the memory sections
@@ -630,19 +630,38 @@ func (r *runner) spikeNotices(ctx context.Context, t *turn) {
 	}
 }
 
-// noCard is the schema version of a card that failed, so the next turn
-// tries again.
-const noCard = -1
+// cardVer is what the project card is built from that the agent watches:
+// the schema version, which a migration raises, and the configs' stamp,
+// which a saved, deleted or undone view or page changes (P3-03). Row
+// counts aren't in it; they are "as of" the card (3.2).
+type cardVer struct {
+	schema  int
+	configs int64
+}
 
-// card is the project card (3.2), and the schema version read before it
-// was built, so a migration that lands meanwhile rebuilds it again. The
-// card is best effort: a failure is logged, and ok is false.
-func (r *runner) card(ctx context.Context, t *turn) (card string, schema int, ok bool) {
+// noCard is the version of a card that failed, so the next turn tries
+// again.
+var noCard = cardVer{schema: -1}
+
+// cardVersion reads the card's version now.
+func (r *runner) cardVersion(ctx context.Context) (cardVer, error) {
+	s, err := r.p.DB.SchemaVersion(ctx)
+	if err != nil {
+		return cardVer{}, err
+	}
+	c, err := r.p.DB.ConfigStamp(ctx)
+	return cardVer{s, c}, err
+}
+
+// card is the project card (3.2), and its version read before it was
+// built, so a migration or a config change that lands meanwhile rebuilds
+// it again. The card is best effort: a failure is logged, and ok is false.
+func (r *runner) card(ctx context.Context, t *turn) (card string, at cardVer, ok bool) {
 	f := r.o.d.Card
 	if f == nil {
-		return "", 0, true
+		return "", cardVer{}, true
 	}
-	v, err := r.p.DB.SchemaVersion(ctx)
+	v, err := r.cardVersion(ctx)
 	if err == nil {
 		if card, err = f(ctx, r.p); err == nil {
 			r.cardWorks()
@@ -679,27 +698,30 @@ func (r *runner) cardWorks() {
 // cardChange is a note part with the project card when a migration has
 // run since the model got the card, by this chat or another: the system
 // blocks stay as they are, so the cached prefix and the model's thinking
-// hold (3.1, TASK-047). Plain writes leave it alone; the card's counts
-// are "as of" the cut. When the card fails, nothing is told and the next
-// turn tries again.
+// hold (3.1, TASK-047). A view or a page saved, deleted or undone changes
+// the card too (P3-03), but is told only at a turn's first request: a
+// turn that saves several would otherwise get the card after each, and
+// the tools' results already say what they saved. Plain writes leave it
+// alone; the card's counts are "as of" the cut. When the card fails,
+// nothing is told and the next turn tries again.
 func (r *runner) cardChange(ctx context.Context, t *turn) []chat.Part {
 	w := &r.cs.win
 	if r.o.d.Card == nil || w.system == nil || w.cardFail == t.n {
 		return nil
 	}
-	v, err := r.p.DB.SchemaVersion(ctx)
+	v, err := r.cardVersion(ctx)
 	if err != nil {
 		r.cardFailed(ctx, t, err)
 		return nil
 	}
-	if v == w.schema {
+	if v == w.cardAt || v.schema == w.cardAt.schema && t.requests > 0 {
 		return nil
 	}
 	card, v, ok := r.card(ctx, t)
 	if !ok {
 		return nil
 	}
-	w.schema = v
+	w.cardAt = v
 	return []chat.Part{notePart(cardNote(card))}
 }
 

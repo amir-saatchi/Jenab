@@ -51,6 +51,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/tool"
 	"github.com/amir-saatchi/jenab/internal/update"
 	"github.com/amir-saatchi/jenab/internal/version"
+	"github.com/amir-saatchi/jenab/internal/view"
 	"github.com/amir-saatchi/jenab/internal/web"
 )
 
@@ -211,7 +212,7 @@ func run() (err error) {
 	}
 	orch := agent.New(agent.Deps{Context: ctx, Projects: projects, Models: models, Tools: tools,
 		Settings: live.Get, Events: pub, Skills: skills, Traces: traces, Log: log, ChatReset: chatReset,
-		Card: func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, time.Now()) }})
+		Card: func(ctx context.Context, p *project.Project) (string, error) { return view.Card(ctx, p.DB, time.Now()) }})
 
 	var win *mygo.Window // set in WhenReady
 	appNotify = notifier(func() *mygo.Window { return win }, pub)

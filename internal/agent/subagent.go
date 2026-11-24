@@ -58,6 +58,12 @@ type subRun struct {
 	msgs   []chat.Message
 	bad    int // requests in a row whose calls all failed to run
 	usage  chat.Usage
+	run    string // the run's name in its tools' Env.Run
+	// atEnd and checks are the run's tool.Env.AtTurnEnd and BeforeAnswer:
+	// a subagent run is a turn of its own for them, such as the repair
+	// limit of save_view (SPEC 10).
+	atEnd  []func()
+	checks []answerCheck
 }
 
 // transcript is a subagent's run as the bucket keeps it (8.6).
@@ -76,7 +82,8 @@ type transcript struct {
 // subagent runs s on the chat's model, inside the call whose Env is
 // parent. A stopped run stores nothing.
 func (r *runner) subagent(ctx context.Context, t *turn, parent *tool.Env, s tool.Subagent) (tool.SubagentResult, error) {
-	sr := &subRun{r: r, t: t, parent: parent, s: s, tools: map[string]tool.Tool{}}
+	sr := &subRun{r: r, t: t, parent: parent, s: s, tools: map[string]tool.Tool{}, run: s.Name + ":" + id.New()}
+	defer sr.ended()
 	if err := sr.build(); err != nil {
 		r.o.d.Log.Error("agent: starting a subagent", "subagent", s.Name, "chat", t.ch.ID, "err", err)
 		return tool.SubagentResult{}, err
@@ -96,6 +103,28 @@ func (r *runner) subagent(ctx context.Context, t *turn, parent *tool.Env, s tool
 		r.o.d.Log.Error("agent: a subagent failed", "subagent", s.Name, "chat", t.ch.ID, "err", err)
 	}
 	return res, err
+}
+
+// ended runs what the run's calls asked to run at its end, newest first.
+func (sr *subRun) ended() {
+	for i := len(sr.atEnd) - 1; i >= 0; i-- {
+		sr.atEnd[i]()
+	}
+	sr.atEnd = nil
+}
+
+// remind runs the run's checks when the model answers without calls: the
+// first with a reminder adds it as a message the model reads, and the run
+// gets one more request, as a turn's (8.11).
+func (sr *subRun) remind() bool {
+	for _, c := range sr.checks {
+		if text := c.check(); text != "" {
+			sr.msgs = append(sr.msgs, chat.Message{ID: id.Message(id.New()), Chat: sr.t.ch.ID, Turn: sr.t.n, Role: chat.RoleUser,
+				Parts: []chat.Part{{Kind: chat.PartNotice, Notice: &chat.Notice{Kind: c.kind, Text: text}}}})
+			return true
+		}
+	}
+	return false
 }
 
 // build makes the system blocks, with the skills after the instructions,
@@ -160,6 +189,9 @@ func (sr *subRun) loop(ctx context.Context) (tool.SubagentResult, error) {
 		}
 		res.Text = strings.Join(text, "\n\n")
 		if len(calls) == 0 {
+			if !last && sr.remind() {
+				continue
+			}
 			res.Capped = last && res.Text == ""
 			return res, nil
 		}
@@ -321,8 +353,10 @@ func (sr *subRun) runTool(ctx context.Context, msg id.Message, n int, c chat.Too
 		return result("there is no tool named " + c.Name), true
 	}
 	p := sr.parent
-	env := &tool.Env{Project: p.Project, Chat: p.Chat, Message: msg, Source: p.Source, Priority: p.Priority,
-		PreviewTokens: p.PreviewTokens, PrivateHosts: p.PrivateHosts, ChatStatus: p.ChatStatus, Approve: p.Approve, Progress: p.Progress}
+	env := &tool.Env{Project: p.Project, Chat: p.Chat, Message: msg, Turn: p.Turn, Run: sr.run, Source: p.Source, Priority: p.Priority,
+		PreviewTokens: p.PreviewTokens, PrivateHosts: p.PrivateHosts, ChatStatus: p.ChatStatus, Approve: p.Approve, Progress: p.Progress,
+		AtTurnEnd:    func(f func()) { sr.atEnd = append(sr.atEnd, f) },
+		BeforeAnswer: func(k chat.NoticeKind, f func() string) { sr.checks = append(sr.checks, answerCheck{k, f}) }}
 	call := tool.Call{ID: c.ID, Args: c.Args, Env: env}
 	needs := tool.Needs{Effects: tl.Spec().Effects}
 	if pf, ok := tl.(tool.Preflighter); ok {

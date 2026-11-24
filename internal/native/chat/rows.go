@@ -270,8 +270,8 @@ func (s *Screen) part(c *kit.Context, v *view, t *state.Thread, m jc.Message, i 
 }
 
 // noticePart is a notice inside the agent's work: a skill's chip, a
-// schema change, a memory edit or a desktop save with its undo, or a
-// line.
+// schema change, a memory edit or a desktop save with its undo, a saved
+// view or page, or a line.
 func (s *Screen) noticePart(c *kit.Context, t *state.Thread, key string, n *jc.Notice) {
 	if n == nil || n.Kind == jc.NoticeSkillText {
 		return
@@ -283,6 +283,8 @@ func (s *Screen) noticePart(c *kit.Context, t *state.Thread, key string, n *jc.N
 		s.memoryChip(c, t, key, n)
 	case jc.NoticeDesktopSaved:
 		s.desktopChip(c, t, key, n)
+	case jc.NoticeConfigSaved, jc.NoticeConfigDeleted, jc.NoticeOpenPage:
+		s.configChip(c, t, key, n)
 	case jc.NoticeMigration:
 		kit.Record(c, kit.IconPackage, kit.Neutral, func() { kit.Text(c, n.Text) })
 		if n.Details != "" {

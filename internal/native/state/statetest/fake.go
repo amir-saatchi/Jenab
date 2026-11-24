@@ -382,6 +382,10 @@ func (f *Fake) UndoMemory(_ context.Context, _ id.Project, r app.MemoryUndoReque
 	return app.MemoryUndo{Done: done, Changed: changed, Undone: undone}, nil
 }
 
+func (f *Fake) ConfigUndone(_ context.Context, _ id.Project, change string) (bool, error) {
+	return f.undone("config:" + change), nil
+}
+
 func (f *Fake) DesktopSaveUndone(_ context.Context, r app.DesktopUndoRequest) (bool, error) {
 	return f.undone("desktop:" + r.Change), nil
 }

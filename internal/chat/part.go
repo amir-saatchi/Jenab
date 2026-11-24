@@ -151,6 +151,17 @@ const (
 	// desktop:recipe:<id>, Change the save its Undo reverts, Details the
 	// steps.
 	NoticeDesktopSaved NoticeKind = "desktop_saved"
+	// NoticeConfigSaved is the chip of a view or a page an agent saved, in
+	// the tool message (P3-03): Target is view:<id> or page:<id>, Change
+	// the write Undo turn reverts. A page's chip has Open.
+	NoticeConfigSaved NoticeKind = "config_saved"
+	// NoticeConfigDeleted is the chip of a view or a page an agent
+	// deleted, as NoticeConfigSaved, with no Open.
+	NoticeConfigDeleted NoticeKind = "config_deleted"
+	// NoticeOpenPage is open_page's request to open a page for the user,
+	// in the tool message (P3-03): Target is page:<id>, Details the
+	// filter values as a JSON object, or "". The chip has Open.
+	NoticeOpenPage NoticeKind = "open_page"
 	// NoticeReminder is the app's reminder to the model before it answers,
 	// such as to save a desktop task (8.11). The model reads it.
 	NoticeReminder NoticeKind = "reminder"

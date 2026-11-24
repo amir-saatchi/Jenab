@@ -193,7 +193,7 @@ func (m *Manager) remind(env *tool.Env, s *Session) {
 	if env.BeforeAnswer == nil || m.d.Store == nil {
 		return
 	}
-	env.BeforeAnswer(func() string {
+	env.BeforeAnswer(chat.NoticeReminder, func() string {
 		if s.byHand == 0 || s.saved || s.reminded {
 			return ""
 		}

@@ -521,7 +521,7 @@ func TestReminderOncePerSession(t *testing.T) {
 	h := newHarness(t)
 	h.withStore()
 	var checks []func() string
-	h.env.BeforeAnswer = func(f func() string) { checks = append(checks, f) }
+	h.env.BeforeAnswer = func(_ chat.NoticeKind, f func() string) { checks = append(checks, f) }
 	remind := func() string {
 		for _, c := range checks {
 			if s := c(); s != "" {
@@ -552,7 +552,7 @@ func TestReminderOncePerSession(t *testing.T) {
 	}
 	// Without a store, the tools save nothing and there is no reminder.
 	h2 := newHarness(t)
-	h2.env.BeforeAnswer = func(f func() string) { t.Fatal("no store, no reminder") }
+	h2.env.BeforeAnswer = func(chat.NoticeKind, func() string) { t.Fatal("no store, no reminder") }
 	h2.ok("desktop_start", map[string]string{"why": "x"})
 }
 

@@ -35,6 +35,9 @@ type ActionsAPI interface {
 	RefreshEstimate(ctx context.Context, p id.Project, c id.Chat, full bool) (agent.RefreshEstimate, error)
 	RefreshMemory(ctx context.Context, p id.Project, c id.Chat, full bool) error
 	RefreshUndone(ctx context.Context, p id.Project, edits []chat.MemoryDiff) (bool, error)
+	// ConfigUndone is a saved or deleted view's or page's chip (P3-03),
+	// which Undo turn takes back.
+	ConfigUndone(ctx context.Context, p id.Project, change string) (bool, error)
 	UndoRefresh(ctx context.Context, p id.Project, r app.RefreshUndoRequest) (app.RefreshUndo, error)
 }
 
@@ -239,3 +242,9 @@ func (a *Actions) Pick(then func([]string)) {
 
 // Post runs fn on the UI thread, as the results are.
 func (a *Actions) Post(fn func()) { a.post(fn) }
+
+// ConfigUndone tells whether a view's or a page's chip is undone now, by
+// Undo turn (P3-03).
+func (a *Actions) ConfigUndone(p id.Project, change string, then func(bool, error)) {
+	call(a, func(ctx context.Context) (bool, error) { return a.api.ConfigUndone(ctx, p, change) }, then)
+}

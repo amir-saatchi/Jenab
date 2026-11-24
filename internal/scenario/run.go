@@ -27,6 +27,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/skill"
 	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/view"
 )
 
 // Harnesses: the app's own, and P2-13's plain chat harness (agent
@@ -400,7 +401,7 @@ func (r *run) open(ctx context.Context) error {
 	r.stop = stop
 	card := func(context.Context, *project.Project) (string, error) { return r.sc.set.Card, nil }
 	if r.sc.set.ProjectCard {
-		card = func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, r.now()) }
+		card = func(ctx context.Context, p *project.Project) (string, error) { return view.Card(ctx, p.DB, r.now()) }
 	}
 	d := agent.Deps{
 		Context: appCtx, Projects: r.pm, Models: models, Tools: r.tools(), Settings: func() config.Settings { return set },

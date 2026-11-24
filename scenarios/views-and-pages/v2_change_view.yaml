@@ -1,0 +1,15 @@
+id: V2_change_view
+title: 'Make the price chart a bar chart named Daily close'
+tests: ["changed", "same_view"]
+context: main
+why: 'Change the saved view btc_price_chart in place: save it under the same id with chart_type bar and the title Daily close. The page keeps showing it.'
+messages:
+  - text: 'On the Bitcoin page, make the price chart a bar chart and call it "Daily close".'
+asserts:
+  - {type: db_query, test: changed, query: "SELECT config FROM _jenab_views WHERE id = 'btc_price_chart'", match: 'chart_type:\s*"?bar'}
+  - {type: db_query, test: changed, query: "SELECT title FROM _jenab_views WHERE id = 'btc_price_chart'", match: '^Daily close$'}
+  # No second chart beside the old one, and the page still shows it.
+  - {type: db_query, test: same_view, query: "SELECT count(*) FROM _jenab_views WHERE config <> ''", match: '^3$'}
+  - {type: db_query, test: same_view, query: "SELECT config LIKE '%view: btc_price_chart%' FROM _jenab_pages WHERE id = 'bitcoin'", match: '^1$'}
+  - {type: tool_not_called, test: info, tool: delete_config}
+  - {type: no_turn_failed, test: info}

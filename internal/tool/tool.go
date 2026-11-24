@@ -163,11 +163,15 @@ type Call struct {
 
 // Env is where a call runs.
 type Env struct {
-	Project  *project.Project
-	Chat     id.Chat
-	Message  id.Message // the assistant message with the call
-	Turn     int        // the chat's turn
-	Source   id.Source  // "message:<id>", for created_by
+	Project *project.Project
+	Chat    id.Chat
+	Message id.Message // the assistant message with the call
+	Turn    int        // the chat's turn
+	// Run names a subagent run inside the turn, "" for the chat's own
+	// loop: per-turn state, such as save_view's repair count, is kept
+	// per run.
+	Run      string
+	Source   id.Source // "message:<id>", for created_by
 	Priority limit.Priority
 	// PreviewTokens is the largest result that enters the context whole
 	// (tool_preview_tokens, SPEC 3.6).
@@ -209,10 +213,11 @@ type Env struct {
 	AtTurnEnd func(f func())
 	// BeforeAnswer has check run each time the model answers without a
 	// tool call, until the turn ends. A check that returns a text gets it
-	// to the model as the app's reminder, with one more request, such as
-	// to save a desktop task (8.11). The agent sets it; nil where there is
-	// no turn.
-	BeforeAnswer func(check func() string)
+	// to the model as a notice of kind, with one more request, such as
+	// the reminder to save a desktop task (8.11, chat.NoticeReminder) or
+	// the early-stop notice after a failed save (10, chat.NoticeEarlyStop).
+	// The agent sets it; nil where there is no turn.
+	BeforeAnswer func(kind chat.NoticeKind, check func() string)
 	// Model is the turn's model, "provider/id", for what a call records
 	// of who made it.
 	Model string

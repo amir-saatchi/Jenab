@@ -12,6 +12,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 // SystemAPI is what Stores sends to the system; *app.SystemService has
@@ -245,6 +246,16 @@ func (s *Stores) Apply(name string, data any) {
 	case app.EventExport:
 		if pr, ok := data.(project.ExportProgress); ok {
 			s.Exports.Event(pr)
+		}
+	case app.EventConfigs:
+		// A deleted page closes in every chat (5.9). Pages are drawn from
+		// P3-10, which reads a changed one again.
+		if c, ok := data.(project.ConfigsChanged); ok {
+			for _, ch := range c.Changes {
+				if ch.Kind == store.KindPage && ch.Op == "delete" {
+					s.Shell.ClosePage(c.Project, ch.ID)
+				}
+			}
 		}
 	case app.EventLinks:
 		if c, ok := data.(project.LinksChanged); ok {

@@ -12,11 +12,11 @@ func TestClampWidth(t *testing.T) {
 func TestDockingHidesTheChatListAgain(t *testing.T) {
 	s := NewShell()
 	a, b := ChatRef{"p1", "a"}, ChatRef{"p1", "b"}
-	s.Dock(a, Docked{"file", "x.csv"})
+	s.Dock(a, Docked{Kind: "file", Key: "x.csv"})
 	s.ListShown = true
-	s.Dock(a, Docked{"file", "y.csv"}) // something was docked: the choice stays
+	s.Dock(a, Docked{Kind: "file", Key: "y.csv"}) // something was docked: the choice stays
 	same(t, s.ListShown, true)
-	s.Dock(b, Docked{"file", "x.csv"})
+	s.Dock(b, Docked{Kind: "file", Key: "x.csv"})
 	same(t, s.ListShown, false)
 	s.CloseFile("p1", "x.csv")
 	if _, ok := s.Open[b]; ok {

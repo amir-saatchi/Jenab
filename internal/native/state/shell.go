@@ -11,8 +11,11 @@ import (
 // Docked is what the main area shows next to the chat. Files come first;
 // pages and pipelines add their kinds (SPEC 5.9).
 type Docked struct {
-	Kind string // "file"
-	Key  string
+	Kind string // "file" or "page"
+	Key  string // a file's key or a page's ID
+	// Filters are a page's filter values as a JSON object, as open_page
+	// gave them; "" for its defaults.
+	Filters string
 }
 
 // DockSide is the side the dock is on.
@@ -152,9 +155,15 @@ func (s *Shell) Prune(p id.Project, keep []id.Chat) {
 }
 
 // CloseFile closes key wherever it is open in project, as after a delete.
-func (s *Shell) CloseFile(p id.Project, key string) {
+func (s *Shell) CloseFile(p id.Project, key string) { s.closeDocked(p, "file", key) }
+
+// ClosePage closes the page wherever it is open in project, in every
+// chat, as after a delete (SPEC 5.9).
+func (s *Shell) ClosePage(p id.Project, page string) { s.closeDocked(p, "page", page) }
+
+func (s *Shell) closeDocked(p id.Project, kind, key string) {
 	for c, d := range s.Open {
-		if d.Kind == "file" && d.Key == key && c.Project == p {
+		if d.Kind == kind && d.Key == key && c.Project == p {
 			delete(s.Open, c)
 		}
 	}

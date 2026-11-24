@@ -35,9 +35,28 @@ const (
 	cardBucketBytes = 1200
 )
 
-// Card builds the project card as of at. Counts and date ranges are read
-// in one transaction, so they agree with each other.
+// ConfigRefs are what a saved config uses, as the card shows it (3.2): a
+// page's views, and a view's tables.
+type ConfigRefs struct {
+	Views  []string
+	Tables []string
+}
+
+// RefsFunc reads what a saved config uses, given the project's tables.
+// The store doesn't parse configs, so the caller gives it (view.CardRefs).
+type RefsFunc func(c Config, tables []string) ConfigRefs
+
+// Card builds the project card as of at, without what configs use: views
+// and pages are listed with their titles and types only.
 func (p *ProjectDB) Card(ctx context.Context, at time.Time) (string, error) {
+	return p.CardWith(ctx, at, nil)
+}
+
+// CardWith builds the project card as of at, with refs for what each
+// saved view and page uses (P3-03): the views each page shows, and the
+// views and forms that use each table. Counts, date ranges and configs are
+// read in one transaction, so they agree with each other.
+func (p *ProjectDB) CardWith(ctx context.Context, at time.Time, refs RefsFunc) (string, error) {
 	return readTx(ctx, p.DB, func(tx *sql.Tx) (string, error) {
 		var name string
 		err := tx.QueryRowContext(ctx, `SELECT value FROM _jenab_meta WHERE key = 'name'`).Scan(&name)
@@ -49,6 +68,10 @@ func (p *ProjectDB) Card(ctx context.Context, at time.Time) (string, error) {
 			return "", err
 		}
 		slices.SortFunc(names, func(a, b string) int { return strings.Compare(strings.ToLower(a), strings.ToLower(b)) })
+		cfg, err := readCardConfigs(tx, names, refs)
+		if err != nil {
+			return "", err
+		}
 		lines := make([]string, 0, len(names))
 		for _, n := range names {
 			t, err := describe(ctx, tx, n, true)
@@ -59,7 +82,7 @@ func (p *ProjectDB) Card(ctx context.Context, at time.Time) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			lines = append(lines, cardTable(t, ranges))
+			lines = append(lines, cardTable(t, ranges)+cfg.tableUsers(n))
 		}
 		bucket, err := cardBucket(ctx, tx)
 		if err != nil {
@@ -71,11 +94,121 @@ func (p *ProjectDB) Card(ctx context.Context, at time.Time) (string, error) {
 		}
 		head += ", as of " + at.Format("2006-01-02 15:04") + " (UTC" + at.Format("-07:00") + "). " +
 			"Row counts and date ranges are from then; query for numbers now."
-		full := head + "\n" + cardTables(lines) + "\n" + bucket
+		full := head + "\n" + cardTables(lines) + cfg.full() + "\n" + bucket
 		if len(full)/4 < CardTokens {
 			return full, nil
 		}
-		return head + "\n" + cardNames(names, max(CardTokens*4-len(head)-len(bucket)-2, 0)) + "\n" + bucket, nil
+		short := cfg.short()
+		return head + "\n" + cardNames(names, max(CardTokens*4-len(head)-len(bucket)-len(short)-2, 0)) + short + "\n" + bucket, nil
+	})
+}
+
+// cardConfigs are the card's views and pages, and the views and forms
+// that use each table.
+type cardConfigs struct {
+	views, pages []Config
+	pageViews    map[string][]string // page ID → the views it shows
+	tableViews   map[string][]string // lower-case table → views that use it, forms aside
+	tableForms   map[string][]string // lower-case table → forms that use it
+}
+
+// readCardConfigs reads the live views and pages in tx, and with refs
+// what each uses.
+func readCardConfigs(tx *sql.Tx, tables []string, refs RefsFunc) (*cardConfigs, error) {
+	vs, err := ConfigsTx(tx, KindView)
+	if err != nil {
+		return nil, err
+	}
+	ps, err := ConfigsTx(tx, KindPage)
+	if err != nil {
+		return nil, err
+	}
+	c := &cardConfigs{views: vs, pages: ps, pageViews: map[string][]string{},
+		tableViews: map[string][]string{}, tableForms: map[string][]string{}}
+	if refs == nil {
+		return c, nil
+	}
+	for _, p := range ps {
+		c.pageViews[p.ID] = refs(p, tables).Views
+	}
+	for _, v := range vs {
+		for _, t := range refs(v, tables).Tables {
+			k := strings.ToLower(t)
+			if v.Type == "form" {
+				c.tableForms[k] = append(c.tableForms[k], v.ID)
+			} else {
+				c.tableViews[k] = append(c.tableViews[k], v.ID)
+			}
+		}
+	}
+	return c, nil
+}
+
+// tableUsers ends table's line: the views and forms that use it.
+func (c *cardConfigs) tableUsers(table string) string {
+	k := strings.ToLower(table)
+	s := ""
+	if vs := c.tableViews[k]; len(vs) > 0 {
+		s += "; views " + strings.Join(vs, ", ")
+	}
+	if fs := c.tableForms[k]; len(fs) > 0 {
+		s += "; forms " + strings.Join(fs, ", ")
+	}
+	return s
+}
+
+// full is the views and pages, each on a line with its title, a view's
+// type and a page's views; "" when the project has none.
+func (c *cardConfigs) full() string {
+	var b strings.Builder
+	if len(c.views) > 0 {
+		b.WriteString("\nViews:")
+		for _, v := range c.views {
+			fmt.Fprintf(&b, "\n- %s (%s): %s", v.ID, v.Type, quoteName(v.Title))
+		}
+	}
+	if len(c.pages) > 0 {
+		b.WriteString("\nPages:")
+		for _, p := range c.pages {
+			fmt.Fprintf(&b, "\n- %s: %s", p.ID, quoteName(p.Title))
+			if vs := c.pageViews[p.ID]; len(vs) > 0 {
+				b.WriteString("; views " + strings.Join(vs, ", "))
+			}
+		}
+	}
+	return b.String()
+}
+
+// short is the views and pages by ID alone, for a card with no room for
+// more; read_config shows one.
+func (c *cardConfigs) short() string {
+	ids := func(cs []Config) string {
+		out := make([]string, len(cs))
+		for i, x := range cs {
+			out[i] = x.ID
+		}
+		return strings.Join(out, ", ")
+	}
+	s := ""
+	if len(c.views) > 0 {
+		s += fmt.Sprintf("\nViews (%d; read_config shows one): %s.", len(c.views), ids(c.views))
+	}
+	if len(c.pages) > 0 {
+		s += fmt.Sprintf("\nPages (%d): %s.", len(c.pages), ids(c.pages))
+	}
+	return s
+}
+
+// ConfigStamp changes whenever a view or a page is saved, deleted, undone
+// or redone: it is the sum of their revisions, deleted ones' too, and
+// every such write raises one. The agent rebuilds the card when it
+// changes (P3-03).
+func (p *ProjectDB) ConfigStamp(ctx context.Context) (int64, error) {
+	return readTx(ctx, p.DB, func(tx *sql.Tx) (int64, error) {
+		var n int64
+		err := tx.QueryRowContext(ctx, `SELECT (SELECT coalesce(sum(revision), 0) FROM _jenab_views) +
+			(SELECT coalesce(sum(revision), 0) FROM _jenab_pages)`).Scan(&n)
+		return n, err
 	})
 }
 

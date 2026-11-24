@@ -1,0 +1,14 @@
+# P3-03: the real config tools (save_view, save_page, validate,
+# read_config, open_page, delete_config) on the Bitcoin project. data.sql
+# fills the run's project database with prices and news and three saved
+# views on the page bitcoin, so the project card (block 4) lists them.
+# The chat builds new views and a page, changes a view, fixes a config
+# the validator refuses, opens the page and removes a view the user no
+# longer wants.
+#
+# No fake tools: the real data and config tools and the built-in
+# config-guide skill.
+title: Bitcoin tracker
+project_card: true
+today: 2026-10-01   # the day after the data ends, for the date in block 1
+data: data.sql

@@ -210,3 +210,15 @@ func (s *ChatService) UndoMemory(ctx context.Context, p id.Project, r MemoryUndo
 	})
 	return res, err
 }
+
+// ConfigUndone reports whether a saved or deleted view or page is undone
+// now, so its chip says so after Undo turn (P3-03). Its undo is the
+// turn's: the chip has no button of its own.
+func (s *ChatService) ConfigUndone(ctx context.Context, p id.Project, change string) (undone bool, err error) {
+	defer s.guard("chat.config_undone", &err)
+	err = open(ctx, s.projects, p, func(proj *project.Project) error {
+		undone, err = proj.DB.ChangeUndone(ctx, id.Change(change))
+		return err
+	})
+	return undone, err
+}

@@ -16,6 +16,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/chat"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/project"
+	"github.com/amir-saatchi/jenab/internal/store"
 )
 
 type fakeServices struct {
@@ -133,6 +134,33 @@ func TestOpeningStaysPutWhenThePlaceChanged(t *testing.T) {
 	s.Nav.Go(Place{View: ViewSettings}) // the user moved on while it opened
 	until(t, l, func() bool { _, ok := s.Projects.Opened["p1"]; return ok })
 	wantAt(t, s.Nav, Place{View: ViewSettings})
+}
+
+// A deleted page closes in every chat of its project (SPEC 5.9, P3-03);
+// a saved one, a deleted view and another project's page stay.
+func TestADeletedPageCloses(t *testing.T) {
+	s, _, _, _ := newStores(t)
+	a, b := ChatRef{Project: "p1", Chat: "a"}, ChatRef{Project: "p1", Chat: "b"}
+	c, d := ChatRef{Project: "p1", Chat: "c"}, ChatRef{Project: "p2", Chat: "d"}
+	s.Shell.Dock(a, Docked{Kind: "page", Key: "bitcoin"})
+	s.Shell.Dock(b, Docked{Kind: "page", Key: "bitcoin", Filters: `{"from_date":"2026-09-25"}`})
+	s.Shell.Dock(c, Docked{Kind: "page", Key: "news"})
+	s.Shell.Dock(d, Docked{Kind: "page", Key: "bitcoin"})
+	s.Apply(app.EventConfigs, project.ConfigsChanged{Project: "p1", Changes: []store.ConfigChange{
+		{Kind: store.KindView, ID: "news", Op: "delete", Revision: 2},
+		{Kind: store.KindPage, ID: "news", Op: "save", Revision: 3},
+	}})
+	same(t, len(s.Shell.Open), 4)
+	s.Apply(app.EventConfigs, project.ConfigsChanged{Project: "p1", Changes: []store.ConfigChange{
+		{Kind: store.KindPage, ID: "bitcoin", Op: "delete", Revision: 2},
+	}})
+	for _, r := range []ChatRef{a, b} {
+		if _, ok := s.Shell.Open[r]; ok {
+			t.Errorf("%s: the deleted page stays docked", r.Chat)
+		}
+	}
+	same(t, s.Shell.Open[c].Key, "news")
+	same(t, s.Shell.Open[d].Key, "bitcoin")
 }
 
 func TestNoticesBecomeToasts(t *testing.T) {

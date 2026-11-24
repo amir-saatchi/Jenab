@@ -341,3 +341,40 @@ func TestSpikeNotices(t *testing.T) {
 		t.Errorf("without Deps.Notices B has %d messages, want 4", n)
 	}
 }
+
+// A saved view changes the card too (P3-03), but the new card comes at
+// the next turn's first request: within the turn, the save's result says
+// what it saved. A migration in the same turn still brings it at once.
+func TestCardAfterConfigSave(t *testing.T) {
+	empty := json.RawMessage(`{"type": "object"}`)
+	save := tool.Func(tool.Spec{Name: "save", Description: "Saves a view.", Schema: empty},
+		func(ctx context.Context, env *tool.Env, _ struct{}) (tool.Result, error) {
+			_, err := env.Project.DB.SaveConfig(ctx, store.ConfigSave{Kind: store.KindView, ID: "close_now", Type: "stat", Title: "Close",
+				YAML: "version: 1\nid: close_now\n", Source: id.SourceUser})
+			return tool.Result{Text: "saved"}, err
+		})
+	h := newHarness(t, t.TempDir(), "", testSettings(), append(cardTools(), save)...)
+	defer h.stop()
+	h.o.d.Card = realCard
+	c := h.newChat(chat.Chat{Title: "Prices"})
+	h.fp.Push(fake.ToolCall("c1", "migrate", struct{}{}), fake.ToolCall("c2", "save", struct{}{}), fake.Text("done"), fake.Text("hi"))
+	h.turn(c.ID, "make a table and a view")
+	h.turn(c.ID, "hello")
+	calls := h.fp.Calls()
+	if len(calls) != 4 {
+		t.Fatalf("%d requests, want 4", len(calls))
+	}
+	want := []int{0, 1, 1, 2}
+	for i, req := range calls {
+		notes := cardNotes(req)
+		if len(notes) != want[i] {
+			t.Fatalf("request %d: %d card notes, want %d: %q", i+1, len(notes), want[i], notes)
+		}
+		if len(notes) > 0 && strings.Contains(notes[len(notes)-1], "close_now") != (i == 3) {
+			t.Errorf("request %d, last card note:\n%s", i+1, notes[len(notes)-1])
+		}
+	}
+	if last := cardNotes(calls[3]); !strings.Contains(last[1], "Views:\n- close_now (stat): \"Close\"") {
+		t.Errorf("the next turn's card:\n%s", last[1])
+	}
+}

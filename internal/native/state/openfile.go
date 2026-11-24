@@ -152,3 +152,12 @@ func (s *Stores) docked() bool {
 	_, ok := s.Shell.Open[ChatRef{pl.Project, pl.Chat}]
 	return ok
 }
+
+// OpenPage opens a saved page in the main area with the chat in the dock,
+// with filters, a JSON object of filter values, or "" for the page's
+// defaults: the Open of a page's chip (P3-03). The shell draws pages from
+// P3-10 on; until then the request is kept and the chat stays as it is.
+func (s *Stores) OpenPage(p id.Project, c id.Chat, page, filters string) {
+	s.Shell.RightTab, s.Shell.RightOverlay, s.Shell.RightHidden = TabPages, false, false
+	s.Shell.Dock(ChatRef{p, c}, Docked{Kind: "page", Key: page, Filters: filters})
+}

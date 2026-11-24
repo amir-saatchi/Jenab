@@ -526,3 +526,24 @@ func OuterClauses(q string) ([]Clause, error) {
 	}
 	return out, nil
 }
+
+// Names returns the names in q, which must pass Check: its words and
+// quoted names, without their quotes, each once, in the order they first
+// come. Keywords and numbers are words too, so a caller matches the
+// names against those it knows, such as the project's tables (P3-03's
+// project card).
+func Names(q string) ([]string, error) {
+	c, err := check(q)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, t := range c.toks {
+		if (t.kind == word || t.kind == quoted) && !seen[t.text] {
+			seen[t.text] = true
+			out = append(out, t.text)
+		}
+	}
+	return out, nil
+}

@@ -1,0 +1,111 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/views-and-pages/_offline.yaml scenarios/views-and-pages
+# Each scenario gets the replies a model that passes would give, in order.
+# The calls reach the real config tools on the run's project database, so
+# the configs here pass the validator.
+scenarios:
+  V1_build_page:
+    - calls: [{name: load_skill, args: {name: config-guide}}]
+    - calls:
+        - name: save_view
+          args:
+            config: |
+              version: 1
+              id: btc_daily_change
+              title: Daily change
+              type: chart
+              chart_type: bar
+              query: |
+                SELECT date, price - LAG(price) OVER (ORDER BY date) AS change FROM btc_prices
+              x: { field: date, label: "Date", format: date }
+              y:
+                - { field: change, label: "USD" }
+        - name: save_view
+          args:
+            config: |
+              version: 1
+              id: btc_biggest_rise
+              title: Biggest daily rise
+              type: stat
+              query: |
+                SELECT max(change) AS rise FROM (
+                  SELECT price - LAG(price) OVER (ORDER BY date) AS change FROM btc_prices)
+              value: { field: rise, format: currency, format_options: { currency: USD, decimals: 0 } }
+              caption: "largest rise from one day to the next"
+    - calls:
+        - name: save_page
+          args:
+            config: |
+              version: 1
+              id: btc_moves
+              title: BTC moves
+              rows:
+                - [ { view: btc_biggest_rise, span: 4 }, { view: btc_daily_change } ]
+    - calls: [{name: open_page, args: {id: btc_moves}}]
+    - text: The page BTC moves is saved, with a bar chart of the daily change and the biggest daily rise. Open it from the chip.
+  V2_change_view:
+    - calls: [{name: read_config, args: {id: btc_price_chart}}]
+    - calls:
+        - name: save_view
+          args:
+            config: |
+              version: 1
+              id: btc_price_chart
+              title: Daily close
+              type: chart
+              chart_type: bar
+              query: |
+                SELECT date, price FROM btc_prices WHERE date >= :from_date
+              filters:
+                - { param: from_date, control: date, label: "From", default: "today-30d", required: true }
+              x: { field: date, label: "Date", format: date }
+              y:
+                - { field: price, label: "USD" }
+    - text: The price chart is now a bar chart called Daily close; the Bitcoin page shows it.
+  V3_fix_error:
+    - calls:
+        - name: save_view
+          args:
+            config: |
+              version: 1
+              id: btc_news_count
+              title: News per day
+              type: table
+              query: |
+                SELECT date, count(*) AS items FROM btc_news GROUP BY date ORDER BY date DESC
+              columns:
+                - { field: date, label: "Date", format: date }
+                - { field: items, label: "Items", format: number }
+    - calls:
+        - name: save_view
+          args:
+            config: |
+              version: 1
+              id: btc_news_count
+              title: News per day
+              type: table
+              query: |
+                SELECT date, count(*) AS items FROM btc_news GROUP BY date
+              default_sort: { field: date, direction: desc }
+              columns:
+                - { field: date, label: "Date", format: date }
+                - { field: items, label: "Items", format: number }
+    - text: The app refused it at first; I took ORDER BY out of the query and added default_sort, and it is saved now.
+  V4_open_page:
+    - calls: [{name: open_page, args: {id: bitcoin, filters: {from_date: "2026-09-25"}}}]
+    - text: The Bitcoin page is ready from September 25 on; open it from the chip.
+  V5_remove_view:
+    - calls:
+        - name: save_page
+          args:
+            config: |
+              version: 1
+              id: bitcoin
+              title: Bitcoin
+              description: Price and news
+              filters:
+                - { param: from_date, control: date, label: "From", default: "today-30d", required: true }
+              rows:
+                - [ { view: btc_last_price, span: 4 }, { view: btc_price_chart } ]
+    - calls: [{name: delete_config, args: {id: btc_news_list}}]
+    - text: The news table is off the Bitcoin page and deleted.

@@ -24,17 +24,17 @@ func TestPruneKeepsAChatMadeSinceTheListWasRead(t *testing.T) {
 	c1, c2, c3 := ChatRef{"p1", "c1"}, ChatRef{"p1", "c2"}, ChatRef{"p1", "c3"}
 	s.Nav.Go(ChatPlace("p1", "c1"))
 	s.Nav.Go(ChatPlace("p1", "c2"))
-	s.Shell.Dock(c2, Docked{"file", "old.csv"}) // c2 is deleted below
-	loaded := s.Chats.Load("p1")                // reads the list before c3 is made
+	s.Shell.Dock(c2, Docked{Kind: "file", Key: "old.csv"}) // c2 is deleted below
+	loaded := s.Chats.Load("p1")                           // reads the list before c3 is made
 	g.lists.came(t, l, 1)
 	s.Nav.Go(ChatPlace("p1", "c3")) // made
-	s.Shell.Dock(c3, Docked{"file", "new.csv"})
+	s.Shell.Dock(c3, Docked{Kind: "file", Key: "new.csv"})
 	s.Shell.ChatHidden[c3] = true
 	s.Nav.Go(ChatPlace("p1", "c1")) // and left
 	g.lists.answer(0, []app.ChatItem{item("c1", nil, "")})
 	await(t, l, loaded)
 
-	same(t, s.Shell.Open[c3], Docked{"file", "new.csv"})
+	same(t, s.Shell.Open[c3], Docked{Kind: "file", Key: "new.csv"})
 	if !s.Shell.ChatHidden[c3] {
 		t.Error("c3's chat was shown again")
 	}

@@ -267,7 +267,7 @@ func TestBuiltin(t *testing.T) {
 		t.Fatal(err)
 	}
 	cg, ok := s.Get(chat.KindChat, "config-guide")
-	if !ok || strings.Join(cg.LoadWith, ",") != "save_view,save_page" || !strings.Contains(cg.Description, "Load before save_view or save_page") {
+	if !ok || strings.Join(cg.LoadWith, ",") != "save_view,save_page,delete_config" || !strings.Contains(cg.Description, "Load before save_view, save_page or delete_config") {
 		t.Fatalf("config-guide: %+v", cg)
 	}
 	if dd, ok := s.Get(chat.KindChat, "database-design"); !ok || !slices.Equal(dd.Needs, []string{"request_schema_change"}) {

@@ -1,0 +1,18 @@
+id: V5_remove_view
+title: 'Remove the news list the user no longer wants'
+tests: ["off_page", "deleted", "kept", "data_kept"]
+context: main
+why: 'Take btc_news_list off the page bitcoin (save the page without it), then delete it with delete_config; the other views stay, and so do the btc_news table and its rows.'
+messages:
+  - text: 'I don''t need the news list on the Bitcoin page any more. Take it off the page and get rid of that view.'
+asserts:
+  - {type: db_query, test: off_page, query: "SELECT config LIKE '%btc_news_list%' FROM _jenab_pages WHERE id = 'bitcoin' AND config <> ''", match: '^0$'}
+  - {type: db_query, test: deleted, query: "SELECT count(*) FROM _jenab_views WHERE id = 'btc_news_list' AND config = ''", match: '^1$'}
+  - {type: db_query, test: kept, query: "SELECT group_concat(id) FROM (SELECT id FROM _jenab_views WHERE config <> '' ORDER BY id)", match: '^btc_last_price,btc_price_chart$'}
+  - {type: db_query, test: kept, query: "SELECT count(*) FROM _jenab_pages WHERE id = 'bitcoin' AND config <> ''", match: '^1$'}
+  # A view is not its data: the first version of this scenario said "the
+  # news table", and every run on both models dropped btc_news too.
+  - {type: db_query, test: data_kept, query: "SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = 'btc_news'", match: '^1$'}
+  - {type: tool_not_called, test: data_kept, tool: request_schema_change}
+  - {type: tool_called, test: info, tool: delete_config, result_match: '^Deleted view btc_news_list'}
+  - {type: no_turn_failed, test: info}

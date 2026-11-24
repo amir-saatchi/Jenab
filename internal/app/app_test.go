@@ -20,6 +20,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/store"
 	"github.com/amir-saatchi/jenab/internal/tool"
+	"github.com/amir-saatchi/jenab/internal/view"
 )
 
 // event is one emitted event.
@@ -148,7 +149,7 @@ func newEnv(t *testing.T, root string) *env {
 	e.cancel = cancel
 	e.traces = agent.NewTraces()
 	e.orch = agent.New(agent.Deps{Context: appCtx, Projects: e.pm, Models: models, Tools: tools, Settings: e.settings.Get, Events: pub, Traces: e.traces,
-		Card: func(ctx context.Context, p *project.Project) (string, error) { return p.DB.Card(ctx, time.Now()) }})
+		Card: func(ctx context.Context, p *project.Project) (string, error) { return view.Card(ctx, p.DB, time.Now()) }})
 	e.svc = NewServices(Services{Orchestrator: e.orch, Projects: e.pm, Registry: e.reg, Models: models, Secrets: secrets,
 		Settings: e.settings, Traces: e.traces, Logs: e.paths.Logs})
 	t.Cleanup(e.stop)

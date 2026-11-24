@@ -23,9 +23,9 @@ import (
 )
 
 // Block 1 tells the model only of work its tools can do (TASK-011,
-// TASK-014). With the built-in tools, which work on tables only (P2-05),
-// pipelines and views, the prompt rule, Mother's delegation lines and the
-// config-guide skill are left out; the sql-queries skill is listed.
+// TASK-014). With the built-in tools, which work on tables (P2-05) and
+// views (P3-03), pipelines, the prompt rule and Mother's delegation lines
+// are left out; the sql-queries and config-guide skills are listed.
 func TestBlockOneBuiltin(t *testing.T) {
 	tools := append(tool.Builtin(tool.Deps{Web: web.NewClient(web.Options{})}), Tools()...)
 	h := newHarness(t, t.TempDir(), "", testSettings(), tools...)
@@ -40,8 +40,8 @@ func TestBlockOneBuiltin(t *testing.T) {
 	for i, req := range h.fp.Calls() {
 		sys := req.System[0].Text
 		if strings.Contains(sys, "Requests with several parts") || strings.Contains(sys, "You direct the other chats") ||
-			strings.Contains(sys, "config-guide") || !strings.Contains(sys, "- sql-queries: ") ||
-			!strings.Contains(sys, "keeps a project: tables in a local database. This version has no pipelines or views yet. You work") ||
+			!strings.Contains(sys, "- config-guide: ") || !strings.Contains(sys, "- sql-queries: ") ||
+			!strings.Contains(sys, "keeps a project: tables in a local database and views. This version has no pipelines yet. You work") ||
 			!strings.Contains(sys, "If no tool can do what the user asks") {
 			t.Errorf("request %d, block 1:\n%s", i, sys)
 		}

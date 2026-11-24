@@ -1,0 +1,12 @@
+id: V4_open_page
+title: 'Open the Bitcoin page from September 25'
+tests: ["opened", "no_change"]
+context: main
+why: 'Call open_page with the page bitcoin and its filter from_date set to 2026-09-25; change nothing.'
+messages:
+  - text: 'Open the Bitcoin page for me, from September 25 on.'
+asserts:
+  - {type: tool_called, test: opened, tool: open_page, args_match: '(?s)"bitcoin".*2026-09-25|2026-09-25.*"bitcoin"', result_match: '^Asked the app to open the page bitcoin'}
+  - {type: notice_shown, test: opened, match: '^open_page: Page: bitcoin'}
+  - {type: tool_not_called, test: no_change, tools: [save_view, save_page, delete_config]}
+  - {type: no_turn_failed, test: info}
