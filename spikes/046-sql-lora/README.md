@@ -84,9 +84,12 @@ On 2026-11-24 it gave 189 passing runs and 422 chat examples. The scripted repli
 
    `*_OVERRIDE` settings change one choice, such as an 8k context if 16k runs out of memory. Then Go, a clone of the public repository (no `.env`) and the runner, built with `CGO_ENABLED=0`.
 2. A scripted smoke of every training set and the export, with no GPU.
-3. Ollama, connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key. One model is loaded at a time.
+3. Ollama with the teachers and the base model (`lfm3:1.7b` at 8k, as on the PC), connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key. One model is loaded at a time.
 4. A 10-run check on the first teacher that prints the time per run and an estimate for all training sets.
-5. The training sets in chunks of 10 scenarios, one teacher after the other. Each chunk saves its report to Drive with a `DONE` file. After a disconnect, run the cells again: finished chunks are skipped.
-6. The export to Drive.
+5. The held-out sets, 3 reps: the base model (the baseline) and each teacher (the ceiling). Reports go to `heldout/` in Drive, apart from the training reports and without `-examples`. The cell prints a table of pass rates by set, the spread over reps and the median time, and saves it as `heldout/summary.md`. Run it before cell 6: if the base model passes about 90%, there is nothing to train.
+6. The training sets in chunks of 10 scenarios, one teacher after the other. Each chunk saves its report to Drive with a `DONE` file. After a disconnect, run the cells again: finished chunks are skipped. The held-out cell resumes the same way.
+7. The export to Drive.
+
+The base model's pass rates from Colab should be close to the PC's: the same model file and the same Ollama, on a GPU instead of a CPU. Its speed and RAM on the laptop are measured on the PC (Part B step 8).
 
 The notebook clones `BRANCH` (`main`). The sets and the export must be on that branch first.
