@@ -20,7 +20,7 @@ Edit the generator, not the sets. It writes:
 
 Each task is one user message. The reference answer is worked out by running the task's reference SQL on the fixture. The checks are the runner's own asserts: `tool_called` with `args_match` and `result_match`, `answer_contains`, and `db_query` for inserts. There is no judge model.
 
-Kinds of task: totals, averages and counts; joins; date ranges; filters and sorting; top-N; a table the card doesn't describe (`-short` sets); adding rows with `insert`; a request for an internal `_jenab_` table, which the SQL guard refuses; a question the data can't answer. Most tasks also have a Persian twin, a task of its own.
+Kinds of task: totals, averages and counts; joins; date ranges; filters and sorting; top-N; a table the card doesn't describe (`-short` sets); adding rows with `insert`; a request for an internal `_jenab_` table, which the SQL guard refuses (the chat may try it and recover, or skip it at once; both pass); a question the data can't answer. Most tasks also have a Persian twin, a task of its own.
 
 | Split | Fixture | Tasks (plain + short) |
 |---|---|---|

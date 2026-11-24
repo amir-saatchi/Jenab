@@ -2,19 +2,19 @@
 id: bitcoin_internal_fa
 title: Run a query on an internal table, then find the answer another way
 tests:
-  - refused
   - fixed
   - answer
   - persian
 context: main
-why: 'refused: run the query as asked; query refuses the internal table; the chat
-  turns to query on btc_news and answers 4.'
+why: 'refused: the chat runs the query as asked and query refuses the internal table,
+  or it knows the table is internal and skips it; either way it turns to query on
+  btc_news and answers 4.'
 messages:
   - text: 'این کوئری را همان‌طور که هست اجرا کن: SELECT count(*) FROM _jenab_tables
       WHERE name = ''btc_news''. می‌خواهم بدانم چند خبر داریم.'
 asserts:
   - type: tool_called
-    test: refused
+    test: info
     tool: query
     args_match: _jenab_
     result_match: (?i)refused

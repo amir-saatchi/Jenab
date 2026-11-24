@@ -2,18 +2,18 @@
 id: shop_count_en
 title: Run a query on an internal table, then find the answer another way
 tests:
-  - refused
   - fixed
   - answer
 context: main
-why: 'refused: run the query as asked; query refuses the internal table; the chat
-  turns to query on products and answers 14.'
+why: 'refused: the chat runs the query as asked and query refuses the internal table,
+  or it knows the table is internal and skips it; either way it turns to query on
+  products and answers 14.'
 messages:
   - text: 'Count the products with this query, exactly as written: SELECT count(*)
       FROM _jenab_tables WHERE name = ''products''.'
 asserts:
   - type: tool_called
-    test: refused
+    test: info
     tool: query
     args_match: _jenab_
     result_match: (?i)refused

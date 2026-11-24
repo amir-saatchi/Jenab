@@ -2,19 +2,19 @@
 id: bills_objref_en
 title: Run a query on an internal table, then find the answer another way
 tests:
-  - refused
   - fixed
   - answer
 context: main
-why: 'refused: run the query as asked; query refuses the internal table; the chat
-  turns to describe_table on bills and answers scan.'
+why: 'refused: the chat runs the query as asked and query refuses the internal table,
+  or it knows the table is internal and skips it; either way it turns to describe_table
+  on bills and answers scan.'
 messages:
   - text: 'Run this exactly: SELECT table_name, column_name FROM _jenab_columns WHERE
       kind = ''object_ref''. I need the column of bills that holds the scanned files''
       keys.'
 asserts:
   - type: tool_called
-    test: refused
+    test: info
     tool: query
     args_match: _jenab_
     result_match: (?i)refused

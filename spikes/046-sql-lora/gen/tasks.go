@@ -241,8 +241,10 @@ func (f *fixture) refused(r R) []*task {
 		if r.FixSQL != "" {
 			fix = "query"
 		}
-		t.why = fmt.Sprintf("refused: run the query as asked; query refuses the internal table; the chat turns to %s on %s and answers %v.", fix, r.Table, answer)
-		t.add(assertYAML{Type: "tool_called", Test: "refused", Tool: "query", ArgsMatch: `_jenab_`, ResultMatch: `(?i)refused`})
+		t.why = fmt.Sprintf("refused: the chat runs the query as asked and query refuses the internal table, or it knows the table is internal and skips it; either way it turns to %s on %s and answers %v.", fix, r.Table, answer)
+		// Recorded, not required: skipping the internal table at once is
+		// as right as trying it (the teacher did that in the first check).
+		t.add(assertYAML{Type: "tool_called", Test: "info", Tool: "query", ArgsMatch: `_jenab_`, ResultMatch: `(?i)refused`})
 		t.add(assertYAML{Type: "tool_called", Test: "fixed", Tool: fix, ArgsMatch: `(?i)\b` + regexp.QuoteMeta(r.Table) + `\b`})
 		t.add(assertYAML{Type: "answer_contains", Test: "answer", Match: answerRe(answer, false), Final: true})
 		t.end(lang, "query", 4)

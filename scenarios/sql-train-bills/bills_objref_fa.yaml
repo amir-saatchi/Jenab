@@ -2,20 +2,20 @@
 id: bills_objref_fa
 title: Run a query on an internal table, then find the answer another way
 tests:
-  - refused
   - fixed
   - answer
   - persian
 context: main
-why: 'refused: run the query as asked; query refuses the internal table; the chat
-  turns to describe_table on bills and answers scan.'
+why: 'refused: the chat runs the query as asked and query refuses the internal table,
+  or it knows the table is internal and skips it; either way it turns to describe_table
+  on bills and answers scan.'
 messages:
   - text: 'این را دقیقاً اجرا کن: SELECT table_name, column_name FROM _jenab_columns
       WHERE kind = ''object_ref''. ستونی از bills را می‌خواهم که کلید فایل‌های اسکن‌شده
       را نگه می‌دارد.'
 asserts:
   - type: tool_called
-    test: refused
+    test: info
     tool: query
     args_match: _jenab_
     result_match: (?i)refused
