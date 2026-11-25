@@ -78,21 +78,22 @@ On 2026-11-24 it gave 189 passing runs and 422 chat examples. The scripted repli
 
    | GPU | Teacher | Context | Runs at a time |
    |---|---|---|---|
-   | G4 96 GB | `gemma4:31b-it-q8_0` (about 33 GB); `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 3 |
-   | A100 80 GB | `gemma4:31b-it-q8_0`; `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 2 (up to 4) |
+   | G4 96 GB | `gemma4:31b-it-q8_0` (about 33 GB); `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 4 |
+   | A100 80 GB | `gemma4:31b-it-q8_0`; `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 4 |
    | A100 40 GB | `gemma4:31b-it-q8_0` | 16k | 1 |
    | L4 24 GB (fallback) | `gemma4:31b-it-q4_K_M` | 8k | 1 |
 
-   `*_OVERRIDE` settings change one choice, such as an 8k context if 16k runs out of memory. Then Go, a clone of the public repository (no `.env`) and the runner, built with `CGO_ENABLED=0`.
+   `*_OVERRIDE` settings change one choice, such as an 8k context if 16k runs out of memory. `BASE_PARALLEL` (8) is the runs at a time for the small base model. Then Go, a clone of the public repository (no `.env`), the runner, built with `CGO_ENABLED=0`, and the helpers the later cells use.
 2. A scripted smoke of every training set and the export, with no GPU.
-3. Ollama with the teachers and the base model (`lfm3:1.7b` at 8k, as on the PC), connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key. One model is loaded at a time.
-4. A 10-run check on the first teacher that prints the time per run and an estimate for all training sets.
-5. The held-out sets, 3 reps: the base model (the baseline) and each teacher (the ceiling). Reports go to `heldout/`, apart from the training reports and without `-examples`. The cell prints a table of pass rates by set, the spread over reps and the median time, and saves it as `heldout/summary.md`. Run it before cell 6: if the base model passes about 90%, there is nothing to train.
+3. Ollama with the teachers and the base model (`lfm3:1.7b` at 8k, as on the PC), connected as an ordinary `ollama` connection at `http://127.0.0.1:11434/`. No key. One model is loaded at a time. Ollama restarts with the runs at a time each model needs, and on loading a model the notebook prints how much of it is on the GPU: less than 100% means part of it is in CPU memory, which is slow.
+4. A 10-run check on the first teacher that prints the time per run and an estimate for all training sets. It can be skipped after a disconnect, like cell 2.
+   Restore (optional): uploads a zip that cell 5 or 8 downloaded and unpacks it, so cells 5 and 6 run only the chunks it lacks.
+5. The held-out sets, 3 reps: the base model (the baseline) and each teacher (the ceiling). Reports go to `heldout/`, apart from the training reports and without `-examples`. Chunks of 5 scenarios run side by side, one run each, as many as Ollama serves at a time (`BASE_PARALLEL` for the base model, the table's number for a teacher). After each model the cell downloads `heldout/` as a zip. The cell prints a table of pass rates by set, the spread over reps and the median time, and saves it as `heldout/summary.md`. Run it before cell 6: if the base model passes about 90%, there is nothing to train.
 6. The training sets in chunks of 10 scenarios, one teacher after the other. Each chunk saves its report with a `DONE` file.
 7. The export.
 8. The download: everything as one zip, through the browser. It works at any point, such as right after cell 5.
 
-Results stay on the VM, in `/content/spike046`, and a disconnect wipes them, so download before you disconnect. With `USE_DRIVE = True` in cell 1, they go to `MyDrive/jenab-spike046` instead. They then survive a disconnect, and cells 5 and 6 resume where they stopped: run the cells again from the top, and chunks with a `DONE` file are skipped. Drive is worth it for the long training run. Colab's Drive mount gives the session access to the whole Drive, though the notebook writes only to its own folder.
+Results stay on the VM, in `/content/spike046`, and a disconnect wipes them, so download before you disconnect. After a disconnect, run cells 1 and 3 and the restore cell with the last zip, then go on. With `USE_DRIVE = True` in cell 1, they go to `MyDrive/jenab-spike046` instead. They then survive a disconnect, and cells 5 and 6 resume where they stopped: run the cells again from the top, and chunks with a `DONE` file are skipped. Drive is worth it for the long training run. Colab's Drive mount gives the session access to the whole Drive, though the notebook writes only to its own folder.
 
 The base model's pass rates from Colab should be close to the PC's: the same model file and the same Ollama, on a GPU instead of a CPU. Its speed and RAM on the laptop are measured on the PC (Part B step 8).
 
