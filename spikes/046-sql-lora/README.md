@@ -78,7 +78,8 @@ On 2026-11-24 it gave 189 passing runs and 422 chat examples. The scripted repli
 
    | GPU | Teacher | Context | Runs at a time |
    |---|---|---|---|
-   | A100 80 GB | `gemma4:31b-it-q8_0` (about 33 GB); `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 2 (up to 4) |
+   | G4 96 GB | `gemma4:31b-it-q8_0` (about 33 GB); `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 3 |
+   | A100 80 GB | `gemma4:31b-it-q8_0`; `gpt-oss:120b` too with `SECOND_TEACHER = True` | 16k | 2 (up to 4) |
    | A100 40 GB | `gemma4:31b-it-q8_0` | 16k | 1 |
    | L4 24 GB (fallback) | `gemma4:31b-it-q4_K_M` | 8k | 1 |
 
