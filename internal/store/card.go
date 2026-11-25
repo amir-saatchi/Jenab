@@ -36,10 +36,12 @@ const (
 )
 
 // ConfigRefs are what a saved config uses, as the card shows it (3.2): a
-// page's views, and a view's tables.
+// page's views, and a view's tables. Broken are a view's issues when it no
+// longer passes validation (P3-04); the card marks it with the first.
 type ConfigRefs struct {
 	Views  []string
 	Tables []string
+	Broken []string
 }
 
 // RefsFunc reads what a saved config uses, given the project's tables.
@@ -110,6 +112,7 @@ type cardConfigs struct {
 	pageViews    map[string][]string // page ID → the views it shows
 	tableViews   map[string][]string // lower-case table → views that use it, forms aside
 	tableForms   map[string][]string // lower-case table → forms that use it
+	broken       map[string][]string // view ID → its issues, when it fails validation
 }
 
 // readCardConfigs reads the live views and pages in tx, and with refs
@@ -124,7 +127,7 @@ func readCardConfigs(tx *sql.Tx, tables []string, refs RefsFunc) (*cardConfigs, 
 		return nil, err
 	}
 	c := &cardConfigs{views: vs, pages: ps, pageViews: map[string][]string{},
-		tableViews: map[string][]string{}, tableForms: map[string][]string{}}
+		tableViews: map[string][]string{}, tableForms: map[string][]string{}, broken: map[string][]string{}}
 	if refs == nil {
 		return c, nil
 	}
@@ -132,7 +135,11 @@ func readCardConfigs(tx *sql.Tx, tables []string, refs RefsFunc) (*cardConfigs, 
 		c.pageViews[p.ID] = refs(p, tables).Views
 	}
 	for _, v := range vs {
-		for _, t := range refs(v, tables).Tables {
+		r := refs(v, tables)
+		if len(r.Broken) > 0 {
+			c.broken[v.ID] = r.Broken
+		}
+		for _, t := range r.Tables {
 			k := strings.ToLower(t)
 			if v.Type == "form" {
 				c.tableForms[k] = append(c.tableForms[k], v.ID)
@@ -165,6 +172,9 @@ func (c *cardConfigs) full() string {
 		b.WriteString("\nViews:")
 		for _, v := range c.views {
 			fmt.Fprintf(&b, "\n- %s (%s): %s", v.ID, v.Type, quoteName(v.Title))
+			if is := c.broken[v.ID]; len(is) > 0 {
+				b.WriteString(" — broken: " + brokenIssue(is) + "; read_config shows it, save_view fixes it")
+			}
 		}
 	}
 	if len(c.pages) > 0 {
@@ -193,8 +203,34 @@ func (c *cardConfigs) short() string {
 	if len(c.views) > 0 {
 		s += fmt.Sprintf("\nViews (%d; read_config shows one): %s.", len(c.views), ids(c.views))
 	}
+	var broken []string
+	for _, v := range c.views {
+		if len(c.broken[v.ID]) > 0 {
+			broken = append(broken, v.ID)
+		}
+	}
+	if len(broken) > 0 {
+		s += "\nBroken views (they fail validation; read_config shows one, save_view fixes it): " + strings.Join(broken, ", ") + "."
+	}
 	if len(c.pages) > 0 {
 		s += fmt.Sprintf("\nPages (%d): %s.", len(c.pages), ids(c.pages))
+	}
+	return s
+}
+
+// cardIssueRunes is about the most of a broken view's issue the card
+// shows.
+const cardIssueRunes = 200
+
+// brokenIssue is a broken view's first issue, cut to fit the card, with
+// how many more there are.
+func brokenIssue(issues []string) string {
+	s := issues[0]
+	if r := []rune(s); len(r) > cardIssueRunes {
+		s = string(r[:cardIssueRunes]) + "…"
+	}
+	if n := len(issues) - 1; n > 0 {
+		s += fmt.Sprintf(" (and %d more)", n)
 	}
 	return s
 }
@@ -209,6 +245,20 @@ func (p *ProjectDB) ConfigStamp(ctx context.Context) (int64, error) {
 		err := tx.QueryRowContext(ctx, `SELECT (SELECT coalesce(sum(revision), 0) FROM _jenab_views) +
 			(SELECT coalesce(sum(revision), 0) FROM _jenab_pages)`).Scan(&n)
 		return n, err
+	})
+}
+
+// ObjectStamp changes when a file is added to the bucket, replaced,
+// renamed or deleted: the count of files and of their versions, and the
+// newest change. Like ConfigStamp, it keys caches of what depends on the
+// bucket, such as which views fail validation.
+func (p *ProjectDB) ObjectStamp(ctx context.Context) (string, error) {
+	return readTx(ctx, p.DB, func(tx *sql.Tx) (string, error) {
+		var n, v int64
+		var at string
+		err := tx.QueryRowContext(ctx, `SELECT count(*), coalesce(max(updated_at), ''),
+			(SELECT count(*) FROM _jenab_object_versions) FROM _jenab_objects`).Scan(&n, &at, &v)
+		return fmt.Sprintf("%d/%d/%s", n, v, at), err
 	})
 }
 

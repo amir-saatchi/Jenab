@@ -106,6 +106,10 @@ type Block struct {
 	// Error is why the block can't show its data, in place of it; ""
 	// for none.
 	Error string
+	// Issues are why a saved view no longer passes validation, as
+	// validation words each, when Error says so (P3-04): the page screen
+	// lists them on the block (P3-09).
+	Issues []string
 	// Notice is a line above the data, as the 10,000-row notice.
 	Notice string
 	// One of these, by Type, unless Error is set; a form has none.
@@ -210,9 +214,21 @@ func (r *Runner) placed(ctx context.Context, pv PlacedView, views Views, req Vie
 	}()
 	v, err := views(pv.View)
 	if err != nil {
-		return Block{View: pv.View, Error: err.Error()}
+		return ErrorBlock(pv.View, err)
 	}
 	return r.safeView(ctx, v, req, pb, opts)
+}
+
+// ErrorBlock is the block of the view vid that couldn't be loaded, with
+// err in place of its data; for a view that no longer passes validation
+// (*view.InvalidError), with its type, title and issues too.
+func ErrorBlock(vid string, err error) Block {
+	b := Block{View: vid, Error: err.Error()}
+	var ie *view.InvalidError
+	if errors.As(err, &ie) {
+		b.Type, b.Title, b.Issues = ie.Type, ie.Title, ie.Issues
+	}
+	return b
 }
 
 // Views gives a page's views by ID; it is called from several

@@ -1,0 +1,22 @@
+id: D1_rename_column
+title: 'Rename a column a table view and a form use'
+tests: ["applied", "renamed", "dependents", "valid", "data_kept"]
+context: main
+why: 'request_schema_change. The schema agent renames btc_news.reason to topic and, in the same apply_migration, sends btc_news_list and edit_news updated to read topic, read first with read_config. The migration saves them with the source migration:<id>; every saved view still validates, and the news rows keep their reasons.'
+messages:
+  - text: 'In btc_news, rename the column reason to topic.'
+asserts:
+  - {type: tool_called, test: applied, tool: request_schema_change, result_match: '^\[request_schema_change: applied'}
+  - {type: db_query, test: renamed, query: "SELECT sum(name = 'topic'), sum(name = 'reason') FROM pragma_table_info('btc_news')", match: '^1\|0$'}
+  # Both dependents read topic now and were saved by the migration; instr
+  # is case-sensitive, so a label "Reason" may stay.
+  - {type: db_query, test: dependents, query: "SELECT count(*) FROM _jenab_views WHERE id IN ('btc_news_list', 'edit_news') AND config <> '' AND instr(config, 'topic') > 0 AND instr(config, 'reason') = 0", match: '^2$'}
+  - {type: db_query, test: dependents, query: "SELECT count(*) FROM _jenab_views WHERE id IN ('btc_news_list', 'edit_news') AND updated_by LIKE 'migration:%'", match: '^2$'}
+  - {type: db_query, test: dependents, query: "SELECT group_concat(id || ':' || revision) FROM (SELECT id, revision FROM _jenab_views WHERE id IN ('btc_price_chart', 'btc_last_price') ORDER BY id)", match: '^btc_last_price:1,btc_price_chart:1$'}
+  - {type: views_valid, test: valid}
+  - {type: db_query, test: data_kept, query: "SELECT count(*), sum(topic <> '') FROM btc_news", match: '^4\|4$'}
+  # Reported only.
+  - {type: tool_called, test: info, agent: schema agent, tool: read_config}
+  - {type: max_calls, test: info, agent: schema agent, tool: apply_migration, n: 1}
+  - {type: max_calls, test: info, tool: request_schema_change, n: 1}
+  - {type: no_turn_failed, test: info}

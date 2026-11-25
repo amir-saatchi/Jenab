@@ -510,26 +510,36 @@ func TestMigrateGuard(t *testing.T) {
 type rawDependent struct{ sql string }
 
 func (d *rawDependent) Kind() string { return "raw" }
-func (d *rawDependent) Update(tx *sql.Tx, _ id.Source, _ DependentUpdate) error {
-	_, err := tx.Exec(d.sql)
+func (d *rawDependent) Update(t *DependentTx, _ id.Source, _ DependentUpdate) error {
+	_, err := t.Tx().Exec(d.sql)
 	return err
 }
-func (d *rawDependent) Check(*sql.Tx) ([]Problem, error) { return nil, nil }
+func (d *rawDependent) Reached(*DependentTx, []string) ([]string, error) { return nil, nil }
+func (d *rawDependent) Check(*DependentTx, []string) ([]Problem, error)  { return nil, nil }
 
 // fakeViews is a dependent kind like Phase 3's views: a config is a query,
 // kept in a table the test makes, and checks by preparing it.
 type fakeViews struct{}
 
 func (fakeViews) Kind() string { return "view" }
-func (fakeViews) Update(tx *sql.Tx, _ id.Source, u DependentUpdate) error {
+func (fakeViews) Update(t *DependentTx, _ id.Source, u DependentUpdate) error {
 	var c struct{ Query string }
 	if err := json.Unmarshal(u.Config, &c); err != nil {
 		return invalid{err}
 	}
-	_, err := tx.Exec(`INSERT INTO _jenab_test_views (id, query) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET query = excluded.query`, u.ID, c.Query)
+	_, err := t.Tx().Exec(`INSERT INTO _jenab_test_views (id, query) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET query = excluded.query`, u.ID, c.Query)
 	return err
 }
-func (fakeViews) Check(tx *sql.Tx) ([]Problem, error) {
+
+// Reached gives every view: the fake doesn't read a query's tables.
+func (fakeViews) Reached(t *DependentTx, _ []string) ([]string, error) {
+	return queryTx(t.Tx(), `SELECT 'view:' || id FROM _jenab_test_views ORDER BY id`, nil, func(r *sql.Rows) (string, error) {
+		var s string
+		return s, r.Scan(&s)
+	})
+}
+func (fakeViews) Check(t *DependentTx, targets []string) ([]Problem, error) {
+	tx := t.Tx()
 	vs, err := queryTx(tx, `SELECT id, query FROM _jenab_test_views ORDER BY id`, nil, func(r *sql.Rows) ([2]string, error) {
 		var v [2]string
 		return v, r.Scan(&v[0], &v[1])
@@ -539,6 +549,9 @@ func (fakeViews) Check(tx *sql.Tx) ([]Problem, error) {
 	}
 	var probs []Problem
 	for _, v := range vs {
+		if !slices.Contains(targets, "view:"+v[0]) {
+			continue
+		}
 		if st, err := tx.Prepare(v[1]); err != nil {
 			probs = append(probs, Problem{Path: "view:" + v[0], Msg: sqliteMsg(err)})
 		} else {
@@ -549,8 +562,8 @@ func (fakeViews) Check(tx *sql.Tx) ([]Problem, error) {
 }
 
 // List gives each view with the tables its query names, for Dependents.
-func (fakeViews) List(_ context.Context, tx *sql.Tx) ([]DependentInfo, error) {
-	return queryTx(tx, `SELECT id, query FROM _jenab_test_views ORDER BY id DESC`, nil, func(r *sql.Rows) (DependentInfo, error) {
+func (fakeViews) List(t *DependentTx) ([]DependentInfo, error) {
+	return queryTx(t.Tx(), `SELECT id, query FROM _jenab_test_views ORDER BY id DESC`, nil, func(r *sql.Rows) (DependentInfo, error) {
 		d := DependentInfo{Kind: "view"}
 		var q string
 		err := r.Scan(&d.ID, &q)
@@ -1342,5 +1355,39 @@ func TestDescribeChecks(t *testing.T) {
 	}
 	if c, _ := d.Column("a"); c.Check != "" {
 		t.Errorf("a check %q with a table CHECK", c.Check)
+	}
+}
+
+// A migration checks the dependents of the tables its steps change,
+// under old names and new; indexes, rows and copied data change none, and
+// a step whose table isn't known reaches every table.
+func TestStepTables(t *testing.T) {
+	parse := func(js ...string) []*step {
+		t.Helper()
+		var raws []json.RawMessage
+		for _, j := range js {
+			raws = append(raws, json.RawMessage(j))
+		}
+		steps, probs := parseSteps(raws)
+		if len(probs) > 0 {
+			t.Fatalf("%v", probs)
+		}
+		return steps
+	}
+	got := stepTables(parse(
+		`{"op": "rename_table", "from": "Prices", "to": "Quotes"}`,
+		`{"op": "rename_column", "table": "news", "from": "a", "to": "b"}`,
+		`{"op": "create_index", "table": "trades", "columns": ["date"]}`,
+		`{"op": "drop_index", "name": "by_date"}`,
+		`{"op": "drop_column", "table": "NEWS", "column": "c"}`,
+	))
+	if want := []string{"prices", "quotes", "news"}; !slices.Equal(got, want) {
+		t.Errorf("tables %v, want %v", got, want)
+	}
+	if got := stepTables(parse(`{"op": "create_index", "table": "trades", "columns": ["date"]}`)); got == nil || len(got) != 0 {
+		t.Errorf("an index alone: %#v, want none", got)
+	}
+	if got := stepTables([]*step{{op: "rename_column", table: "news"}, {op: "future_op"}}); got != nil {
+		t.Errorf("an unknown table: %v, want nil", got)
 	}
 }

@@ -157,7 +157,7 @@ func TestSchemaAgentApplies(t *testing.T) {
 		if !strings.HasPrefix(sys, "You are the schema agent") || !strings.Contains(sys, "Skill loaded: database-design") || !strings.Contains(sys, "Skill loaded: migrations") {
 			t.Errorf("schema agent's system prompt %q", sys)
 		}
-		if got := toolNames(sub); !slices.Equal(got, []string{"apply_migration", "query", "describe_table"}) {
+		if got := toolNames(sub); !slices.Equal(got, []string{"apply_migration", "query", "describe_table", "read_config"}) {
 			t.Errorf("schema agent's tools %v", got)
 		}
 		if got := texts(sub.Messages); len(got) != 1 || !strings.HasPrefix(got[0], "user: Goal: a prices table with date and close\n\n## Tables\n\nThere are no tables yet.") ||

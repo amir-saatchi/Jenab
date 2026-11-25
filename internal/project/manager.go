@@ -16,6 +16,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/config"
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/view"
 )
 
 // IdleAfter is how long a project stays open with no leases (SPEC 2.7).
@@ -330,6 +331,9 @@ func (p *Project) openFiles(ctx context.Context) error {
 		return err
 	}
 	p.DB.Warm()
+	// A migration saves and checks the views and forms that use the
+	// tables it changes (SPEC 7.5, P3-04).
+	view.AddDependents(p.DB)
 	if p.Damage != nil {
 		if _, statErr := os.Stat(filepath.Join(p.Dir, "chats.db")); errors.Is(statErr, os.ErrNotExist) {
 			err = newChats(ctx, p.Dir)

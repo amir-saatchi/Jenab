@@ -1,0 +1,12 @@
+# P3-04: a migration and the views and forms that depend on it, on the
+# Bitcoin project of views-and-pages with a form over btc_news too. The
+# schema agent gets the dependents with the columns they use, reads them
+# with read_config and sends them updated with the migration, which saves
+# them in its own transaction (SPEC 7.5, 8.2). The checks read the
+# project's database at the end and validate every saved view.
+#
+# No fake tools: the real data and config tools and request_schema_change.
+title: Bitcoin tracker
+project_card: true
+today: 2026-10-01   # the day after the data ends
+data: data.sql

@@ -86,17 +86,35 @@ type DependentUpdate struct {
 	Config json.RawMessage `json:"config"`
 }
 
-// Dependent is one kind of config that depends on the schema: views,
-// pipelines and forms, which Phases 3 and 4 add. A migration saves the
-// updates it carries, then checks every config of each kind against the
-// new schema, all inside its transaction (SPEC 7.5).
+// Dependent is one kind of config that depends on the schema: views
+// and forms (Phase 3), pipelines (Phase 4). All inside its transaction
+// (SPEC 7.5), a migration asks each kind which of its configs use the
+// tables its steps change, checks those before the steps, saves the
+// updates it carries after them, and checks those and the updated ones
+// again.
+//
+// A config the migration updated, or one that passed before it, must
+// pass after it, or the migration fails with its problems. One that
+// failed before already and wasn't updated stops it only with an issue
+// it didn't have before, by its target and message (the kind's Check may
+// add issues only an after-check finds, such as a column it used that
+// the steps renamed or dropped). Otherwise it stays broken, and the
+// report lists it in Broken.
 type Dependent interface {
 	Kind() string
-	// Update saves u inside the migration's transaction.
-	Update(tx *sql.Tx, src id.Source, u DependentUpdate) error
-	// Check validates every config of the kind against the schema as tx
-	// has it. Each problem's Path names a config, e.g. view:prices.
-	Check(tx *sql.Tx) ([]Problem, error)
+	// Reached lists the targets of the configs of the kind that use any
+	// of tables (lower-case names), as t has them before the steps, or of
+	// every config of the kind when tables is nil.
+	Reached(t *DependentTx, tables []string) ([]string, error)
+	// Update saves u inside the migration's transaction, a config with
+	// t.SaveConfig. Its source is src, migration:<id>.
+	Update(t *DependentTx, src id.Source, u DependentUpdate) error
+	// Check validates the configs targets against the schema as t has
+	// it, before the steps and after the updates (t.AfterSteps); a target
+	// of another kind, or of a config that is gone, is left out. Each
+	// problem's Path is the config's target, e.g. view:prices, and its
+	// Msg one issue.
+	Check(t *DependentTx, targets []string) ([]Problem, error)
 }
 
 // DependentInfo is one saved config that depends on the schema, with the
@@ -104,14 +122,15 @@ type Dependent interface {
 type DependentInfo struct {
 	Kind  string   `json:"kind"`
 	ID    string   `json:"id"`
+	Type  string   `json:"type,omitempty"` // a view's type, such as form
 	Title string   `json:"title,omitempty"`
 	Uses  []string `json:"uses"` // table.column, or a table alone
 }
 
 // DependentLister is optional for a Dependent: it lists the configs of
-// its kind, as tx has them.
+// its kind, as t has them. t has no connection for QueryColumns.
 type DependentLister interface {
-	List(ctx context.Context, tx *sql.Tx) ([]DependentInfo, error)
+	List(t *DependentTx) ([]DependentInfo, error)
 }
 
 // Dependents lists the saved configs of every kind that can list them, by
@@ -128,7 +147,7 @@ func (p *ProjectDB) Dependents(ctx context.Context) ([]DependentInfo, error) {
 			if !ok {
 				continue
 			}
-			ds, err := l.List(ctx, tx)
+			ds, err := l.List(&DependentTx{ctx: ctx, tx: tx})
 			if err != nil {
 				return nil, err
 			}
@@ -204,7 +223,14 @@ type MigrationReport struct {
 	Estimate      Estimate         `json:"estimate"`
 	Snapshot      string           `json:"snapshot,omitempty"` // taken before it, in snapshots/
 	Updated       []string         `json:"updated,omitempty"`  // dependents saved, as kind:id
-	Problems      []Problem        `json:"problems,omitempty"`
+	// Broken are the dependents that fail their check after the
+	// migration, as kind:id, each failing before it too: the migration
+	// left them as they were (see Dependent).
+	Broken   []string  `json:"broken,omitempty"`
+	Problems []Problem `json:"problems,omitempty"`
+	// Configs are the views and pages the updates changed, as
+	// project:configs sends them after the commit; none for a try.
+	Configs []ConfigChange `json:"configs,omitempty"`
 }
 
 // StepReport is what one step did.
@@ -1318,6 +1344,11 @@ func (p *ProjectDB) Migrate(ctx context.Context, src id.Source, m Migration, o M
 			}
 		}
 		r, err := p.migrateOn(ctx, c, src, steps, m, rep, !o.Try, &basis)
+		if err == nil && !o.Try {
+			// On the writer, right after the commit, as SaveConfig sends
+			// its change (P3-01).
+			afterCommit(p.configsChanged, r.Configs)
+		}
 		if err == nil && long && !o.Try {
 			checkpoint(ctx, c) // the WAL holds about 1.2× the rewritten data (SPEC 7.5)
 		}
@@ -1560,8 +1591,8 @@ func (p *ProjectDB) migrateOn(ctx context.Context, c *sql.Conn, src id.Source, s
 		out.Problems = me.Problems
 		out.Change = ""
 	}
-	if !commit {
-		out.Change = ""
+	if !commit || err != nil {
+		out.Change, out.Configs = "", nil
 	}
 	return out, err
 }
@@ -1609,6 +1640,25 @@ func (r *run) all(src id.Source, steps []*step, m Migration, kinds map[string]De
 	if err != nil {
 		return err
 	}
+	// The migration's change ID comes first, so what its dependents
+	// save has the source migration:<id> (SPEC 2.6).
+	cid := id.Change(id.New())
+	dt := &DependentTx{ctx: r.ctx, c: r.c, tx: r.tx, src: id.SourceOf("migration", string(cid))}
+	// Only the configs that use a table the steps change are checked, and
+	// the updated ones: with hundreds of views, checking all of them
+	// twice would hold the writer for long.
+	reached := map[string][]string{}
+	scope := stepTables(steps)
+	for _, k := range sortedKeys(kinds) {
+		if reached[k], err = kinds[k].Reached(dt, scope); err != nil {
+			return err
+		}
+	}
+	failing, err := checkDependents(dt, kinds, reached)
+	if err != nil {
+		return err
+	}
+	dt.after = true
 	for i, s := range steps {
 		r.cur = &r.rep.Steps[i]
 		r.cur.SQL, r.cur.Notes, r.cur.Rows = nil, nil, 0
@@ -1616,19 +1666,57 @@ func (r *run) all(src id.Source, steps []*step, m Migration, kinds map[string]De
 			return asProblem(s.path, err)
 		}
 	}
+	updated := map[string]bool{}
 	for i, u := range m.Updates {
-		if err := kinds[u.Kind].Update(r.tx, src, u); err != nil {
+		n := len(dt.saved)
+		if err := kinds[u.Kind].Update(dt, dt.src, u); err != nil {
 			return asProblem(fmt.Sprintf("updates[%d]", i), err)
 		}
-		r.rep.Updated = append(r.rep.Updated, u.Kind+":"+u.ID)
+		// A save that changed nothing is listed too, though it sends no
+		// project:configs (dt.changes has only real changes).
+		targets := dt.saved[n:]
+		if len(targets) == 0 {
+			targets = []string{u.Kind + ":" + u.ID}
+		}
+		for _, t := range targets {
+			if !updated[t] {
+				updated[t] = true
+				r.rep.Updated = append(r.rep.Updated, t)
+			}
+		}
+	}
+	for _, t := range r.rep.Updated {
+		k, _, _ := strings.Cut(t, ":")
+		if _, ok := kinds[k]; ok && !slices.Contains(reached[k], t) {
+			reached[k] = append(reached[k], t)
+		}
+	}
+	after, err := checkDependents(dt, kinds, reached)
+	if err != nil {
+		return err
+	}
+	// A config that failed before blocks only with a new issue; its old
+	// ones then come too, marked, so the schema agent sees all of them.
+	blocks := map[string]bool{}
+	for _, p := range after.probs {
+		if updated[p.Path] || !failing.has[p.Path] || !failing.issue[p.Path+"\x00"+p.Msg] {
+			blocks[p.Path] = true
+		}
 	}
 	var probs []Problem
-	for _, k := range sortedKeys(kinds) {
-		ps, err := kinds[k].Check(r.tx)
-		if err != nil {
-			return err
+	for _, p := range after.probs {
+		if !blocks[p.Path] {
+			continue
 		}
-		probs = append(probs, ps...)
+		if !updated[p.Path] && failing.issue[p.Path+"\x00"+p.Msg] {
+			p.Msg = "already before the migration: " + p.Msg
+		}
+		probs = append(probs, p)
+	}
+	for _, t := range after.order {
+		if !blocks[t] && failing.has[t] {
+			r.rep.Broken = append(r.rep.Broken, t)
+		}
 	}
 	gs, err := r.guard(before)
 	if err != nil {
@@ -1640,7 +1728,7 @@ func (r *run) all(src id.Source, steps []*step, m Migration, kinds map[string]De
 	if r.rep.SchemaVersion, err = bumpSchemaVersion(r.tx); err != nil {
 		return err
 	}
-	after, err := json.Marshal(map[string]any{"steps": m.Steps, "schema_version": r.rep.SchemaVersion, "updated": r.rep.Updated})
+	entry, err := json.Marshal(map[string]any{"steps": m.Steps, "schema_version": r.rep.SchemaVersion, "updated": r.rep.Updated})
 	if err != nil {
 		return err
 	}
@@ -1652,8 +1740,70 @@ func (r *run) all(src id.Source, steps []*step, m Migration, kinds map[string]De
 			keep = append(keep, t)
 		}
 	}
-	r.rep.Change, err = logMigration(r.tx, src, block, keep, string(after))
+	r.rep.Configs = dt.changes
+	r.rep.Change, err = logMigrationAs(r.tx, cid, src, block, keep, string(entry))
 	return err
+}
+
+// dependentProblems are the problems of the dependents' checks, with the
+// configs that have any, in the order they first come, and each problem
+// by its target and message.
+type dependentProblems struct {
+	probs []Problem
+	order []string
+	has   map[string]bool
+	issue map[string]bool // target + "\x00" + message
+}
+
+// checkDependents runs every kind's Check on t, by kind, on the targets
+// reached gives it.
+func checkDependents(t *DependentTx, kinds map[string]Dependent, reached map[string][]string) (dependentProblems, error) {
+	out := dependentProblems{has: map[string]bool{}, issue: map[string]bool{}}
+	for _, k := range sortedKeys(kinds) {
+		if len(reached[k]) == 0 {
+			continue
+		}
+		ps, err := kinds[k].Check(t, reached[k])
+		if err != nil {
+			return out, err
+		}
+		for _, p := range ps {
+			if !out.has[p.Path] {
+				out.has[p.Path] = true
+				out.order = append(out.order, p.Path)
+			}
+			out.issue[p.Path+"\x00"+p.Msg] = true
+		}
+		out.probs = append(out.probs, ps...)
+	}
+	return out, nil
+}
+
+// stepTables are the tables, by lower-case name, whose shape the steps
+// change, under their old names and new ones; nil, for every table, when
+// a step's table isn't known. Indexes, rows and copied data don't change
+// what a config can use, so their steps add none.
+func stepTables(steps []*step) []string {
+	out := []string{}
+	add := func(n string) {
+		if n = strings.ToLower(n); !slices.Contains(out, n) {
+			out = append(out, n)
+		}
+	}
+	for _, s := range steps {
+		switch s.op {
+		case "drop_index", "create_index", "insert_rows", "copy_data":
+			continue
+		}
+		if s.table == "" {
+			return nil
+		}
+		add(s.table)
+		if (s.op == "rename_table" || s.op == "widen_table") && s.to != "" {
+			add(s.to)
+		}
+	}
+	return out
 }
 
 // asProblem pins an error of SQLite or of a check on the step or update at

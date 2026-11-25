@@ -1,0 +1,49 @@
+# Scripted answers for an offline run of this set: no model, no keys.
+#   jenab-scenarios run -model scripted:scenarios/schema-dependents/_offline.yaml scenarios/schema-dependents
+# The replies of a run that passes, in order: the main agent's call, the
+# schema agent's reads and its migration with both dependents updated,
+# and the main agent's answer. The calls reach the real tools and
+# database.
+scenarios:
+  D1_rename_column:
+    - calls: [{name: request_schema_change, args: {goal: "Rename btc_news.reason to topic."}}]
+    - calls:
+        - {name: read_config, args: {id: btc_news_list}}
+        - {name: read_config, args: {id: edit_news}}
+    - calls:
+        - name: apply_migration
+          args:
+            plan: "Rename the reason column of btc_news to topic, and update the news list and the edit form to read it."
+            steps:
+              - {op: rename_column, table: btc_news, from: reason, to: topic}
+            updates:
+              - kind: view
+                id: btc_news_list
+                config: |
+                  version: 1
+                  id: btc_news_list
+                  title: News
+                  type: table
+                  query: |
+                    SELECT url, date, title, topic FROM btc_news WHERE date >= :from_date
+                  filters:
+                    - { param: from_date, control: date, label: "From", default: "today-30d", required: true }
+                  default_sort: { field: date, direction: desc }
+                  columns:
+                    - { field: date, label: "Date", format: date }
+                    - { field: title, label: "Title", format: text }
+                    - { field: topic, label: "Topic", format: badge }
+                    - { field: url, label: "Link", format: url }
+              - kind: view
+                id: edit_news
+                config: |
+                  version: 1
+                  id: edit_news
+                  title: Edit news
+                  type: form
+                  load: "SELECT title, topic FROM btc_news WHERE url = :key"
+                  fields:
+                    - { field: title, label: "Title", control: text, required: true }
+                    - { field: topic, label: "Why it matters", control: text }
+                  submit: { action: update, table: btc_news, key: url }
+    - text: Done. btc_news.reason is now topic, and the news list and the edit form read the new name.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"maps"
 	"slices"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/id"
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/view"
 )
 
 // Event kinds of a record, in the chat's order.
@@ -62,6 +64,9 @@ type record struct {
 	subUsage    chat.Usage
 	// db are the answers of the db_query checks, by query and table regex.
 	db map[string][]dbAnswer
+	// broken are the saved views that fail validation at the end, with
+	// their issues, for views_valid.
+	broken map[string][]string
 	// userMemory is user memory at the end, for the transcript, and
 	// projectMemory the project's, for memory_contains.
 	userMemory, projectMemory []store.MemorySection
@@ -163,6 +168,11 @@ func (r *run) record(ctx context.Context, traces *agent.Traces, sent []sent) (*r
 	}
 	if rec.db, err = r.dbQueries(ctx, proj); err != nil {
 		return nil, err
+	}
+	if slices.ContainsFunc(r.sc.Asserts, func(a Assert) bool { return a.Type == "views_valid" }) {
+		if rec.broken, err = view.BrokenViews(ctx, proj.DB); err != nil {
+			return nil, fmt.Errorf("views_valid: %w", err)
+		}
 	}
 	if rec.userMemory, err = r.reg.UserMemory(ctx); err != nil {
 		return nil, err
@@ -464,6 +474,12 @@ func (rec *record) transcript() string {
 			for _, d := range rec.db[dbKey(a)] {
 				fmt.Fprintf(&b, "\n%s\n", d)
 			}
+		}
+	}
+	if len(rec.broken) > 0 {
+		b.WriteString("\n## Broken views at the end\n\n")
+		for _, vid := range slices.Sorted(maps.Keys(rec.broken)) {
+			fmt.Fprintf(&b, "- %s: %s\n", vid, strings.Join(rec.broken[vid], "; "))
 		}
 	}
 	head := false

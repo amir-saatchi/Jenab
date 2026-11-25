@@ -3,9 +3,11 @@ package app
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -375,5 +377,50 @@ func TestViewServiceReentrant(t *testing.T) {
 	}
 	if b, _ := second.get("prices"); b.Error != "" || b.Table == nil || len(b.Table.Rows) != 1 {
 		t.Errorf("second run prices %+v", b)
+	}
+}
+
+// A saved view that no longer passes validation gives an error on its
+// block, with its issues, in place of its data, on a page and on its own
+// (P3-04); a project's migrations check its views, so a rename that
+// leaves one behind fails.
+func TestViewServiceBrokenView(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t, t.TempDir())
+	p := viewsProject(t, e)
+	err := open(ctx, e.pm, p, func(proj *project.Project) error {
+		_, err := proj.DB.Migrate(ctx, id.SourceUser, store.Migration{Steps: []json.RawMessage{
+			json.RawMessage(`{"op": "rename_column", "table": "prices", "from": "price", "to": "close"}`)}}, store.MigrateOptions{})
+		var me *store.MigrationError
+		if !errors.As(err, &me) || !slices.ContainsFunc(me.Problems, func(p store.Problem) bool { return p.Path == "view:prices" }) {
+			t.Errorf("a rename that breaks views: %v", err)
+		}
+		// Saved as it is, as an undo or another version of the app may
+		// leave it.
+		c := viewsConfigs[1]
+		c.YAML = strings.ReplaceAll(c.YAML, "SELECT day, price", "SELECT day, close AS price")
+		c.Source = id.SourceUser
+		_, err = proj.DB.SaveConfig(ctx, c)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var a answers
+	if err := e.svc.Views.Page(ctx, p, "coins", viewrun.PageRequest{}, a.out); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := a.get("trend")
+	if !strings.HasPrefix(b.Error, "The view trend no longer works with the project: ") || len(b.Issues) == 0 ||
+		!strings.Contains(b.Issues[0], "close") || b.Type != "chart" || b.Title != "Trend" || b.Chart != nil || b.Place == "" {
+		t.Errorf("trend on the page %+v", b)
+	}
+	if b, _ := a.get("prices"); b.Error != "" || b.Table == nil {
+		t.Errorf("prices %+v", b)
+	}
+	b, err = e.svc.Views.View(ctx, p, "trend", viewrun.ViewRequest{})
+	if err != nil || !strings.HasPrefix(b.Error, "The view trend no longer works") || len(b.Issues) == 0 {
+		t.Errorf("trend on its own %+v, %v", b, err)
 	}
 }

@@ -48,6 +48,10 @@ func (s *ViewService) View(ctx context.Context, p id.Project, vid string, req vi
 	defer s.guard("view.run", &err)
 	err = open(ctx, s.projects, p, func(proj *project.Project) error {
 		v, err := loadView(ctx, proj.DB, vid)
+		if errors.As(err, new(*view.InvalidError)) {
+			b = viewrun.ErrorBlock(vid, err)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -94,7 +98,9 @@ type viewOrError struct {
 }
 
 // loadView reads and parses the saved view vid. One that is gone is "There
-// is no view vid.", as its block says.
+// is no view vid.", as its block says; one that no longer passes
+// validation, as after a migration, a *view.InvalidError (P3-04). When the
+// check itself fails, the view runs, and its own errors show.
 func loadView(ctx context.Context, db *store.ProjectDB, vid string) (*view.View, error) {
 	c, err := db.Config(ctx, store.KindView, vid)
 	if errors.Is(err, store.ErrNotFound) {
@@ -106,6 +112,11 @@ func loadView(ctx context.Context, db *store.ProjectDB, vid string) (*view.View,
 	v, err := view.ParseView(view.Default, []byte(c.YAML))
 	if err != nil {
 		return nil, fmt.Errorf("The view %s can't be read: %v.", vid, err)
+	}
+	if err := view.Invalid(ctx, db, c); err != nil {
+		if errors.As(err, new(*view.InvalidError)) || ctx.Err() != nil {
+			return nil, err
+		}
 	}
 	return v, nil
 }

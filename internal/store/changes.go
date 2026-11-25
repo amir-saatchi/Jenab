@@ -147,6 +147,12 @@ func writeMigration(tx *sql.Tx, src id.Source, tables []string) (id.Change, erro
 // (the added columns keep their values, or take their defaults). after is
 // the change's after, the steps; "" for none.
 func logMigration(tx *sql.Tx, src id.Source, block, kept []string, after string) (id.Change, error) {
+	return logMigrationAs(tx, id.Change(id.New()), src, block, kept, after)
+}
+
+// logMigrationAs is logMigration with the change's ID given, as the
+// source migration:<id> of what the migration saved names it.
+func logMigrationAs(tx *sql.Tx, cid id.Change, src id.Source, block, kept []string, after string) (id.Change, error) {
 	if err := checkSource(src); err != nil {
 		return "", err
 	}
@@ -159,6 +165,7 @@ func logMigration(tx *sql.Tx, src id.Source, block, kept []string, after string)
 		target = "table:" + tables[0]
 	}
 	c := newChange(src, target, "migrate")
+	c.id = cid
 	if after != "" {
 		c.after = sql.NullString{String: after, Valid: true}
 	}

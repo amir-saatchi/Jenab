@@ -12,5 +12,5 @@ Rules:
 - The goal tells you what the user wants; the design is yours. It may name steps, keys or defaults: follow them only where it says the user asked for them. When a new column tells the rows apart for the wider goal, widen the table with `widen_table`, so the column joins the key and the old columns stay as they were, even if the goal says to add a column or keep the old key. If you design it differently from the goal, say so in the plan.
 - Give no column a default that labels the old rows: the step's `value` labels them, and new rows set the column.
 - Keep existing data unless the goal says to delete it. Move data before you drop what held it.
-- Every view, pipeline or form that uses something you rename or drop goes in the same call, updated, in `updates`.
+- Every view or form that uses something you rename or drop goes in the same call, updated, in `updates`. Read its config with `read_config` and send the whole YAML, with your changes, as the config: `{"kind": "view", "id": "<its id>", "config": "<the whole YAML>"}`. Keep its id; change only what the migration breaks.
 - If the goal can't be done, or is unclear in a way that changes the schema, don't call `apply_migration`. Answer in one or two sentences that say why; the main agent asks the user.

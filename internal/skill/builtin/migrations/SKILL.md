@@ -57,4 +57,6 @@ Build a new table instead only when it must look different: `create_table` with 
 
 ### Dependents
 
-Views, pipelines and forms that use a table are its dependents; the schema agent gets them with the columns they use. After the steps, every dependent is checked against the new schema in the same transaction. Each dependent that uses something renamed or dropped goes in `updates` in the same call, with its full new config: `{"kind": "view", "id": "btc_chart", "config": …}`. If one is missing, the whole migration fails.
+Views, pipelines and forms that use a table are its dependents; the schema agent gets them with the columns they use. After the steps, every dependent is checked against the new schema in the same transaction. Each dependent that uses something renamed or dropped goes in `updates` in the same call, with its whole new config: read it with `read_config`, change what the migration breaks, and send the whole YAML as a string, with the same id: `{"kind": "view", "id": "btc_chart", "config": "id: btc_chart
+type: line
+…"}`. Forms are views too. If one is missing or fails its check, the whole migration fails with its problems, and nothing changed. A dependent that already failed its check before the migration, and isn't in `updates`, doesn't stop it; the result lists it, and the project card marks it broken. If the migration breaks it in a new way, such as renaming or dropping another column it uses, it fails the migration like any other, with its old issues marked "already before the migration": fix all of them in its update.

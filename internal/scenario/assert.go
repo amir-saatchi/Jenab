@@ -60,6 +60,7 @@ var assertFields = map[string][]string{
 	"notice_shown":        {"match"},
 	"from_history":        {"match"}, // TASK-043: a history card or tool brought it back
 	"memory_contains":     {"match"}, // user or project memory at the end
+	"views_valid":         nil,       // P3-04: every saved view passes validation at the end
 }
 
 func assertTypes() []string { return slices.Sorted(maps.Keys(assertFields)) }
@@ -109,6 +110,15 @@ func (rec *record) check(a Assert) (string, string, float64) {
 		return rec.fromHistory(a)
 	case "memory_contains":
 		return rec.memoryContains(a)
+	case "views_valid":
+		if len(rec.broken) == 0 {
+			return Pass, "every saved view passes validation", 0
+		}
+		var bad []string
+		for _, vid := range slices.Sorted(maps.Keys(rec.broken)) {
+			bad = append(bad, vid+": "+rec.broken[vid][0])
+		}
+		return Fail, clip(strings.Join(bad, "; "), 300), float64(len(bad))
 	case "text_before_tool":
 		for _, e := range rec.events {
 			if e.kind == evText && len(strings.TrimSpace(e.text)) >= 20 {

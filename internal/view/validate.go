@@ -618,7 +618,7 @@ func (r *run) prepare(q string) *prepared {
 	switch {
 	case err == nil:
 		p.cols = cols
-	case errors.As(err, &re), sqlworker.IsSQLite(err):
+	case errors.As(err, &re), sqlworker.IsSQLite(err), store.IsSQLiteError(err):
 		p.err = queryError(err)
 	case r.ctx.Err() != nil, errors.Is(err, store.ErrClosed):
 		r.fail(err)

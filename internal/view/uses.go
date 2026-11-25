@@ -184,9 +184,21 @@ func CardRefs(c store.Config, tables []string) store.ConfigRefs {
 }
 
 // Card builds db's project card as of at, with what each saved view and
-// page uses.
+// page uses, and the views that no longer pass validation marked broken
+// (P3-04). A failure of that check leaves the marks out, as the card is
+// best effort.
 func Card(ctx context.Context, db *store.ProjectDB, at time.Time) (string, error) {
-	return db.CardWith(ctx, at, CardRefs)
+	broken, err := BrokenViews(ctx, db)
+	if err != nil && ctx.Err() != nil {
+		return "", err
+	}
+	return db.CardWith(ctx, at, func(c store.Config, tables []string) store.ConfigRefs {
+		r := CardRefs(c, tables)
+		if c.Kind == store.KindView {
+			r.Broken = broken[c.ID]
+		}
+		return r
+	})
 }
 
 // MissingRefs checks what c refers to against all, the live views and

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -100,6 +101,12 @@ func runSchemaChange(ctx context.Context, env *tool.Env, a schemaArgs) (tool.Res
 	tools := []tool.Tool{sc.applyTool()}
 	for _, t := range tool.DataTools() {
 		if n := t.Spec().Name; n == "describe_table" || n == "query" {
+			tools = append(tools, t)
+		}
+	}
+	// It reads a dependent's whole config to send it updated (8.2).
+	for _, t := range tool.ConfigTools() {
+		if t.Spec().Name == "read_config" {
 			tools = append(tools, t)
 		}
 	}
@@ -219,19 +226,34 @@ func (sc *schemaChange) task(ctx context.Context, goal string) (string, error) {
 		return "", err
 	}
 	b.WriteString("## Dependents\n\n")
-	if len(sc.deps) == 0 {
-		b.WriteString("No saved views, pipelines or forms use the tables.\n")
-	}
+	n := 0
 	for _, d := range sc.deps {
+		if len(d.Uses) == 0 {
+			continue
+		}
+		n++
 		b.WriteString("- " + depName(d) + ": uses " + strings.Join(d.Uses, ", ") + "\n")
+	}
+	if n == 0 {
+		b.WriteString("No saved views, pipelines or forms use the tables.\n")
+	} else {
+		b.WriteString("\nA dependent that uses a table or column your steps rename or drop goes in updates with its whole new config; read it with read_config first.\n")
 	}
 	return b.String(), nil
 }
 
+// depName is a dependent as kind:id, with a view's type and title.
 func depName(d store.DependentInfo) string {
 	s := d.Kind + ":" + d.ID
+	var about []string
+	if d.Type != "" {
+		about = append(about, d.Type)
+	}
 	if d.Title != "" {
-		s += " (" + d.Title + ")"
+		about = append(about, strconv.Quote(d.Title))
+	}
+	if len(about) > 0 {
+		s += " (" + strings.Join(about, ", ") + ")"
 	}
 	return s
 }
@@ -263,10 +285,14 @@ func (sc *schemaChange) applyTool() tool.Tool {
 				},
 				"updates": {
 					"type": "array",
-					"description": "The views, pipelines and forms that use what the steps rename or drop, each with its full new config.",
+					"description": "The views and forms that use what the steps rename or drop, each with its whole new config. Each is checked against the schema after the steps.",
 					"items": {
 						"type": "object",
-						"properties": {"kind": {"type": "string"}, "id": {"type": "string"}, "config": {}},
+						"properties": {
+							"kind": {"type": "string", "description": "view, for views and forms"},
+							"id": {"type": "string", "description": "The dependent's id, unchanged."},
+							"config": {"description": "The whole new YAML as a string: the config read_config shows, with your changes."}
+						},
 						"required": ["kind", "id", "config"],
 						"additionalProperties": false
 					}
@@ -556,6 +582,10 @@ func (sc *schemaChange) applied(ref string) tool.Result {
 	fmt.Fprintf(&b, "Migration %s applied; the schema version is %d.\nSteps:\n%s", rep.Change, rep.SchemaVersion, stepList(rep, false))
 	if len(rep.Updated) > 0 {
 		b.WriteString("Dependents updated: " + strings.Join(rep.Updated, ", ") + "\n")
+	}
+	if len(rep.Broken) > 0 {
+		b.WriteString("Still failing their check, as before the migration: " + strings.Join(rep.Broken, ", ") +
+			". The project card marks them; fix them with read_config and save_view.\n")
 	}
 	if rep.Snapshot != "" {
 		b.WriteString("A snapshot was taken first: " + rep.Snapshot + "\n")
