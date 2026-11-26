@@ -196,7 +196,7 @@ Phase 3 is views and pages (PROPOSAL 9, SPEC 5). The Go side comes first: storag
 | [P3-03](P3-03-config-tools.md) | Agent tools for views and pages | P3-01, P3-02 | Done |
 | [P3-04](P3-04-migrations-and-dependents.md) | Migrations keep views and forms working | P3-01, P3-02, P2-06 | Done |
 | [P3-05](P3-05-view-runtime.md) | Running views: queries, filters, tables, charts and stats | P3-01, P3-02 | Done |
-| [P3-06](P3-06-view-writes.md) | Forms and row actions write data | P3-05 | Open |
+| [P3-06](P3-06-view-writes.md) | Forms and row actions write data | P3-05 | Done |
 | [P3-07](P3-07-table-stat-filter-blocks.md) | Kit blocks: table, stat and filters | – | Done |
 | [P3-08](P3-08-chart-form-blocks.md) | Kit blocks: chart and form | – | Done |
 | [P3-09](P3-09-page-screen.md) | The page screen | P3-05 to P3-08 | Open |

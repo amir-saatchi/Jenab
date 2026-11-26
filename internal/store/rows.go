@@ -56,7 +56,8 @@ func (e invalid) Is(target error) bool { return target == ErrInvalid }
 // fault returns the request's own error with its message.
 func fault(format string, a ...any) error { return invalid{fmt.Errorf(format, a...)} }
 
-// checkErr maps SQLite's constraint errors to the request's own errors.
+// checkErr maps SQLite's constraint errors to the request's own errors,
+// each a *ConstraintError that says which constraint and columns.
 func checkErr(err error) error {
 	var se *sqlite.Error
 	if !errors.As(err, &se) || se.Code()&0xff != 19 { // SQLITE_CONSTRAINT and its extended codes
@@ -66,13 +67,68 @@ func checkErr(err error) error {
 	if i := strings.LastIndex(msg, "constraint failed: "); i >= 0 {
 		msg = strings.TrimSuffix(msg[i+len("constraint failed: "):], fmt.Sprintf(" (%d)", se.Code()))
 	}
+	ce := &ConstraintError{err: err}
 	switch se.Code() {
 	case 1555: // SQLITE_CONSTRAINT_PRIMARYKEY
-		return fault("%w (%s)", ErrRowExists, msg)
+		ce.Kind, ce.err = ConstraintPrimaryKey, fmt.Errorf("%w (%s)", ErrRowExists, msg)
+		ce.Table, ce.Columns = constraintColumns(msg)
 	case 2067: // SQLITE_CONSTRAINT_UNIQUE
-		return fault("%w: the values of %s must be unique", ErrNotUnique, msg)
+		ce.Kind, ce.err = ConstraintUnique, fmt.Errorf("%w: the values of %s must be unique", ErrNotUnique, msg)
+		ce.Table, ce.Columns = constraintColumns(msg)
+	case 1299: // SQLITE_CONSTRAINT_NOTNULL
+		ce.Kind = ConstraintNotNull
+		ce.Table, ce.Columns = constraintColumns(msg)
+	case 275: // SQLITE_CONSTRAINT_CHECK
+		ce.Kind, ce.Name = ConstraintCheck, msg
+	case 787: // SQLITE_CONSTRAINT_FOREIGNKEY
+		ce.Kind = ConstraintForeignKey
+	case 3091: // SQLITE_CONSTRAINT_DATATYPE: "cannot store TEXT value in INTEGER column t.c"
+		ce.Kind = ConstraintDatatype
+		if i := strings.LastIndex(msg, " column "); i >= 0 {
+			ce.Table, ce.Columns = constraintColumns(strings.TrimSuffix(msg[i+len(" column "):], fmt.Sprintf(" (%d)", se.Code())))
+		}
 	}
-	return invalid{err}
+	return invalid{ce}
+}
+
+// The kinds of ConstraintError.
+const (
+	ConstraintPrimaryKey = "primary_key" // the key is taken (ErrRowExists)
+	ConstraintUnique     = "unique"      // a UNIQUE value is taken (ErrNotUnique)
+	ConstraintNotNull    = "not_null"
+	ConstraintCheck      = "check"
+	ConstraintForeignKey = "foreign_key"
+	ConstraintDatatype   = "datatype" // a STRICT column's type
+)
+
+// ConstraintError is a write that broke a constraint of its table, as
+// SQLite reported it: which kind, and for a key, UNIQUE, NOT NULL or a
+// STRICT type, the table and its columns; for a CHECK, its name or
+// expression. A form puts it on its field with it (SPEC 5.5). It matches
+// ErrInvalid, and ErrRowExists or ErrNotUnique by its kind.
+type ConstraintError struct {
+	Kind    string   // one of the Constraint kinds; "" for another
+	Table   string   // as SQLite names it; "" when it doesn't say
+	Columns []string // the columns, without the table
+	Name    string   // a CHECK's name or expression
+	err     error
+}
+
+func (e *ConstraintError) Error() string { return e.err.Error() }
+func (e *ConstraintError) Unwrap() error { return e.err }
+
+// constraintColumns reads "t.a, t.b" as SQLite lists a constraint's
+// columns.
+func constraintColumns(s string) (table string, cols []string) {
+	for part := range strings.SplitSeq(s, ", ") {
+		t, c, ok := strings.Cut(strings.TrimSpace(part), ".")
+		if !ok {
+			continue
+		}
+		table = t
+		cols = append(cols, c)
+	}
+	return table, cols
 }
 
 // maxColumns is the widest table whose rows the change log can hold:

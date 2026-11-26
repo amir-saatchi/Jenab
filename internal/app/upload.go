@@ -51,13 +51,19 @@ const maxUploadName = 120
 
 type uploads struct {
 	projects *project.Manager
-	mu       sync.Mutex
-	taken    map[string]bool // keys being uploaded now, by "<project>/<key>"
 }
 
 func UploadHandler(pm *project.Manager) http.Handler {
-	return &uploads{projects: pm, taken: map[string]bool{}}
+	return &uploads{projects: pm}
 }
+
+// reserved are the keys being uploaded now, by "<project>/<key>": the
+// composer's uploads and a form's file fields (FormService.Upload) take
+// their keys from it alike, so two uploads never pick the same free key.
+var reserved = struct {
+	mu    sync.Mutex
+	taken map[string]bool
+}{taken: map[string]bool{}}
 
 func (u *uploads) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -116,11 +122,11 @@ func (u *uploads) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // store stores the body under a free key made from name, then makes a
 // document's text, so the agent reads it at once.
 func (u *uploads) store(ctx context.Context, proj *project.Project, name string, r *http.Request) (Uploaded, error) {
-	key, err := u.reserve(ctx, proj, uploadKey(name))
+	key, err := reserve(ctx, proj, uploadKey(name))
 	if err != nil {
 		return Uploaded{}, err
 	}
-	defer u.release(proj.ID, key)
+	defer release(proj.ID, key)
 	meta, _ := json.Marshal(map[string]string{"name": name})
 	o, err := proj.DB.PutObject(ctx, limit.Interactive, id.SourceUser, key, r.Body, store.PutOptions{Source: "upload", Metadata: meta})
 	if err != nil {
@@ -155,21 +161,21 @@ func documentNote(ctx context.Context, proj *project.Project, o store.Object) st
 
 // reserve picks key, or key with a number before its extension, that no
 // object and no upload in progress has.
-func (u *uploads) reserve(ctx context.Context, proj *project.Project, key string) (string, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func reserve(ctx context.Context, proj *project.Project, key string) (string, error) {
+	reserved.mu.Lock()
+	defer reserved.mu.Unlock()
 	stem, ext := splitExt(key)
 	for n := 1; n <= 1000; n++ {
 		k := key
 		if n > 1 {
 			k = stem + "-" + strconv.Itoa(n) + ext
 		}
-		if u.taken[string(proj.ID)+"/"+k] {
+		if reserved.taken[string(proj.ID)+"/"+k] {
 			continue
 		}
 		_, err := proj.DB.HeadObject(ctx, k)
 		if errors.Is(err, store.ErrNotFound) {
-			u.taken[string(proj.ID)+"/"+k] = true
+			reserved.taken[string(proj.ID)+"/"+k] = true
 			return k, nil
 		}
 		if err != nil {
@@ -179,10 +185,10 @@ func (u *uploads) reserve(ctx context.Context, proj *project.Project, key string
 	return "", fmt.Errorf("upload: no free key for %s", key)
 }
 
-func (u *uploads) release(p id.Project, key string) {
-	u.mu.Lock()
-	delete(u.taken, string(p)+"/"+key)
-	u.mu.Unlock()
+func release(p id.Project, key string) {
+	reserved.mu.Lock()
+	delete(reserved.taken, string(p)+"/"+key)
+	reserved.mu.Unlock()
 }
 
 // uploadKey is uploads/<name> with name made to follow the key rules

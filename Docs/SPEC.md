@@ -260,6 +260,7 @@ Every write that changes project state adds one entry to `_jenab_changes`, in th
 ### 2.6 Undo
 
 - **Undo turn** reverts all changes whose source is a message of that turn, in reverse order. Inserted rows are deleted, updated and deleted rows are restored, and configs, memory and objects return to their previous revision. Changes from other chats, forms and pipelines are not touched.
+- **A form's or row action's write**, and a form's file upload, is undone from its notice by its change ID. Only changes whose source is `form:` can be undone that way (P3-06).
 - **Revert run** does the same for one pipeline run.
 - **Rewound turns:** a rewind (8.3) never undoes the turns' changes to project data. Its mark in the chat has *Undo changes*, which works like *Undo turn* (plan, conflicts, partly undone, redo) over the changes whose source is a rewound message. Its notice names the turns: `[the changes of turns 4–6, taken out of this chat, were undone: 12 rows in prices]`; after a rewind to the start there is no turn to hold it, so there is none.
 - **Conflicts:** if a later change touched the same row, config, memory section or object (found through `_jenab_change_rows`), undo stops and lists the conflicts. The user chooses to skip those items or cancel.
@@ -928,9 +929,10 @@ row_actions:
 
 - **`set`** updates fields of that row without a form, e.g. `{ label: "Mark read", set: { read: true }, bulk: true }`.
   - The fields must be columns of `rows_from.table`. The key and `_run_id` / `_fetched_at` can't be set.
-  - Values are literals, `now()` or `today()`, checked against the column types.
-- **`bulk: true`** (for `set` and `delete`): the table gets a checkbox column, and the action also works on the selected rows of the loaded page, at most 500. It is one write request and one change-log entry. *Choose all* chooses at most 500 rows, and with any chosen it clears them. Past 500 chosen, the bulk actions are off and a note says why.
+  - Values are literals, `now()` or `today()`, checked against the column types. `now()` is the current time as RFC 3339 in UTC, as pipelines write it (7.2); `today()` is the project's local date (P3-06).
+- **`bulk: true`** (for `set` and `delete`): the table gets a checkbox column, and the action also works on the selected rows of the loaded page, at most 500. It is one write request and one change-log entry. A row chosen twice counts once toward the 500. *Choose all* chooses at most 500 rows, and with any chosen it clears them. Past 500 chosen, the bulk actions are off and a note says why.
 - **Writes:** `set` and `delete` go through the writer queue, are recorded in the change log and can be undone.
+  - A delete that other rows still refer to (a foreign key without `CASCADE`, `SET NULL` or `SET DEFAULT`) is refused, naming their tables: "Not deleted: rows of deals still refer to it." (P3-06)
 
 ### 5.4 Chart
 
@@ -990,7 +992,9 @@ submit:
   submit: { action: update, table: watch_keywords, key: id }
   ```
 - Values are validated in Go against the table's column types before writing.
-- Constraint errors are shown on the field, e.g. `keyword: a row with this value already exists`.
+- Constraint errors are shown on the field, e.g. `keyword: a row with this value already exists`. A CHECK error goes on a field only when its text names exactly one of the form's columns; otherwise above the button.
+- Values are read as their control gives them (Persian and Arabic digits in numbers), and text a number column would keep as text is refused. An update sends every field, and a row's key is read against its column's type (P3-06).
+- A file field takes only a file uploaded to it, or on an update the row's own. When a submit fails, its uploads go to the bucket's trash; a file uploaded for a form that is never submitted stays.
 - For `run_pipeline`, if the pipeline is already running, the form shows "already running since 08:00" and does not queue a second run.
 
 ### 5.6 Actions
@@ -1561,7 +1565,7 @@ Projects are fully independent: separate folders, separate writers, separate poo
 
 ### 7.3 Write requests
 
-Every write is a typed request (`insert`, `insert_many`, `update`, `delete`, `form_submit`, `config_save`, `memory_update`, `object_put`, `migration`, `undo`) carrying a Go `context` for cancellation and deadlines. The caller gets the result back asynchronously.
+Every write is a typed request (`insert`, `insert_many`, `update`, `delete`, `config_save`, `memory_update`, `object_put`, `migration`, `undo`; forms and row actions write with `insert`, `update` and `delete` and the source `form:<view_id>`, P3-06) carrying a Go `context` for cancellation and deadlines. The caller gets the result back asynchronously.
 
 **Cancelled means not done.** While a request waits in the queue, its caller can give up, and the writer then skips it. Once the writer has taken it, it runs to the end and the caller waits for the result, even if its context is cancelled; the transaction is short (7.4). The switch between waiting, taken and given up is atomic, so a cancelled request never commits.
 

@@ -120,6 +120,16 @@ var ErrObjectExists = errors.New("store: an object already has that key")
 // bucket.ErrNotFound.
 type noObject struct{ key string }
 
+// MissingObject returns the key of a write's object reference that has
+// no object, as an object_ref column's check finds it (SPEC 4.5).
+func MissingObject(err error) (key string, ok bool) {
+	var no *noObject
+	if errors.As(err, &no) {
+		return no.key, true
+	}
+	return "", false
+}
+
 func (e *noObject) Error() string     { return "store: no object at " + e.key }
 func (e *noObject) Is(err error) bool { return err == ErrNotFound || err == bucket.ErrNotFound }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/amir-saatchi/jenab/internal/provider"
 	"github.com/amir-saatchi/jenab/internal/secret"
 	"github.com/amir-saatchi/jenab/internal/store"
+	"github.com/amir-saatchi/jenab/internal/viewwrite"
 )
 
 // Services are what the bound services work with.
@@ -29,6 +30,9 @@ type Services struct {
 	Events   *Publisher               // project:export, from ProjectService.Export
 	Notify   func(Notification) error // shows a desktop notification
 	OpenFile func(path string) error  // opens a file with the system's app
+	// Pipelines starts the runs of forms and actions; nil until Phase 4
+	// brings pipelines, so they say "Pipelines can't run yet.".
+	Pipelines viewwrite.Pipelines
 }
 
 // Bound are the services the UI calls (Q31): one thin service per
@@ -43,6 +47,7 @@ type Bound struct {
 	Bucket   *BucketService
 	Config   *ConfigService // views and pages
 	Views    *ViewService   // runs views and pages
+	Forms    *FormService   // form submits, uploads and row actions
 	Links    *LinkService   // saved links
 	System   *SystemService
 	Dev      *DevService // bound only with the developer tools on
@@ -70,6 +75,7 @@ func NewServices(s Services) Bound {
 		Bucket: &BucketService{base: b, projects: s.Projects, openFile: s.OpenFile},
 		Config: &ConfigService{base: b, projects: s.Projects},
 		Views:  &ViewService{base: b, projects: s.Projects, now: time.Now},
+		Forms:  &FormService{base: b, projects: s.Projects, now: time.Now, pipelines: s.Pipelines},
 		Links:  &LinkService{base: b, projects: s.Projects},
 		System: &SystemService{base: b, notify: s.Notify},
 		Dev:    &DevService{base: b, projects: s.Projects, models: s.Models, traces: s.Traces, logs: s.Logs, now: time.Now},
